@@ -50,6 +50,12 @@
 #define SEQUENCE_ELEMENT_TYPE_SLEEP	2
 #define SEQUENCE_ELEMENT_TYPE_EXEC	3
 
+struct ucm_value {
+        struct list_head list;
+        char *name;
+        char *data;
+};
+
 struct sequence_element {
 	struct list_head list;
 	unsigned int type;
@@ -99,20 +105,8 @@ struct use_case_modifier {
 	/* list of supported devices per modifier */
 	struct list_head dev_list;
 
-	/* ALSA PCM devices associated with any modifier PCM streams */
-	char *capture_pcm;
-	char *playback_pcm;
-
-	/* Any modifier stream TQ */
-	char *tq;
-
-	/* aliased controls */
-	char *playback_ctl;
-	char *playback_volume_id;
-	char *playback_switch_id;
-	char *capture_ctl;
-	char *capture_volume_id;
-	char *capture_switch_id;
+	/* values */
+	struct list_head value_list;
 };
 
 /*
@@ -127,7 +121,6 @@ struct use_case_device {
 
 	char *name;
 	char *comment;
-	long idx; /* index for similar devices i.e. 2 headphone jacks */
 
 	/* device enable and disable sequences */
 	struct list_head enable_list;
@@ -136,13 +129,8 @@ struct use_case_device {
 	/* device transition list */
 	struct list_head transition_list;
 
-	/* aliased controls */
-	char *playback_ctl;
-	char *playback_volume_id;
-	char *playback_switch_id;
-	char *capture_ctl;
-	char *capture_volume_id;
-	char *capture_switch_id;
+	/* value list */
+	struct list_head value_list;
 };
 
 /*
@@ -164,16 +152,14 @@ struct use_case_verb {
 	/* verb transition list */
 	struct list_head transition_list;
 
-	/* verb PCMs and TQ */
-	char *tq;
-	char *capture_pcm;
-	char *playback_pcm;
-
 	/* hardware devices that can be used with this use case */
 	struct list_head device_list;
 
 	/* modifiers that can be used with this use case */
 	struct list_head modifier_list;
+
+	/* value list */
+	struct list_head value_list;
 };
 
 /*

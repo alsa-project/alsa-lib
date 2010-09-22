@@ -80,6 +80,19 @@ int uc_mgr_config_load(const char *file, snd_config_t **cfg)
 	return 0;
 }
 
+void uc_mgr_free_value(struct list_head *base)
+{
+	struct list_head *pos, *npos;
+	struct ucm_value *val;
+	
+	list_for_each_safe(pos, npos, base) {
+		val = list_entry(pos, struct ucm_value, list);
+		free(val->name);
+		free(val->data);
+		list_del(pos);
+	}
+}
+
 void uc_mgr_free_dev_list(struct list_head *base)
 {
 	struct list_head *pos, *npos;
@@ -147,15 +160,7 @@ void uc_mgr_free_modifier(struct list_head *base)
 		uc_mgr_free_sequence(&mod->disable_list);
 		uc_mgr_free_transition(&mod->transition_list);
 		uc_mgr_free_dev_list(&mod->dev_list);
-		free(mod->capture_pcm);
-		free(mod->playback_pcm);
-		free(mod->tq);
-		free(mod->playback_ctl);
-		free(mod->playback_volume_id);
-		free(mod->playback_switch_id);
-		free(mod->capture_ctl);
-		free(mod->capture_volume_id);
-		free(mod->capture_switch_id);
+		uc_mgr_free_value(&mod->value_list);
 		free(mod);
 		list_del(pos);
 	}
@@ -173,12 +178,7 @@ void uc_mgr_free_device(struct list_head *base)
 		uc_mgr_free_sequence(&dev->enable_list);
 		uc_mgr_free_sequence(&dev->disable_list);
 		uc_mgr_free_transition(&dev->transition_list);
-		free(dev->playback_ctl);
-		free(dev->playback_volume_id);
-		free(dev->playback_switch_id);
-		free(dev->capture_ctl);
-		free(dev->capture_volume_id);
-		free(dev->capture_switch_id);
+		uc_mgr_free_value(&dev->value_list);
 		free(dev);
 		list_del(pos);
 	}
@@ -196,9 +196,7 @@ void uc_mgr_free_verb(snd_use_case_mgr_t *uc_mgr)
 		uc_mgr_free_sequence(&verb->enable_list);
 		uc_mgr_free_sequence(&verb->disable_list);
 		uc_mgr_free_transition(&verb->transition_list);
-		free(verb->tq);
-		free(verb->capture_pcm);
-		free(verb->playback_pcm);
+		uc_mgr_free_value(&verb->value_list);
 		uc_mgr_free_device(&verb->device_list);
 		uc_mgr_free_modifier(&verb->modifier_list);
 		free(verb);

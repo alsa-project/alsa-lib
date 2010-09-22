@@ -220,6 +220,88 @@ static int parse_sequence(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
 }
 
 /*
+ * Parse values.
+ *
+ * Parse values describing PCM, control/mixer settings and stream parameters.
+ *
+ * Value {
+ *   TQ Voice
+ *   CapturePCM "hw:1"
+ *   PlaybackVolume "name='Master Playback Volume',index=2"
+ *   PlaybackSwitch "name='Master Playback Switch',index=2"
+ * }
+ */
+static int parse_value(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
+			  struct list_head *base,
+			  snd_config_t *cfg)
+{
+	struct ucm_value *curr;
+	snd_config_iterator_t i, next, j, next2;
+	snd_config_t *n, *n2;
+	long l;
+	long long ll;
+	double d;
+	snd_config_type_t type;
+	int err;
+
+	snd_config_for_each(i, next, cfg) {
+		n = snd_config_iterator_entry(i);
+		snd_config_for_each(j, next2, n) {
+			const char *id;
+			n2 = snd_config_iterator_entry(i);
+			err = snd_config_get_id(n2, &id);
+			if (err < 0)
+				continue;
+
+			/* alloc new value */
+			curr = calloc(1, sizeof(struct ucm_value));
+			if (curr == NULL)
+				return -ENOMEM;
+			list_add_tail(&curr->list, base);
+			curr->name = strdup(id);
+			if (curr->name == NULL)
+				return -ENOMEM;
+			type = snd_config_get_type(n2);
+			switch (type) {
+			case SND_CONFIG_TYPE_INTEGER:
+				curr->data = malloc(16);
+				if (curr->data == NULL)
+					return -ENOMEM;
+				snd_config_get_integer(n2, &l);
+				sprintf(curr->data, "%li", l);
+				break;
+			case SND_CONFIG_TYPE_INTEGER64:
+				curr->data = malloc(32);
+				if (curr->data == NULL)
+					return -ENOMEM;
+				snd_config_get_integer64(n2, &ll);
+				sprintf(curr->data, "%lli", ll);
+				break;
+			case SND_CONFIG_TYPE_REAL:
+				curr->data = malloc(64);
+				if (curr->data == NULL)
+					return -ENOMEM;
+				snd_config_get_real(n2, &d);
+				sprintf(curr->data, "%-16g", d);
+				break;
+			case SND_CONFIG_TYPE_STRING:
+				err = parse_string(n2, &curr->data);
+				if (err < 0) {
+					uc_error("error: unable to parse a string for id '%s'!", id);
+					return err;
+				}
+				break;
+			default:
+				uc_error("error: invalid type %i in Value compound", type);
+				return -EINVAL;
+			}
+		}
+	}
+
+	return 0;
+}
+
+/*
  * Parse Modifier Use cases
  *
  *	# Each modifier is described in new section. N modifier are allowed
@@ -240,10 +322,12 @@ static int parse_sequence(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
  *		]
  *
  *		# Optional TQ and ALSA PCMs
- *		TQ Voice
- *		CapturePCM "hw:1"
- *		MasterPlaybackVolume "name='Master Playback Volume',index=2"
- *		MasterPlaybackSwitch "name='Master Playback Switch',index=2"
+ *		Value {
+ *			TQ Voice
+ *			CapturePCM "hw:1"
+ *			PlaybackVolume "name='Master Playback Volume',index=2"
+ *			PlaybackSwitch "name='Master Playback Switch',index=2"
+ *		}
  *
  *	 }
  */
@@ -267,6 +351,7 @@ static int parse_modifier(snd_use_case_mgr_t *uc_mgr,
 	INIT_LIST_HEAD(&modifier->disable_list);
 	INIT_LIST_HEAD(&modifier->transition_list);
 	INIT_LIST_HEAD(&modifier->dev_list);
+	INIT_LIST_HEAD(&modifier->value_list);
 	list_add_tail(&modifier->list, &verb->modifier_list);
 	err = snd_config_get_id(cfg, &id);
 	if (err < 0)
@@ -335,64 +420,10 @@ static int parse_modifier(snd_use_case_mgr_t *uc_mgr,
 			continue;
 		}
 
-		if (strcmp(id, "TQ") == 0) {
-			err = parse_string(n, &modifier->tq);
+		if (strcmp(id, "Value") == 0) {
+			err = parse_value(uc_mgr, &modifier->value_list, n);
 			if (err < 0) {
-				uc_error("error: failed to parse TQ");
-				return err;
-			}
-			continue;
-		}
-
-		if (strcmp(id, "CapturePCM") == 0) {
-			err = parse_string(n, &modifier->capture_pcm);
-			if (err < 0) {
-				uc_error("error: failed to get Capture PCM ID");
-				return err;
-			}
-			continue;
-		}
-
-		if (strcmp(id, "PlaybackPCM") == 0) {
-			err = parse_string(n, &modifier->playback_pcm);
-			if (err < 0) {
-				uc_error("error: failed to get Playback PCM ID");
-				return err;
-			}
-			continue;
-		}
-
-		if (strcmp(id, "MasterPlaybackVolume") == 0) {
-			err = parse_string(n, &modifier->playback_volume_id);
-			if (err < 0) {
-				uc_error("error: failed to get MasterPlaybackVolume");
-				return err;
-			}
-			continue;
-		}
-
-		if (strcmp(id, "MasterPlaybackSwitch") == 0) {
-			err = parse_string(n, &modifier->playback_switch_id);
-			if (err < 0) {
-				uc_error("error: failed to get MasterPlaybackSwitch");
-				return err;
-			}
-			continue;
-		}
-
-		if (strcmp(id, "MasterCaptureVolume") == 0) {
-			err = parse_string(n, &modifier->capture_volume_id);
-			if (err < 0) {
-				uc_error("error: failed to get MasterCaptureVolume");
-				return err;
-			}
-			continue;
-		}
-
-		if (strcmp(id, "MasterCaptureSwitch") == 0) {
-			err = parse_string(n, &modifier->capture_switch_id);
-			if (err < 0) {
-				uc_error("error: failed to get MasterCaptureSwitch");
+				uc_error("error: failed to parse Value");
 				return err;
 			}
 			continue;
@@ -422,9 +453,10 @@ static int parse_modifier(snd_use_case_mgr_t *uc_mgr,
  *		...
  *	]
  *
- *	MasterPlaybackVolume "name='Master Playback Volume',index=2"
- *	MasterPlaybackSwitch "name='Master Playback Switch',index=2"
- *
+ *	Value {
+ *		PlaybackVolume "name='Master Playback Volume',index=2"
+ *		PlaybackSwitch "name='Master Playback Switch',index=2"
+ *	}
  * }
  */
 static int parse_device_index(snd_use_case_mgr_t *uc_mgr,
@@ -446,17 +478,16 @@ static int parse_device_index(snd_use_case_mgr_t *uc_mgr,
 	INIT_LIST_HEAD(&device->enable_list);
 	INIT_LIST_HEAD(&device->disable_list);
 	INIT_LIST_HEAD(&device->transition_list);
+	INIT_LIST_HEAD(&device->value_list);
 	list_add_tail(&device->list, &verb->device_list);
-	device->name = strdup(name);
-	if (device->name == NULL)
-		return -ENOMEM;
 	if (snd_config_get_id(cfg, &id) < 0)
 		return -EINVAL;
-	err = safe_strtol(id, &device->idx);
-	if (err < 0) {
-		uc_error("Invalid device index '%s'", id);
-		return -EINVAL;
-	}
+	device->name = malloc(strlen(name) + strlen(id) + 2);
+	if (device->name == NULL)
+		return -ENOMEM;
+	strcpy(device->name, name);
+	strcat(device->name, ".");
+	strcat(device->name, id);
 
 	snd_config_for_each(i, next, cfg) {
 		const char *id;
@@ -506,37 +537,10 @@ static int parse_device_index(snd_use_case_mgr_t *uc_mgr,
 			continue;
 		}
 
-		if (strcmp(id, "MasterPlaybackVolume") == 0) {
-			err = parse_string(n, &device->playback_volume_id);
+		if (strcmp(id, "Value") == 0) {
+			err = parse_value(uc_mgr, &device->value_list, n);
 			if (err < 0) {
-				uc_error("error: failed to get MasterPlaybackVolume");
-				return err;
-			}
-			continue;
-		}
-
-		if (strcmp(id, "MasterPlaybackSwitch") == 0) {
-			err = parse_string(n, &device->playback_switch_id);
-			if (err < 0) {
-				uc_error("error: failed to get MasterPlaybackSwitch");
-				return err;
-			}
-			continue;
-		}
-
-		if (strcmp(id, "MasterCaptureVolume") == 0) {
-			err = parse_string(n, &device->capture_volume_id);
-			if (err < 0) {
-				uc_error("error: failed to get MasterCaptureVolume");
-				return err;
-			}
-			continue;
-		}
-
-		if (strcmp(id, "MasterCaptureSwitch") == 0) {
-			err = parse_string(n, &device->capture_switch_id);
-			if (err < 0) {
-				uc_error("error: failed to get MasterCaptureSwitch");
+				uc_error("error: failed to parse Value");
 				return err;
 			}
 			continue;
@@ -577,7 +581,7 @@ static int parse_device(snd_use_case_mgr_t *uc_mgr,
  *	# enable and disable sequences are compulsory
  *	EnableSequence [
  *		cset "name='Master Playback Switch',index=2 0,0"
- *		cset "name='Master Playback Volume':index=2 25,25"
+ *		cset "name='Master Playback Volume',index=2 25,25"
  *		msleep 50
  *		cset "name='Master Playback Switch',index=2 1,1"
  *		cset "name='Master Playback Volume',index=2 50,50"
@@ -592,10 +596,11 @@ static int parse_device(snd_use_case_mgr_t *uc_mgr,
  *	]
  *
  *	# Optional TQ and ALSA PCMs
- *	TQ HiFi
- *	CapturePCM 0
- *	PlaybackPCM 0
- *
+ *	Value {
+ *		TQ HiFi
+ *		CapturePCM 0
+ *		PlaybackPCM 0
+ *	}
  * }
  */
 static int parse_verb(snd_use_case_mgr_t *uc_mgr,
@@ -643,25 +648,9 @@ static int parse_verb(snd_use_case_mgr_t *uc_mgr,
 			continue;
 		}
 
-		if (strcmp(id, "TQ") == 0) {
-			uc_dbg("Parse TQ");
-			err = parse_string(n, &verb->tq);
-			if (err < 0)
-				return err;
-			continue;
-		}
-
-		if (strcmp(id, "CapturePCM") == 0) {
-			uc_dbg("Parse CapturePCM");
-			err = parse_string(n, &verb->capture_pcm);
-			if (err < 0)
-				return err;
-			continue;
-		}
-
-		if (strcmp(id, "PlaybackPCM") == 0) {
-			uc_dbg("Parse PlaybackPCM");
-			err = parse_string(n, &verb->playback_pcm);
+		if (strcmp(id, "Value") == 0) {
+			uc_dbg("Parse Value");
+			err = parse_value(uc_mgr, &verb->value_list, n);
 			if (err < 0)
 				return err;
 			continue;
@@ -703,6 +692,7 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 	INIT_LIST_HEAD(&verb->transition_list);
 	INIT_LIST_HEAD(&verb->device_list);
 	INIT_LIST_HEAD(&verb->modifier_list);
+	INIT_LIST_HEAD(&verb->value_list);
 	list_add_tail(&verb->list, &uc_mgr->verb_list);
 	verb->name = strdup(use_case_name);
 	if (verb->name == NULL)

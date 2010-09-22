@@ -31,7 +31,92 @@
  */
 
 #include "ucm_local.h"
+#include <stdarg.h>
 #include <pthread.h>
+
+/*
+ * misc
+ */
+
+static int check_identifier(const char *identifier, const char *prefix)
+{
+	int len;
+
+	if (strcmp(identifier, prefix) == 0)
+		return 1;
+	len = strlen(prefix);
+	if (memcmp(identifier, prefix, len) == 0 && identifier[len] == '/')
+		return 1;
+	return 0;
+}
+
+static int list_count(struct list_head *list)
+{
+        struct list_head *pos;
+        int count = 0;
+        
+        list_for_each(pos, list) {
+                count += 1;
+        }
+        return count;
+}
+
+static int alloc_str_list(struct list_head *list, int mult, char **result[])
+{
+        char **res;
+        int cnt;
+        
+        cnt = list_count(list) * mult;
+        if (cnt == 0)
+                return cnt;
+        res = calloc(mult, cnt * sizeof(char *));
+        if (res == NULL)
+                return -ENOMEM;
+        *result = res;
+        return cnt;
+}
+
+/**
+ * \brief Create an identifier
+ * \param fmt Format (sprintf like)
+ * \param ... Optional arguments for sprintf like format
+ * \return Allocated string identifier or NULL on error
+ */
+char *snd_use_case_identifier(const char *fmt, ...)
+{
+	char *str, *res;
+	int size = strlen(fmt) + 512;
+	va_list args;
+
+	str = malloc(size);
+	if (str == NULL)
+		return NULL;
+	va_start(args, fmt);
+	vsnprintf(str, size, fmt, args);
+	va_end(args);
+	str[size-1] = '\0';
+	res = realloc(str, strlen(str) + 1);
+	if (res)
+		return res;
+	return str;
+}
+
+/**
+ * \brief Free a string list
+ * \param list The string list to free
+ * \param items Count of strings
+ * \return Zero if success, otherwise a negative error code
+ */
+int snd_use_case_free_list(const char *list[], int items)
+{
+        int i;
+	if (list == NULL)
+		return 0;
+        for (i = 0; i < items; i++)
+		free((void *)list[i]);
+        free(list);
+	return 0;
+}
 
 /**
  * \brief Execute the sequence
@@ -85,15 +170,13 @@ static int import_master_config(snd_use_case_mgr_t *uc_mgr)
 
 /**
  * \brief Universal find - string in a list
- * \param uc_mgr Use case manager
  * \param list List of structures
  * \param offset Offset of list structure
  * \param soffset Offset of string structure
  * \param match String to match
  * \return structure on success, otherwise a NULL (not found)
  */
-static void *find0(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
-		   struct list_head *list,
+static void *find0(struct list_head *list,
 		   unsigned long offset,
 		   unsigned long soffset,
 		   const char *match)
@@ -110,10 +193,111 @@ static void *find0(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
 	return NULL;
 }
 
-#define find(uc_mgr, list, type, member, value, match) \
-	find0(uc_mgr, list, \
-		     (unsigned long)(&((type *)0)->member), \
-		     (unsigned long)(&((type *)0)->value), match)
+#define find(list, type, member, value, match) \
+	find0(list, (unsigned long)(&((type *)0)->member), \
+		    (unsigned long)(&((type *)0)->value), match)
+
+/**
+ * \brief Universal string list
+ * \param list List of structures
+ * \param result Result list
+ * \param offset Offset of list structure
+ * \param s1offset Offset of string structure
+ * \return count of items on success, otherwise a negative error code
+ */
+static int get_list0(struct list_head *list,
+                     const char **result[],
+                     unsigned long offset,
+                     unsigned long s1offset)
+{
+        char **res;
+        int cnt;
+	struct list_head *pos;
+	char *ptr, *str1;
+
+	cnt = alloc_str_list(list, 1, &res);
+	if (cnt <= 0)
+	        return cnt;
+	*result = (const char **)res;
+	list_for_each(pos, list) {
+		ptr = list_entry_offset(pos, char, offset);
+		str1 = *((char **)(ptr + s1offset));
+		if (str1 != NULL) {
+		        *res = strdup(str1);
+		        if (*res == NULL)
+		                goto __fail;
+                } else {
+                        *res = NULL;
+                }
+                res++;
+	}
+	return cnt;
+      __fail:
+        snd_use_case_free_list((const char **)res, cnt);
+        return -ENOMEM;
+}
+
+#define get_list(list, result, type, member, s1) \
+	get_list0(list, result, \
+	            (unsigned long)(&((type *)0)->member), \
+		    (unsigned long)(&((type *)0)->s1))
+
+/**
+ * \brief Universal string list - pair of strings
+ * \param list List of structures
+ * \param result Result list
+ * \param offset Offset of list structure
+ * \param s1offset Offset of string structure
+ * \param s1offset Offset of string structure
+ * \return count of items on success, otherwise a negative error code
+ */
+static int get_list20(struct list_head *list,
+                      const char **result[],
+                      unsigned long offset,
+                      unsigned long s1offset,
+                      unsigned long s2offset)
+{
+        char **res;
+        int cnt;
+	struct list_head *pos;
+	char *ptr, *str1, *str2;
+
+	cnt = alloc_str_list(list, 2, &res);
+	if (cnt <= 0)
+	        return cnt;
+        *result = (const char **)res;
+	list_for_each(pos, list) {
+		ptr = list_entry_offset(pos, char, offset);
+		str1 = *((char **)(ptr + s1offset));
+		if (str1 != NULL) {
+		        *res = strdup(str1);
+		        if (*res == NULL)
+		                goto __fail;
+                } else {
+                        *res = NULL;
+                }
+                res++;
+		str2 = *((char **)(ptr + s2offset));
+		if (str2 != NULL) {
+		        *res = strdup(str2);
+		        if (*res == NULL)
+		                goto __fail;
+                } else {
+                        *res = NULL;
+                }
+                res++;
+	}
+	return cnt;
+      __fail:
+        snd_use_case_free_list((const char **)res, cnt);
+        return -ENOMEM;
+}
+
+#define get_list2(list, result, type, member, s1, s2) \
+	get_list20(list, result, \
+	            (unsigned long)(&((type *)0)->member), \
+		    (unsigned long)(&((type *)0)->s1), \
+		    (unsigned long)(&((type *)0)->s2))
 
 /**
  * \brief Find verb
@@ -122,17 +306,33 @@ static void *find0(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
  * \return structure on success, otherwise a NULL (not found)
  */
 static inline struct use_case_verb *find_verb(snd_use_case_mgr_t *uc_mgr,
-					      const char *_name)
+					      const char *verb_name)
 {
-	return find(uc_mgr, &uc_mgr->verb_list,
+	return find(&uc_mgr->verb_list,
 		    struct use_case_verb, list, name,
-		    _name);
+		    verb_name);
+}
+
+/**
+ * \brief Find modifier
+ * \param verb Use case verb
+ * \param modifier_name modifier to find
+ * \return structure on success, otherwise a NULL (not found)
+ */
+static inline struct use_case_modifier *
+        find_modifier(struct use_case_verb *verb,
+                      const char *modifier_name)
+{
+	return find(&verb->modifier_list,
+		    struct use_case_modifier, list, name,
+		    modifier_name);
 }
 
 /**
  * \brief Set verb
  * \param uc_mgr Use case manager
  * \param verb verb to set
+ * \param enable nonzero = enable, zero = disable
  * \return zero on success, otherwise a negative error code
  */
 static int set_verb(snd_use_case_mgr_t *uc_mgr,
@@ -150,6 +350,62 @@ static int set_verb(snd_use_case_mgr_t *uc_mgr,
 	err = execute_sequence(uc_mgr, seq);
 	if (enable && err >= 0)
 		uc_mgr->active_verb = verb;
+	return err;
+}
+
+/**
+ * \brief Set modifier
+ * \param uc_mgr Use case manager
+ * \param modifier modifier to set
+ * \param enable nonzero = enable, zero = disable
+ * \return zero on success, otherwise a negative error code
+ */
+static int set_modifier(snd_use_case_mgr_t *uc_mgr,
+			struct use_case_modifier *modifier,
+			int enable)
+{
+	struct list_head *seq;
+	int err;
+
+	if (enable) {
+		seq = &modifier->enable_list;
+	} else {
+		seq = &modifier->disable_list;
+	}
+	err = execute_sequence(uc_mgr, seq);
+	if (enable && err >= 0) {
+		list_add_tail(&modifier->active_list, &uc_mgr->active_modifiers);
+	} else if (!enable) {
+		list_del(&modifier->active_list);
+	}
+	return err;
+}
+
+/**
+ * \brief Set device
+ * \param uc_mgr Use case manager
+ * \param device device to set
+ * \param enable nonzero = enable, zero = disable
+ * \return zero on success, otherwise a negative error code
+ */
+static int set_device(snd_use_case_mgr_t *uc_mgr,
+		      struct use_case_device *device,
+		      int enable)
+{
+	struct list_head *seq;
+	int err;
+
+	if (enable) {
+		seq = &device->enable_list;
+	} else {
+		seq = &device->disable_list;
+	}
+	err = execute_sequence(uc_mgr, seq);
+	if (enable && err >= 0) {
+		list_add_tail(&device->active_list, &uc_mgr->active_devices);
+	} else if (!enable) {
+		list_del(&device->active_list);
+	}
 	return err;
 }
 
@@ -249,7 +505,7 @@ int snd_use_case_mgr_reset(snd_use_case_mgr_t *uc_mgr)
 	list_for_each_safe(pos, npos, &uc_mgr->active_modifiers) {
 		modifier = list_entry(pos, struct use_case_modifier,
 				      active_list);
-		err = disable_modifier(uc_mgr, modifier);
+		err = set_modifier(uc_mgr, modifier, 0);
 		if (err < 0)
 			uc_error("Unable to disable modifier %s", modifier->name);
 	}
@@ -258,13 +514,13 @@ int snd_use_case_mgr_reset(snd_use_case_mgr_t *uc_mgr)
 	list_for_each_safe(pos, npos, &uc_mgr->active_devices) {
 		device = list_entry(pos, struct use_case_device,
 				    active_list);
-		err = disable_device(uc_mgr, device);
+		err = set_device(uc_mgr, device, 0);
 		if (err < 0)
 			uc_error("Unable to disable device %s", device->name);
 	}
 	INIT_LIST_HEAD(&uc_mgr->active_devices);
 
-	err = disable_verb(uc_mgr, uc_mgr->active_verb);
+	err = set_verb(uc_mgr, uc_mgr->active_verb, 0);
 	if (err < 0) {
 		uc_error("Unable to disable verb %s", uc_mgr->active_verb->name);
 		return err;
@@ -277,1172 +533,469 @@ int snd_use_case_mgr_reset(snd_use_case_mgr_t *uc_mgr)
 	return err;
 }
 
-#if 0
-static int enable_use_case_verb(snd_use_case_mgr_t *uc_mgr, int verb_id,
-		snd_ctl_elem_list_t *list, snd_ctl_t *handle)
-{
-	struct use_case_verb *verb;
-	int ret;
-
-	if (verb_id >= uc_mgr->num_verbs) {
-		uc_error("error: invalid verb id %d", verb_id);
-		return -EINVAL;
-	}
-	verb = &uc_mgr->verb[verb_id];
-
-	uc_dbg("verb %s", verb->name);
-	ret = exec_sequence(verb->enable, uc_mgr, list, handle);
-	if (ret < 0) {
-		uc_error("error: could not enable verb %s", verb->name);
-		return ret;
-	}
-	uc_mgr->card.current_verb = verb_id;
-
-	return 0;
-}
-
-static int disable_use_case_verb(snd_use_case_mgr_t *uc_mgr, int verb_id,
-		snd_ctl_elem_list_t *list, snd_ctl_t *handle)
-{
-	struct use_case_verb *verb;
-	int ret;
-
-	if (verb_id >= uc_mgr->num_verbs) {
-		uc_error("error: invalid verb id %d", verb_id);
-		return -EINVAL;
-	}
-	verb = &uc_mgr->verb[verb_id];
-
-	/* we set the invalid verb at open() but we should still
-	 * check that this succeeded */
-	if (verb == NULL)
-		return 0;
-
-	uc_dbg("verb %s", verb->name);
-	ret = exec_sequence(verb->disable, uc_mgr, list, handle);
-	if (ret < 0) {
-		uc_error("error: could not disable verb %s", verb->name);
-		return ret;
-	}
-
-	return 0;
-}
-
-static int enable_use_case_device(snd_use_case_mgr_t *uc_mgr,
-		int device_id, snd_ctl_elem_list_t *list, snd_ctl_t *handle)
-{
-	struct use_case_verb *verb = &uc_mgr->verb[uc_mgr->card.current_verb];
-	struct use_case_device *device = &verb->device[device_id];
-	int ret;
-
-	if (uc_mgr->card.current_verb == VERB_NOT_INITIALISED)
-		return -EINVAL;
-
-	uc_dbg("device %s", device->name);
-	ret = exec_sequence(device->enable, uc_mgr, list, handle);
-	if (ret < 0) {
-		uc_error("error: could not enable device %s", device->name);
-		return ret;
-	}
-
-	set_device_status(uc_mgr, device_id, 1);
-	return 0;
-}
-
-static int disable_use_case_device(snd_use_case_mgr_t *uc_mgr,
-		int device_id, snd_ctl_elem_list_t *list, snd_ctl_t *handle)
-{
-	struct use_case_verb *verb = &uc_mgr->verb[uc_mgr->card.current_verb];
-	struct use_case_device *device = &verb->device[device_id];
-	int ret;
-
-	if (uc_mgr->card.current_verb == VERB_NOT_INITIALISED)
-		return -EINVAL;
-
-	uc_dbg("device %s", device->name);
-	ret = exec_sequence(device->disable, uc_mgr, list, handle);
-	if (ret < 0) {
-		uc_error("error: could not disable device %s", device->name);
-		return ret;
-	}
-
-	set_device_status(uc_mgr, device_id, 0);
-	return 0;
-}
-
-static int enable_use_case_modifier(snd_use_case_mgr_t *uc_mgr,
-		int modifier_id, snd_ctl_elem_list_t *list, snd_ctl_t *handle)
-{
-	struct use_case_verb *verb = &uc_mgr->verb[uc_mgr->card.current_verb];
-	struct use_case_modifier *modifier = &verb->modifier[modifier_id];
-	int ret;
-
-	if (uc_mgr->card.current_verb == VERB_NOT_INITIALISED)
-		return -EINVAL;
-
-	uc_dbg("modifier %s", modifier->name);
-	ret = exec_sequence(modifier->enable, uc_mgr, list, handle);
-	if (ret < 0) {
-		uc_error("error: could not enable modifier %s", modifier->name);
-		return ret;
-	}
-
-	set_modifier_status(uc_mgr, modifier_id, 1);
-	return 0;
-}
-
-static int disable_use_case_modifier(snd_use_case_mgr_t *uc_mgr,
-		int modifier_id, snd_ctl_elem_list_t *list, snd_ctl_t *handle)
-{
-	struct use_case_verb *verb = &uc_mgr->verb[uc_mgr->card.current_verb];
-	struct use_case_modifier *modifier = &verb->modifier[modifier_id];
-	int ret;
-
-	if (uc_mgr->card.current_verb == VERB_NOT_INITIALISED)
-		return -EINVAL;
-
-	uc_dbg("modifier %s", modifier->name);
-	ret = exec_sequence(modifier->disable, uc_mgr, list, handle);
-	if (ret < 0) {
-		uc_error("error: could not disable modifier %s", modifier->name);
-		return ret;
-	}
-
-	set_modifier_status(uc_mgr, modifier_id, 0);
-	return 0;
-}
-
-/*
- * Tear down current use case verb, device and modifier.
+/**
+ * \brief Get list of cards in pair cardname+comment
+ * \param list Returned list
+ * \return Number of list entries if success, otherwise a negative error code
  */
-static int dismantle_use_case(snd_use_case_mgr_t *uc_mgr,
-		snd_ctl_elem_list_t *list, snd_ctl_t *handle)
+static int get_card_list(const char **list[])
 {
-	struct use_case_verb *verb = &uc_mgr->verb[uc_mgr->card.current_verb];
-	int ret, i;
-
-	/* No active verb */
-	if (uc_mgr->card.current_verb == VERB_NOT_INITIALISED)
-		return 0;
-
-	/* disable all modifiers that are active */
-	for (i = 0; i < verb->num_modifiers; i++) {
-		if (get_modifier_status(uc_mgr,i)) {
-			ret = disable_use_case_modifier(uc_mgr, i, list, handle);
-			if (ret < 0)
-				return ret;
-		}
-	}
-
-	/* disable all devices that are active */
-	for (i = 0; i < verb->num_devices; i++) {
-		if (get_device_status(uc_mgr,i)) {
-			ret = disable_use_case_device(uc_mgr, i, list, handle);
-			if (ret < 0)
-				return ret;
-		}
-	}
-
-	/* disable verb */
-	ret = disable_use_case_verb(uc_mgr, uc_mgr->card.current_verb, list, handle);
-	if (ret < 0)
-		return ret;
-
-	return 0;
-}
-
- /**
- * \brief Dump sound card controls in format required for sequencer.
- * \param card_name The name of the sound card to be dumped
- * \return zero on success, otherwise a negative error code
- */
-int snd_use_case_dump(const char *card_name)
-{
-	snd_ctl_t *handle;
-	snd_ctl_card_info_t *info;
-	snd_ctl_elem_list_t *list;
-	int ret, i, count, idx;
-	char ctl_name[8];
-
-	snd_ctl_card_info_alloca(&info);
-	snd_ctl_elem_list_alloca(&list);
-
-	idx = snd_card_get_index(card_name);
-	if (idx < 0)
-		return idx;
-	sprintf(ctl_name, "hw:%d", idx);
-
-	/* open and load snd card */
-	ret = snd_ctl_open(&handle, ctl_name, SND_CTL_READONLY);
-	if (ret < 0) {
-		uc_error("error: could not open controls for  %s: %s",
-			card_name, snd_strerror(ret));
-		return ret;
-	}
-
-	ret = snd_ctl_card_info(handle, info);
-	if (ret < 0) {
-		uc_error("error: could not get control info for %s:%s",
-			card_name, snd_strerror(ret));
-		goto close;
-	}
-
-	ret = snd_ctl_elem_list(handle, list);
-	if (ret < 0) {
-		uc_error("error: cannot determine controls for  %s: %s",
-			card_name, snd_strerror(ret));
-		goto close;
-	}
-
-	count = snd_ctl_elem_list_get_count(list);
-	if (count < 0) {
-		ret = 0;
-		goto close;
-	}
-
-	snd_ctl_elem_list_set_offset(list, 0);
-	if (snd_ctl_elem_list_alloc_space(list, count) < 0) {
-		uc_error("error: not enough memory for control elements");
-		ret =  -ENOMEM;
-		goto close;
-	}
-	if ((ret = snd_ctl_elem_list(handle, list)) < 0) {
-		uc_error("error: cannot determine controls: %s",
-			snd_strerror(ret));
-		goto free;
-	}
-
-	/* iterate through each kcontrol and add to use
-	 * case manager control list */
-	for (i = 0; i < count; ++i) {
-		snd_ctl_elem_id_t *id;
-		snd_ctl_elem_id_alloca(&id);
-		snd_ctl_elem_list_get_id(list, i, id);
-
-		/* dump to stdout in friendly format */
-		ret = dump_control(handle, id);
-		if (ret < 0) {
-			uc_error("error: control dump failed: %s",
-				snd_strerror(ret));
-			goto free;
-		}
-	}
-free:
-	snd_ctl_elem_list_free_space(list);
-close:
-	snd_ctl_close(handle);
-	return ret;
+	return -ENXIO;	/* Not Yet Implemented */
 }
 
 /**
- * \brief List supported use case verbs for given soundcard
- * \param uc_mgr use case manager
- * \param verb returned list of supported use case verb id and names
- * \return number of use case verbs if success, otherwise a negative error code
+ * \brief Get list of verbs in pair verbname+comment
+ * \param list Returned list
+ * \param verbname For verb (NULL = current)
+ * \return Number of list entries if success, otherwise a negative error code
  */
-int snd_use_case_get_verb_list(snd_use_case_mgr_t *uc_mgr,
-		const char **verb[])
+static int get_verb_list(snd_use_case_mgr_t *uc_mgr, const char **list[])
 {
-	int ret;
-
-	pthread_mutex_lock(&uc_mgr->mutex);
-
-	*verb = uc_mgr->verb_list;
-	ret = uc_mgr->num_verbs;
-
-	pthread_mutex_unlock(&uc_mgr->mutex);
-	return ret;
+        return get_list2(&uc_mgr->verb_list, list,
+                         struct use_case_verb, list,
+                         name, comment);
 }
 
 /**
- * \brief List supported use case devices for given verb
- * \param uc_mgr use case manager
- * \param verb verb id.
- * \param device returned list of supported use case device id and names
- * \return number of use case devices if success, otherwise a negative error code
+ * \brief Get list of devices in pair devicename+comment
+ * \param list Returned list
+ * \param verbname For verb (NULL = current)
+ * \return Number of list entries if success, otherwise a negative error code
  */
-int snd_use_case_get_device_list(snd_use_case_mgr_t *uc_mgr,
-		const char *verb_name, const char **device[])
+static int get_device_list(snd_use_case_mgr_t *uc_mgr, const char **list[],
+                           char *verbname)
 {
-	struct use_case_verb *verb = NULL;
-	int i, ret = -EINVAL;
-
-	pthread_mutex_lock(&uc_mgr->mutex);
-
-	/* find verb name */
-	for (i = 0; i < uc_mgr->num_verbs; i++) {
-		verb = &uc_mgr->verb[i];
-		if (!strcmp(uc_mgr->verb[i].name, verb_name))
-			goto found;
-	}
-
-	uc_error("error: use case verb %s not found", verb_name);
-	goto out;
-
-found:
-	*device = verb->device_list;
-	ret = verb->num_devices;
-out:
-	pthread_mutex_unlock(&uc_mgr->mutex);
-	return ret;
+        struct use_case_verb *verb;
+        
+        if (verbname) {
+                verb = find_verb(uc_mgr, verbname);
+        } else {
+                verb = uc_mgr->active_verb;
+        }
+        if (verb == NULL)
+                return -ENOENT;
+        return get_list2(&verb->device_list, list,
+                         struct use_case_device, list,
+                         name, comment);
+        return 0;
 }
 
 /**
- * \brief List supported use case verb modifiers for given verb
- * \param uc_mgr use case manager
- * \param verb verb id.
- * \param mod returned list of supported use case modifier id and names
- * \return number of use case modifiers if success, otherwise a negative error code
+ * \brief Get list of modifiers in pair devicename+comment
+ * \param list Returned list
+ * \param verbname For verb (NULL = current)
+ * \return Number of list entries if success, otherwise a negative error code
  */
-int snd_use_case_get_mod_list(snd_use_case_mgr_t *uc_mgr,
-		const char *verb_name, const char **mod[])
+static int get_modifier_list(snd_use_case_mgr_t *uc_mgr, const char **list[],
+                             char *verbname)
 {
-	struct use_case_verb *verb = NULL;
-	int i, ret = -EINVAL;
-
-	pthread_mutex_lock(&uc_mgr->mutex);
-
-	/* find verb name */
-	for (i = 0; i <uc_mgr->num_verbs; i++) {
-		verb = &uc_mgr->verb[i];
-		if (!strcmp(uc_mgr->verb[i].name, verb_name))
-			goto found;
-	}
-
-	uc_error("error: use case verb %s not found", verb_name);
-	goto out;
-
-found:
-	*mod = verb->modifier_list;
-	ret = verb->num_modifiers;
-out:
-	pthread_mutex_unlock(&uc_mgr->mutex);
-	return ret;
+        struct use_case_verb *verb;
+        
+        if (verbname) {
+                verb = find_verb(uc_mgr, verbname);
+        } else {
+                verb = uc_mgr->active_verb;
+        }
+        if (verb == NULL)
+                return -ENOENT;
+        return get_list2(&verb->modifier_list, list,
+                         struct use_case_modifier, list,
+                         name, comment);
+        return 0;
 }
 
-static struct sequence_element *get_transition_sequence(
-		struct transition_sequence *trans_list, const char *name)
+struct myvalue {
+        struct list_head list;
+        char *value;
+};
+
+static int add_values(struct list_head *list,
+                      const char *identifier,
+                      struct list_head *source)
 {
-	struct transition_sequence *trans = trans_list;
-
-	while (trans) {
-		if (trans->name && !strcmp(trans->name, name))
-			return trans->transition;
-
-		trans =  trans->next;
-	}
-
-	return NULL;
-}
-
-static int exec_transition_sequence(snd_use_case_mgr_t *uc_mgr,
-			struct sequence_element *trans_sequence)
-{
-	int ret;
-
-	ret = exec_sequence(trans_sequence, uc_mgr, uc_mgr->list,
-			uc_mgr->handle);
-	if (ret < 0)
-		uc_error("error: could not exec transition sequence");
-
-	return ret;
-}
-
-static int handle_transition_verb(snd_use_case_mgr_t *uc_mgr,
-		int new_verb_id)
-{
-	struct use_case_verb *old_verb = &uc_mgr->verb[uc_mgr->card.current_verb];
-	struct use_case_verb *new_verb;
-	static struct sequence_element *trans_sequence;
-
-	if (uc_mgr->card.current_verb == VERB_NOT_INITIALISED)
-		return -EINVAL;
-
-	if (new_verb_id >= uc_mgr->num_verbs) {
-		uc_error("error: invalid new_verb id %d", new_verb_id);
-		return -EINVAL;
-	}
-
-	new_verb = &uc_mgr->verb[new_verb_id];
-
-	uc_dbg("new verb %s", new_verb->name);
-
-	trans_sequence = get_transition_sequence(old_verb->transition_list,
-							new_verb->name);
-	if (trans_sequence != NULL) {
-		int ret, i;
-
-		uc_dbg("find transition sequence %s->%s",
-				old_verb->name, new_verb->name);
-
-		/* disable all modifiers that are active */
-		for (i = 0; i < old_verb->num_modifiers; i++) {
-			if (get_modifier_status(uc_mgr,i)) {
-				ret = disable_use_case_modifier(uc_mgr, i,
-					uc_mgr->list, uc_mgr->handle);
-				if (ret < 0)
-					return ret;
-			}
-		}
-
-		/* disable all devices that are active */
-		for (i = 0; i < old_verb->num_devices; i++) {
-			if (get_device_status(uc_mgr,i)) {
-				ret = disable_use_case_device(uc_mgr, i,
-					uc_mgr->list, uc_mgr->handle);
-				if (ret < 0)
-					return ret;
-			}
-		}
-
-		ret = exec_transition_sequence(uc_mgr, trans_sequence);
-		if (ret)
-			return ret;
-
-		uc_mgr->card.current_verb = new_verb_id;
-
-		return 0;
-	}
-
-	return-EINVAL;
+        struct ucm_value *v;
+        struct myvalue *val;
+        struct list_head *pos, *pos1;
+        int match;
+        
+        list_for_each(pos, source) {
+                v = list_entry(pos, struct ucm_value, list);
+                if (check_identifier(identifier, v->name)) {
+                        match = 0;
+                        list_for_each(pos1, list) {
+                                val = list_entry(pos1, struct myvalue, list);
+                                if (strcmp(val->value, v->data) == 0) {
+                                        match = 1;
+                                        break;
+                                }
+                        }
+                        if (!match) {
+                                val = malloc(sizeof(struct myvalue));
+                                if (val == NULL)
+                                        return -ENOMEM;
+                                list_add_tail(&val->list, list);
+                        }
+                }
+        }
+        return 0;
 }
 
 /**
- * \brief Set new use case verb for sound card
- * \param uc_mgr use case manager
- * \param verb verb id
- * \return zero if success, otherwise a negative error code
+ * \brief Get list of values
+ * \param list Returned list
+ * \param verbname For verb (NULL = current)
+ * \return Number of list entries if success, otherwise a negative error code
  */
-int snd_use_case_set_verb(snd_use_case_mgr_t *uc_mgr,
-		const char *verb_name)
+static int get_value_list(snd_use_case_mgr_t *uc_mgr,
+                          const char *identifier,
+                          const char **list[],
+                          char *verbname)
 {
-	int i = 0, ret = -EINVAL, inactive = 0;
-
-	pthread_mutex_lock(&uc_mgr->mutex);
-
-	uc_dbg("uc_mgr %p, verb_name %s", uc_mgr, verb_name);
-
-	/* check for "Inactive" */
-	if (!strcmp(verb_name, SND_USE_CASE_VERB_INACTIVE)) {
-		inactive = 1;
-		goto found;
-	}
-
-	/* find verb name */
-	for (i = 0; i <uc_mgr->num_verbs; i++) {
-		if (!strcmp(uc_mgr->verb[i].name, verb_name))
-			goto found;
-	}
-
-	uc_error("error: use case verb %s not found", verb_name);
-	goto out;
-found:
-	/* use case verb found - check that we actually changing the verb */
-	if (i == uc_mgr->card.current_verb) {
-		uc_dbg("current verb ID %d", i);
-		ret = 0;
-		goto out;
-	}
-
-	if (handle_transition_verb(uc_mgr, i) == 0)
-		goto out;
-
-	/*
-	 * Dismantle the old use cases by running it's verb, device and modifier
-	 * disable sequences
-	 */
-	ret = dismantle_use_case(uc_mgr, uc_mgr->list, uc_mgr->handle);
-	if (ret < 0) {
-		uc_error("error: failed to dismantle current use case: %s",
-			uc_mgr->verb[i].name);
-		goto out;
-	}
-
-	/* we don't need to initialise new verb if inactive */
-	if (inactive)
-		goto out;
-
-	/* Initialise the new use case verb */
-	ret = enable_use_case_verb(uc_mgr, i, uc_mgr->list, uc_mgr->handle);
-	if (ret < 0)
-		uc_error("error: failed to initialise new use case: %s",
-				verb_name);
-out:
-	pthread_mutex_unlock(&uc_mgr->mutex);
-
-	return ret;
-}
-
-static int config_use_case_device(snd_use_case_mgr_t *uc_mgr,
-		const char *device_name, int enable)
-{
-	struct use_case_verb *verb;
-	int ret, i;
-
-	pthread_mutex_lock(&uc_mgr->mutex);
-
-	if (uc_mgr->card.current_verb == VERB_NOT_INITIALISED) {
-		uc_error("error: no valid use case verb set\n");
-		ret = -EINVAL;
-		goto out;
-	}
-
-	verb = &uc_mgr->verb[uc_mgr->card.current_verb];
-
-	uc_dbg("current verb %s", verb->name);
-	uc_dbg("uc_mgr %p device_name %s", uc_mgr, device_name);
-
-	/* find device name and index */
-	for (i = 0; i <verb->num_devices; i++) {
-		uc_dbg("verb->num_devices %s", verb->device[i].name);
-		if (!strcmp(verb->device[i].name, device_name))
-			goto found;
-	}
-
-	uc_error("error: use case device %s not found", device_name);
-	ret = -EINVAL;
-	goto out;
-
-found:
-	if (enable) {
-		/* Initialise the new use case device */
-		ret = enable_use_case_device(uc_mgr, i, uc_mgr->list,
-			uc_mgr->handle);
-		if (ret < 0)
-			goto out;
-	} else {
-		/* disable the old device */
-		ret = disable_use_case_device(uc_mgr, i, uc_mgr->list,
-			uc_mgr->handle);
-		if (ret < 0)
-			goto out;
-	}
-
-out:
-	pthread_mutex_unlock(&uc_mgr->mutex);
-	return ret;
+        struct list_head mylist, *pos, *npos;
+        struct myvalue *val;
+        struct use_case_verb *verb;
+        struct use_case_device *dev;
+        struct use_case_modifier *mod;
+        char **res;
+        int err;
+        
+        if (verbname) {
+                verb = find_verb(uc_mgr, verbname);
+        } else {
+                verb = uc_mgr->active_verb;
+        }
+        if (verb == NULL)
+                return -ENOENT;
+        INIT_LIST_HEAD(&mylist);
+        err = add_values(&mylist, identifier, &verb->value_list);
+        if (err < 0)
+                goto __fail;
+        list_for_each(pos, &verb->device_list) {
+                dev = list_entry(pos, struct use_case_device, list);
+                err = add_values(&mylist, identifier, &dev->value_list);
+                if (err < 0)
+                        goto __fail;
+        }
+        list_for_each(pos, &verb->modifier_list) {
+                mod = list_entry(pos, struct use_case_modifier, list);
+                err = add_values(&mylist, identifier, &mod->value_list);
+                if (err < 0)
+                        goto __fail;
+        }
+        err = alloc_str_list(&mylist, 1, &res);
+        *list = (const char **)res;
+        if (err >= 0) {
+                list_for_each(pos, &mylist) {
+                        val = list_entry(pos, struct myvalue, list);
+                        *res = strdup(val->value);
+                        if (*res == NULL) {
+                                snd_use_case_free_list((const char **)res, err);
+                                err = -ENOMEM;
+                                goto __fail;
+                        }
+                        res++;
+                }
+        }
+      __fail:
+        list_for_each_safe(pos, npos, &mylist) {
+                val = list_entry(pos, struct myvalue, list);
+                list_del(&val->list);
+                free(val);
+        }
+        return err;
 }
 
 /**
- * \brief Enable use case device
+ * \brief Get list of enabled devices
+ * \param list Returned list
+ * \param verbname For verb (NULL = current)
+ * \return Number of list entries if success, otherwise a negative error code
+ */
+static int get_enabled_device_list(snd_use_case_mgr_t *uc_mgr,
+                                   const char **list[])
+{
+        if (uc_mgr->active_verb == NULL)
+                return -EINVAL;
+        return get_list(&uc_mgr->active_devices, list,
+                        struct use_case_device, active_list,
+                        name);
+}
+
+/**
+ * \brief Get list of enabled modifiers
+ * \param list Returned list
+ * \param verbname For verb (NULL = current)
+ * \return Number of list entries if success, otherwise a negative error code
+ */
+static int get_enabled_modifier_list(snd_use_case_mgr_t *uc_mgr,
+                                     const char **list[])
+{
+        if (uc_mgr->active_verb == NULL)
+                return -EINVAL;
+        return get_list(&uc_mgr->active_modifiers, list,
+                        struct use_case_modifier, active_list,
+                        name);
+}
+
+/**
+ * \brief Obtain a list of entries
+ * \param uc_mgr Use case manager (may be NULL - card list)
+ * \param identifier (may be NULL - card list)
+ * \param list Returned allocated list
+ * \return Number of list entries if success, otherwise a negative error code
+ */
+int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
+			  const char *identifier,
+			  const char **list[])
+{
+	char *str, *str1;
+	int err;
+
+	if (uc_mgr == NULL || identifier == NULL)
+		return get_card_list(list);
+	pthread_mutex_lock(&uc_mgr->mutex);
+	if (strcmp(identifier, "_verbs") == 0)
+		err = get_verb_list(uc_mgr, list);
+        else if (strcmp(identifier, "_enadevs"))
+        	err = get_enabled_device_list(uc_mgr, list);
+        else if (strcmp(identifier, "_enamods"))
+                err = get_enabled_modifier_list(uc_mgr, list);
+        else {
+                str1 = strchr(identifier, '/');
+                if (str1) {
+                        str = strdup(str1 + 1);
+                	if (str == NULL) {
+                  		err = -ENOMEM;
+                		goto __end;
+                        }
+                } else {
+                        str = NULL;
+                }
+        	if (check_identifier(identifier, "_devices"))
+          		err = get_device_list(uc_mgr, list, str);
+                else if (check_identifier(identifier, "_modifiers"))
+                        err = get_modifier_list(uc_mgr, list, str);
+                else
+                        err = get_value_list(uc_mgr, identifier, list, str);
+        	if (str)
+        		free(str);
+        }
+      __end:
+	pthread_mutex_unlock(&uc_mgr->mutex);
+	return err;
+}
+
+static int get_value1(const char **value, struct list_head *value_list,
+                      const char *identifier)
+{
+        struct ucm_value *val;
+        struct list_head *pos;
+        
+        list_for_each(pos, value_list) {
+              val = list_entry(pos, struct ucm_value, list);
+              if (check_identifier(identifier, val->name)) {
+                      *value = strdup(val->data);
+                      if (*value == NULL)
+                              return -ENOMEM;
+                      return 0;
+              }
+        }
+        return 0;
+}
+
+/**
+ * \brief Get value
+ * \param list Returned list
+ * \param verbname For verb (NULL = current)
+ * \return Number of list entries if success, otherwise a negative error code
+ */
+static int get_value(snd_use_case_mgr_t *uc_mgr,
+                     const char *identifier,
+                     const char **value,
+                     const char *modifier)
+{
+        struct use_case_modifier *mod;
+
+        if (uc_mgr->active_verb == NULL)
+                return -ENOENT;
+        if (modifier == NULL)
+                return get_value1(value, &uc_mgr->active_verb->value_list,
+                                  identifier);
+        mod = find_modifier(uc_mgr->active_verb, modifier);
+        if (mod == NULL)
+                return -EINVAL;
+        return get_value1(value, &mod->value_list, identifier);
+}
+
+/**
+ * \brief Get current - string
  * \param uc_mgr Use case manager
- * \param device the device to be enabled
- * \return 0 = successful negative = error
- */
-int snd_use_case_enable_device(snd_use_case_mgr_t *uc_mgr,
-		const char *device)
-{
-	return config_use_case_device(uc_mgr, device, 1);
-}
-
-/**
- * \brief Disable use case device
- * \param uc_mgr Use case manager
- * \param device the device to be disabled
- * \return 0 = successful negative = error
- */
-int snd_use_case_disable_device(snd_use_case_mgr_t *uc_mgr,
-		const char *device)
-{
-	return config_use_case_device(uc_mgr, device, 0);
-}
-
-static struct use_case_device *get_device(snd_use_case_mgr_t *uc_mgr,
-							const char *name, int *id)
-{
-	struct use_case_verb *verb;
-	int i;
-
-	if (uc_mgr->card.current_verb == VERB_NOT_INITIALISED)
-		return NULL;
-
-	verb = &uc_mgr->verb[uc_mgr->card.current_verb];
-
-	uc_dbg("current verb %s", verb->name);
-
-	for (i = 0; i < verb->num_devices; i++) {
-		uc_dbg("device %s", verb->device[i].name);
-
-		if (!strcmp(verb->device[i].name, name)) {
-			if (id)
-				*id = i;
-			return &verb->device[i];
-		}
-	}
-
-	return NULL;
-}
-
-/**
- * \brief Disable old_device and then enable new_device.
- *        If from_device is not enabled just return.
- *        Check transition sequence firstly.
- * \param uc_mgr Use case manager
- * \param old the device to be closed
- * \param new the device to be opened
- * \return 0 = successful negative = error
- */
-int snd_use_case_switch_device(snd_use_case_mgr_t *uc_mgr,
-			const char *old, const char *new)
-{
-	static struct sequence_element *trans_sequence;
-	struct use_case_device *old_device;
-	struct use_case_device *new_device;
-	int ret = 0, old_id, new_id;
-
-	uc_dbg("old %s, new %s", old, new);
-
-	pthread_mutex_lock(&uc_mgr->mutex);
-
-	old_device = get_device(uc_mgr, old, &old_id);
-	if (!old_device) {
-		uc_error("error: device %s not found", old);
-		ret = -EINVAL;
-		goto out;
-	}
-
-	if (!get_device_status(uc_mgr, old_id)) {
-		uc_error("error: device %s not enabled", old);
-		goto out;
-	}
-
-	new_device = get_device(uc_mgr, new, &new_id);
-	if (!new_device) {
-		uc_error("error: device %s not found", new);
-		ret = -EINVAL;
-		goto out;
-	}
-
-	trans_sequence = get_transition_sequence(old_device->transition_list, new);
-	if (trans_sequence != NULL) {
-
-		uc_dbg("find transition sequece %s->%s", old, new);
-
-		ret = exec_transition_sequence(uc_mgr, trans_sequence);
-		if (ret)
-			goto out;
-
-		set_device_status(uc_mgr, old_id, 0);
-		set_device_status(uc_mgr, new_id, 1);
-	} else {
-		/* use lock in config_use_case_device */
-		pthread_mutex_unlock(&uc_mgr->mutex);
-
-		config_use_case_device(uc_mgr, old, 0);
-		config_use_case_device(uc_mgr, new, 1);
-
-		return 0;
-	}
-out:
-	pthread_mutex_unlock(&uc_mgr->mutex);
-	return ret;
-}
-
-/*
- * Check to make sure that the modifier actually supports any of the
- * active devices.
- */
-static int is_modifier_valid(snd_use_case_mgr_t *uc_mgr,
-	struct use_case_verb *verb, struct use_case_modifier *modifier)
-{
-	struct dev_list *dev_list;
-	int dev;
-
-	/* check modifier list against each enabled device */
-	for (dev = 0; dev < verb->num_devices; dev++) {
-		if (!get_device_status(uc_mgr, dev))
-			continue;
-
-		dev_list = modifier->dev_list;
-		uc_dbg("checking device %s for %s", verb->device[dev].name,
-			dev_list->name ? dev_list->name : "");
-
-		while (dev_list) {
-			uc_dbg("device supports %s", dev_list->name);
-			if (!strcmp(dev_list->name, verb->device[dev].name))
-					return 1;
-			dev_list = dev_list->next;
-		}
-	}
-	return 0;
-}
-
-static int config_use_case_mod(snd_use_case_mgr_t *uc_mgr,
-		const char *modifier_name, int enable)
-{
-	struct use_case_verb *verb;
-	int ret, i;
-
-	pthread_mutex_lock(&uc_mgr->mutex);
-
-	if (uc_mgr->card.current_verb == VERB_NOT_INITIALISED) {
-		ret = -EINVAL;
-		goto out;
-	}
-
-	verb = &uc_mgr->verb[uc_mgr->card.current_verb];
-
-	uc_dbg("current verb %s", verb->name);
-	uc_dbg("uc_mgr %p modifier_name %s", uc_mgr, modifier_name);
-
-	/* find modifier name */
-	for (i = 0; i <verb->num_modifiers; i++) {
-		uc_dbg("verb->num_modifiers %d %s", i, verb->modifier[i].name);
-		if (!strcmp(verb->modifier[i].name, modifier_name) &&
-			is_modifier_valid(uc_mgr, verb, &verb->modifier[i]))
-			goto found;
-	}
-
-	uc_error("error: use case modifier %s not found or invalid",
-		modifier_name);
-	ret = -EINVAL;
-	goto out;
-
-found:
-	if (enable) {
-		/* Initialise the new use case device */
-		ret = enable_use_case_modifier(uc_mgr, i, uc_mgr->list,
-			uc_mgr->handle);
-		if (ret < 0)
-			goto out;
-	} else {
-		/* disable the old device */
-		ret = disable_use_case_modifier(uc_mgr, i, uc_mgr->list,
-			uc_mgr->handle);
-		if (ret < 0)
-			goto out;
-	}
-
-out:
-	pthread_mutex_unlock(&uc_mgr->mutex);
-	return ret;
-}
-
-/**
- * \brief Enable use case modifier
- * \param uc_mgr Use case manager
- * \param modifier the modifier to be enabled
- * \return 0 = successful negative = error
- */
-int snd_use_case_enable_modifier(snd_use_case_mgr_t *uc_mgr,
-		const char *modifier)
-{
-	return config_use_case_mod(uc_mgr, modifier, 1);
-}
-
-/**
- * \brief Disable use case modifier
- * \param uc_mgr Use case manager
- * \param modifier the modifier to be disabled
- * \return 0 = successful negative = error
- */
-int snd_use_case_disable_modifier(snd_use_case_mgr_t *uc_mgr,
-		const char *modifier)
-{
-	return config_use_case_mod(uc_mgr, modifier, 0);
-}
-
-static struct use_case_modifier *get_modifier(snd_use_case_mgr_t *uc_mgr,
-							const char *name, int *mod_id)
-{
-	struct use_case_verb *verb;
-	int i;
-
-	if (uc_mgr->card.current_verb == VERB_NOT_INITIALISED)
-		return NULL;
-
-	verb = &uc_mgr->verb[uc_mgr->card.current_verb];
-
-	uc_dbg("current verb %s", verb->name);
-
-	uc_dbg("uc_mgr %p modifier_name %s", uc_mgr, name);
-
-	for (i = 0; i < verb->num_modifiers; i++) {
-		uc_dbg("verb->num_devices %s", verb->modifier[i].name);
-
-		if (!strcmp(verb->modifier[i].name, name)) {
-			if (mod_id)
-				*mod_id = i;
-			return &verb->modifier[i];
-		}
-	}
-
-	return NULL;
-}
-
-/**
- * \brief Disable old_modifier and then enable new_modifier.
- *        If old_modifier is not enabled just return.
- *        Check transition sequence firstly.
- * \param uc_mgr Use case manager
- * \param old the modifier to be closed
- * \param new the modifier to be opened
- * \return 0 = successful negative = error
- */
-int snd_use_case_switch_modifier(snd_use_case_mgr_t *uc_mgr,
-			const char *old, const char *new)
-{
-	struct use_case_modifier *old_modifier;
-	struct use_case_modifier *new_modifier;
-	static struct sequence_element *trans_sequence;
-	int ret = 0, old_id, new_id
-
-	uc_dbg("old %s, new %s", old, new);
-
-	pthread_mutex_lock(&uc_mgr->mutex);
-
-	old_modifier = get_modifier(uc_mgr, old, &old_id);
-	if (!old_modifier) {
-		uc_error("error: modifier %s not found", old);
-		ret = -EINVAL;
-		goto out;
-	}
-
-	if (!get_modifier_status(uc_mgr, old_id)) {
-		uc_error("error: modifier %s not enabled", old);
-		ret = -EINVAL;
-		goto out;
-	}
-
-	new_modifier = get_modifier(uc_mgr, new, &new_id);
-	if (!new_modifier) {
-		uc_error("error: modifier %s not found", new);
-		ret = -EINVAL;
-		goto out;
-	}
-
-	trans_sequence = get_transition_sequence(
-				old_modifier->transition_list, new);
-	if (trans_sequence != NULL) {
-		uc_dbg("find transition sequence %s->%s", old, new);
-
-		ret = exec_transition_sequence(uc_mgr, trans_sequence);
-		if (ret)
-			goto out;
-
-		set_device_status(uc_mgr, old_id, 0);
-		set_device_status(uc_mgr, new_id, 1);
-	} else {
-		/* use lock in config_use_case_mod*/
-		pthread_mutex_unlock(&uc_mgr->mutex);
-
-		config_use_case_mod(uc_mgr, old, 0);
-		config_use_case_mod(uc_mgr, new, 1);
-
-		return 0;
-	}
-out:
-	pthread_mutex_unlock(&uc_mgr->mutex);
-	return ret;
-}
-
-/**
- * \brief Get current use case verb from sound card
- * \param uc_mgr use case manager
- * \return Verb Name if success, otherwise NULL
- */
-const char *snd_use_case_get_verb(snd_use_case_mgr_t *uc_mgr)
-{
-	const char *ret = NULL;
-
-	pthread_mutex_lock(&uc_mgr->mutex);
-
-	if (uc_mgr->card.current_verb != VERB_NOT_INITIALISED)
-		ret = uc_mgr->verb_list[uc_mgr->card.current_verb];
-
-	pthread_mutex_unlock(&uc_mgr->mutex);
-
-	return ret;
-}
-
-/**
- * \brief Get device status for current use case verb
- * \param uc_mgr Use case manager
- * \param device_name The device we are interested in.
- * \return - 1 = enabled, 0 = disabled, negative = error
- */
-int snd_use_case_get_device_status(snd_use_case_mgr_t *uc_mgr,
-		const char *device_name)
-{
-	struct use_case_device *device;
-	int ret = -EINVAL, dev_id;
-
-	pthread_mutex_lock(&uc_mgr->mutex);
-
-	device = get_device(uc_mgr, device_name, &dev_id);
-	if (device == NULL) {
-		uc_error("error: use case device %s not found", device_name);
-		goto out;
-	}
-
-	ret = get_device_status(uc_mgr, dev_id);
-out:
-	pthread_mutex_unlock(&uc_mgr->mutex);
-
-	return ret;
-}
-
-/**
- * \brief Get modifier status for current use case verb
- * \param uc_mgr Use case manager
- * \param device_name The device we are interested in.
- * \return - 1 = enabled, 0 = disabled, negative = error
- */
-int snd_use_case_get_modifier_status(snd_use_case_mgr_t *uc_mgr,
-		const char *modifier_name)
-{
-	struct use_case_modifier *modifier;
-	int ret = -EINVAL, mod_id;
-
-	pthread_mutex_lock(&uc_mgr->mutex);
-
-	modifier = get_modifier(uc_mgr, modifier_name, &mod_id);
-	if (modifier == NULL) {
-		uc_error("error: use case modifier %s not found", modifier_name);
-		goto out;
-	}
-
-	ret = get_modifier_status(uc_mgr, mod_id);
-out:
-	pthread_mutex_unlock(&uc_mgr->mutex);
-
-	return ret;
-}
-
-/**
- * \brief Get current use case verb QoS
- * \param uc_mgr use case manager
- * \return QoS level
- */
-enum snd_use_case_qos
-	snd_use_case_get_verb_qos(snd_use_case_mgr_t *uc_mgr)
-{
-	struct use_case_verb *verb;
-	enum snd_use_case_qos ret = SND_USE_CASE_QOS_UNKNOWN;
-
-	pthread_mutex_lock(&uc_mgr->mutex);
-
-	if (uc_mgr->card.current_verb != VERB_NOT_INITIALISED) {
-		verb = &uc_mgr->verb[uc_mgr->card.current_verb];
-		ret = verb->qos;
-	}
-
-	pthread_mutex_unlock(&uc_mgr->mutex);
-
-	return ret;
-}
-
-/**
- * \brief Get current use case modifier QoS
- * \param uc_mgr use case manager
- * \return QoS level
- */
-enum snd_use_case_qos
-	snd_use_case_get_mod_qos(snd_use_case_mgr_t *uc_mgr,
-					const char *modifier_name)
-{
-	struct use_case_modifier *modifier;
-	enum snd_use_case_qos ret = SND_USE_CASE_QOS_UNKNOWN;
-
-	pthread_mutex_lock(&uc_mgr->mutex);
-
-	modifier = get_modifier(uc_mgr, modifier_name, NULL);
-	if (modifier != NULL)
-		ret = modifier->qos;
-	else
-		uc_error("error: use case modifier %s not found", modifier_name);
-	pthread_mutex_unlock(&uc_mgr->mutex);
-
-	return ret;
-}
-
-/**
- * \brief Get current use case verb playback PCM
- * \param uc_mgr use case manager
- * \return PCM number if success, otherwise negative
- */
-int snd_use_case_get_verb_playback_pcm(snd_use_case_mgr_t *uc_mgr)
-{
-	struct use_case_verb *verb;
-	int ret = -EINVAL;
-
-	pthread_mutex_lock(&uc_mgr->mutex);
-
-	if (uc_mgr->card.current_verb != VERB_NOT_INITIALISED) {
-		verb = &uc_mgr->verb[uc_mgr->card.current_verb];
-		ret = verb->playback_pcm;
-	}
-
-	pthread_mutex_unlock(&uc_mgr->mutex);
-
-	return ret;
-}
-
-/**
- * \brief Get current use case verb playback PCM
- * \param uc_mgr use case manager
- * \return PCM number if success, otherwise negative
- */
-int snd_use_case_get_verb_capture_pcm(snd_use_case_mgr_t *uc_mgr)
-{
-	struct use_case_verb *verb;
-	int ret = -EINVAL;
-
-	pthread_mutex_lock(&uc_mgr->mutex);
-
-	if (uc_mgr->card.current_verb != VERB_NOT_INITIALISED) {
-		verb = &uc_mgr->verb[uc_mgr->card.current_verb];
-		ret = verb->capture_pcm;
-	}
-
-	pthread_mutex_unlock(&uc_mgr->mutex);
-
-	return ret;
-}
-
-/**
- * \brief Get current use case modifier playback PCM
- * \param uc_mgr use case manager
- * \return PCM number if success, otherwise negative
- */
-int snd_use_case_get_mod_playback_pcm(snd_use_case_mgr_t *uc_mgr,
-					const char *modifier_name)
-{
-	struct use_case_modifier *modifier;
-	int ret = -EINVAL;
-
-	pthread_mutex_lock(&uc_mgr->mutex);
-
-	modifier = get_modifier(uc_mgr, modifier_name, NULL);
-	if (modifier == NULL)
-		uc_error("error: use case modifier %s not found",
-						modifier_name);
-	else
-		ret = modifier->playback_pcm;
-
-	pthread_mutex_unlock(&uc_mgr->mutex);
-
-	return ret;
-}
-
-/**
- * \brief Get current use case modifier playback PCM
- * \param uc_mgr use case manager
- * \return PCM number if success, otherwise negative
- */
-int snd_use_case_get_mod_capture_pcm(snd_use_case_mgr_t *uc_mgr,
-	const char *modifier_name)
-{
-	struct use_case_modifier *modifier;
-	int ret = -EINVAL;
-
-	pthread_mutex_lock(&uc_mgr->mutex);
-
-	modifier = get_modifier(uc_mgr, modifier_name, NULL);
-	if (modifier == NULL)
-		uc_error("error: use case modifier %s not found",
-						modifier_name);
-	else
-		ret = modifier->capture_pcm;
-
-	pthread_mutex_unlock(&uc_mgr->mutex);
-
-	return ret;
-}
-
-/**
- * \brief Get volume/mute control name depending on use case device.
- * \param uc_mgr use case manager
- * \param type the control type we are looking for
- * \param device_name The use case device we are interested in.
- * \return control name if success, otherwise NULL
+ * \param identifier 
+ * \param value Value pointer
+ * \return Zero if success, otherwise a negative error code
  *
- * Get the control id for common volume and mute controls that are aliased
- * in the named use case device.
- */
-const char *snd_use_case_get_device_ctl_elem_name(snd_use_case_mgr_t *uc_mgr,
-		enum snd_use_case_control_alias type, const char *device_name)
+ * Note: String is dynamically allocated, use free() to
+ * deallocate this string.
+ */      
+int snd_use_case_get(snd_use_case_mgr_t *uc_mgr,
+		     const char *identifier,
+		     const char **value)
 {
-	struct use_case_device *device;
-	const char *kcontrol_name = NULL;
+        char *str, *str1;
+        int err;
 
 	pthread_mutex_lock(&uc_mgr->mutex);
-
-	device = get_device(uc_mgr, device_name, NULL);
-	if (!device) {
-		uc_error("error: device %s not found", device_name);
-		goto out;
-	}
-
-	switch (type) {
-	case SND_USE_CASE_ALIAS_PLAYBACK_VOLUME:
-		kcontrol_name = device->playback_volume_id;
-		break;
-	case SND_USE_CASE_ALIAS_CAPTURE_VOLUME:
-		kcontrol_name = device->capture_volume_id;
-		break;
-	case SND_USE_CASE_ALIAS_PLAYBACK_SWITCH:
-		kcontrol_name = device->playback_switch_id;
-		break;
-	case SND_USE_CASE_ALIAS_CAPTURE_SWITCH:
-		kcontrol_name = device->capture_switch_id;
-		break;
-	default:
-		uc_error("error: invalid control alias %d", type);
-		break;
-	}
-
-out:
+	if (identifier == NULL) {
+	        *value = strdup(uc_mgr->card_name);
+	        if (*value == NULL) {
+	                err = -ENOMEM;
+	                goto __end;
+                }
+                err = 0;
+        } else if (strcmp(identifier, "_verb") == 0) {
+                if (uc_mgr->active_verb == NULL)
+                        return -ENOENT;
+                *value = strdup(uc_mgr->active_verb->name);
+                if (*value == NULL) {
+                        err = -ENOMEM;
+                        goto __end;
+                }
+	        err = 0;
+        } else {
+                str1 = strchr(identifier, '/');
+                if (str1) {
+                        str = strdup(str1 + 1);
+                	if (str == NULL) {
+                  		err = -ENOMEM;
+                		goto __end;
+                        }
+                } else {
+                        str = NULL;
+                }
+                err = get_value(uc_mgr, identifier, value, str);
+                if (str)
+                        free(str);
+        }
+      __end:
 	pthread_mutex_unlock(&uc_mgr->mutex);
+        return err;
+}
 
-	return kcontrol_name;
+long device_status(snd_use_case_mgr_t *uc_mgr,
+                   const char *device_name)
+{
+        struct use_case_device *dev;
+        struct list_head *pos;
+        
+        list_for_each(pos, &uc_mgr->active_devices) {
+                dev = list_entry(pos, struct use_case_device, active_list);
+                if (strcmp(dev->name, device_name) == 0)
+                        return 1;
+        }
+        return 0;
+}
+
+long modifier_status(snd_use_case_mgr_t *uc_mgr,
+                     const char *modifier_name)
+{
+        struct use_case_modifier *mod;
+        struct list_head *pos;
+        
+        list_for_each(pos, &uc_mgr->active_modifiers) {
+                mod = list_entry(pos, struct use_case_modifier, active_list);
+                if (strcmp(mod->name, modifier_name) == 0)
+                        return 1;
+        }
+        return 0;
+}
+
+
+/**
+ * \brief Get current - integer
+ * \param uc_mgr Use case manager
+ * \param identifier 
+ * \return Value if success, otherwise a negative error code 
+ */
+long snd_use_case_geti(snd_use_case_mgr_t *uc_mgr,
+                       const char *identifier)
+{
+        char *str, *str1;
+        long err;
+
+	pthread_mutex_lock(&uc_mgr->mutex);
+        if (0) {
+                /* nothing here - prepared for fixed identifiers */
+        } else {
+                str1 = strchr(identifier, '/');
+                if (str1) {
+                        str = strdup(str1 + 1);
+                	if (str == NULL) {
+                  		err = -ENOMEM;
+                		goto __end;
+                        }
+                } else {
+                        str = NULL;
+                }
+                if (check_identifier(identifier, "_devstatus"))
+                        err = device_status(uc_mgr, str);
+                else if (check_identifier(identifier, "_modstatus"))
+                        err = modifier_status(uc_mgr, str);
+                else
+                        err = -EINVAL;
+                if (str)
+                        free(str);
+        }
+      __end:
+	pthread_mutex_unlock(&uc_mgr->mutex);
+        return err;
 }
 
 /**
- * \brief Get volume/mute control IDs depending on use case modifier.
- * \param uc_mgr use case manager
- * \param type the control type we are looking for
- * \param modifier_name The use case modifier we are interested in.
- * \return ID if success, otherwise a negative error code
- *
- * Get the control id for common volume and mute controls that are aliased
- * in the named use case device.
+ * \brief Set new
+ * \param uc_mgr Use case manager
+ * \param identifier
+ * \param value Value
+ * \return Zero if success, otherwise a negative error code
  */
-const char *snd_use_case_get_modifier_ctl_elem_name(snd_use_case_mgr_t *uc_mgr,
-		enum snd_use_case_control_alias type, const char *modifier_name)
+int snd_use_case_set(snd_use_case_mgr_t *uc_mgr,
+                     const char *identifier,
+                     const char *value)
 {
-	struct use_case_modifier *modifier;
-	const char *kcontrol_name = NULL;
+        char *str, *str1;
+        int err;
 
 	pthread_mutex_lock(&uc_mgr->mutex);
-
-	modifier = get_modifier(uc_mgr, modifier_name, NULL);
-	if (!modifier) {
-		uc_error("error: modifier %s not found", modifier_name);
-		goto out;
-	}
-
-	switch (type) {
-	case SND_USE_CASE_ALIAS_PLAYBACK_VOLUME:
-		kcontrol_name = modifier->playback_volume_id;
-		break;
-	case SND_USE_CASE_ALIAS_CAPTURE_VOLUME:
-		kcontrol_name = modifier->capture_volume_id;
-		break;
-	case SND_USE_CASE_ALIAS_PLAYBACK_SWITCH:
-		kcontrol_name = modifier->playback_switch_id;
-		break;
-	case SND_USE_CASE_ALIAS_CAPTURE_SWITCH:
-		kcontrol_name = modifier->capture_switch_id;
-		break;
-	default:
-		uc_error("error: invalid control alias %d", type);
-		break;
-	}
-
-out:
+	if (strcmp(identifier, "_verb") == 0)
+	        err = set_verb_user(uc_mgr, value);
+        else if (strcmp(identifier, "_enadev") == 0)
+                err = set_device_user(uc_mgr, value, 1);
+        else if (strcmp(identifier, "_disdev") == 0)
+                err = set_device_user(uc_mgr, value, 0);
+        else if (strcmp(identifier, "_enamod") == 0)
+                err = set_modifier_user(uc_mgr, value, 1);
+        else if (strcmp(identifier, "_dismod") == 0)
+                err = set_modifier_user(uc_mgr, value, 0);
+        else {
+                str1 = strchr(identifier, '/');
+                if (str1) {
+                        str = strdup(str1 + 1);
+                	if (str == NULL) {
+                  		err = -ENOMEM;
+                		goto __end;
+                        }
+                } else {
+                        str = NULL;
+                }
+                if (check_identifier(identifier, "_swdev"))
+                        err = switch_device(uc_mgr, str, value);
+                else if (check_identifier(identifier, "_swmod"))
+                        err = switch_modifier(uc_mgr, str, value);
+                else
+                        err = -EINVAL;
+                if (str)
+                        free(str);
+        }
+      __end:
 	pthread_mutex_unlock(&uc_mgr->mutex);
-
-	return kcontrol_name;
+        return err;
 }
-#endif

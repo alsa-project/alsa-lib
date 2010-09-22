@@ -179,9 +179,10 @@ char *snd_use_case_identifier(const char *fmt, ...);
 /**
  * \brief Free a string list
  * \param list The string list to free
+ * \param items Count of strings
  * \return Zero if success, otherwise a negative error code
  */
-int snd_use_case_free_list(const char *list[]);
+int snd_use_case_free_list(const char *list[], int items);
 
 /**
  * \brief Obtain a list of entries
@@ -192,14 +193,14 @@ int snd_use_case_free_list(const char *list[]);
  *
  * Defined identifiers:
  *   NULL 		- get card list
- *			  (in pair verb+comment)
+ *			  (in pair cardname+comment)
  *   _verbs		- get verb list
  *			  (in pair verb+comment)
  *   _devices[/<verb>]	- get list of supported devices
  *			  (in pair device+comment)
  *   _modifiers[/<verb>]- get list of supported modifiers
  *			  (in pair modifier+comment)
- *   _tqs[/<verb>]	- get list of QoS identifiers
+ *   TQ[/<verb>]	- get list of TQ identifiers
  *   _enadevs		- get list of enabled devices
  *   _enamods		- get list of enabled modifiers
  *
@@ -222,20 +223,19 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
  * Known identifiers:
  *   NULL 				- return current card
  *   _verb				- return current verb
- *   _tq				- return current Tone Quality
- *   _tq/<modifier>			- return Tone Quality for given modifier
- *   _pcm_/_pdevice[/<modifier>]	- full PCM playback device name
- *   _pcm_/_cdevice[/<modifier>]	- full PCM capture device name
- *   _ctl_/_pctl_[/<modifier>]		- playback control device name
- *   _ctl_/_pctlvol[/<modifier>]	- playback control volume ID string
- *   _ctl_/_pctlsw[/<modifier>]		- playback control switch ID string
- *   _ctl_/_cctl[/<modifier>]		- capture control device name
- *   _ctl_/_cctlvol[/<modifier>]	- capture control volume ID string
- *   _ctl_/_cctlsw[/<modifier>]		- capture control switch ID string
- *   _mixer_/_pname[/<modifier>]	- name of playback mixer
- *   _mixer_/_pid[/<modifier>]		- mixer playback ID
- *   _mixer_/_cname[/<modifier>]	- name of capture mixer
- *   _mixer_/_cid[/<modifier>]		- mixer capture ID
+ *   TQ[/<modifier>]			- Tone Quality [for given modifier]
+ *   PlaybackPCM[/<modifier>]		- full PCM playback device name
+ *   CapturePCM[/<modifier>]		- full PCM capture device name
+ *   PlaybackCTL[/<modifier>]		- playback control device name
+ *   PlaybackVolume[/<modifier>]	- playback control volume ID string
+ *   PlaybackSwitch[/<modifier>]	- playback control switch ID string
+ *   CaptureCTL[/<modifier>]		- capture control device name
+ *   CaptureVolume[/<modifier>]		- capture control volume ID string
+ *   CaptureSwitch[/<modifier>]		- capture control switch ID string
+ *   PlaybackMixer[/<modifier>]		- name of playback mixer
+ *   PlaybackMixerID[/<modifier>]	- mixer playback ID
+ *   CaptureMixer[/<modifier>]		- name of capture mixer
+ *   CaptureMixerID[/<modifier>]	- mixer capture ID
  */
 int snd_use_case_get(snd_use_case_mgr_t *uc_mgr,
                      const char *identifier,
@@ -251,8 +251,8 @@ int snd_use_case_get(snd_use_case_mgr_t *uc_mgr,
  *   _devstatus/<device>	- return status for given device
  *   _modstatus/<modifier>	- return status for given modifier
  */
-int snd_use_case_geti(snd_use_case_mgr_t *uc_mgr,
-                      const char *identifier);
+long snd_use_case_geti(snd_use_case_mgr_t *uc_mgr,
+                       const char *identifier);
 
 /**
  * \brief Set new
@@ -309,13 +309,6 @@ int snd_use_case_mgr_close(snd_use_case_mgr_t *uc_mgr);
  * \return zero if success, otherwise a negative error code
  */
 int snd_use_case_mgr_reset(snd_use_case_mgr_t *uc_mgr);
-
-/**
- * \brief Dump current sound card use case control settings
- * \param card_name Sound card name
- * \return zero if success, otherwise a negative error code
- */
-int snd_use_case_dump(const char *card_name);
 
 /**
  *  \}
