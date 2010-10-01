@@ -82,7 +82,7 @@ extern "C" {
  *  o Set and Get use case verbs, devices and modifiers for the machine.
  *  o Get the ALSA PCM playback and capture device PCMs for use case verb and
  *     modifier.
- *  o Get the QoS parameter for each use case verb and modifier.
+ *  o Get the TQ parameter for each use case verb and modifier.
  *  o Get the ALSA master playback and capture volume/switch kcontrols
  *     for each use case.
  */
