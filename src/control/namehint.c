@@ -446,7 +446,7 @@ static int add_card(struct hint_list *list, int card)
 				ok++;
 			}
 			ok = 0;
-			for (device = 0; err >= 0 && device < max_device; device++) {
+			for (device = 0; err >= 0 && device <= max_device; device++) {
 				list->device = device;
 				err = try_config(list, list->siface, str);
 				if (err < 0)
