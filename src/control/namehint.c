@@ -439,11 +439,12 @@ static int add_card(struct hint_list *list, int card)
 			err = next_devices[list->iface](list->ctl, &device);
 			if (device < 0)
 				err = -EINVAL;
+			else
+				max_device = device;
 			while (err >= 0 && device >= 0) {
 				err = next_devices[list->iface](list->ctl, &device);
-				if (device > max_device)
+				if (err >= 0 && device > max_device)
 					max_device = device;
-				ok++;
 			}
 			ok = 0;
 			for (device = 0; err >= 0 && device <= max_device; device++) {
