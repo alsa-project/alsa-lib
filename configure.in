@@ -115,7 +115,7 @@ AC_ARG_WITH(versioned,
   versioned="$withval", versioned="yes")
 if test "$versioned" = "yes"; then
   # it seems that GNU ld versions since 2.10 are not broken
-  xres=`grep '^VERSION=' libtool | cut -d = -f 2 | cut -d \" -f 2`
+  xres=`grep '^VERSION=' ${srcdir}/ltmain.sh | cut -d = -f 2 | cut -d \" -f 2`
   major=`echo $xres | cut -d . -f 1`
   minor=`echo $xres | cut -d . -f 2`
   pass=0
