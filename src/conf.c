@@ -425,6 +425,11 @@ beginning:</P>
 
 #ifndef DOC_HIDDEN
 
+#ifdef HAVE_LIBPTHREAD
+static pthread_mutex_t snd_config_update_mutex =
+				PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+#endif
+
 struct _snd_config {
 	char *id;
 	snd_config_type_t type;
@@ -463,6 +468,25 @@ typedef struct {
 	int unget;
 	int ch;
 } input_t;
+
+#ifdef HAVE_LIBPTHREAD
+
+static inline void snd_config_lock(void)
+{
+	pthread_mutex_lock(&snd_config_update_mutex);
+}
+
+static inline void snd_config_unlock(void)
+{
+	pthread_mutex_unlock(&snd_config_update_mutex);
+}
+
+#else
+
+static inline void snd_config_lock(void) { }
+static inline void snd_config_unlock(void) { }
+
+#endif
 
 static int safe_strtoll(const char *str, long long *val)
 {
@@ -3318,6 +3342,7 @@ static int snd_config_hooks(snd_config_t *config, snd_config_t *private_data)
 
 	if ((err = snd_config_search(config, "@hooks", &n)) < 0)
 		return 0;
+	snd_config_lock();
 	snd_config_remove(n);
 	do {
 		hit = 0;
@@ -3334,7 +3359,7 @@ static int snd_config_hooks(snd_config_t *config, snd_config_t *private_data)
 			if (i == idx) {
 				err = snd_config_hooks_call(config, n, private_data);
 				if (err < 0)
-					return err;
+					goto _err;
 				idx++;
 				hit = 1;
 			}
@@ -3343,6 +3368,7 @@ static int snd_config_hooks(snd_config_t *config, snd_config_t *private_data)
 	err = 0;
        _err:
 	snd_config_delete(n);
+	snd_config_unlock();
 	return err;
 }
 
@@ -3692,10 +3718,6 @@ int snd_config_update_r(snd_config_t **_top, snd_config_update_t **_update, cons
 	return 1;
 }
 
-#ifdef HAVE_LIBPTHREAD
-static pthread_mutex_t snd_config_update_mutex = PTHREAD_MUTEX_INITIALIZER;
-#endif
-
 /** 
  * \brief Updates #snd_config by rereading the global configuration files (if needed).
  * \return 0 if #snd_config was up to date, 1 if #snd_config was
@@ -3716,13 +3738,9 @@ int snd_config_update(void)
 {
 	int err;
 
-#ifdef HAVE_LIBPTHREAD
-	pthread_mutex_lock(&snd_config_update_mutex);
-#endif
+	snd_config_lock();
 	err = snd_config_update_r(&snd_config, &snd_config_global_update, NULL);
-#ifdef HAVE_LIBPTHREAD
-	pthread_mutex_unlock(&snd_config_update_mutex);
-#endif
+	snd_config_unlock();
 	return err;
 }
 
@@ -3755,18 +3773,14 @@ int snd_config_update_free(snd_config_update_t *update)
  */
 int snd_config_update_free_global(void)
 {
-#ifdef HAVE_LIBPTHREAD
-	pthread_mutex_lock(&snd_config_update_mutex);
-#endif
+	snd_config_lock();
 	if (snd_config)
 		snd_config_delete(snd_config);
 	snd_config = NULL;
 	if (snd_config_global_update)
 		snd_config_update_free(snd_config_global_update);
 	snd_config_global_update = NULL;
-#ifdef HAVE_LIBPTHREAD
-	pthread_mutex_unlock(&snd_config_update_mutex);
-#endif
+	snd_config_unlock();
 	/* FIXME: better to place this in another place... */
 	snd_dlobj_cache_cleanup();
 
@@ -4657,7 +4671,7 @@ int snd_config_expand(snd_config_t *config, snd_config_t *root, const char *args
 		snd_config_delete(subs);
 	return err;
 }
-	
+
 /**
  * \brief Searches for a definition in a configuration tree, using
  *        aliases and expanding hooks and arguments.
@@ -4707,10 +4721,15 @@ int snd_config_search_definition(snd_config_t *config,
 	 *  if key contains dot (.), the implicit base is ignored
 	 *  and the key starts from root given by the 'config' parameter
 	 */
+	snd_config_lock();
 	err = snd_config_search_alias_hooks(config, strchr(key, '.') ? NULL : base, key, &conf);
-	if (err < 0)
+	if (err < 0) {
+		snd_config_unlock();
 		return err;
-	return snd_config_expand(conf, config, args, NULL, result);
+	}
+	err = snd_config_expand(conf, config, args, NULL, result);
+	snd_config_unlock();
+	return err;
 }
 
 #ifndef DOC_HIDDEN
