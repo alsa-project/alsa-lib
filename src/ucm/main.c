@@ -944,8 +944,9 @@ long modifier_status(snd_use_case_mgr_t *uc_mgr,
  * \param identifier 
  * \return Value if success, otherwise a negative error code 
  */
-long snd_use_case_geti(snd_use_case_mgr_t *uc_mgr,
-                       const char *identifier)
+int snd_use_case_geti(snd_use_case_mgr_t *uc_mgr,
+		      const char *identifier,
+		      long *value)
 {
         char *str, *str1;
         long err;
@@ -964,11 +965,19 @@ long snd_use_case_geti(snd_use_case_mgr_t *uc_mgr,
                 } else {
                         str = NULL;
                 }
-                if (check_identifier(identifier, "_devstatus"))
+                if (check_identifier(identifier, "_devstatus")) {
                         err = device_status(uc_mgr, str);
-                else if (check_identifier(identifier, "_modstatus"))
+			if (err >= 0) {
+				*value = err;
+				err = 0;
+			}
+		} else if (check_identifier(identifier, "_modstatus")) {
                         err = modifier_status(uc_mgr, str);
-                else
+			if (err >= 0) {
+				*value = err;
+				err = 0;
+			}
+		} else
                         err = -EINVAL;
                 if (str)
                         free(str);

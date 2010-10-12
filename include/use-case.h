@@ -245,14 +245,16 @@ int snd_use_case_get(snd_use_case_mgr_t *uc_mgr,
  * \brief Get current - integer
  * \param uc_mgr Use case manager
  * \param identifier 
- * \return Value if success, otherwise a negative error code
+ * \param value result 
+ * \return Zero if success, otherwise a negative error code
  *
  * Known identifiers:
  *   _devstatus/<device>	- return status for given device
  *   _modstatus/<modifier>	- return status for given modifier
  */
-long snd_use_case_geti(snd_use_case_mgr_t *uc_mgr,
-                       const char *identifier);
+int snd_use_case_geti(snd_use_case_mgr_t *uc_mgr,
+		      const char *identifier,
+		      long *value);
 
 /**
  * \brief Set new
@@ -309,6 +311,21 @@ int snd_use_case_mgr_close(snd_use_case_mgr_t *uc_mgr);
  * \return zero if success, otherwise a negative error code
  */
 int snd_use_case_mgr_reset(snd_use_case_mgr_t *uc_mgr);
+
+/*
+ * helper functions
+ */
+
+/**
+ * \brief Obtain a list of cards
+ * \param uc_mgr Use case manager (may be NULL - card list)
+ * \param list Returned allocated list
+ * \return Number of list entries if success, otherwise a negative error code
+ */
+static inline int snd_use_case_card_list(const char **list[])
+{
+	return snd_use_case_get_list(NULL, NULL, list);
+}
 
 /**
  *  \}
