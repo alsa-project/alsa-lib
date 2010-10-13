@@ -193,6 +193,7 @@ void uc_mgr_stdout(const char *fmt, ...);
 
 int uc_mgr_config_load(const char *file, snd_config_t **cfg);
 int uc_mgr_import_master_config(snd_use_case_mgr_t *uc_mgr);
+int uc_mgr_scan_master_configs(const char **_list[]);
 
 void uc_mgr_free_sequence_element(struct sequence_element *seq);
 void uc_mgr_free_verb(snd_use_case_mgr_t *uc_mgr);

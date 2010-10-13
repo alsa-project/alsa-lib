@@ -31,6 +31,7 @@
  */
 
 #include "ucm_local.h"
+#include <dirent.h>
 
 static int parse_sequence(snd_use_case_mgr_t *uc_mgr,
 			  struct list_head *base,
@@ -827,7 +828,7 @@ static int parse_master_section(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg,
 }
 
 /*
- * parse and execute controls
+ * parse controls
  */
 static int parse_controls(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 {
@@ -850,6 +851,8 @@ static int parse_controls(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
  *
  * #Example master file for blah sound card
  * #By Joe Blogs <joe@bloggs.org>
+ *
+ * Comment "Nice Abstracted Soundcard"
  *
  * # The file is divided into Use case sections. One section per use case verb.
  *
@@ -882,7 +885,8 @@ static int parse_master_file(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 {
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
-	int ret;
+	const char *id;
+	int err;
 
 	if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
 		uc_error("compound type expected for master file");
@@ -891,26 +895,35 @@ static int parse_master_file(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 
 	/* parse master config sections */
 	snd_config_for_each(i, next, cfg) {
-		const char *id;
+
 		n = snd_config_iterator_entry(i);
 		if (snd_config_get_id(n, &id) < 0)
 			continue;
 
+		if (strcmp(id, "Comment") == 0) {
+			err = parse_string(n, &uc_mgr->comment);
+			if (err < 0) {
+				uc_error("error: failed to get master comment");
+				return err;
+			}
+			continue;
+		}
+
 		/* find use case section and parse it */
 		if (strcmp(id, "SectionUseCase") == 0) {
-			ret = parse_compound(uc_mgr, n,
+			err = parse_compound(uc_mgr, n,
 					     parse_master_section,
 					     NULL, NULL);
-			if (ret < 0)
-				return ret;
+			if (err < 0)
+				return err;
 			continue;
 		}
 
 		/* find default control values section and parse it */
 		if (strcmp(id, "SectionDefaults") == 0) {
-			ret = parse_controls(uc_mgr, n);
-			if (ret < 0)
-				return ret;
+			err = parse_controls(uc_mgr, n);
+			if (err < 0)
+				return err;
 			continue;
 		}
 		uc_error("uknown master file field %s", id);
@@ -918,29 +931,126 @@ static int parse_master_file(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 	return 0;
 }
 
-/* load master use case file for sound card */
-int uc_mgr_import_master_config(snd_use_case_mgr_t *uc_mgr)
+/** The name of the environment variable containing the UCM directory */
+#define ALSA_CONFIG_UCM_VAR "ALSA_CONFIG_UCM"
+
+static int load_master_config(const char *card_name, snd_config_t **cfg)
 {
 	char filename[MAX_FILE];
-	snd_config_t *cfg;
+	char *env = getenv(ALSA_CONFIG_UCM_VAR);
 	int err;
 
 	snprintf(filename, sizeof(filename)-1,
-		"%s/%s/%s.conf", ALSA_USE_CASE_DIR,
-		uc_mgr->card_name, uc_mgr->card_name);
+		"%s/%s/%s.conf", env ? env : ALSA_USE_CASE_DIR,
+		card_name, card_name);
 	filename[MAX_FILE-1] = '\0';
 
-	err = uc_mgr_config_load(filename, &cfg);
+	err = uc_mgr_config_load(filename, cfg);
 	if (err < 0) {
 		uc_error("error: could not parse configuration for card %s",
-				uc_mgr->card_name);
+				card_name);
 		return err;
 	}
 
+	return 0;
+}
+
+/* load master use case file for sound card */
+int uc_mgr_import_master_config(snd_use_case_mgr_t *uc_mgr)
+{
+	snd_config_t *cfg;
+	int err;
+
+	err = load_master_config(uc_mgr->card_name, &cfg);
+	if (err < 0)
+		return err;
 	err = parse_master_file(uc_mgr, cfg);
 	snd_config_delete(cfg);
 	if (err < 0)
 		uc_mgr_free_verb(uc_mgr);
+
+	return err;
+}
+
+static int filename_filter(const struct dirent *dirent)
+{
+	if (dirent == NULL)
+		return 0;
+	if (dirent->d_type == DT_DIR) {
+		if (dirent->d_name[0] == '.') {
+			if (dirent->d_name[1] == '\0')
+				return 0;
+			if (dirent->d_name[1] == '.' &&
+			    dirent->d_name[2] == '\0')
+				return 0;
+		}
+		return 1;
+	}
+	return 0;
+}
+
+/* scan all cards and comments */
+int uc_mgr_scan_master_configs(const char **_list[])
+{
+	char filename[MAX_FILE];
+	char *env = getenv(ALSA_CONFIG_UCM_VAR);
+	const char **list;
+	snd_config_t *cfg, *c;
+	int i, cnt, err;
+	struct dirent **namelist;
+
+	snprintf(filename, sizeof(filename)-1,
+		"%s", env ? env : ALSA_USE_CASE_DIR);
+	filename[MAX_FILE-1] = '\0';
+
+	err = scandir(filename, &namelist, filename_filter, alphasort);
+	if (err < 0) {
+		err = -errno;
+		uc_error("error: could not scan directory %s: %s",
+				filename, strerror(-err));
+		return err;
+	}
+	cnt = err;
+
+	list = calloc(1, cnt * 2 * sizeof(char *));
+	if (list == NULL) {
+		err = -ENOMEM;
+		goto __err;
+	}
+
+	for (i = 0; i < cnt; i++) {
+		err = load_master_config(namelist[i]->d_name, &cfg);
+		if (err < 0)
+			goto __err;
+		err = snd_config_search(cfg, "Comment", &c);
+		if (err >= 0) {
+			err = parse_string(c, (char **)&list[i*2+1]);
+			if (err < 0) {
+				snd_config_delete(cfg);
+				goto __err;
+			}
+		}
+		snd_config_delete(cfg);
+		list[i * 2] = strdup(namelist[i]->d_name);
+		if (list[i * 2] == NULL) {
+			err = -ENOMEM;
+			goto __err;
+		}
+	}
+	err = cnt * 2;
+
+      __err:
+	for (i = 0; i < cnt; i++) {
+		free(namelist[i]);
+		if (err < 0) {
+			free((void *)list[i * 2]);
+			free((void *)list[i * 2 + 1]);
+		}
+	}
+	free(namelist);
+
+	if (err >= 0)
+		*_list = list;
 
 	return err;
 }

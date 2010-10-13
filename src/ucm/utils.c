@@ -57,8 +57,13 @@ int uc_mgr_config_load(const char *file, snd_config_t **cfg)
 	int err;
 
 	fp = fopen(file, "r");
+	if (fp == NULL) {
+		err = -errno;
+		goto __err;
+	}
 	err = snd_input_stdio_attach(&in, fp, 1);
 	if (err < 0) {
+	      __err:
 		uc_error("could not open configuration file %s", file);
 		return err;
 	}

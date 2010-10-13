@@ -562,16 +562,6 @@ int snd_use_case_mgr_reset(snd_use_case_mgr_t *uc_mgr)
 }
 
 /**
- * \brief Get list of cards in pair cardname+comment
- * \param list Returned list
- * \return Number of list entries if success, otherwise a negative error code
- */
-static int get_card_list(const char **list[])
-{
-	return -ENXIO;	/* Not Yet Implemented */
-}
-
-/**
  * \brief Get list of verbs in pair verbname+comment
  * \param list Returned list
  * \param verbname For verb (NULL = current)
@@ -780,7 +770,7 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
 	int err;
 
 	if (uc_mgr == NULL || identifier == NULL)
-		return get_card_list(list);
+		return uc_mgr_scan_master_configs(list);
 	pthread_mutex_lock(&uc_mgr->mutex);
 	if (strcmp(identifier, "_verbs") == 0)
 		err = get_verb_list(uc_mgr, list);
