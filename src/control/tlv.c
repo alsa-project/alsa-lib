@@ -167,15 +167,21 @@ int snd_tlv_get_dB_range(unsigned int *tlv, long rangemin, long rangemax,
 	}
 	case SND_CTL_TLVT_DB_SCALE: {
 		int step;
-		*min = (int)tlv[2];
+		if (tlv[3] & 0x10000)
+			*min = SND_CTL_TLV_DB_GAIN_MUTE;
+		else
+			*min = (int)tlv[2];
 		step = (tlv[3] & 0xffff);
-		*max = *min + (long)(step * (rangemax - rangemin));
+		*max = (int)tlv[2] + step * (rangemax - rangemin);
 		return 0;
 	}
 	case SND_CTL_TLVT_DB_MINMAX:
-	case SND_CTL_TLVT_DB_MINMAX_MUTE:
 	case SND_CTL_TLVT_DB_LINEAR:
 		*min = (int)tlv[2];
+		*max = (int)tlv[3];
+		return 0;
+	case SND_CTL_TLVT_DB_MINMAX_MUTE:
+		*min = SND_CTL_TLV_DB_GAIN_MUTE;
 		*max = (int)tlv[3];
 		return 0;
 	}
@@ -217,7 +223,7 @@ int snd_tlv_convert_to_dB(unsigned int *tlv, long rangemin, long rangemax,
 		min = tlv[2];
 		step = (tlv[3] & 0xffff);
 		mute = (tlv[3] >> 16) & 1;
-		if (mute && volume == rangemin)
+		if (mute && volume <= rangemin)
 			*db_gain = SND_CTL_TLV_DB_GAIN_MUTE;
 		else
 			*db_gain = (volume - rangemin) * step + min;
@@ -327,7 +333,11 @@ int snd_tlv_convert_from_dB(unsigned int *tlv, long rangemin, long rangemax,
 		step = (tlv[3] & 0xffff);
 		max = min + (int)(step * (rangemax - rangemin));
 		if (db_gain <= min)
-			*value = rangemin;
+			if (db_gain > SND_CTL_TLV_DB_GAIN_MUTE && xdir > 0 &&
+			    (tlv[3] & 0x10000))
+				*value = rangemin + 1;
+			else
+				*value = rangemin;
 		else if (db_gain >= max)
 			*value = rangemax;
 		else {
@@ -345,7 +355,11 @@ int snd_tlv_convert_from_dB(unsigned int *tlv, long rangemin, long rangemax,
 		min = tlv[2];
 		max = tlv[3];
 		if (db_gain <= min)
-			*value = rangemin;
+			if (db_gain > SND_CTL_TLV_DB_GAIN_MUTE && xdir > 0 &&
+			    tlv[0] == SND_CTL_TLVT_DB_MINMAX_MUTE)
+				*value = rangemin + 1;
+			else
+				*value = rangemin;
 		else if (db_gain >= max)
 			*value = rangemax;
 		else {
