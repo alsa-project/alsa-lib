@@ -94,7 +94,8 @@ void uc_mgr_free_value(struct list_head *base)
 		val = list_entry(pos, struct ucm_value, list);
 		free(val->name);
 		free(val->data);
-		list_del(pos);
+		list_del(&val->list);
+		free(val);
 	}
 }
 
@@ -106,8 +107,8 @@ void uc_mgr_free_dev_list(struct list_head *base)
 	list_for_each_safe(pos, npos, base) {
 		dlist = list_entry(pos, struct dev_list, list);
 		free(dlist->name);
+		list_del(&dlist->list);
 		free(dlist);
-		list_del(pos);
 	}
 }
 
@@ -133,9 +134,16 @@ void uc_mgr_free_sequence(struct list_head *base)
 	
 	list_for_each_safe(pos, npos, base) {
 		seq = list_entry(pos, struct sequence_element, list);
+		list_del(&seq->list);
 		uc_mgr_free_sequence_element(seq);
-		list_del(pos);
 	}
+}
+
+void uc_mgr_free_transition_element(struct transition_sequence *tseq)
+{
+	free(tseq->name);
+	uc_mgr_free_sequence(&tseq->transition_list);
+	free(tseq);
 }
 
 void uc_mgr_free_transition(struct list_head *base)
@@ -145,10 +153,8 @@ void uc_mgr_free_transition(struct list_head *base)
 	
 	list_for_each_safe(pos, npos, base) {
 		tseq = list_entry(pos, struct transition_sequence, list);
-		free(tseq->name);
-		uc_mgr_free_sequence(&tseq->transition_list);
-		free(tseq);
-		list_del(pos);
+		list_del(&tseq->list);
+		uc_mgr_free_transition_element(tseq);
 	}
 }
 
@@ -166,8 +172,8 @@ void uc_mgr_free_modifier(struct list_head *base)
 		uc_mgr_free_transition(&mod->transition_list);
 		uc_mgr_free_dev_list(&mod->dev_list);
 		uc_mgr_free_value(&mod->value_list);
+		list_del(&mod->list);
 		free(mod);
-		list_del(pos);
 	}
 }
 
@@ -184,8 +190,8 @@ void uc_mgr_free_device(struct list_head *base)
 		uc_mgr_free_sequence(&dev->disable_list);
 		uc_mgr_free_transition(&dev->transition_list);
 		uc_mgr_free_value(&dev->value_list);
+		list_del(&dev->list);
 		free(dev);
-		list_del(pos);
 	}
 }
 
@@ -204,8 +210,8 @@ void uc_mgr_free_verb(snd_use_case_mgr_t *uc_mgr)
 		uc_mgr_free_value(&verb->value_list);
 		uc_mgr_free_device(&verb->device_list);
 		uc_mgr_free_modifier(&verb->modifier_list);
+		list_del(&verb->list);
 		free(verb);
-		list_del(pos);
 	}
 	uc_mgr_free_sequence(&uc_mgr->default_list);
 	free(uc_mgr->comment);

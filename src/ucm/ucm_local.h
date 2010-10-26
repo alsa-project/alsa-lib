@@ -196,5 +196,6 @@ int uc_mgr_import_master_config(snd_use_case_mgr_t *uc_mgr);
 int uc_mgr_scan_master_configs(const char **_list[]);
 
 void uc_mgr_free_sequence_element(struct sequence_element *seq);
+void uc_mgr_free_transition_element(struct transition_sequence *seq);
 void uc_mgr_free_verb(snd_use_case_mgr_t *uc_mgr);
 void uc_mgr_free(snd_use_case_mgr_t *uc_mgr);

@@ -33,6 +33,9 @@
 #include "ucm_local.h"
 #include <dirent.h>
 
+/** The name of the environment variable containing the UCM directory */
+#define ALSA_CONFIG_UCM_VAR "ALSA_CONFIG_UCM"
+
 static int parse_sequence(snd_use_case_mgr_t *uc_mgr,
 			  struct list_head *base,
 			  snd_config_t *cfg);
@@ -70,43 +73,37 @@ static int parse_transition(snd_use_case_mgr_t *uc_mgr,
 	if (snd_config_get_id(cfg, &id) < 0)
 		return -EINVAL;
 
-	tseq = calloc(1, sizeof(*tseq));
-	if (tseq == NULL)
-		return -ENOMEM;
-	INIT_LIST_HEAD(&tseq->transition_list);
-
-	tseq->name = strdup(id);
-	if (tseq->name == NULL) {
-		free(tseq);
-		return -ENOMEM;
-	}
-	
 	if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
 		uc_error("compound type expected for %s", id);
-		err = -EINVAL;
-		goto __err;
+		return -EINVAL;
 	}
-	/* parse master config sections */
+
 	snd_config_for_each(i, next, cfg) {
 		n = snd_config_iterator_entry(i);
 
-		if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
-			uc_error("compound type expected for %s", id);
-			err = -EINVAL;
-			goto __err;
-		}
-		
-		err = parse_sequence(uc_mgr, &tseq->transition_list, n);
-		if (err < 0)
-			return err;
-	}
+		if (snd_config_get_id(n, &id) < 0)
+			return -EINVAL;
 
-	list_add(&tseq->list, tlist);
+		tseq = calloc(1, sizeof(*tseq));
+		if (tseq == NULL)
+			return -ENOMEM;
+		INIT_LIST_HEAD(&tseq->transition_list);
+
+		tseq->name = strdup(id);
+		if (tseq->name == NULL) {
+			free(tseq);
+			return -ENOMEM;
+		}
+	
+		err = parse_sequence(uc_mgr, &tseq->transition_list, n);
+		if (err < 0) {
+			uc_mgr_free_transition_element(tseq);
+			return err;
+		}
+
+		list_add(&tseq->list, tlist);
+	}
 	return 0;
-      __err:
-      	free(tseq->name);
-      	free(tseq);
-      	return err;
 }
 
 /*
@@ -128,7 +125,7 @@ static int parse_compound(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg,
 		uc_error("compound type expected for %s", id);
 		return -EINVAL;
 	}
-	/* parse master config sections */
+	/* parse compound */
 	snd_config_for_each(i, next, cfg) {
 		n = snd_config_iterator_entry(i);
 
@@ -142,6 +139,47 @@ static int parse_compound(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg,
 			return err;
 	}
 
+	return 0;
+}
+
+
+/*
+ * Parse transition
+ */
+static int parse_supported_device(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
+				  struct list_head *dlist,
+				  snd_config_t *cfg)
+{
+	struct dev_list *sdev;
+	const char *id;
+	snd_config_iterator_t i, next;
+	snd_config_t *n;
+	int err;
+
+	if (snd_config_get_id(cfg, &id) < 0)
+		return -EINVAL;
+
+	if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
+		uc_error("compound type expected for %s", id);
+		return -EINVAL;
+	}
+
+	snd_config_for_each(i, next, cfg) {
+		n = snd_config_iterator_entry(i);
+
+		if (snd_config_get_id(n, &id) < 0)
+			return -EINVAL;
+
+		sdev = calloc(1, sizeof(struct dev_list));
+		if (sdev == NULL)
+			return -ENOMEM;
+		err = parse_string(n, &sdev->name);
+		if (err < 0) {
+			free(sdev);
+			return err;
+		}
+		list_add(&sdev->list, dlist);
+	}
 	return 0;
 }
 
@@ -163,58 +201,60 @@ static int parse_sequence(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
 			  snd_config_t *cfg)
 {
 	struct sequence_element *curr;
-	snd_config_iterator_t i, next, j, next2;
-	snd_config_t *n, *n2;
+	snd_config_iterator_t i, next;
+	snd_config_t *n;
 	int err;
 
+	if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
+		uc_error("error: compound is expected for sequence definition");
+		return -EINVAL;
+	}
+
 	snd_config_for_each(i, next, cfg) {
+		const char *id;
 		n = snd_config_iterator_entry(i);
-		snd_config_for_each(j, next2, n) {
-			const char *id;
-			n2 = snd_config_iterator_entry(i);
-			err = snd_config_get_id(n2, &id);
-			if (err < 0)
-				continue;
+		err = snd_config_get_id(n, &id);
+		if (err < 0)
+			continue;
 
-			/* alloc new sequence element */
-			curr = calloc(1, sizeof(struct sequence_element));
-			if (curr == NULL)
-				return -ENOMEM;
-			list_add_tail(&curr->list, base);
+		/* alloc new sequence element */
+		curr = calloc(1, sizeof(struct sequence_element));
+		if (curr == NULL)
+			return -ENOMEM;
+		list_add_tail(&curr->list, base);
 
-			if (strcmp(id, "cset") == 0) {
-				curr->type = SEQUENCE_ELEMENT_TYPE_CSET;
-				err = parse_string(n2, &curr->data.cset);
-				if (err < 0) {
-					uc_error("error: cset requires a string!");
-					return err;
-				}
-				continue;
+		if (strcmp(id, "cset") == 0) {
+			curr->type = SEQUENCE_ELEMENT_TYPE_CSET;
+			err = parse_string(n, &curr->data.cset);
+			if (err < 0) {
+				uc_error("error: cset requires a string!");
+				return err;
 			}
-
-			if (strcmp(id, "usleep") == 0) {
-				curr->type = SEQUENCE_ELEMENT_TYPE_SLEEP;
-				err = snd_config_get_integer(n2, &curr->data.sleep);
-				if (err < 0) {
-					uc_error("error: usleep requires integer!");
-					return err;
-				}
-				continue;
-			}
-
-			if (strcmp(id, "exec") == 0) {
-				curr->type = SEQUENCE_ELEMENT_TYPE_EXEC;
-				err = parse_string(n2, &curr->data.exec);
-				if (err < 0) {
-					uc_error("error: exec requires a string!");
-					return err;
-				}
-				continue;
-			}
-			
-			list_del(&curr->list);
-			uc_mgr_free_sequence_element(curr);
+			continue;
 		}
+
+		if (strcmp(id, "usleep") == 0) {
+			curr->type = SEQUENCE_ELEMENT_TYPE_SLEEP;
+			err = snd_config_get_integer(n, &curr->data.sleep);
+			if (err < 0) {
+				uc_error("error: usleep requires integer!");
+				return err;
+			}
+			continue;
+		}
+
+		if (strcmp(id, "exec") == 0) {
+			curr->type = SEQUENCE_ELEMENT_TYPE_EXEC;
+			err = parse_string(n, &curr->data.exec);
+			if (err < 0) {
+				uc_error("error: exec requires a string!");
+				return err;
+			}
+			continue;
+		}
+		
+		list_del(&curr->list);
+		uc_mgr_free_sequence_element(curr);
 	}
 
 	return 0;
@@ -237,65 +277,66 @@ static int parse_value(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
 			  snd_config_t *cfg)
 {
 	struct ucm_value *curr;
-	snd_config_iterator_t i, next, j, next2;
-	snd_config_t *n, *n2;
+	snd_config_iterator_t i, next;
+	snd_config_t *n;
 	long l;
 	long long ll;
 	double d;
 	snd_config_type_t type;
 	int err;
 
+	if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
+		uc_error("error: compound is expected for value definition");
+		return -EINVAL;
+	}
 	snd_config_for_each(i, next, cfg) {
+		const char *id;
 		n = snd_config_iterator_entry(i);
-		snd_config_for_each(j, next2, n) {
-			const char *id;
-			n2 = snd_config_iterator_entry(i);
-			err = snd_config_get_id(n2, &id);
-			if (err < 0)
-				continue;
+		err = snd_config_get_id(n, &id);
+		if (err < 0)
+			continue;
 
-			/* alloc new value */
-			curr = calloc(1, sizeof(struct ucm_value));
-			if (curr == NULL)
+		/* alloc new value */
+		curr = calloc(1, sizeof(struct ucm_value));
+		if (curr == NULL)
+			return -ENOMEM;
+		list_add_tail(&curr->list, base);
+		curr->name = strdup(id);
+		if (curr->name == NULL)
+			return -ENOMEM;
+		type = snd_config_get_type(n);
+		switch (type) {
+		case SND_CONFIG_TYPE_INTEGER:
+			curr->data = malloc(16);
+			if (curr->data == NULL)
 				return -ENOMEM;
-			list_add_tail(&curr->list, base);
-			curr->name = strdup(id);
-			if (curr->name == NULL)
+			snd_config_get_integer(n, &l);
+			sprintf(curr->data, "%li", l);
+			break;
+		case SND_CONFIG_TYPE_INTEGER64:
+			curr->data = malloc(32);
+			if (curr->data == NULL)
 				return -ENOMEM;
-			type = snd_config_get_type(n2);
-			switch (type) {
-			case SND_CONFIG_TYPE_INTEGER:
-				curr->data = malloc(16);
-				if (curr->data == NULL)
-					return -ENOMEM;
-				snd_config_get_integer(n2, &l);
-				sprintf(curr->data, "%li", l);
-				break;
-			case SND_CONFIG_TYPE_INTEGER64:
-				curr->data = malloc(32);
-				if (curr->data == NULL)
-					return -ENOMEM;
-				snd_config_get_integer64(n2, &ll);
-				sprintf(curr->data, "%lli", ll);
-				break;
-			case SND_CONFIG_TYPE_REAL:
-				curr->data = malloc(64);
-				if (curr->data == NULL)
-					return -ENOMEM;
-				snd_config_get_real(n2, &d);
-				sprintf(curr->data, "%-16g", d);
-				break;
-			case SND_CONFIG_TYPE_STRING:
-				err = parse_string(n2, &curr->data);
-				if (err < 0) {
-					uc_error("error: unable to parse a string for id '%s'!", id);
-					return err;
-				}
-				break;
-			default:
-				uc_error("error: invalid type %i in Value compound", type);
-				return -EINVAL;
+			snd_config_get_integer64(n, &ll);
+			sprintf(curr->data, "%lli", ll);
+			break;
+		case SND_CONFIG_TYPE_REAL:
+			curr->data = malloc(64);
+			if (curr->data == NULL)
+				return -ENOMEM;
+			snd_config_get_real(n, &d);
+			sprintf(curr->data, "%-16g", d);
+			break;
+		case SND_CONFIG_TYPE_STRING:
+			err = parse_string(n, &curr->data);
+			if (err < 0) {
+				uc_error("error: unable to parse a string for id '%s'!", id);
+				return err;
 			}
+			break;
+		default:
+			uc_error("error: invalid type %i in Value compound", type);
+			return -EINVAL;
 		}
 	}
 
@@ -319,6 +360,10 @@ static int parse_value(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
  *		]
  *
  *		DisableSequence [
+ *			...
+ *		]
+ *
+ *              TransitionSequence."ToModifierName" [
  *			...
  *		]
  *
@@ -377,18 +422,12 @@ static int parse_modifier(snd_use_case_mgr_t *uc_mgr,
 		}
 
 		if (strcmp(id, "SupportedDevice") == 0) {
-			struct dev_list *sdev;
-			
-			sdev = calloc(1, sizeof(struct dev_list));
-			if (sdev == NULL)
-				return -ENOMEM;
-			err = parse_string(n, &sdev->name);
+			err = parse_supported_device(uc_mgr, &modifier->dev_list, n);
 			if (err < 0) {
-				free(sdev);
+				uc_error("error: failed to parse supported"
+					" device list");
 				return err;
 			}
-			list_add(&sdev->list, &modifier->dev_list);
-			continue;
 		}
 
 		if (strcmp(id, "EnableSequence") == 0) {
@@ -411,7 +450,7 @@ static int parse_modifier(snd_use_case_mgr_t *uc_mgr,
 			continue;
 		}
 
-		if (strcmp(id, "TransitionModifier") == 0) {
+		if (strcmp(id, "TransitionSequence") == 0) {
 			err = parse_transition(uc_mgr, &modifier->transition_list, n);
 			if (err < 0) {
 				uc_error("error: failed to parse transition"
@@ -451,6 +490,10 @@ static int parse_modifier(snd_use_case_mgr_t *uc_mgr,
  *	]
  *
  *	DisableSequence [
+ *		...
+ *	]
+ *
+ *      TransitionSequence."ToDevice" [
  *		...
  *	]
  *
@@ -527,8 +570,8 @@ static int parse_device_index(snd_use_case_mgr_t *uc_mgr,
 			continue;
 		}
 
-		if (strcmp(id, "TransitionDevice") == 0) {
-			uc_dbg("TransitionDevice");
+		if (strcmp(id, "TransitionSequence") == 0) {
+			uc_dbg("TransitionSequence");
 			err = parse_transition(uc_mgr, &device->transition_list, n);
 			if (err < 0) {
 				uc_error("error: failed to parse transition"
@@ -596,11 +639,16 @@ static int parse_device(snd_use_case_mgr_t *uc_mgr,
  *		cset "name='Master Playback Volume',index=2 50,50"
  *	]
  *
+ *      # Optional transition verb
+ *      TransitionSequence."ToCaseName" [
+ *		msleep 1
+ *      ]
+ *
  *	# Optional TQ and ALSA PCMs
  *	Value {
  *		TQ HiFi
- *		CapturePCM 0
- *		PlaybackPCM 0
+ *		CapturePCM "hw:0"
+ *		PlaybackPCM "hw:0"
  *	}
  * }
  */
@@ -621,7 +669,7 @@ static int parse_verb(snd_use_case_mgr_t *uc_mgr,
 
 		if (strcmp(id, "EnableSequence") == 0) {
 			uc_dbg("Parse EnableSequence");
-			err = parse_sequence(uc_mgr, &verb->enable_list, cfg);
+			err = parse_sequence(uc_mgr, &verb->enable_list, n);
 			if (err < 0) {
 				uc_error("error: failed to parse verb enable sequence");
 				return err;
@@ -631,7 +679,7 @@ static int parse_verb(snd_use_case_mgr_t *uc_mgr,
 
 		if (strcmp(id, "DisableSequence") == 0) {
 			uc_dbg("Parse DisableSequence");
-			err = parse_sequence(uc_mgr, &verb->disable_list, cfg);
+			err = parse_sequence(uc_mgr, &verb->disable_list, n);
 			if (err < 0) {
 				uc_error("error: failed to parse verb disable sequence");
 				return err;
@@ -639,11 +687,11 @@ static int parse_verb(snd_use_case_mgr_t *uc_mgr,
 			continue;
 		}
 
-		if (strcmp(id, "TransitionVerb") == 0) {
-			uc_dbg("Parse TransitionVerb");
+		if (strcmp(id, "TransitionSequence") == 0) {
+			uc_dbg("Parse TransitionSequence");
 			err = parse_transition(uc_mgr, &verb->transition_list, n);
 			if (err < 0) {
-				uc_error("error: failed to parse transition verb");
+				uc_error("error: failed to parse transition sequence");
 				return err;
 			}
 			continue;
@@ -682,6 +730,7 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 	struct use_case_verb *verb;
 	snd_config_t *cfg;
 	char filename[MAX_FILE];
+	char *env = getenv(ALSA_CONFIG_UCM_VAR);
 	int err;
 
 	/* allocate verb */
@@ -703,7 +752,8 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 		return -ENOMEM;
 
 	/* open Verb file for reading */
-	snprintf(filename, sizeof(filename), "%s/%s/%s", ALSA_USE_CASE_DIR,
+	snprintf(filename, sizeof(filename), "%s/%s/%s",
+		env ? env : ALSA_USE_CASE_DIR,
 		uc_mgr->card_name, file);
 	filename[sizeof(filename)-1] = '\0';
 	
@@ -832,16 +882,18 @@ static int parse_master_section(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg,
  */
 static int parse_controls(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 {
-	struct list_head list;
 	int err;
 	
-	INIT_LIST_HEAD(&list);
-	err = parse_sequence(uc_mgr, &list, cfg);
+	if (!list_empty(&uc_mgr->default_list)) {
+		uc_error("Default list is not empty");
+		return -EINVAL;
+	}
+	err = parse_sequence(uc_mgr, &uc_mgr->default_list, cfg);
 	if (err < 0) {
 		uc_error("Unable to parse SectionDefaults");
 		return err;
 	}
-	printf("parse_controls - not yet implemented\n");
+	
 	return 0;
 }
 
@@ -931,9 +983,6 @@ static int parse_master_file(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 	return 0;
 }
 
-/** The name of the environment variable containing the UCM directory */
-#define ALSA_CONFIG_UCM_VAR "ALSA_CONFIG_UCM"
-
 static int load_master_config(const char *card_name, snd_config_t **cfg)
 {
 	char filename[MAX_FILE];
@@ -992,18 +1041,19 @@ static int filename_filter(const struct dirent *dirent)
 /* scan all cards and comments */
 int uc_mgr_scan_master_configs(const char **_list[])
 {
-	char filename[MAX_FILE];
+	char filename[MAX_FILE], dfl[MAX_FILE];
 	char *env = getenv(ALSA_CONFIG_UCM_VAR);
 	const char **list;
 	snd_config_t *cfg, *c;
 	int i, cnt, err;
+	ssize_t ss;
 	struct dirent **namelist;
 
 	snprintf(filename, sizeof(filename)-1,
 		"%s", env ? env : ALSA_USE_CASE_DIR);
 	filename[MAX_FILE-1] = '\0';
 
-	err = scandir(filename, &namelist, filename_filter, alphasort);
+	err = scandir(filename, &namelist, filename_filter, versionsort);
 	if (err < 0) {
 		err = -errno;
 		uc_error("error: could not scan directory %s: %s",
@@ -1011,6 +1061,20 @@ int uc_mgr_scan_master_configs(const char **_list[])
 		return err;
 	}
 	cnt = err;
+
+	dfl[0] = '\0';
+	if (strlen(filename) + 8 < sizeof(filename)) {
+		strcat(filename, "/default");
+		ss = readlink(filename, dfl, sizeof(dfl)-1);
+		if (ss >= 0) {
+			dfl[ss] = '\0';
+			dfl[sizeof(dfl)-1] = '\0';
+			if (dfl[0] && dfl[strlen(dfl)-1] == '/')
+				dfl[strlen(dfl)-1] = '\0';
+		} else {
+			dfl[0] = '\0';
+		}
+	}
 
 	list = calloc(1, cnt * 2 * sizeof(char *));
 	if (list == NULL) {
@@ -1035,6 +1099,14 @@ int uc_mgr_scan_master_configs(const char **_list[])
 		if (list[i * 2] == NULL) {
 			err = -ENOMEM;
 			goto __err;
+		}
+		if (strcmp(dfl, list[i * 2]) == 0) {
+			/* default to top */
+			const char *save1 = list[i * 2];
+			const char *save2 = list[i * 2 + 1];
+			memmove(list + 2, list, i * 2 * sizeof(char *));
+			list[0] = save1;
+			list[1] = save2;
 		}
 	}
 	err = cnt * 2;
