@@ -852,7 +852,7 @@ static int snd_pcm_dmix_htimestamp(snd_pcm_t *pcm,
 		if (ok && *avail == avail1)
 			break;
 		*avail = avail1;
-		*tstamp = snd_pcm_hw_fast_tstamp(pcm);
+		*tstamp = snd_pcm_hw_fast_tstamp(dmix->spcm);
 	}
 	return 0;
 }

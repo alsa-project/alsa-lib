@@ -542,7 +542,7 @@ static int snd_pcm_dshare_htimestamp(snd_pcm_t *pcm,
 		if (ok && *avail == avail1)
 			break;
 		*avail = avail1;
-		*tstamp = snd_pcm_hw_fast_tstamp(pcm);
+		*tstamp = snd_pcm_hw_fast_tstamp(dshare->spcm);
 	}
 	return 0;
 }

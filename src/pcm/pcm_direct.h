@@ -137,6 +137,7 @@ struct snd_pcm_direct {
 	int (*sync_ptr)(snd_pcm_t *pcm);
 	snd_pcm_state_t state;
 	snd_htimestamp_t trigger_tstamp;
+	snd_htimestamp_t update_tstamp;
 	int server, client;
 	int comm_fd;			/* communication file descriptor (socket) */
 	int hw_fd;			/* hardware file descriptor */

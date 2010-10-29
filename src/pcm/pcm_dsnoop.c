@@ -54,6 +54,23 @@ const char *_snd_module_pcm_dsnoop = "";
  *
  */
 
+static int snoop_timestamp(snd_pcm_t *pcm)
+{
+	snd_pcm_direct_t *dsnoop = pcm->private_data;
+	snd_pcm_uframes_t ptr1 = -2LL /* invalid value */, ptr2;
+
+	/* loop is required to sync hw.ptr with timestamp */
+	while (1) {
+		ptr2 = *dsnoop->spcm->hw.ptr;
+		if (ptr1 == ptr2)
+			break;
+		ptr1 = ptr2;
+		dsnoop->update_tstamp = snd_pcm_hw_fast_tstamp(dsnoop->spcm);
+	}
+	dsnoop->slave_hw_ptr = ptr1;
+	return 0;
+}
+
 static void snoop_areas(snd_pcm_direct_t *dsnoop,
 			const snd_pcm_channel_area_t *src_areas,
 			const snd_pcm_channel_area_t *dst_areas,
@@ -126,7 +143,8 @@ static int snd_pcm_dsnoop_sync_ptr(snd_pcm_t *pcm)
 	if (dsnoop->slowptr)
 		snd_pcm_hwsync(dsnoop->spcm);
 	old_slave_hw_ptr = dsnoop->slave_hw_ptr;
-	slave_hw_ptr = dsnoop->slave_hw_ptr = *dsnoop->spcm->hw.ptr;
+	snoop_timestamp(pcm);
+	slave_hw_ptr = dsnoop->slave_hw_ptr;
 	diff = slave_hw_ptr - old_slave_hw_ptr;
 	if (diff == 0)		/* fast path */
 		return 0;
@@ -172,7 +190,7 @@ static int snd_pcm_dsnoop_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	state = snd_pcm_state(dsnoop->spcm);
 	status->state = state == SND_PCM_STATE_RUNNING ? dsnoop->state : state;
 	status->trigger_tstamp = dsnoop->trigger_tstamp;
-	gettimestamp(&status->tstamp, pcm->monotonic);
+	status->tstamp = dsnoop->update_tstamp;
 	status->avail = snd_pcm_mmap_capture_avail(pcm);
 	status->avail_max = status->avail > dsnoop->avail_max ? status->avail : dsnoop->avail_max;
 	dsnoop->avail_max = 0;
@@ -254,7 +272,7 @@ static int snd_pcm_dsnoop_reset(snd_pcm_t *pcm)
 	snd_pcm_direct_t *dsnoop = pcm->private_data;
 	dsnoop->hw_ptr %= pcm->period_size;
 	dsnoop->appl_ptr = dsnoop->hw_ptr;
-	dsnoop->slave_appl_ptr = dsnoop->slave_hw_ptr = *dsnoop->spcm->hw.ptr;
+	dsnoop->slave_appl_ptr = dsnoop->slave_hw_ptr;
 	return 0;
 }
 
@@ -266,12 +284,13 @@ static int snd_pcm_dsnoop_start(snd_pcm_t *pcm)
 	if (dsnoop->state != SND_PCM_STATE_PREPARED)
 		return -EBADFD;
 	snd_pcm_hwsync(dsnoop->spcm);
-	dsnoop->slave_appl_ptr = dsnoop->slave_hw_ptr = *dsnoop->spcm->hw.ptr;
+	snoop_timestamp(pcm);
+	dsnoop->slave_appl_ptr = dsnoop->slave_hw_ptr;
 	err = snd_timer_start(dsnoop->timer);
 	if (err < 0)
 		return err;
 	dsnoop->state = SND_PCM_STATE_RUNNING;
-	gettimestamp(&dsnoop->trigger_tstamp, pcm->monotonic);
+	dsnoop->trigger_tstamp = dsnoop->update_tstamp;
 	return 0;
 }
 
@@ -437,7 +456,7 @@ static int snd_pcm_dsnoop_htimestamp(snd_pcm_t *pcm,
 		if (ok && *avail == avail1)
 			break;
 		*avail = avail1;
-		*tstamp = snd_pcm_hw_fast_tstamp(pcm);
+		*tstamp = snd_pcm_hw_fast_tstamp(dsnoop->spcm);
 	}
 	return 0;
 }
