@@ -774,9 +774,9 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
 	pthread_mutex_lock(&uc_mgr->mutex);
 	if (strcmp(identifier, "_verbs") == 0)
 		err = get_verb_list(uc_mgr, list);
-        else if (strcmp(identifier, "_enadevs"))
+        else if (strcmp(identifier, "_enadevs") == 0)
         	err = get_enabled_device_list(uc_mgr, list);
-        else if (strcmp(identifier, "_enamods"))
+        else if (strcmp(identifier, "_enamods") == 0)
                 err = get_enabled_modifier_list(uc_mgr, list);
         else {
                 str1 = strchr(identifier, '/');

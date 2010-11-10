@@ -203,7 +203,8 @@ static int parse_sequence(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
 	struct sequence_element *curr;
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
-	int err;
+	int err, idx = 0;
+	const char *cmd = NULL;
 
 	if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
 		uc_error("error: compound is expected for sequence definition");
@@ -212,10 +213,19 @@ static int parse_sequence(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
 
 	snd_config_for_each(i, next, cfg) {
 		const char *id;
+		idx ^= 1;
 		n = snd_config_iterator_entry(i);
 		err = snd_config_get_id(n, &id);
 		if (err < 0)
 			continue;
+		if (idx == 1) {
+			if (snd_config_get_type(n) != SND_CONFIG_TYPE_STRING) {
+				uc_error("error: string type is expected for sequence command");
+				return -EINVAL;
+			}
+			snd_config_get_string(n, &cmd);
+			continue;
+		}
 
 		/* alloc new sequence element */
 		curr = calloc(1, sizeof(struct sequence_element));
@@ -223,7 +233,7 @@ static int parse_sequence(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
 			return -ENOMEM;
 		list_add_tail(&curr->list, base);
 
-		if (strcmp(id, "cset") == 0) {
+		if (strcmp(cmd, "cset") == 0) {
 			curr->type = SEQUENCE_ELEMENT_TYPE_CSET;
 			err = parse_string(n, &curr->data.cset);
 			if (err < 0) {
@@ -233,7 +243,7 @@ static int parse_sequence(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
 			continue;
 		}
 
-		if (strcmp(id, "usleep") == 0) {
+		if (strcmp(cmd, "usleep") == 0) {
 			curr->type = SEQUENCE_ELEMENT_TYPE_SLEEP;
 			err = snd_config_get_integer(n, &curr->data.sleep);
 			if (err < 0) {
@@ -243,7 +253,7 @@ static int parse_sequence(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
 			continue;
 		}
 
-		if (strcmp(id, "exec") == 0) {
+		if (strcmp(cmd, "exec") == 0) {
 			curr->type = SEQUENCE_ELEMENT_TYPE_EXEC;
 			err = parse_string(n, &curr->data.exec);
 			if (err < 0) {
