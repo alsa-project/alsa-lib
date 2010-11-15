@@ -726,8 +726,11 @@ int snd_pcm_nonblock(snd_pcm_t *pcm, int nonblock)
 		return err;
 	if (nonblock)
 		pcm->mode |= SND_PCM_NONBLOCK;
-	else
+	else {
+		if (pcm->hw_flags & SND_PCM_HW_PARAMS_NO_PERIOD_WAKEUP)
+			return -EINVAL;
 		pcm->mode &= ~SND_PCM_NONBLOCK;
+	}
 	return 0;
 }
 
@@ -3081,6 +3084,23 @@ int snd_pcm_hw_params_can_sync_start(const snd_pcm_hw_params_t *params)
 }
 
 /**
+ * \brief Check if hardware can disable period wakeups
+ * \param params Configuration space
+ * \return Boolean value
+ * \retval 0 Hardware cannot disable period wakeups
+ * \retval 1 Hardware can disable period wakeups
+ */
+int snd_pcm_hw_params_can_disable_period_wakeup(const snd_pcm_hw_params_t *params)
+{
+	assert(params);
+	if (CHECK_SANITY(params->info == ~0U)) {
+		SNDMSG("invalid PCM info field");
+		return 0; /* FIXME: should be a negative error? */
+	}
+	return !!(params->info & SNDRV_PCM_INFO_NO_PERIOD_WAKEUP);
+}
+
+/**
  * \brief Get rate exact info from a configuration space
  * \param params Configuration space
  * \param rate_num Pointer to returned rate numerator
@@ -4196,6 +4216,56 @@ int snd_pcm_hw_params_get_export_buffer(snd_pcm_t *pcm, snd_pcm_hw_params_t *par
 {
 	assert(pcm && params && val);
 	*val = params->flags & SND_PCM_HW_PARAMS_EXPORT_BUFFER ? 1 : 0;
+	return 0;
+}
+
+/**
+ * \brief Restrict a configuration space to settings without period wakeups
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val 0 = disable, 1 = enable (default) period wakeup
+ * \return Zero on success, otherwise a negative error code.
+ *
+ * This function must be called only on devices where non-blocking mode is
+ * enabled.
+ *
+ * To check whether the hardware does support disabling period wakeups, call
+ * #snd_pcm_hw_params_can_disable_period_wakeup(). If the hardware does not
+ * support this mode, standard period wakeups will be generated.
+ *
+ * Even with disabled period wakeups, the period size/time/count parameters
+ * are valid; it is suggested to use #snd_pcm_hw_params_set_period_size_last().
+ *
+ * When period wakeups are disabled, the application must not use any functions
+ * that could block on this device. The use of poll should be limited to error
+ * cases. The application needs to use an external event or a timer to
+ * check the state of the ring buffer and refill it apropriately.
+ */
+int snd_pcm_hw_params_set_period_wakeup(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val)
+{
+	assert(pcm && params);
+
+	if (!val) {
+		if (!(pcm->mode & SND_PCM_NONBLOCK))
+			return -EINVAL;
+		params->flags |= SND_PCM_HW_PARAMS_NO_PERIOD_WAKEUP;
+	} else
+		params->flags &= ~SND_PCM_HW_PARAMS_NO_PERIOD_WAKEUP;
+
+	return snd_pcm_hw_refine(pcm, params);
+}
+
+/**
+ * \brief Extract period wakeup flag from a configuration space
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val 0 = disabled, 1 = enabled period wakeups
+ * \return Zero on success, otherwise a negative error code.
+ */
+int snd_pcm_hw_params_get_period_wakeup(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val)
+{
+	assert(pcm && params && val);
+	*val = params->flags & SND_PCM_HW_PARAMS_NO_PERIOD_WAKEUP ? 0 : 1;
 	return 0;
 }
 
