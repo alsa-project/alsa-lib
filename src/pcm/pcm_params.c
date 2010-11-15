@@ -2126,6 +2126,7 @@ int _snd_pcm_hw_params_refine(snd_pcm_hw_params_t *params,
 			err = changed;
 	}
 	params->info &= src->info;
+	params->flags = src->flags; /* propagate all flags to slave */
 	return err;
 }
 
