@@ -2470,18 +2470,22 @@ int snd_pcm_avail_delay(snd_pcm_t *pcm,
 			snd_pcm_sframes_t *delayp)
 {
 	snd_pcm_sframes_t sf;
+	int err;
 
 	assert(pcm && availp && delayp);
 	if (CHECK_SANITY(! pcm->setup)) {
 		SNDMSG("PCM not set up");
 		return -EIO;
 	}
-	sf = pcm->fast_ops->delay(pcm->fast_op_arg, delayp);
-	if (sf < 0)
-		return (int)sf;
+	err = pcm->fast_ops->hwsync(pcm->fast_op_arg);
+	if (err < 0)
+		return err;
 	sf = pcm->fast_ops->avail_update(pcm->fast_op_arg);
 	if (sf < 0)
 		return (int)sf;
+	err = pcm->fast_ops->delay(pcm->fast_op_arg, delayp);
+	if (err < 0)
+		return err;
 	*availp = sf;
 	return 0;
 }
