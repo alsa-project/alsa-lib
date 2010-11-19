@@ -44,8 +44,6 @@ typedef struct {
 	snd_pcm_slave_xfer_areas_func_t write;
 	snd_pcm_slave_xfer_areas_undo_func_t undo_read;
 	snd_pcm_slave_xfer_areas_undo_func_t undo_write;
-	snd_pcm_sframes_t (*client_frames)(snd_pcm_t *pcm, snd_pcm_sframes_t frames);
-	snd_pcm_sframes_t (*slave_frames)(snd_pcm_t *pcm, snd_pcm_sframes_t frames);
 	int (*init)(snd_pcm_t *pcm);
 	snd_pcm_uframes_t appl_ptr, hw_ptr;
 	snd_atomic_write_t watom;

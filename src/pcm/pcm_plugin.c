@@ -144,8 +144,6 @@ static int snd_pcm_plugin_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 	int err = snd_pcm_delay(plugin->gen.slave, &sd);
 	if (err < 0)
 		return err;
-	if (plugin->client_frames)
-		sd = plugin->client_frames(pcm, sd);
 	*delayp = sd;
 	return 0;
 }
@@ -208,18 +206,13 @@ static snd_pcm_sframes_t snd_pcm_plugin_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t
 	if (frames == 0)
 		return 0;
 	
-	if (plugin->slave_frames)
-		sframes = plugin->slave_frames(pcm, (snd_pcm_sframes_t) frames);
-	else
-		sframes = frames;
+        sframes = frames;
 	snd_atomic_write_begin(&plugin->watom);
 	sframes = snd_pcm_rewind(plugin->gen.slave, sframes);
 	if (sframes < 0) {
 		snd_atomic_write_end(&plugin->watom);
 		return sframes;
 	}
-	if (plugin->client_frames)
-		frames = plugin->client_frames(pcm, sframes);
 	snd_pcm_mmap_appl_backward(pcm, (snd_pcm_uframes_t) frames);
 	snd_atomic_write_end(&plugin->watom);
 	return (snd_pcm_sframes_t) frames;
@@ -241,18 +234,13 @@ static snd_pcm_sframes_t snd_pcm_plugin_forward(snd_pcm_t *pcm, snd_pcm_uframes_
 	if (frames == 0)
 		return 0;
 	
-	if (plugin->slave_frames)
-		sframes = plugin->slave_frames(pcm, (snd_pcm_sframes_t) frames);
-	else
-		sframes = frames;
+        sframes = frames;
 	snd_atomic_write_begin(&plugin->watom);
 	sframes = INTERNAL(snd_pcm_forward)(plugin->gen.slave, sframes);
 	if (sframes < 0) {
 		snd_atomic_write_end(&plugin->watom);
 		return sframes;
 	}
-	if (plugin->client_frames)
-		frames = plugin->client_frames(pcm, sframes);
 	snd_pcm_mmap_appl_forward(pcm, (snd_pcm_uframes_t) frames);
 	snd_atomic_write_end(&plugin->watom);
 	return (snd_pcm_sframes_t) frames;
@@ -469,15 +457,8 @@ static snd_pcm_sframes_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm)
 	    pcm->access != SND_PCM_ACCESS_RW_INTERLEAVED &&
 	    pcm->access != SND_PCM_ACCESS_RW_NONINTERLEAVED)
 		goto _capture;
-	if (plugin->client_frames) {
-		*pcm->hw.ptr = plugin->client_frames(pcm, *slave->hw.ptr);
-		if (slave_size <= 0)
-			return slave_size;
-		return plugin->client_frames(pcm, slave_size);
-	} else {
-		*pcm->hw.ptr = *slave->hw.ptr;
-		return slave_size;
-	}
+        *pcm->hw.ptr = *slave->hw.ptr;
+        return slave_size;
  _capture:
  	{
 		const snd_pcm_channel_area_t *areas;
@@ -547,16 +528,10 @@ static int snd_pcm_plugin_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	}
 	status->appl_ptr = *pcm->appl.ptr;
 	status->hw_ptr = *pcm->hw.ptr;
-	if (plugin->client_frames) {
-		status->delay = plugin->client_frames(pcm, status->delay);
-		status->avail = plugin->client_frames(pcm, status->avail);
-	}
 	if (!snd_atomic_read_ok(&ratom)) {
 		snd_atomic_read_wait(&ratom);
 		goto _again;
 	}
-	if (plugin->client_frames)
-		status->avail_max = plugin->client_frames(pcm, (snd_pcm_sframes_t) status->avail_max);
 	return 0;
 }
 
