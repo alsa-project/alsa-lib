@@ -188,6 +188,7 @@ static int parse_supported_device(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
  *
  * Sequence controls elements  are in the following form:-
  *
+ * cdev "hw:0,0"
  * cset "element_id_syntax value_syntax"
  * usleep time
  * exec "any unix command with arguments"
@@ -232,6 +233,16 @@ static int parse_sequence(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
 		if (curr == NULL)
 			return -ENOMEM;
 		list_add_tail(&curr->list, base);
+
+		if (strcmp(cmd, "cdev") == 0) {
+			curr->type = SEQUENCE_ELEMENT_TYPE_CDEV;
+			err = parse_string(n, &curr->data.cdev);
+			if (err < 0) {
+				uc_error("error: cdev requires a string!");
+				return err;
+			}
+			continue;
+		}
 
 		if (strcmp(cmd, "cset") == 0) {
 			curr->type = SEQUENCE_ELEMENT_TYPE_CSET;

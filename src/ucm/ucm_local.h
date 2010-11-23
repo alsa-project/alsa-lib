@@ -42,9 +42,10 @@
 #define MAX_FILE		256
 #define ALSA_USE_CASE_DIR	ALSA_CONFIG_DIR "/ucm"
 
-#define SEQUENCE_ELEMENT_TYPE_CSET	1
-#define SEQUENCE_ELEMENT_TYPE_SLEEP	2
-#define SEQUENCE_ELEMENT_TYPE_EXEC	3
+#define SEQUENCE_ELEMENT_TYPE_CDEV	1
+#define SEQUENCE_ELEMENT_TYPE_CSET	2
+#define SEQUENCE_ELEMENT_TYPE_SLEEP	3
+#define SEQUENCE_ELEMENT_TYPE_EXEC	4
 
 struct ucm_value {
         struct list_head list;
@@ -57,6 +58,7 @@ struct sequence_element {
 	unsigned int type;
 	union {
 		long sleep; /* Sleep time in msecs if sleep element, else 0 */
+		char *cdev;
 		char *cset;
 		char *exec;
 	} data;

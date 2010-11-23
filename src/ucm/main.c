@@ -133,6 +133,9 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
 	list_for_each(pos, seq) {
 		s = list_entry(pos, struct sequence_element, list);
 		switch (s->type) {
+		case SEQUENCE_ELEMENT_TYPE_CDEV:
+			uc_error("cdev not yet implemented: '%s'", s->data.cdev);
+			break;
 		case SEQUENCE_ELEMENT_TYPE_CSET:
 			uc_error("cset not yet implemented: '%s'", s->data.cset);
 			break;
