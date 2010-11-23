@@ -1633,6 +1633,7 @@ static const char *const snd_pcm_type_names[] = {
 	PCMTYPE(SOFTVOL),
         PCMTYPE(IOPLUG),
         PCMTYPE(EXTPLUG),
+	PCMTYPE(MMAP_EMUL),
 };
 
 static const char *const snd_pcm_subformat_names[] = {
