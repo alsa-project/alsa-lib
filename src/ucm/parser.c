@@ -188,7 +188,7 @@ static int parse_supported_device(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
  *
  * Sequence controls elements  are in the following form:-
  *
- * cdev "hw:0,0"
+ * cdev "hw:0"
  * cset "element_id_syntax value_syntax"
  * usleep time
  * exec "any unix command with arguments"
@@ -942,8 +942,8 @@ static int parse_controls(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
  * # Define Value defaults
  *
  * ValueDefaults {
- *	PlaybackCTL "hw:CARD=0,DEV=0"
- *	CaptureCTL "hw:CARD=0,DEV=0"
+ *	PlaybackCTL "hw:CARD=0"
+ *	CaptureCTL "hw:CARD=0"
  * }
  *
  * # This file also stores the default sound card state.
