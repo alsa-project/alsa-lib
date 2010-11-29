@@ -38,6 +38,14 @@
  * misc
  */
 
+static int get_value1(const char **value, struct list_head *value_list,
+                      const char *identifier);
+static int get_value3(const char **value,
+		      const char *identifier,
+		      struct list_head *value_list1,
+		      struct list_head *value_list2,
+		      struct list_head *value_list3);
+
 static int check_identifier(const char *identifier, const char *prefix)
 {
 	int len;
@@ -118,26 +126,140 @@ int snd_use_case_free_list(const char *list[], int items)
 	return 0;
 }
 
+static int open_ctl(snd_use_case_mgr_t *uc_mgr,
+		    snd_ctl_t **ctl,
+		    const char *ctl_dev)
+{
+	int err;
+
+	/* FIXME: add a list of ctl devices to uc_mgr structure and
+           cache accesses for multiple opened ctl devices */
+	if (uc_mgr->ctl_dev != NULL && strcmp(ctl_dev, uc_mgr->ctl_dev) == 0) {
+		*ctl = uc_mgr->ctl;
+		return 0;
+	}
+	if (uc_mgr->ctl_dev) {
+		free(uc_mgr->ctl_dev);
+		uc_mgr->ctl_dev = NULL;
+		snd_ctl_close(uc_mgr->ctl);
+	
+	}
+	err = snd_ctl_open(ctl, ctl_dev, 0);
+	if (err < 0)
+		return err;
+	uc_mgr->ctl_dev = strdup(ctl_dev);
+	if (uc_mgr->ctl_dev == NULL) {
+		snd_ctl_close(*ctl);
+		return -ENOMEM;
+	}
+	uc_mgr->ctl = *ctl;
+	return 0;
+}
+
+static int execute_cset(snd_ctl_t *ctl, char *cset)
+{
+	char *pos;
+	int err;
+	snd_ctl_elem_id_t *id;
+	snd_ctl_elem_value_t *value;
+	snd_ctl_elem_info_t *info;
+
+	snd_ctl_elem_id_malloc(&id);
+	snd_ctl_elem_value_malloc(&value);
+	snd_ctl_elem_info_malloc(&info);
+
+	pos = strchr(cset, ' ');
+	if (pos == NULL) {
+		uc_error("undefined value for cset >%s<", cset);
+		return -EINVAL;
+	}
+	*pos = '\0';
+	err = snd_ctl_ascii_elem_id_parse(id, cset);
+	if (err < 0)
+		goto __fail;
+	snd_ctl_elem_value_set_id(value, id);
+	snd_ctl_elem_info_set_id(info, id);
+	err = snd_ctl_elem_read(ctl, value);
+	if (err < 0)
+		goto __fail;
+	err = snd_ctl_elem_info(ctl, info);
+	if (err < 0)
+		goto __fail;
+	err = snd_ctl_ascii_value_parse(ctl, value, info, pos + 1);
+	if (err < 0)
+		goto __fail;
+	err = snd_ctl_elem_write(ctl, value);
+	if (err < 0)
+		goto __fail;
+	err = 0;
+      __fail:
+	*pos = ' ';
+	return err;
+}
+
 /**
  * \brief Execute the sequence
  * \param uc_mgr Use case manager
  * \param seq Sequence
  * \return zero on success, otherwise a negative error code
  */
-static int execute_sequence(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
-			    struct list_head *seq)
+static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
+			    struct list_head *seq,
+			    struct list_head *value_list1,
+			    struct list_head *value_list2,
+			    struct list_head *value_list3)
 {
 	struct list_head *pos;
 	struct sequence_element *s;
+	char *cdev = NULL;
+	snd_ctl_t *ctl = NULL;
+	int err = 0;
 
 	list_for_each(pos, seq) {
 		s = list_entry(pos, struct sequence_element, list);
 		switch (s->type) {
 		case SEQUENCE_ELEMENT_TYPE_CDEV:
-			uc_error("cdev not yet implemented: '%s'", s->data.cdev);
+			cdev = strdup(s->data.cdev);
+			if (cdev == NULL)
+				goto __fail_nomem;
 			break;
 		case SEQUENCE_ELEMENT_TYPE_CSET:
-			uc_error("cset not yet implemented: '%s'", s->data.cset);
+			if (cdev == NULL) {
+				const char *cdev1 = NULL, *cdev2 = NULL;
+				err = get_value3(&cdev1, "PlaybackCTL",
+						 value_list1,
+						 value_list2,
+						 value_list3);
+				if (err < 0 && err != ENOENT) {
+					uc_error("cdev is not defined!");
+					return err;
+				}
+				err = get_value3(&cdev1, "CaptureCTL",
+						 value_list1,
+						 value_list2,
+						 value_list3);
+				if (err < 0 && err != ENOENT) {
+					free((char *)cdev1);
+					uc_error("cdev is not defined!");
+					return err;
+				}
+				if (cdev1 == NULL || cdev2 == NULL ||
+                                    strcmp(cdev1, cdev2) == 0) {
+					cdev = (char *)cdev1;
+					free((char *)cdev2);
+				} else {
+					free((char *)cdev1);
+					free((char *)cdev2);
+				}
+			}
+			if (ctl == NULL) {
+				err = open_ctl(uc_mgr, &ctl, cdev);
+				if (err < 0)
+					goto __fail;
+			}
+			err = execute_cset(ctl, s->data.cset);
+			if (err < 0)
+				goto __fail;
 			break;
 		case SEQUENCE_ELEMENT_TYPE_SLEEP:
 			usleep(s->data.sleep);
@@ -150,7 +272,14 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
 			break;
 		}
 	}
+	free(cdev);
 	return 0;
+      __fail_nomem:
+	err = -ENOMEM;
+      __fail:
+	free(cdev);
+	return err;
+
 }
 
 /**
@@ -165,7 +294,8 @@ static int import_master_config(snd_use_case_mgr_t *uc_mgr)
 	err = uc_mgr_import_master_config(uc_mgr);
 	if (err < 0)
 		return err;
-	err = execute_sequence(uc_mgr, &uc_mgr->default_list);
+	err = execute_sequence(uc_mgr, &uc_mgr->default_list,
+			       &uc_mgr->value_list, NULL, NULL);
 	if (err < 0)
 		uc_error("Unable to execute default sequence");
 	return err;
@@ -365,7 +495,10 @@ static int set_verb(snd_use_case_mgr_t *uc_mgr,
 	} else {
 		seq = &verb->disable_list;
 	}
-	err = execute_sequence(uc_mgr, seq);
+	err = execute_sequence(uc_mgr, seq,
+			       &verb->value_list,
+			       &uc_mgr->value_list,
+			       NULL);
 	if (enable && err >= 0)
 		uc_mgr->active_verb = verb;
 	return err;
@@ -390,7 +523,10 @@ static int set_modifier(snd_use_case_mgr_t *uc_mgr,
 	} else {
 		seq = &modifier->disable_list;
 	}
-	err = execute_sequence(uc_mgr, seq);
+	err = execute_sequence(uc_mgr, seq,
+			       &modifier->value_list,
+			       &uc_mgr->active_verb->value_list,
+			       &uc_mgr->value_list);
 	if (enable && err >= 0) {
 		list_add_tail(&modifier->active_list, &uc_mgr->active_modifiers);
 	} else if (!enable) {
@@ -418,7 +554,10 @@ static int set_device(snd_use_case_mgr_t *uc_mgr,
 	} else {
 		seq = &device->disable_list;
 	}
-	err = execute_sequence(uc_mgr, seq);
+	err = execute_sequence(uc_mgr, seq,
+			       &device->value_list,
+			       &uc_mgr->active_verb->value_list,
+			       &uc_mgr->value_list);
 	if (enable && err >= 0) {
 		list_add_tail(&device->active_list, &uc_mgr->active_devices);
 	} else if (!enable) {
@@ -542,7 +681,8 @@ static int dismantle_use_case(snd_use_case_mgr_t *uc_mgr)
 	}
 	uc_mgr->active_verb = NULL;
 
-	err = execute_sequence(uc_mgr, &uc_mgr->default_list);
+	err = execute_sequence(uc_mgr, &uc_mgr->default_list,
+			       &uc_mgr->value_list, NULL, NULL);
 	
 	return err;
 }
@@ -557,7 +697,8 @@ int snd_use_case_mgr_reset(snd_use_case_mgr_t *uc_mgr)
         int err;
 
 	pthread_mutex_lock(&uc_mgr->mutex);
-	err = execute_sequence(uc_mgr, &uc_mgr->default_list);
+	err = execute_sequence(uc_mgr, &uc_mgr->default_list,
+			       &uc_mgr->value_list, NULL, NULL);
 	INIT_LIST_HEAD(&uc_mgr->active_modifiers);
 	INIT_LIST_HEAD(&uc_mgr->active_devices);
 	uc_mgr->active_verb = NULL;
@@ -828,6 +969,26 @@ static int get_value1(const char **value, struct list_head *value_list,
         return -ENOENT;
 }
 
+static int get_value3(const char **value,
+		      const char *identifier,
+		      struct list_head *value_list1,
+		      struct list_head *value_list2,
+		      struct list_head *value_list3)
+{
+	int err;
+
+	err = get_value1(value, value_list1, identifier);
+	if (err >= 0 || err != -ENOENT)
+		return err;
+	err = get_value1(value, value_list2, identifier);
+	if (err >= 0 || err != -ENOENT)
+		return err;
+	err = get_value1(value, value_list3, identifier);
+	if (err >= 0 || err != -ENOENT)
+		return err;
+	return -ENOENT;
+}
+
 /**
  * \brief Get value
  * \param uc_mgr Use case manager
@@ -1003,7 +1164,10 @@ static int handle_transition_verb(snd_use_case_mgr_t *uc_mgr,
         list_for_each(pos, &uc_mgr->active_verb->transition_list) {
                 trans = list_entry(pos, struct transition_sequence, list);
                 if (strcmp(trans->name, new_verb->name) == 0) {
-                        err = execute_sequence(uc_mgr, &trans->transition_list);
+                        err = execute_sequence(uc_mgr, &trans->transition_list,
+					       &uc_mgr->active_verb->value_list,
+					       &uc_mgr->value_list,
+					       NULL);
                         if (err >= 0)
                                 return 1;
                         return err;
@@ -1108,7 +1272,10 @@ static int switch_device(snd_use_case_mgr_t *uc_mgr,
         list_for_each(pos, &xold->transition_list) {
                 trans = list_entry(pos, struct transition_sequence, list);
                 if (strcmp(trans->name, new_device) == 0) {
-                        err = execute_sequence(uc_mgr, &trans->transition_list);
+                        err = execute_sequence(uc_mgr, &trans->transition_list,
+					       &xold->value_list,
+					       &uc_mgr->active_verb->value_list,
+					       &uc_mgr->value_list);
                         if (err >= 0) {
                                 list_del(&xold->active_list);
                                 list_add_tail(&xnew->active_list, &uc_mgr->active_devices);
@@ -1157,7 +1324,10 @@ static int switch_modifier(snd_use_case_mgr_t *uc_mgr,
         list_for_each(pos, &xold->transition_list) {
                 trans = list_entry(pos, struct transition_sequence, list);
                 if (strcmp(trans->name, new_modifier) == 0) {
-                        err = execute_sequence(uc_mgr, &trans->transition_list);
+                        err = execute_sequence(uc_mgr, &trans->transition_list,
+					       &xold->value_list,
+					       &uc_mgr->active_verb->value_list,
+					       &uc_mgr->value_list);
                         if (err >= 0) {
                                 list_del(&xold->active_list);
                                 list_add_tail(&xnew->active_list, &uc_mgr->active_modifiers);

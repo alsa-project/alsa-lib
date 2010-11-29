@@ -220,6 +220,12 @@ void uc_mgr_free_verb(snd_use_case_mgr_t *uc_mgr)
 	uc_mgr->active_verb = NULL;
 	INIT_LIST_HEAD(&uc_mgr->active_devices);
 	INIT_LIST_HEAD(&uc_mgr->active_modifiers);
+	if (uc_mgr->ctl != NULL) {
+		snd_ctl_close(uc_mgr->ctl);
+		uc_mgr->ctl = NULL;
+	}
+	free(uc_mgr->ctl_dev);
+	uc_mgr->ctl_dev = NULL;
 }
 
 void uc_mgr_free(snd_use_case_mgr_t *uc_mgr)

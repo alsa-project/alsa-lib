@@ -183,6 +183,10 @@ struct snd_use_case_mgr {
 
 	/* locking */
 	pthread_mutex_t mutex;
+
+	/* change to list of ctl handles */
+	snd_ctl_t *ctl;
+	char *ctl_dev;
 };
 
 #define uc_error SNDERR
