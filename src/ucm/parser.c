@@ -930,26 +930,33 @@ static int parse_controls(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
  * # The file is divided into Use case sections. One section per use case verb.
  *
  * SectionUseCase."Voice Call" {
- *		File "voice_call_blah"
- *		Comment "Make a voice phone call."
+ *	File "voice_call_blah"
+ *	Comment "Make a voice phone call."
  * }
  *
  * SectionUseCase."HiFi" {
- *		File "hifi_blah"
- *		Comment "Play and record HiFi quality Music."
+ *	File "hifi_blah"
+ *	Comment "Play and record HiFi quality Music."
+ * }
+ *
+ * # Define Value defaults
+ *
+ * ValueDefaults {
+ *	PlaybackCTL "hw:CARD=0,DEV=0"
+ *	CaptureCTL "hw:CARD=0,DEV=0"
  * }
  *
  * # This file also stores the default sound card state.
  *
  * SectionDefaults [
- *		cset "name='Master Playback Switch',index=2 1,1"
- *		cset "name='Master Playback Volume',index=2 25,25"
- *		cset "name='Master Mono Playback',index=1 0"
- *		cset "name='Master Mono Playback Volume',index=1 0"
- *		cset "name='PCM Switch',index=2 1,1"
- *              exec "some binary here"
- *              msleep 50
- *		........
+ *	cset "name='Master Playback Switch',index=2 1,1"
+ *	cset "name='Master Playback Volume',index=2 25,25"
+ *	cset "name='Master Mono Playback',index=1 0"
+ *	cset "name='Master Mono Playback Volume',index=1 0"
+ *	cset "name='PCM Switch',index=2 1,1"
+ *      exec "some binary here"
+ *      msleep 50
+ *	........
  * ]
  *
  * # End of example file.
@@ -999,6 +1006,17 @@ static int parse_master_file(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 				return err;
 			continue;
 		}
+
+		/* get the default values */
+		if (strcmp(id, "ValueDefaults") == 0) {
+			err = parse_value(uc_mgr, &uc_mgr->value_list, n);
+			if (err < 0) {
+				uc_error("error: failed to parse ValueDefaults");
+				return err;
+			}
+			continue;
+		}
+
 		uc_error("uknown master file field %s", id);
 	}
 	return 0;

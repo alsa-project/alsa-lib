@@ -173,6 +173,9 @@ struct snd_use_case_mgr {
 	/* default settings - sequence */
 	struct list_head default_list;
 
+	/* default settings - value list */
+	struct list_head value_list;
+
 	/* current status */
 	struct use_case_verb *active_verb;
 	struct list_head active_devices;

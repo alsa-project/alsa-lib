@@ -445,6 +445,7 @@ int snd_use_case_mgr_open(snd_use_case_mgr_t **mgr,
 		return -ENOMEM;
 	INIT_LIST_HEAD(&uc_mgr->verb_list);
 	INIT_LIST_HEAD(&uc_mgr->default_list);
+	INIT_LIST_HEAD(&uc_mgr->value_list);
 	pthread_mutex_init(&uc_mgr->mutex, NULL);
 
 	uc_mgr->card_name = strdup(card_name);
@@ -688,6 +689,9 @@ static int get_value_list(snd_use_case_mgr_t *uc_mgr,
         if (verb == NULL)
                 return -ENOENT;
         INIT_LIST_HEAD(&mylist);
+	err = add_values(&mylist, identifier, &uc_mgr->value_list);
+	if (err < 0)
+		goto __fail;
         err = add_values(&mylist, identifier, &verb->value_list);
         if (err < 0)
                 goto __fail;
@@ -821,14 +825,16 @@ static int get_value1(const char **value, struct list_head *value_list,
                       return 0;
               }
         }
-        return 0;
+        return -ENOENT;
 }
 
 /**
  * \brief Get value
- * \param list Returned list
- * \param verbname For verb (NULL = current)
- * \return Number of list entries if success, otherwise a negative error code
+ * \param uc_mgr Use case manager
+ * \param identifier Value identifier (string)
+ * \param value Returned value string
+ * \param modifier modifier name (string)
+ * \return Zero on success (value is filled), otherwise a negative error code
  */
 static int get_value(snd_use_case_mgr_t *uc_mgr,
                      const char *identifier,
@@ -836,16 +842,23 @@ static int get_value(snd_use_case_mgr_t *uc_mgr,
                      const char *modifier)
 {
         struct use_case_modifier *mod;
+	int err;
 
-        if (uc_mgr->active_verb == NULL)
-                return -ENOENT;
-        if (modifier == NULL)
-                return get_value1(value, &uc_mgr->active_verb->value_list,
-                                  identifier);
-        mod = find_modifier(uc_mgr->active_verb, modifier);
-        if (mod == NULL)
-                return -EINVAL;
-        return get_value1(value, &mod->value_list, identifier);
+	if (modifier != NULL) {
+	        mod = find_modifier(uc_mgr->active_verb, modifier);
+		if (mod != NULL) {
+			err = get_value1(value, &mod->value_list, identifier);
+			if (err >= 0 || err != -ENOENT)
+				return err;
+		}
+	}
+	err = get_value1(value, &uc_mgr->active_verb->value_list, identifier);
+	if (err >= 0 || err != -ENOENT)
+		return err;
+	err = get_value1(value, &uc_mgr->value_list, identifier);
+	if (err >= 0 || err != -ENOENT)
+		return err;
+	return -ENOENT;
 }
 
 /**
