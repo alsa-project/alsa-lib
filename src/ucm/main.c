@@ -463,19 +463,52 @@ static inline struct use_case_device *
 		    device_name);
 }
 
+static int is_modifier_supported(snd_use_case_mgr_t *uc_mgr, 
+	struct use_case_modifier *modifier)
+{
+	struct dev_list *device;
+	struct list_head *pos;
+
+	list_for_each(pos, &modifier->dev_list) {
+		device = list_entry(pos, struct dev_list, list);
+		if (find(&uc_mgr->active_devices,
+		    struct use_case_device, active_list, name, device->name))
+			return 1;
+		
+	}
+	return 0;
+}
+
 /**
  * \brief Find modifier
  * \param verb Use case verb
  * \param modifier_name modifier to find
  * \return structure on success, otherwise a NULL (not found)
  */
-static inline struct use_case_modifier *
-        find_modifier(struct use_case_verb *verb,
-                      const char *modifier_name)
+static struct use_case_modifier *
+        find_modifier(snd_use_case_mgr_t *uc_mgr, const char *modifier_name)
 {
-	return find(&verb->modifier_list,
-		    struct use_case_modifier, list, name,
-		    modifier_name);
+	struct use_case_modifier *modifier;
+	struct use_case_verb *verb = uc_mgr->active_verb;
+	struct list_head *pos;
+	char name[64], *cpos;
+
+	list_for_each(pos, &verb->modifier_list) {
+		modifier = list_entry(pos, struct use_case_modifier, list);
+
+		strncpy(name, modifier->name, sizeof(name));
+		cpos = strchr(name, '.');
+		if (!cpos)
+			continue;
+		*cpos= '\0';
+
+		if (strcmp(name, modifier_name))
+			continue;
+
+		if (is_modifier_supported(uc_mgr, modifier))
+			return modifier;
+	}
+	return NULL;
 }
 
 /**
@@ -1011,7 +1044,7 @@ static int get_value(snd_use_case_mgr_t *uc_mgr,
 	int err;
 
 	if (modifier != NULL) {
-	        mod = find_modifier(uc_mgr->active_verb, modifier);
+	        mod = find_modifier(uc_mgr, modifier);
 		if (mod != NULL) {
 			err = get_value1(value, &mod->value_list, identifier);
 			if (err >= 0 || err != -ENOENT)
@@ -1242,7 +1275,8 @@ static int set_modifier_user(snd_use_case_mgr_t *uc_mgr,
 
         if (uc_mgr->active_verb == NULL)
                 return -ENOENT;
-        modifier = find_modifier(uc_mgr->active_verb, modifier_name);
+
+        modifier = find_modifier(uc_mgr, modifier_name);
         if (modifier == NULL)
                 return -ENOENT;
         return set_modifier(uc_mgr, modifier, enable);
@@ -1319,10 +1353,10 @@ static int switch_modifier(snd_use_case_mgr_t *uc_mgr,
                 uc_error("error: modifier %s already enabled", new_modifier);
                 return -EINVAL;
         }
-        xold = find_modifier(uc_mgr->active_verb, old_modifier);
+        xold = find_modifier(uc_mgr, old_modifier);
         if (xold == NULL)
                 return -ENOENT;
-        xnew = find_modifier(uc_mgr->active_verb, new_modifier);
+        xnew = find_modifier(uc_mgr, new_modifier);
         if (xnew == NULL)
                 return -ENOENT;
         err = 0;
