@@ -208,8 +208,8 @@ int snd_ctl_ascii_elem_id_parse(snd_ctl_elem_id_t *dst, const char *str)
 					}
 					str++;
 				}
-				*ptr = '\0';
 			}
+			*ptr = '\0';
 			snd_ctl_elem_id_set_name(dst, buf);
 		} else if (!strncasecmp(str, "index=", 6)) {
 			str += 6;
