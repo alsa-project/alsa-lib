@@ -265,7 +265,9 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 			usleep(s->data.sleep);
 			break;
 		case SEQUENCE_ELEMENT_TYPE_EXEC:
-			uc_error("exec not yet implemented: '%s'", s->data.exec);
+			err = system(s->data.exec);
+			if (err < 0)
+				goto __fail;
 			break;
 		default:
 			uc_error("unknown sequence command %i", s->type);
