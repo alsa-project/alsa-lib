@@ -1321,7 +1321,7 @@ static int switch_modifier(snd_use_case_mgr_t *uc_mgr,
         if (xold == NULL)
                 return -ENOENT;
         xnew = find_modifier(uc_mgr->active_verb, new_modifier);
-        if (xold == NULL)
+        if (xnew == NULL)
                 return -ENOENT;
         err = 0;
         list_for_each(pos, &xold->transition_list) {
