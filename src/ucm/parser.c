@@ -633,13 +633,6 @@ static int parse_device_name(snd_use_case_mgr_t *uc_mgr,
 			      data1, (void *)id);
 }
 
-static int parse_device(snd_use_case_mgr_t *uc_mgr,
-			struct use_case_verb *verb,
-			snd_config_t *cfg)
-{
-	return parse_compound(uc_mgr, cfg, parse_device_name, verb, NULL);
-}
-
 static int parse_modifier_name(snd_use_case_mgr_t *uc_mgr,
 			     snd_config_t *cfg,
 			     void *data1,
@@ -824,7 +817,8 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 
 		/* find device sections and parse them */
 		if (strcmp(id, "SectionDevice") == 0) {
-			err = parse_device(uc_mgr, verb, n);
+			err = parse_compound(uc_mgr, n,
+						parse_device_name, verb, NULL);
 			if (err < 0) {
 				uc_error("error: %s failed to parse device",
 						file);
