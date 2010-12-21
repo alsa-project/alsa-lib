@@ -401,10 +401,11 @@ static int parse_value(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
 static int parse_modifier(snd_use_case_mgr_t *uc_mgr,
 		snd_config_t *cfg,
 		void *data1,
-		void *data2 ATTRIBUTE_UNUSED)
+		void *data2)
 {
 	struct use_case_verb *verb = data1;
 	struct use_case_modifier *modifier;
+	char *name = data2;
 	const char *id;
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
@@ -423,9 +424,12 @@ static int parse_modifier(snd_use_case_mgr_t *uc_mgr,
 	err = snd_config_get_id(cfg, &id);
 	if (err < 0)
 		return err;
-	modifier->name = strdup(id);
+	modifier->name = malloc(strlen(name) + strlen(id) + 2);
 	if (modifier->name == NULL)
-		return -EINVAL;
+		return -ENOMEM;
+	strcpy(modifier->name, name);
+	strcat(modifier->name, ".");
+	strcat(modifier->name, id);
 
 	snd_config_for_each(i, next, cfg) {
 		const char *id;
@@ -636,6 +640,21 @@ static int parse_device(snd_use_case_mgr_t *uc_mgr,
 	return parse_compound(uc_mgr, cfg, parse_device_name, verb, NULL);
 }
 
+static int parse_modifier_name(snd_use_case_mgr_t *uc_mgr,
+			     snd_config_t *cfg,
+			     void *data1,
+			     void *data2 ATTRIBUTE_UNUSED)
+{
+	const char *id;
+	int err;
+
+	err = snd_config_get_id(cfg, &id);
+	if (err < 0)
+		return err;
+	return parse_compound(uc_mgr, cfg, parse_modifier,
+			      data1, (void *)id);
+}
+
 /*
  * Parse Verb Section
  *
@@ -817,7 +836,7 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 		/* find modifier sections and parse them */
 		if (strcmp(id, "SectionModifier") == 0) {
 			err = parse_compound(uc_mgr, n,
-					     parse_modifier, verb, NULL);
+					     parse_modifier_name, verb, NULL);
 			if (err < 0) {
 				uc_error("error: %s failed to parse modifier",
 						file);
