@@ -115,8 +115,6 @@ struct use_case_device {
 	struct list_head list;
 	struct list_head active_list;
 
-	unsigned int active: 1;
-
 	char *name;
 	char *comment;
 
