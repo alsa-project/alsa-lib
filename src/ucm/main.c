@@ -742,7 +742,6 @@ static int get_device_list(snd_use_case_mgr_t *uc_mgr, const char **list[],
         return get_list2(&verb->device_list, list,
                          struct use_case_device, list,
                          name, comment);
-        return 0;
 }
 
 /**
@@ -766,7 +765,6 @@ static int get_modifier_list(snd_use_case_mgr_t *uc_mgr, const char **list[],
         return get_list2(&verb->modifier_list, list,
                          struct use_case_modifier, list,
                          name, comment);
-        return 0;
 }
 
 struct myvalue {
