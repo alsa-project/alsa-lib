@@ -957,6 +957,9 @@ static int get_value1(const char **value, struct list_head *value_list,
         struct ucm_value *val;
         struct list_head *pos;
         
+	if (!value_list)
+		return -ENOENT;
+
         list_for_each(pos, value_list) {
               val = list_entry(pos, struct ucm_value, list);
               if (check_identifier(identifier, val->name)) {
