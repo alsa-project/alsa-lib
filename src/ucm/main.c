@@ -1305,7 +1305,7 @@ static int switch_device(snd_use_case_mgr_t *uc_mgr,
         if (xold == NULL)
                 return -ENOENT;
         xnew = find_device(uc_mgr->active_verb, new_device);
-        if (xold == NULL)
+        if (xnew == NULL)
                 return -ENOENT;
         err = 0;
         list_for_each(pos, &xold->transition_list) {
@@ -1327,7 +1327,7 @@ static int switch_device(snd_use_case_mgr_t *uc_mgr,
                 err = set_device(uc_mgr, xold, 0);
                 if (err < 0)
                         return err;
-                err = set_device(uc_mgr, xnew, 0);
+                err = set_device(uc_mgr, xnew, 1);
                 if (err < 0)
                         return err;
         }
@@ -1379,7 +1379,7 @@ static int switch_modifier(snd_use_case_mgr_t *uc_mgr,
                 err = set_modifier(uc_mgr, xold, 0);
                 if (err < 0)
                         return err;
-                err = set_modifier(uc_mgr, xnew, 0);
+                err = set_modifier(uc_mgr, xnew, 1);
                 if (err < 0)
                         return err;
         }
