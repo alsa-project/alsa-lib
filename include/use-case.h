@@ -318,13 +318,24 @@ int snd_use_case_mgr_reset(snd_use_case_mgr_t *uc_mgr);
 
 /**
  * \brief Obtain a list of cards
- * \param uc_mgr Use case manager (may be NULL - card list)
  * \param list Returned allocated list
  * \return Number of list entries if success, otherwise a negative error code
  */
 static inline int snd_use_case_card_list(const char **list[])
 {
 	return snd_use_case_get_list(NULL, NULL, list);
+}
+
+/**
+ * \brief Obtain a list of verbs
+ * \param uc_mgr Use case manager
+ * \param list Returned list of verbs
+ * \return Number of list entries if success, otherwise a negative error code
+ */
+static inline int snd_use_case_verb_list(snd_use_case_mgr_t *uc_mgr,
+					 const char **list[])
+{
+	return snd_use_case_get_list(uc_mgr, "_verbs", list);
 }
 
 /**
