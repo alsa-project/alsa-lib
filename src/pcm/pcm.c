@@ -7313,7 +7313,7 @@ int snd_pcm_recover(snd_pcm_t *pcm, int err, int silent)
                 else
                         s = "overrun";
                 if (!silent)
-                        SNDERR("%s occured", s);
+                        SNDERR("%s occurred", s);
                 err = snd_pcm_prepare(pcm);
                 if (err < 0) {
                         SNDERR("cannot recovery from %s, prepare failed: %s", s, snd_strerror(err));
