@@ -284,6 +284,13 @@ unsigned int snd_ctl_event_elem_get_index(const snd_ctl_event_t *obj);
 int snd_ctl_elem_list_alloc_space(snd_ctl_elem_list_t *obj, unsigned int entries);
 void snd_ctl_elem_list_free_space(snd_ctl_elem_list_t *obj);
 
+char *snd_ctl_ascii_elem_id_get(snd_ctl_elem_id_t *id);
+int snd_ctl_ascii_elem_id_parse(snd_ctl_elem_id_t *dst, const char *str);
+int snd_ctl_ascii_value_parse(snd_ctl_t *handle,
+			      snd_ctl_elem_value_t *dst,
+			      snd_ctl_elem_info_t *info,
+			      const char *value);
+
 size_t snd_ctl_elem_id_sizeof(void);
 /** \hideinitializer
  * \brief allocate an invalid #snd_ctl_elem_id_t using standard alloca

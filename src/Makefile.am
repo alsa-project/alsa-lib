@@ -38,6 +38,10 @@ if BUILD_SEQ
 SUBDIRS += seq
 libasound_la_LIBADD += seq/libseq.la
 endif
+if BUILD_UCM
+SUBDIRS += ucm
+libasound_la_LIBADD += ucm/libucm.la
+endif
 if BUILD_ALISP
 SUBDIRS += alisp
 libasound_la_LIBADD += alisp/libalisp.la
