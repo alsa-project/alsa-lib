@@ -436,6 +436,9 @@ fi
 if test "$build_seq" = "yes"; then
   AC_DEFINE([BUILD_SEQ], "1", [Build sequencer component])
 fi
+if test "$build_ucm" = "yes"; then
+  AC_DEFINE([BUILD_UCM], "1", [Build UCM component])
+fi
 
 dnl PCM Plugins
 
