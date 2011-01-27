@@ -78,6 +78,9 @@ hwdep/libhwdep.la:
 seq/libseq.la:
 	$(MAKE) -C seq libseq.la
 
+ucm/libucm.la:
+	$(MAKE) -C ucm libucm.la
+
 instr/libinstr.la:
 	$(MAKE) -C instr libinstr.la
 
