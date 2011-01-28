@@ -777,12 +777,17 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 	INIT_LIST_HEAD(&verb->modifier_list);
 	INIT_LIST_HEAD(&verb->value_list);
 	list_add_tail(&verb->list, &uc_mgr->verb_list);
+	if (use_case_name == NULL)
+		return -EINVAL;
 	verb->name = strdup(use_case_name);
 	if (verb->name == NULL)
 		return -ENOMEM;
-	verb->comment = strdup(comment);
-	if (verb->comment == NULL)
-		return -ENOMEM;
+
+	if (comment != NULL) {
+		verb->comment = strdup(comment);
+		if (verb->comment == NULL)
+			return -ENOMEM;
+	}
 
 	/* open Verb file for reading */
 	snprintf(filename, sizeof(filename), "%s/%s/%s",
