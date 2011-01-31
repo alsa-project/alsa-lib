@@ -192,7 +192,7 @@ struct snd_use_case_mgr {
 #ifdef UC_MGR_DEBUG
 #define uc_dbg SNDERR
 #else
-#define uc_dbg(fmt, arg...)
+#define uc_dbg(fmt, arg...) do { } while (0)
 #endif
 
 void uc_mgr_error(const char *fmt, ...);

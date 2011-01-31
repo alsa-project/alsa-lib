@@ -56,6 +56,27 @@ int parse_string(snd_config_t *n, char **res)
 	return 0;
 }
 
+/*
+ * Parse safe ID
+ */
+int parse_is_name_safe(char *name)
+{
+	if (strchr(name, '.')) {
+		uc_error("char '.' now allowed in '%s'", name);
+		return 0;
+	}
+	return 1;
+}
+
+int parse_get_safe_id(snd_config_t *n, const char **id)
+{
+	int err;
+
+	err = snd_config_get_id(n, id);
+	if (err < 0)
+		return err;
+	return parse_is_name_safe((char *)(*id));
+}
 
 /*
  * Parse transition
@@ -367,13 +388,13 @@ static int parse_value(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
 /*
  * Parse Modifier Use cases
  *
- *	# Each modifier is described in new section. N modifier are allowed
- *	SectionModifier."Capture Voice" {
+ *	# Each modifier is described in new section. N modifiers are allowed
+ *	SectionModifier."Capture Voice".0 {
  *
  *		Comment "Record voice call"
  *		SupportedDevice [
- *			"x"
- *			"y"
+ *			"x"		# all x device instances
+ *			"y.0"		# device y instance 0 only
  *		]
  *
  *		EnableSequence [
@@ -411,6 +432,8 @@ static int parse_modifier(snd_use_case_mgr_t *uc_mgr,
 	snd_config_t *n;
 	int err;
 
+	if (!parse_is_name_safe(name))
+		return -EINVAL;
 	/* allocate modifier */
 	modifier = calloc(1, sizeof(*modifier));
 	if (modifier == NULL)
@@ -421,7 +444,7 @@ static int parse_modifier(snd_use_case_mgr_t *uc_mgr,
 	INIT_LIST_HEAD(&modifier->dev_list);
 	INIT_LIST_HEAD(&modifier->value_list);
 	list_add_tail(&modifier->list, &verb->modifier_list);
-	err = snd_config_get_id(cfg, &id);
+	err = parse_get_safe_id(cfg, &id);
 	if (err < 0)
 		return err;
 	modifier->name = malloc(strlen(name) + strlen(id) + 2);
@@ -496,7 +519,7 @@ static int parse_modifier(snd_use_case_mgr_t *uc_mgr,
 	}
 
 	if (list_empty(&modifier->dev_list)) {
-		uc_error("error: %s: modifier missing supported device sequence");
+		uc_error("error: %s: modifier missing supported device sequence", modifier->name);
 		return -EINVAL;
 	}
 
@@ -541,6 +564,8 @@ static int parse_device_index(snd_use_case_mgr_t *uc_mgr,
 	snd_config_t *n;
 	int err;
 	
+	if (!parse_is_name_safe(name))
+		return -EINVAL;
 	device = calloc(1, sizeof(*device));
 	if (device == NULL)
 		return -ENOMEM;
@@ -549,7 +574,7 @@ static int parse_device_index(snd_use_case_mgr_t *uc_mgr,
 	INIT_LIST_HEAD(&device->transition_list);
 	INIT_LIST_HEAD(&device->value_list);
 	list_add_tail(&device->list, &verb->device_list);
-	if (snd_config_get_id(cfg, &id) < 0)
+	if (parse_get_safe_id(cfg, &id) < 0)
 		return -EINVAL;
 	device->name = malloc(strlen(name) + strlen(id) + 2);
 	if (device->name == NULL)
@@ -904,7 +929,7 @@ static int parse_master_section(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg,
 		uc_error("unknown field %s in master section");
 	}
 
-	uc_dbg("use_case_name %s file %s end %d", use_case_name, file, end);
+	uc_dbg("use_case_name %s file '%s'", use_case_name, file);
 
 	/* do we have both use case name and file ? */
 	if (!file) {
