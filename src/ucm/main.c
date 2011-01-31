@@ -254,12 +254,16 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 			}
 			if (ctl == NULL) {
 				err = open_ctl(uc_mgr, &ctl, cdev);
-				if (err < 0)
+				if (err < 0) {
+					uc_error("unable to open ctl device '%s'", cdev);
 					goto __fail;
+				}
 			}
 			err = execute_cset(ctl, s->data.cset);
-			if (err < 0)
+			if (err < 0) {
+				uc_error("unable to execute cset '%s'\n", s->data.cset);
 				goto __fail;
+			}
 			break;
 		case SEQUENCE_ELEMENT_TYPE_SLEEP:
 			usleep(s->data.sleep);
