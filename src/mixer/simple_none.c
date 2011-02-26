@@ -937,7 +937,12 @@ static int base_len(const char *name, selem_ctl_type_t *type)
 		*type = CTL_CAPTURE_ROUTE;
 		return strlen(name);
 	}
-
+	if (strstr(name, "3D Control") > 0) {
+		if (strstr(name, "Depth") > 0) {
+			*type = CTL_PLAYBACK_VOLUME;
+			return strlen(name);
+		}
+	}
 	return 0;
 }
 
