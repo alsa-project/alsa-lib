@@ -25,6 +25,8 @@ cfg_files = aliases.conf \
 	ENS1371.conf \
 	ES1968.conf \
 	FM801.conf \
+	FWSpeakers.conf \
+	FireWave.conf \
 	GUS.conf \
 	HDA-Intel.conf \
 	ICE1712.conf \
