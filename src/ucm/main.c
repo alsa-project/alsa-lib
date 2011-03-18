@@ -858,6 +858,7 @@ static int add_values(struct list_head *list,
                                 val = malloc(sizeof(struct myvalue));
                                 if (val == NULL)
                                         return -ENOMEM;
+				val->value = v->data;
                                 list_add_tail(&val->list, list);
                         }
                 }
