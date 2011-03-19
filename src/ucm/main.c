@@ -75,8 +75,10 @@ static int alloc_str_list(struct list_head *list, int mult, char **result[])
         int cnt;
         
         cnt = list_count(list) * mult;
-        if (cnt == 0)
+        if (cnt == 0) {
+		*result = NULL;
                 return cnt;
+	}
         res = calloc(mult, cnt * sizeof(char *));
         if (res == NULL)
                 return -ENOMEM;
@@ -912,8 +914,8 @@ static int get_value_list(snd_use_case_mgr_t *uc_mgr,
                         goto __fail;
         }
         err = alloc_str_list(&mylist, 1, &res);
-        *list = (const char **)res;
         if (err >= 0) {
+	        *list = (const char **)res;
                 list_for_each(pos, &mylist) {
                         val = list_entry(pos, struct myvalue, list);
                         *res = strdup(val->value);
