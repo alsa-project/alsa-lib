@@ -385,6 +385,7 @@ static int snd_pcm_hook_add_conf(snd_pcm_t *pcm, snd_config_t *root, snd_config_
 	if (err >= 0) {
 		if (snd_config_get_type(type) != SND_CONFIG_TYPE_COMPOUND) {
 			SNDERR("Invalid type for PCM type %s definition", str);
+			err = -EINVAL;
 			goto _err;
 		}
 		snd_config_for_each(i, next, type) {

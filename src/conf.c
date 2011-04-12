@@ -3268,6 +3268,7 @@ static int snd_config_hooks_call(snd_config_t *root, snd_config_t *config, snd_c
 		snd_config_iterator_t i, next;
 		if (snd_config_get_type(func_conf) != SND_CONFIG_TYPE_COMPOUND) {
 			SNDERR("Invalid type for func %s definition", str);
+			err = -EINVAL;
 			goto _err;
 		}
 		snd_config_for_each(i, next, func_conf) {

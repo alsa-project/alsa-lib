@@ -99,7 +99,7 @@ int mixer_simple_basic_dlopen(snd_mixer_class_t *class,
       __error:
       	if (initflag)
       		free(priv);
-	if (h == NULL)
+	if (h)
 		snd_dlclose(h);
 	free(xlib);
 	return -ENXIO;

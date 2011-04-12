@@ -89,7 +89,7 @@ static int set_hw_params(snd_pcm_t *pcm,
 			return err;
 		if (periods == 1)
 			return -EINVAL;
-		if (*period_time == 0) {
+		if (period_time) {
 			err = INTERNAL(snd_pcm_hw_params_get_period_time)(hw_params, period_time, NULL);
 			if (err < 0)
 				return err;
