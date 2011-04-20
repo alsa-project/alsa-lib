@@ -175,6 +175,7 @@ int setparams(snd_pcm_t *phandle, snd_pcm_t *chandle, int *bufsize)
 	snd_pcm_sw_params_t *p_swparams, *c_swparams;
 	snd_pcm_uframes_t p_size, c_size, p_psize, c_psize;
 	unsigned int p_time, c_time;
+	unsigned int val;
 
 	snd_pcm_hw_params_alloca(&p_params);
 	snd_pcm_hw_params_alloca(&c_params);
@@ -226,12 +227,23 @@ int setparams(snd_pcm_t *phandle, snd_pcm_t *chandle, int *bufsize)
 		goto __again;
 
 	snd_pcm_hw_params_get_buffer_size(p_params, &p_size);
-	if (p_psize * 2 < p_size)
+	if (p_psize * 2 < p_size) {
+                snd_pcm_hw_params_get_periods_min(p_params, &val, NULL);
+                if (val > 2) {
+			printf("playback device does not support 2 periods per buffer\n");
+			exit(0);
+		}
 		goto __again;
+	}
 	snd_pcm_hw_params_get_buffer_size(c_params, &c_size);
-	if (c_psize * 2 < c_size)
+	if (c_psize * 2 < c_size) {
+                snd_pcm_hw_params_get_periods_min(c_params, &val, NULL);
+		if (val > 2 ) {
+			printf("capture device does not support 2 periods per buffer\n");
+			exit(0);
+		}
 		goto __again;
-
+	}
 	if ((err = setparams_set(phandle, p_params, p_swparams, "playback")) < 0) {
 		printf("Unable to set sw parameters for playback stream: %s\n", snd_strerror(err));
 		exit(0);
