@@ -173,7 +173,8 @@ static int execute_cset(snd_ctl_t *ctl, char *cset)
 	pos = strrchr(cset, ' ');
 	if (pos == NULL) {
 		uc_error("undefined value for cset >%s<", cset);
-		return -EINVAL;
+		err =  -EINVAL;
+		goto __fail;
 	}
 	*pos = '\0';
 	err = snd_ctl_ascii_elem_id_parse(id, cset);
@@ -196,6 +197,14 @@ static int execute_cset(snd_ctl_t *ctl, char *cset)
 	err = 0;
       __fail:
 	*pos = ' ';
+
+	if (id != NULL)
+		free(id);
+	if (value != NULL)
+		free(value);
+	if (info != NULL)
+		free(info);
+
 	return err;
 }
 
