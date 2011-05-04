@@ -169,10 +169,10 @@ int main(int argc, char** argv)
 	err = snd_rawmidi_status(handle_out, ostat);
 	if (err < 0)
 		fprintf(stderr, "output stream status error: %d\n", err);
-	printf("input.status.avail = %i\n", snd_rawmidi_status_get_avail(istat));
-	printf("input.status.xruns = %i\n", snd_rawmidi_status_get_xruns(istat));
-	printf("output.status.avail = %i\n", snd_rawmidi_status_get_avail(ostat));
-	printf("output.status.xruns = %i\n", snd_rawmidi_status_get_xruns(ostat));
+	printf("input.status.avail = %zi\n", snd_rawmidi_status_get_avail(istat));
+	printf("input.status.xruns = %zi\n", snd_rawmidi_status_get_xruns(istat));
+	printf("output.status.avail = %zi\n", snd_rawmidi_status_get_avail(ostat));
+	printf("output.status.xruns = %zi\n", snd_rawmidi_status_get_xruns(ostat));
 
 	diff = timediff(end, start);
 	printf("Time diff: %Liusec (%Li bytes/sec)\n", diff, ((long long)opos * 1000000) / diff);
