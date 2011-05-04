@@ -59,4 +59,5 @@ test/queue_timer
 test/rawmidi
 test/seq
 test/timer
+test/lsb/config
 test/lsb/midi_event
