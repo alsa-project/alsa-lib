@@ -33,8 +33,17 @@
 
 /* Function to convert from percentage to volume. val = percentage */
 
+#ifdef HAVE_SOFT_FLOAT
+static inline long int convert_prange1(long val, long min, long max)
+{
+	long temp = val * (max - min);
+	return temp / 100 + min + ((temp % 100) == 0 ? 0 : 1);
+}
+#else
+
 #define convert_prange1(val, min, max) \
 	ceil((val) * ((max) - (min)) * 0.01 + (min))
+#endif
 
 #define check_range(val, min, max) \
 	((val < min) ? (min) : ((val > max) ? (max) : (val)))
