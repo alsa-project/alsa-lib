@@ -1132,8 +1132,10 @@ int snd_use_case_get(snd_use_case_mgr_t *uc_mgr,
                 }
                 err = 0;
         } else if (strcmp(identifier, "_verb") == 0) {
-                if (uc_mgr->active_verb == NULL)
-                        return -ENOENT;
+                if (uc_mgr->active_verb == NULL) {
+                        err = -ENOENT;
+			goto __end;
+		}
                 *value = strdup(uc_mgr->active_verb->name);
                 if (*value == NULL) {
                         err = -ENOMEM;
