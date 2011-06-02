@@ -62,7 +62,7 @@ int parse_string(snd_config_t *n, char **res)
 int parse_is_name_safe(char *name)
 {
 	if (strchr(name, '.')) {
-		uc_error("char '.' now allowed in '%s'", name);
+		uc_error("char '.' not allowed in '%s'", name);
 		return 0;
 	}
 	return 1;
