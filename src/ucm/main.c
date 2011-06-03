@@ -1180,6 +1180,9 @@ static int get_value(snd_use_case_mgr_t *uc_mgr,
 	struct use_case_device *dev;
 	int err;
 
+	if (!uc_mgr->active_verb)
+		return -ENOENT;
+
 	if (item != NULL) {
 		mod = find_modifier(uc_mgr, uc_mgr->active_verb, item, 0);
 		if (mod != NULL) {
