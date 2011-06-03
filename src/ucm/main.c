@@ -463,6 +463,51 @@ static inline struct use_case_verb *find_verb(snd_use_case_mgr_t *uc_mgr,
 		    verb_name);
 }
 
+static int is_devlist_supported(snd_use_case_mgr_t *uc_mgr, 
+	struct dev_list *dev_list)
+{
+	struct dev_list_node *device;
+	struct use_case_device *adev;
+	struct list_head *pos, *pos1;
+	int found_ret;
+
+	switch (dev_list->type) {
+	case DEVLIST_NONE:
+	default:
+		return 1;
+	case DEVLIST_SUPPORTED:
+		found_ret = 1;
+		break;
+	case DEVLIST_CONFLICTING:
+		found_ret = 0;
+		break;
+	}
+
+	list_for_each(pos, &dev_list->list) {
+		device = list_entry(pos, struct dev_list_node, list);
+
+		list_for_each(pos1, &uc_mgr->active_devices) {
+			adev = list_entry(pos1, struct use_case_device,
+					    active_list);
+			if (!strcmp(device->name, adev->name))
+				return found_ret;
+		}
+	}
+	return 1 - found_ret;
+}
+
+static inline int is_modifier_supported(snd_use_case_mgr_t *uc_mgr, 
+	struct use_case_modifier *modifier)
+{
+	return is_devlist_supported(uc_mgr, &modifier->dev_list);
+}
+
+static inline int is_device_supported(snd_use_case_mgr_t *uc_mgr, 
+	struct use_case_device *device)
+{
+	return is_devlist_supported(uc_mgr, &device->dev_list);
+}
+
 /**
  * \brief Find device
  * \param verb Use case verb
@@ -470,35 +515,26 @@ static inline struct use_case_verb *find_verb(snd_use_case_mgr_t *uc_mgr,
  * \return structure on success, otherwise a NULL (not found)
  */
 static inline struct use_case_device *
-        find_device(struct use_case_verb *verb,
-                      const char *device_name)
+        find_device(snd_use_case_mgr_t *uc_mgr, const char *device_name,
+		    int check_supported)
 {
-	return find(&verb->device_list,
-		    struct use_case_device, list, name,
-		    device_name);
-}
+	struct use_case_device *device;
+	struct use_case_verb *verb = uc_mgr->active_verb;
+	struct list_head *pos;
 
-static int is_modifier_supported(snd_use_case_mgr_t *uc_mgr, 
-	struct use_case_modifier *modifier)
-{
-	struct dev_list *device;
-	struct use_case_device *adev;
-	struct list_head *pos, *pos1;
+	list_for_each(pos, &verb->device_list) {
+		device = list_entry(pos, struct use_case_device, list);
 
-	list_for_each(pos, &modifier->dev_list) {
-		device = list_entry(pos, struct dev_list, list);
+		if (strcmp(device_name, device->name))
+			continue;
 
-		list_for_each(pos1, &uc_mgr->active_devices) {
-			adev = list_entry(pos1, struct use_case_device,
-					    active_list);
+		if (check_supported &&
+		    !is_device_supported(uc_mgr, device))
+			continue;
 
-			if (strcmp(adev->name, device->name))
-				continue;
-
-			return 1;
-		}
+		return device;
 	}
-	return 0;
+	return NULL;
 }
 
 /**
@@ -508,7 +544,8 @@ static int is_modifier_supported(snd_use_case_mgr_t *uc_mgr,
  * \return structure on success, otherwise a NULL (not found)
  */
 static struct use_case_modifier *
-        find_modifier(snd_use_case_mgr_t *uc_mgr, const char *modifier_name)
+        find_modifier(snd_use_case_mgr_t *uc_mgr, const char *modifier_name,
+		      int check_supported)
 {
 	struct use_case_modifier *modifier;
 	struct use_case_verb *verb = uc_mgr->active_verb;
@@ -520,8 +557,11 @@ static struct use_case_modifier *
 		if (strcmp(modifier->name, modifier_name))
 			continue;
 
-		if (is_modifier_supported(uc_mgr, modifier))
-			return modifier;
+		if (check_supported &&
+		    !is_modifier_supported(uc_mgr, modifier))
+			continue;
+
+		return modifier;
 	}
 	return NULL;
 }
@@ -1061,13 +1101,13 @@ static int get_value(snd_use_case_mgr_t *uc_mgr,
 	int err;
 
 	if (item != NULL) {
-		mod = find_modifier(uc_mgr, item);
+		mod = find_modifier(uc_mgr, item, 0);
 		if (mod != NULL) {
 			err = get_value1(value, &mod->value_list, identifier);
 			if (err >= 0 || err != -ENOENT)
 				return err;
 		}
-		dev = find_device(uc_mgr->active_verb, item);
+		dev = find_device(uc_mgr, item, 0);
 		if (dev != NULL) {
 			err = get_value1(value, &dev->value_list, identifier);
 			if (err >= 0 || err != -ENOENT)
@@ -1286,7 +1326,7 @@ static int set_device_user(snd_use_case_mgr_t *uc_mgr,
 
         if (uc_mgr->active_verb == NULL)
                 return -ENOENT;
-        device = find_device(uc_mgr->active_verb, device_name);
+        device = find_device(uc_mgr, device_name, 1);
         if (device == NULL)
                 return -ENOENT;
         return set_device(uc_mgr, device, enable);
@@ -1301,7 +1341,7 @@ static int set_modifier_user(snd_use_case_mgr_t *uc_mgr,
         if (uc_mgr->active_verb == NULL)
                 return -ENOENT;
 
-        modifier = find_modifier(uc_mgr, modifier_name);
+        modifier = find_modifier(uc_mgr, modifier_name, 1);
         if (modifier == NULL)
                 return -ENOENT;
         return set_modifier(uc_mgr, modifier, enable);
@@ -1326,10 +1366,12 @@ static int switch_device(snd_use_case_mgr_t *uc_mgr,
                 uc_error("error: device %s already enabled", new_device);
                 return -EINVAL;
         }
-        xold = find_device(uc_mgr->active_verb, old_device);
+        xold = find_device(uc_mgr, old_device, 1);
         if (xold == NULL)
                 return -ENOENT;
-        xnew = find_device(uc_mgr->active_verb, new_device);
+        list_del(&xold->active_list);
+        xnew = find_device(uc_mgr, new_device, 1);
+        list_add_tail(&xold->active_list, &uc_mgr->active_devices);
         if (xnew == NULL)
                 return -ENOENT;
         err = 0;
@@ -1378,10 +1420,10 @@ static int switch_modifier(snd_use_case_mgr_t *uc_mgr,
                 uc_error("error: modifier %s already enabled", new_modifier);
                 return -EINVAL;
         }
-        xold = find_modifier(uc_mgr, old_modifier);
+        xold = find_modifier(uc_mgr, old_modifier, 1);
         if (xold == NULL)
                 return -ENOENT;
-        xnew = find_modifier(uc_mgr, new_modifier);
+        xnew = find_modifier(uc_mgr, new_modifier, 1);
         if (xnew == NULL)
                 return -ENOENT;
         err = 0;

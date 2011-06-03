@@ -76,11 +76,21 @@ struct transition_sequence {
 /*
  * Modifier Supported Devices.
  */
-struct dev_list {
+enum dev_list_type {
+	DEVLIST_NONE,
+	DEVLIST_SUPPORTED,
+	DEVLIST_CONFLICTING
+};
+
+struct dev_list_node {
 	struct list_head list;
 	char *name;
 };
 
+struct dev_list {
+	enum dev_list_type type;
+	struct list_head list;
+};
 
 /*
  * Describes a Use Case Modifier and it's enable and disable sequences.
@@ -100,8 +110,8 @@ struct use_case_modifier {
 	/* modifier transition list */
 	struct list_head transition_list;
 
-	/* list of supported devices per modifier */
-	struct list_head dev_list;
+	/* list of devices supported or conflicting */
+	struct dev_list dev_list;
 
 	/* values */
 	struct list_head value_list;
@@ -124,6 +134,9 @@ struct use_case_device {
 
 	/* device transition list */
 	struct list_head transition_list;
+
+	/* list of devices supported or conflicting */
+	struct dev_list dev_list;
 
 	/* value list */
 	struct list_head value_list;
