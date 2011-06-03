@@ -59,7 +59,7 @@ int parse_string(snd_config_t *n, char **res)
 /*
  * Parse safe ID
  */
-int parse_is_name_safe(char *name)
+int parse_is_name_safe(const char *name)
 {
 	if (strchr(name, '.')) {
 		uc_error("char '.' not allowed in '%s'", name);
@@ -75,7 +75,9 @@ int parse_get_safe_id(snd_config_t *n, const char **id)
 	err = snd_config_get_id(n, id);
 	if (err < 0)
 		return err;
-	return parse_is_name_safe((char *)(*id));
+	if (!parse_is_name_safe((char *)(*id)))
+		return -EINVAL;
+	return 0;
 }
 
 /*
@@ -151,7 +153,7 @@ static int parse_compound(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg,
 		n = snd_config_iterator_entry(i);
 
 		if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
-			uc_error("compound type expected for %s", id);
+			uc_error("compound type expected for %s, is %d", id, snd_config_get_type(cfg));
 			return -EINVAL;
 		}
 		
@@ -163,6 +165,19 @@ static int parse_compound(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg,
 	return 0;
 }
 
+static int strip_legacy_dev_index(char *name)
+{
+	char *dot = strchr(name, '.');
+	if (!dot)
+		return 0;
+	if (dot[1] != '0' || dot[2] != '\0') {
+		uc_error("device name %s contains a '.',"
+			 " and is not legacy foo.0 format", name);
+		return -EINVAL;
+	}
+	*dot = '\0';
+	return 0;
+}
 
 /*
  * Parse transition
@@ -196,6 +211,12 @@ static int parse_supported_device(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
 			return -ENOMEM;
 		err = parse_string(n, &sdev->name);
 		if (err < 0) {
+			free(sdev);
+			return err;
+		}
+		err = strip_legacy_dev_index(sdev->name);
+		if (err < 0) {
+			free(sdev->name);
 			free(sdev);
 			return err;
 		}
@@ -389,12 +410,12 @@ static int parse_value(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
  * Parse Modifier Use cases
  *
  *	# Each modifier is described in new section. N modifiers are allowed
- *	SectionModifier."Capture Voice".0 {
+ *	SectionModifier."Capture Voice" {
  *
  *		Comment "Record voice call"
  *		SupportedDevice [
- *			"x"		# all x device instances
- *			"y.0"		# device y instance 0 only
+ *			"x"
+ *			"y"
  *		]
  *
  *		EnableSequence [
@@ -426,14 +447,21 @@ static int parse_modifier(snd_use_case_mgr_t *uc_mgr,
 {
 	struct use_case_verb *verb = data1;
 	struct use_case_modifier *modifier;
-	char *name = data2;
-	const char *id;
+	const char *name;
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
 	int err;
 
-	if (!parse_is_name_safe(name))
-		return -EINVAL;
+	if (data2) {
+		name = data2;
+		if (!parse_is_name_safe(name))
+			return -EINVAL;
+	}
+	else {
+		if (parse_get_safe_id(cfg, &name) < 0)
+			return -EINVAL;
+	}
+
 	/* allocate modifier */
 	modifier = calloc(1, sizeof(*modifier));
 	if (modifier == NULL)
@@ -444,15 +472,7 @@ static int parse_modifier(snd_use_case_mgr_t *uc_mgr,
 	INIT_LIST_HEAD(&modifier->dev_list);
 	INIT_LIST_HEAD(&modifier->value_list);
 	list_add_tail(&modifier->list, &verb->modifier_list);
-	err = parse_get_safe_id(cfg, &id);
-	if (err < 0)
-		return err;
-	modifier->name = malloc(strlen(name) + strlen(id) + 2);
-	if (modifier->name == NULL)
-		return -ENOMEM;
-	strcpy(modifier->name, name);
-	strcat(modifier->name, ".");
-	strcat(modifier->name, id);
+	modifier->name = strdup(name);
 
 	snd_config_for_each(i, next, cfg) {
 		const char *id;
@@ -530,7 +550,7 @@ static int parse_modifier(snd_use_case_mgr_t *uc_mgr,
  * Parse Device Use Cases
  *
  *# Each device is described in new section. N devices are allowed
- *SectionDevice."Headphones".0 {
+ *SectionDevice."Headphones" {
  *	Comment "Headphones connected to 3.5mm jack"
  *
  *	EnableSequence [
@@ -551,21 +571,28 @@ static int parse_modifier(snd_use_case_mgr_t *uc_mgr,
  *	}
  * }
  */
-static int parse_device_index(snd_use_case_mgr_t *uc_mgr,
-			      snd_config_t *cfg,
-			      void *data1,
-			      void *data2)
+static int parse_device(snd_use_case_mgr_t *uc_mgr,
+			snd_config_t *cfg,
+			void *data1,
+			void *data2)
 {
 	struct use_case_verb *verb = data1;
-	char *name = data2;
+	const char *name;
 	struct use_case_device *device;
-	const char *id;
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
 	int err;
-	
-	if (!parse_is_name_safe(name))
-		return -EINVAL;
+
+	if (data2) {
+		name = data2;
+		if (!parse_is_name_safe(name))
+			return -EINVAL;
+	}
+	else {
+		if (parse_get_safe_id(cfg, &name) < 0)
+			return -EINVAL;
+	}
+
 	device = calloc(1, sizeof(*device));
 	if (device == NULL)
 		return -ENOMEM;
@@ -574,14 +601,7 @@ static int parse_device_index(snd_use_case_mgr_t *uc_mgr,
 	INIT_LIST_HEAD(&device->transition_list);
 	INIT_LIST_HEAD(&device->value_list);
 	list_add_tail(&device->list, &verb->device_list);
-	if (parse_get_safe_id(cfg, &id) < 0)
-		return -EINVAL;
-	device->name = malloc(strlen(name) + strlen(id) + 2);
-	if (device->name == NULL)
-		return -ENOMEM;
-	strcpy(device->name, name);
-	strcat(device->name, ".");
-	strcat(device->name, id);
+	device->name = strdup(name);
 
 	snd_config_for_each(i, next, cfg) {
 		const char *id;
@@ -643,19 +663,58 @@ static int parse_device_index(snd_use_case_mgr_t *uc_mgr,
 	return 0;
 }
 
-static int parse_device_name(snd_use_case_mgr_t *uc_mgr,
-			     snd_config_t *cfg,
-			     void *data1,
-			     void *data2 ATTRIBUTE_UNUSED)
+static int parse_compound_check_legacy(snd_use_case_mgr_t *uc_mgr,
+	  snd_config_t *cfg,
+	  int (*fcn)(snd_use_case_mgr_t *, snd_config_t *, void *, void *),
+	  void *data1)
 {
-	const char *id;
+	const char *id, *idchild;
+	int child_ctr = 0, legacy_format = 1;
+	snd_config_iterator_t i, next;
+	snd_config_t *child;
 	int err;
 
 	err = snd_config_get_id(cfg, &id);
 	if (err < 0)
 		return err;
-	return parse_compound(uc_mgr, cfg, parse_device_index,
-			      data1, (void *)id);
+
+	snd_config_for_each(i, next, cfg) {
+		child_ctr++;
+		if (child_ctr > 1) {
+			break;
+		}
+
+		child = snd_config_iterator_entry(i);
+
+		if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
+			legacy_format = 0;
+			break;
+		}
+
+		if (snd_config_get_id(child, &idchild) < 0)
+			return -EINVAL;
+
+		if (strcmp(idchild, "0")) {
+			legacy_format = 0;
+			break;
+		}
+	}
+	if (child_ctr != 1) {
+		legacy_format = 0;
+	}
+
+	if (legacy_format)
+		return parse_compound(uc_mgr, cfg, fcn, data1, (void *)id);
+	else
+		return fcn(uc_mgr, cfg, data1, NULL);
+}
+
+static int parse_device_name(snd_use_case_mgr_t *uc_mgr,
+			     snd_config_t *cfg,
+			     void *data1,
+			     void *data2 ATTRIBUTE_UNUSED)
+{
+	return parse_compound_check_legacy(uc_mgr, cfg, parse_device, data1);
 }
 
 static int parse_modifier_name(snd_use_case_mgr_t *uc_mgr,
@@ -663,14 +722,7 @@ static int parse_modifier_name(snd_use_case_mgr_t *uc_mgr,
 			     void *data1,
 			     void *data2 ATTRIBUTE_UNUSED)
 {
-	const char *id;
-	int err;
-
-	err = snd_config_get_id(cfg, &id);
-	if (err < 0)
-		return err;
-	return parse_compound(uc_mgr, cfg, parse_modifier,
-			      data1, (void *)id);
+	return parse_compound_check_legacy(uc_mgr, cfg, parse_modifier, data1);
 }
 
 /*

@@ -484,33 +484,18 @@ static int is_modifier_supported(snd_use_case_mgr_t *uc_mgr,
 	struct dev_list *device;
 	struct use_case_device *adev;
 	struct list_head *pos, *pos1;
-	char *cpos;
-	int dlen, len;
 
 	list_for_each(pos, &modifier->dev_list) {
 		device = list_entry(pos, struct dev_list, list);
-		cpos = strchr(device->name, '.');
-		if (cpos) {
-			if (find(&uc_mgr->active_devices,
-					struct use_case_device, active_list,
-					name, device->name))
-				return 1;
-		} else {
-			dlen = strlen(device->name);
-			list_for_each(pos1, &uc_mgr->active_devices) {
-				adev = list_entry(pos1, struct use_case_device,
-						  active_list);
-				cpos = strchr(adev->name, '.');
-				if (cpos)
-					len = cpos - adev->name;
-				else
-					len = strlen(adev->name);
-				if (len != dlen)
-					continue;
-				if (memcmp(adev->name, device->name, len))
-					continue;
-				return 1;
-			}
+
+		list_for_each(pos1, &uc_mgr->active_devices) {
+			adev = list_entry(pos1, struct use_case_device,
+					    active_list);
+
+			if (strcmp(adev->name, device->name))
+				continue;
+
+			return 1;
 		}
 	}
 	return 0;
@@ -528,19 +513,11 @@ static struct use_case_modifier *
 	struct use_case_modifier *modifier;
 	struct use_case_verb *verb = uc_mgr->active_verb;
 	struct list_head *pos;
-	char name[64], *cpos;
 
 	list_for_each(pos, &verb->modifier_list) {
 		modifier = list_entry(pos, struct use_case_modifier, list);
 
-		strncpy(name, modifier->name, sizeof(name));
-		name[sizeof(name)-1] = '\0';
-		cpos = strchr(name, '.');
-		if (!cpos)
-			continue;
-		*cpos= '\0';
-
-		if (strcmp(name, modifier_name))
+		if (strcmp(modifier->name, modifier_name))
 			continue;
 
 		if (is_modifier_supported(uc_mgr, modifier))
