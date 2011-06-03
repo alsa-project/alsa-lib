@@ -1032,6 +1032,8 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
           		err = get_device_list(uc_mgr, list, str);
                 else if (check_identifier(identifier, "_modifiers"))
                         err = get_modifier_list(uc_mgr, list, str);
+		else if (identifier[0] == '_')
+			err = -ENOENT;
                 else
                         err = get_value_list(uc_mgr, identifier, list, str);
         	if (str)
@@ -1159,6 +1161,9 @@ int snd_use_case_get(snd_use_case_mgr_t *uc_mgr,
                         goto __end;
                 }
 	        err = 0;
+	} else if (identifier[0] == '_') {
+		err = -ENOENT;
+		goto __end;
         } else {
                 str1 = strchr(identifier, '/');
                 if (str1) {
@@ -1247,8 +1252,16 @@ int snd_use_case_geti(snd_use_case_mgr_t *uc_mgr,
 				*value = err;
 				err = 0;
 			}
+#if 0
+		/*
+		 * enable this block if the else clause below is expanded to query
+		 * user-supplied values
+		 */
+		} else if (identifier[0] == '_')
+			err = -ENOENT;
+#endif
 		} else
-                        err = -EINVAL;
+                        err = -ENOENT;
                 if (str)
                         free(str);
         }
