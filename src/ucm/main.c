@@ -1174,35 +1174,60 @@ static int get_value3(const char **value,
 static int get_value(snd_use_case_mgr_t *uc_mgr,
 			const char *identifier,
 			const char **value,
-			const char *item)
+			const char *mod_dev_name,
+			const char *verb_name,
+			int exact)
 {
+	struct use_case_verb *verb;
 	struct use_case_modifier *mod;
 	struct use_case_device *dev;
 	int err;
 
-	if (!uc_mgr->active_verb)
-		return -ENOENT;
+	if (mod_dev_name || verb_name || !exact) {
+		if (verb_name && strlen(verb_name)) {
+			verb = find_verb(uc_mgr, verb_name);
+		} else {
+			verb = uc_mgr->active_verb;
+		}
+		if (verb) {
+			if (mod_dev_name) {
+				mod = find_modifier(uc_mgr, verb,
+						    mod_dev_name, 0);
+				if (mod) {
+					err = get_value1(value,
+							 &mod->value_list,
+							 identifier);
+					if (err >= 0 || err != -ENOENT)
+						return err;
+				}
 
-	if (item != NULL) {
-		mod = find_modifier(uc_mgr, uc_mgr->active_verb, item, 0);
-		if (mod != NULL) {
-			err = get_value1(value, &mod->value_list, identifier);
+				dev = find_device(uc_mgr, verb,
+						  mod_dev_name, 0);
+				if (dev) {
+					err = get_value1(value,
+							 &dev->value_list,
+							 identifier);
+					if (err >= 0 || err != -ENOENT)
+						return err;
+				}
+
+				if (exact)
+					return -ENOENT;
+			}
+
+			err = get_value1(value, &verb->value_list, identifier);
 			if (err >= 0 || err != -ENOENT)
 				return err;
 		}
-		dev = find_device(uc_mgr, uc_mgr->active_verb, item, 0);
-		if (dev != NULL) {
-			err = get_value1(value, &dev->value_list, identifier);
-			if (err >= 0 || err != -ENOENT)
-				return err;
-		}
+
+		if (exact)
+			return -ENOENT;
 	}
-	err = get_value1(value, &uc_mgr->active_verb->value_list, identifier);
-	if (err >= 0 || err != -ENOENT)
-		return err;
+
 	err = get_value1(value, &uc_mgr->value_list, identifier);
 	if (err >= 0 || err != -ENOENT)
 		return err;
+
 	return -ENOENT;
 }
 
@@ -1220,7 +1245,9 @@ int snd_use_case_get(snd_use_case_mgr_t *uc_mgr,
 		     const char *identifier,
 		     const char **value)
 {
-        char *str, *str1;
+	const char *slash1, *slash2, *mod_dev_after;
+	const char *ident, *mod_dev, *verb;
+	int exact = 0;
         int err;
 
 	pthread_mutex_lock(&uc_mgr->mutex);
@@ -1246,19 +1273,42 @@ int snd_use_case_get(snd_use_case_mgr_t *uc_mgr,
 		err = -ENOENT;
 		goto __end;
         } else {
-                str1 = strchr(identifier, '/');
-                if (str1) {
-                        str = strdup(str1 + 1);
-                	if (str == NULL) {
-                  		err = -ENOMEM;
-                		goto __end;
-                        }
-                } else {
-                        str = NULL;
-                }
-                err = get_value(uc_mgr, identifier, value, str);
-                if (str)
-                        free(str);
+		if (identifier[0] == '=') {
+			exact = 1;
+			identifier++;
+		}
+
+		slash1 = strchr(identifier, '/');
+		if (slash1) {
+			ident = strndup(identifier, slash1 - identifier);
+
+			slash2 = strchr(slash1 + 1, '/');
+			if (slash2) {
+				mod_dev_after = slash2;
+				verb = slash2 + 1;
+			}
+			else {
+				mod_dev_after = slash1 + strlen(slash1);
+				verb = NULL;
+			}
+
+			if (mod_dev_after == slash1 + 1)
+				mod_dev = NULL;
+			else
+				mod_dev = strndup(slash1 + 1,
+						  mod_dev_after - (slash1 + 1));
+		}
+		else {
+			ident = identifier;
+			mod_dev = NULL;
+			verb = NULL;
+		}
+
+		err = get_value(uc_mgr, ident, value, mod_dev, verb, exact);
+		if (ident != identifier)
+			free((void *)ident);
+		if (mod_dev)
+			free((void *)mod_dev);
         }
       __end:
 	pthread_mutex_unlock(&uc_mgr->mutex);

@@ -230,12 +230,30 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
  *   NULL 		- return current card
  *   _verb		- return current verb
  *
- *   <NAME>[/<modifier>|</device>]
- *			- value identifier <NAME> for
- *			  given modifier or device
- * 			- Examples: "PlaybackPCM/Play Music",
- *				    "CapturePCM/SPDIF"
- * 
+ *   [=]<NAME>[/[<modifier>|</device>][/<verb>]]
+ *                      - value identifier <NAME>
+ *                      - Search starts at given modifier or device if any,
+ *                          else at a verb
+ *                      - Search starts at given verb if any,
+ *                          else current verb
+ *                      - Searches modifier/device, then verb, then defaults
+ *                      - Specify a leading "=" to search only the exact
+ *                        device/modifier/verb specified, and not search
+ *                        through each object in turn.
+ *                      - Examples:
+ *                          "PlaybackPCM/Play Music"
+ *                          "CapturePCM/SPDIF"
+ *                        From ValueDefaults only:
+ *                          "=Variable"
+ *                        From current active verb:
+ *                          "=Variable//"
+ *                        From verb "Verb":
+ *                          "=Variable//Verb"
+ *                        From "Modifier" in current active verb:
+ *                          "=Variable/Modifier/"
+ *                        From "Modifier" in "Verb":
+ *                          "=Variable/Modifier/Verb"
+ *
  * Recommended names for values:
  *   TQ			- Tone Quality
  *   PlaybackPCM	- full PCM playback device name
