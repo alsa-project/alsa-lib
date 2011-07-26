@@ -919,6 +919,28 @@ int snd_ctl_open_lconf(snd_ctl_t **ctlp, const char *name,
 	return snd_ctl_open_noupdate(ctlp, lconf, name, mode);
 }
 
+/**
+ * \brief Opens a fallback CTL
+ * \param ctlp Returned CTL handle
+ * \param root Configuration root
+ * \param name ASCII identifier of the CTL handle used as fallback
+ * \param orig_name The original ASCII name
+ * \param mode Open mode (see #SND_CTL_NONBLOCK, #SND_CTL_ASYNC)
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_ctl_open_fallback(snd_ctl_t **ctlp, snd_config_t *root,
+			  const char *name, const char *orig_name, int mode)
+{
+	int err;
+	assert(ctlp && name && root);
+	err = snd_ctl_open_noupdate(ctlp, root, name, mode);
+	if (err >= 0) {
+		free((*ctlp)->name);
+		(*ctlp)->name = orig_name ? strdup(orig_name) : NULL;
+	}
+	return err;
+}
+
 #ifndef DOC_HIDDEN
 #define TYPE(v) [SND_CTL_ELEM_TYPE_##v] = #v
 #define IFACE(v) [SND_CTL_ELEM_IFACE_##v] = #v

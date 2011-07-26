@@ -2259,6 +2259,30 @@ int snd_pcm_open_lconf(snd_pcm_t **pcmp, const char *name,
 	return snd_pcm_open_noupdate(pcmp, lconf, name, stream, mode, 0);
 }
 
+/**
+ * \brief Opens a fallback PCM
+ * \param pcmp Returned PCM handle
+ * \param root Configuration root
+ * \param name ASCII identifier of the PCM handle
+ * \param orig_name The original ASCII name
+ * \param stream Wanted stream
+ * \param mode Open mode (see #SND_PCM_NONBLOCK, #SND_PCM_ASYNC)
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_pcm_open_fallback(snd_pcm_t **pcmp, snd_config_t *root,
+			  const char *name, const char *orig_name,
+			  snd_pcm_stream_t stream, int mode)
+{
+	int err;
+	assert(pcmp && name && root);
+	err = snd_pcm_open_noupdate(pcmp, root, name, stream, mode, 0);
+	if (err >= 0) {
+		free((*pcmp)->name);
+		(*pcmp)->name = orig_name ? strdup(orig_name) : NULL;
+	}
+	return err;
+}
+
 #ifndef DOC_HIDDEN
 int snd_pcm_new(snd_pcm_t **pcmp, snd_pcm_type_t type, const char *name,
 		snd_pcm_stream_t stream, int mode)

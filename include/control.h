@@ -224,6 +224,7 @@ char *snd_device_name_get_hint(const void *hint, const char *id);
 
 int snd_ctl_open(snd_ctl_t **ctl, const char *name, int mode);
 int snd_ctl_open_lconf(snd_ctl_t **ctl, const char *name, int mode, snd_config_t *lconf);
+int snd_ctl_open_fallback(snd_ctl_t **ctl, snd_config_t *root, const char *name, const char *orig_name, int mode);
 int snd_ctl_close(snd_ctl_t *ctl);
 int snd_ctl_nonblock(snd_ctl_t *ctl, int nonblock);
 int snd_async_add_ctl_handler(snd_async_handler_t **handler, snd_ctl_t *ctl, 
