@@ -173,7 +173,7 @@ static int execute_cset(snd_ctl_t *ctl, char *cset)
 	pos = strrchr(cset, ' ');
 	if (pos == NULL) {
 		uc_error("undefined value for cset >%s<", cset);
-		err =  -EINVAL;
+		err = -EINVAL;
 		goto __fail;
 	}
 	*pos = '\0';
