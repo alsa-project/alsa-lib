@@ -196,7 +196,8 @@ static int execute_cset(snd_ctl_t *ctl, char *cset)
 		goto __fail;
 	err = 0;
       __fail:
-	*pos = ' ';
+	if (pos != NULL)
+		*pos = ' ';
 
 	if (id != NULL)
 		free(id);
