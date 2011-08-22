@@ -57,7 +57,7 @@ struct sequence_element {
 	struct list_head list;
 	unsigned int type;
 	union {
-		long sleep; /* Sleep time in msecs if sleep element, else 0 */
+		long sleep; /* Sleep time in microseconds if sleep element, else 0 */
 		char *cdev;
 		char *cset;
 		char *exec;

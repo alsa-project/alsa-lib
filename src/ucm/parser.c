@@ -316,6 +316,17 @@ static int parse_sequence(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
 			continue;
 		}
 
+		if (strcmp(cmd, "msleep") == 0) {
+			curr->type = SEQUENCE_ELEMENT_TYPE_SLEEP;
+			err = snd_config_get_integer(n, &curr->data.sleep);
+			if (err < 0) {
+				uc_error("error: msleep requires integer!");
+				return err;
+			}
+			curr->data.sleep *= 1000L;
+			continue;
+		}
+
 		if (strcmp(cmd, "exec") == 0) {
 			curr->type = SEQUENCE_ELEMENT_TYPE_EXEC;
 			err = parse_string(n, &curr->data.exec);
