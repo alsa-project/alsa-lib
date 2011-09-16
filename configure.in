@@ -616,7 +616,8 @@ AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile doc/doxygen.cfg \
 	  src/pcm/Makefile src/pcm/scopes/Makefile \
 	  src/rawmidi/Makefile src/timer/Makefile \
           src/hwdep/Makefile src/seq/Makefile src/ucm/Makefile \
-          src/compat/Makefile src/alisp/Makefile src/conf/Makefile \
+          src/compat/Makefile src/alisp/Makefile \
+	  src/conf/Makefile src/conf/alsa.conf.d/Makefile \
 	  src/conf/cards/Makefile \
 	  src/conf/pcm/Makefile \
 	  modules/Makefile modules/mixer/Makefile modules/mixer/simple/Makefile \
