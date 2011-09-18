@@ -750,8 +750,10 @@ static int snd_pcm_ladspa_allocate_memory(snd_pcm_t *pcm, snd_pcm_ladspa_t *lads
                         if (instance->input.data == NULL ||
                             instance->input.m_data == NULL ||
                             instance->output.data == NULL ||
-                            instance->output.m_data == NULL)
+                            instance->output.m_data == NULL) {
+                                free(pchannels);
                                 return -ENOMEM;
+                        }
 			for (idx = 0; idx < instance->input.channels.size; idx++) {
 			        chn = instance->output.channels.array[idx];
 			        if (pchannels[chn] == NULL && chn < ichannels) {
@@ -761,8 +763,10 @@ static int snd_pcm_ladspa_allocate_memory(snd_pcm_t *pcm, snd_pcm_ladspa_t *lads
 			        instance->input.data[idx] = pchannels[chn];
 			        if (instance->input.data[idx] == NULL) {
                                         instance->input.data[idx] = snd_pcm_ladspa_allocate_zero(ladspa, 0);
-                                        if (instance->input.data[idx] == NULL)
+                                        if (instance->input.data[idx] == NULL) {
+                                                free(pchannels);
                                                 return -ENOMEM;
+                                        }
                                 }
                         }
                         for (idx = 0; idx < instance->output.channels.size; idx++) {
@@ -770,8 +774,10 @@ static int snd_pcm_ladspa_allocate_memory(snd_pcm_t *pcm, snd_pcm_ladspa_t *lads
                                 /* FIXME/OPTIMIZE: check if we can remove double alloc */
                                 /* if LADSPA plugin has no broken inplace */
                                 instance->output.data[idx] = malloc(sizeof(LADSPA_Data) * ladspa->allocated);
-                                if (instance->output.data[idx] == NULL)
+                                if (instance->output.data[idx] == NULL) {
+                                        free(pchannels);
                                         return -ENOMEM;
+                                }
                                 pchannels[chn] = instance->output.m_data[idx] = instance->output.data[idx];
                         }
 		}
@@ -793,8 +799,10 @@ static int snd_pcm_ladspa_allocate_memory(snd_pcm_t *pcm, snd_pcm_ladspa_t *lads
                                                 instance->output.data[idx] = NULL;
                                         } else {
                                                 instance->output.data[idx] = snd_pcm_ladspa_allocate_zero(ladspa, 1);
-                                                if (instance->output.data[idx] == NULL)
+                                                if (instance->output.data[idx] == NULL) {
+                                                        free(pchannels);
                                                         return -ENOMEM;
+                                                }
                                         }
                                 }
                         }
