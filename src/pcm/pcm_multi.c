@@ -886,6 +886,8 @@ int snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 	err = snd_pcm_new(&pcm, SND_PCM_TYPE_MULTI, name, stream,
 			  multi->slaves[0].pcm->mode);
 	if (err < 0) {
+		free(multi->slaves);
+		free(multi->channels);
 		free(multi);
 		return err;
 	}
