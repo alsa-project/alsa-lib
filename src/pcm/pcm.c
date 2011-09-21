@@ -4200,6 +4200,7 @@ int snd_pcm_hw_params_set_rate_resample(snd_pcm_t *pcm, snd_pcm_hw_params_t *par
 		params->flags |= SND_PCM_HW_PARAMS_NORESAMPLE;
 	else
 		params->flags &= ~SND_PCM_HW_PARAMS_NORESAMPLE;
+	params->rmask = ~0;
 	return snd_pcm_hw_refine(pcm, params);
 }
 
@@ -4231,6 +4232,7 @@ int snd_pcm_hw_params_set_export_buffer(snd_pcm_t *pcm, snd_pcm_hw_params_t *par
 		params->flags |= SND_PCM_HW_PARAMS_EXPORT_BUFFER;
 	else
 		params->flags &= ~SND_PCM_HW_PARAMS_EXPORT_BUFFER;
+	params->rmask = ~0;
 	return snd_pcm_hw_refine(pcm, params);
 }
 
@@ -4280,6 +4282,7 @@ int snd_pcm_hw_params_set_period_wakeup(snd_pcm_t *pcm, snd_pcm_hw_params_t *par
 		params->flags |= SND_PCM_HW_PARAMS_NO_PERIOD_WAKEUP;
 	} else
 		params->flags &= ~SND_PCM_HW_PARAMS_NO_PERIOD_WAKEUP;
+	params->rmask = ~0;
 
 	return snd_pcm_hw_refine(pcm, params);
 }
