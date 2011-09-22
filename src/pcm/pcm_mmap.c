@@ -320,8 +320,13 @@ int snd_pcm_mmap(snd_pcm_t *pcm)
 		snd_pcm_channel_info_t *i = &pcm->mmap_channels[c];
 		i->channel = c;
 		err = snd_pcm_channel_info(pcm, i);
-		if (err < 0)
+		if (err < 0) {
+			free(pcm->mmap_channels);
+			free(pcm->running_areas);
+			pcm->mmap_channels = NULL;
+			pcm->running_areas = NULL;
 			return err;
+		}
 	}
 	for (c = 0; c < pcm->channels; ++c) {
 		snd_pcm_channel_info_t *i = &pcm->mmap_channels[c];
