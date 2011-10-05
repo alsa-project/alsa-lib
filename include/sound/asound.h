@@ -314,7 +314,7 @@ union sndrv_pcm_sync_id {
 struct sndrv_pcm_info {
 	unsigned int device;		/* RO/WR (control): device number */
 	unsigned int subdevice;		/* RO/WR (control): subdevice number */
-	int stream;			/* RO/WR (control): stream number */
+	int stream;			/* RO/WR (control): stream direction */
 	int card;			/* R: card number */
 	unsigned char id[64];		/* ID (user selectable) */
 	unsigned char name[80];		/* name of this device */
@@ -351,8 +351,8 @@ enum sndrv_pcm_hw_param {
 	SNDRV_PCM_HW_PARAM_LAST_INTERVAL = SNDRV_PCM_HW_PARAM_TICK_TIME
 };
 
-#define SNDRV_PCM_HW_PARAMS_NORESAMPLE	(1<<0)  /* avoid rate resampling */
-#define SNDRV_PCM_HW_PARAMS_EXPORT_BUFFER	(1<<1)  /* export buffer */
+#define SNDRV_PCM_HW_PARAMS_NORESAMPLE	(1<<0)	/* avoid rate resampling */
+#define SNDRV_PCM_HW_PARAMS_EXPORT_BUFFER	(1<<1)	/* export buffer */
 #define SNDRV_PCM_HW_PARAMS_NO_PERIOD_WAKEUP	(1<<2)	/* disable period wakeups */
 
 struct sndrv_interval {
@@ -472,9 +472,9 @@ struct sndrv_xfern {
 
 
 enum {
-        SNDRV_PCM_TSTAMP_TYPE_GETTIMEOFDAY = 0, /* gettimeofday equivalent */
-        SNDRV_PCM_TSTAMP_TYPE_MONOTONIC,        /* posix_clock_monotonic equivalent */
-        SNDRV_PCM_TSTAMP_TYPE_LAST = SNDRV_PCM_TSTAMP_TYPE_MONOTONIC,
+	SNDRV_PCM_TSTAMP_TYPE_GETTIMEOFDAY = 0,	/* gettimeofday equivalent */
+	SNDRV_PCM_TSTAMP_TYPE_MONOTONIC,	/* posix_clock_monotonic equivalent */
+	SNDRV_PCM_TSTAMP_TYPE_LAST = SNDRV_PCM_TSTAMP_TYPE_MONOTONIC,
 };
 
 enum {
@@ -775,14 +775,14 @@ enum sndrv_ctl_elem_iface {
 #define SNDRV_CTL_ELEM_ACCESS_READWRITE		(SNDRV_CTL_ELEM_ACCESS_READ|SNDRV_CTL_ELEM_ACCESS_WRITE)
 #define SNDRV_CTL_ELEM_ACCESS_VOLATILE		(1<<2)	/* control value may be changed without a notification */
 #define SNDRV_CTL_ELEM_ACCESS_TIMESTAMP		(1<<3)	/* when was control changed */
-#define SNDRV_CTL_ELEM_ACCESS_TLV_READ		(1<<4)	/* TLV read is supported */
-#define SNDRV_CTL_ELEM_ACCESS_TLV_WRITE		(1<<5)	/* TLV write is supported */
+#define SNDRV_CTL_ELEM_ACCESS_TLV_READ		(1<<4)	/* TLV read is possible */
+#define SNDRV_CTL_ELEM_ACCESS_TLV_WRITE		(1<<5)	/* TLV write is possible */
 #define SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE	(SNDRV_CTL_ELEM_ACCESS_TLV_READ|SNDRV_CTL_ELEM_ACCESS_TLV_WRITE)
 #define SNDRV_CTL_ELEM_ACCESS_TLV_COMMAND	(1<<6)	/* TLV command is possible */
 #define SNDRV_CTL_ELEM_ACCESS_INACTIVE		(1<<8)	/* control does actually nothing, but may be updated */
 #define SNDRV_CTL_ELEM_ACCESS_LOCK		(1<<9)	/* write lock */
 #define SNDRV_CTL_ELEM_ACCESS_OWNER		(1<<10)	/* write lock owner */
-#define SNDRV_CTL_ELEM_ACCESS_TLV_CALLBACK	(1<<28)	/* flag only for kernel */
+#define SNDRV_CTL_ELEM_ACCESS_TLV_CALLBACK	(1<<28)	/* kernel use a TLV callback */ 
 #define SNDRV_CTL_ELEM_ACCESS_USER		(1<<29) /* user space element */
 /* bits 30 and 31 are obsoleted (for indirect access) */
 
@@ -799,7 +799,7 @@ struct sndrv_ctl_elem_id {
 	int iface;			/* interface identifier */
 	unsigned int device;		/* device/client number */
 	unsigned int subdevice;		/* subdevice (substream) number */
-        unsigned char name[44];		/* ASCII name of item */
+	unsigned char name[44];		/* ASCII name of item */
 	unsigned int index;		/* index of item */
 };
 
@@ -838,41 +838,41 @@ struct sndrv_ctl_elem_info {
 	} value;
 	union {
 		unsigned short d[4];		/* dimensions */
-		unsigned short *d_ptr;		/* (obsolete) indirect */
+		unsigned short *d_ptr;		/* indirect - obsoleted */
 	} dimen;
 	unsigned char reserved[64-4*sizeof(unsigned short)];
 };
 
 struct sndrv_ctl_elem_value {
 	struct sndrv_ctl_elem_id id;	/* W: element ID */
-	unsigned int indirect: 1;	/* (obsolete) W: use indirect pointer (xxx_ptr member) */
-        union {
+	unsigned int indirect: 1;	/* W: indirect access - obsoleted */
+	union {
 		union {
 			long value[128];
-			long *value_ptr;	/* obsolete */
+			long *value_ptr;	/* obsoleted */
 		} integer;
 		union {
 			long long value[64];
-			long long *value_ptr;	/* obsolete */
+			long long *value_ptr;	/* obsoleted */
 		} integer64;
 		union {
 			unsigned int item[128];
-			unsigned int *item_ptr;	/* obsolete */
+			unsigned int *item_ptr;	/* obsoleted */
 		} enumerated;
 		union {
 			unsigned char data[512];
-			unsigned char *data_ptr;	/* obsolete */
+			unsigned char *data_ptr;	/* obsoleted */
 		} bytes;
 		struct sndrv_aes_iec958 iec958;
-        } value;                /* RO */
+	} value;		/* RO */
 	struct timespec tstamp;
-        unsigned char reserved[128-sizeof(struct timespec)];
+	unsigned char reserved[128-sizeof(struct timespec)];
 };
 
 struct sndrv_ctl_tlv {
-	unsigned int numid;     /* control element numeric identification */
-        unsigned int length;    /* in bytes aligned to 4 */
-        unsigned int tlv[0];    /* first TLV */
+	unsigned int numid;	/* control element numeric identification */
+	unsigned int length;	/* in bytes aligned to 4 */
+	unsigned int tlv[0];	/* first TLV */
 };
 
 enum {
@@ -919,14 +919,14 @@ enum sndrv_ctl_event_type {
 #define SNDRV_CTL_EVENT_MASK_REMOVE	(~0U)	/* element was removed */
 
 struct sndrv_ctl_event {
-	int type;				/* event type - SNDRV_CTL_EVENT_* */
+	int type;	/* event type - SNDRV_CTL_EVENT_* */
 	union {
 		struct {
 			unsigned int mask;
 			struct sndrv_ctl_elem_id id;
 		} elem;
-                unsigned char data8[60];
-        } data;
+		unsigned char data8[60];
+	} data;
 };
 
 /*
