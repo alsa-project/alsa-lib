@@ -113,9 +113,11 @@ enum sndrv_hwdep_iface {
 	SNDRV_HWDEP_IFACE_USX2Y_PCM,	/* Tascam US122, US224 & US428 rawusb pcm */
 	SNDRV_HWDEP_IFACE_PCXHR,	/* Digigram PCXHR */
 	SNDRV_HWDEP_IFACE_SB_RC,	/* SB Extigy/Audigy2NX remote control */
+	SNDRV_HWDEP_IFACE_HDA,		/* HD-audio */
+	SNDRV_HWDEP_IFACE_USB_STREAM,	/* direct access to usb stream */
 
 	/* Don't forget to change the following: */
-	SNDRV_HWDEP_IFACE_LAST = SNDRV_HWDEP_IFACE_SB_RC
+	SNDRV_HWDEP_IFACE_LAST = SNDRV_HWDEP_IFACE_USB_STREAM
 };
 
 struct sndrv_hwdep_info {
@@ -158,7 +160,7 @@ enum {
  *                                                                           *
  *****************************************************************************/
 
-#define SNDRV_PCM_VERSION		SNDRV_PROTOCOL_VERSION(2, 0, 9)
+#define SNDRV_PCM_VERSION		SNDRV_PROTOCOL_VERSION(2, 0, 10)
 
 typedef unsigned long sndrv_pcm_uframes_t;
 typedef long sndrv_pcm_sframes_t;
@@ -233,7 +235,11 @@ enum sndrv_pcm_format {
 	SNDRV_PCM_FORMAT_S18_3BE,	/* in three bytes */
 	SNDRV_PCM_FORMAT_U18_3LE,	/* in three bytes */
 	SNDRV_PCM_FORMAT_U18_3BE,	/* in three bytes */
-	SNDRV_PCM_FORMAT_LAST = SNDRV_PCM_FORMAT_U18_3BE,
+	SNDRV_PCM_FORMAT_G723_24,	/* 8 samples in 3 bytes */
+	SNDRV_PCM_FORMAT_G723_24_1B,	/* 1 sample in 1 byte */
+	SNDRV_PCM_FORMAT_G723_40,	/* 8 Samples in 5 bytes */
+	SNDRV_PCM_FORMAT_G723_40_1B,	/* 1 sample in 1 byte */
+	SNDRV_PCM_FORMAT_LAST = SNDRV_PCM_FORMAT_G723_40_1B,
 
 #ifdef SNDRV_LITTLE_ENDIAN
 	SNDRV_PCM_FORMAT_S16 = SNDRV_PCM_FORMAT_S16_LE,
@@ -571,7 +577,7 @@ enum {
  *  Timer section - /dev/snd/timer
  */
 
-#define SNDRV_TIMER_VERSION		SNDRV_PROTOCOL_VERSION(2, 0, 5)
+#define SNDRV_TIMER_VERSION		SNDRV_PROTOCOL_VERSION(2, 0, 6)
 
 enum sndrv_timer_class {
 	SNDRV_TIMER_CLASS_NONE = -1,
@@ -909,6 +915,7 @@ enum sndrv_ctl_event_type {
 #define SNDRV_CTL_EVENT_MASK_VALUE	(1<<0)	/* element value was changed */
 #define SNDRV_CTL_EVENT_MASK_INFO	(1<<1)	/* element info was changed */
 #define SNDRV_CTL_EVENT_MASK_ADD	(1<<2)	/* element was added */
+#define SNDRV_CTL_EVENT_MASK_TLV	(1<<3)	/* element TLV tree was changed */
 #define SNDRV_CTL_EVENT_MASK_REMOVE	(~0U)	/* element was removed */
 
 struct sndrv_ctl_event {
@@ -939,19 +946,5 @@ struct sndrv_ctl_event {
 #define SNDRV_CTL_NAME_IEC958_PRO_MASK			"Pro Mask"
 #define SNDRV_CTL_NAME_IEC958_PCM_STREAM		"PCM Stream"
 #define SNDRV_CTL_NAME_IEC958(expl,direction,what)	"IEC958 " expl SNDRV_CTL_NAME_##direction SNDRV_CTL_NAME_IEC958_##what
-
-/*
- *
- */
-
-struct sndrv_xferv {
-	const struct iovec *vector;
-	unsigned long count;
-};
-
-enum {
-	SNDRV_IOCTL_READV = _IOW('K', 0x00, struct sndrv_xferv),
-	SNDRV_IOCTL_WRITEV = _IOW('K', 0x01, struct sndrv_xferv),
-};
 
 #endif /* __SOUND_ASOUND_H */
