@@ -148,6 +148,11 @@ static int snd_ctl_hw_elem_info(snd_ctl_t *handle, snd_ctl_elem_info_t *info)
 static int snd_ctl_hw_elem_add(snd_ctl_t *handle, snd_ctl_elem_info_t *info)
 {
 	snd_ctl_hw_t *hw = handle->private_data;
+
+	if (info->type == SNDRV_CTL_ELEM_TYPE_ENUMERATED &&
+	    hw->protocol < SNDRV_PROTOCOL_VERSION(2, 0, 7))
+		return -ENXIO;
+
 	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_ELEM_ADD, info) < 0)
 		return -errno;
 	return 0;
@@ -156,6 +161,11 @@ static int snd_ctl_hw_elem_add(snd_ctl_t *handle, snd_ctl_elem_info_t *info)
 static int snd_ctl_hw_elem_replace(snd_ctl_t *handle, snd_ctl_elem_info_t *info)
 {
 	snd_ctl_hw_t *hw = handle->private_data;
+
+	if (info->type == SNDRV_CTL_ELEM_TYPE_ENUMERATED &&
+	    hw->protocol < SNDRV_PROTOCOL_VERSION(2, 0, 7))
+		return -ENXIO;
+
 	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_ELEM_REPLACE, info) < 0)
 		return -errno;
 	return 0;
