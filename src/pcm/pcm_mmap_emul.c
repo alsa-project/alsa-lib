@@ -212,6 +212,9 @@ static int snd_pcm_mmap_emul_sw_params(snd_pcm_t *pcm,
 	mmap_emul_t *map = pcm->private_data;
 	int err;
 
+	if (!map->mmap_emul)
+		return snd_pcm_generic_sw_params(pcm, params);
+
 	map->start_threshold = params->start_threshold;
 
 	/* HACK: don't auto-start in the slave PCM */
@@ -317,9 +320,9 @@ snd_pcm_mmap_emul_mmap_commit(snd_pcm_t *pcm, snd_pcm_uframes_t offset,
 	mmap_emul_t *map = pcm->private_data;
 	snd_pcm_t *slave = map->gen.slave;
 
+	snd_pcm_mmap_appl_forward(pcm, size);
 	if (!map->mmap_emul)
 		return snd_pcm_mmap_commit(slave, offset, size);
-	snd_pcm_mmap_appl_forward(pcm, size);
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
 		sync_slave_write(pcm);
 	return size;
@@ -332,10 +335,7 @@ static snd_pcm_sframes_t snd_pcm_mmap_emul_avail_update(snd_pcm_t *pcm)
 	snd_pcm_sframes_t avail;
 
 	avail = snd_pcm_avail_update(slave);
-	if (!map->mmap_emul)
-		return avail;
-
-	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
+	if (!map->mmap_emul || pcm->stream == SND_PCM_STREAM_PLAYBACK)
 		map->hw_ptr = *slave->hw.ptr;
 	else
 		sync_slave_read(pcm);
