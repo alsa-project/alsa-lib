@@ -659,8 +659,6 @@ static int snd_pcm_plug_insert_plugins(snd_pcm_t *pcm,
 		}
 		if (err) {
 			plug->gen.slave = new;
-			pcm->fast_ops = new->fast_ops;
-			pcm->fast_op_arg = new->fast_op_arg;
 		}
 		k++;
 	}
@@ -1049,6 +1047,9 @@ static int snd_pcm_plug_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	}
 	snd_pcm_unlink_hw_ptr(pcm, plug->req_slave);
 	snd_pcm_unlink_appl_ptr(pcm, plug->req_slave);
+
+	pcm->fast_ops = slave->fast_ops;
+	pcm->fast_op_arg = slave->fast_op_arg;
 	snd_pcm_link_hw_ptr(pcm, slave);
 	snd_pcm_link_appl_ptr(pcm, slave);
 	return 0;
