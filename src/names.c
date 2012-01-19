@@ -36,14 +36,8 @@
 #include "local.h"
 
 /** 
- * \brief Give a list of device names and associated comments for selected interface
- * \param iface a string identifying interface ("pcm", "ctl", "seq", "rawmidi")
- * \param list result - a pointer to list
- * \return A non-negative value if successful, otherwise a negative error code.
+ * \brief This function is unimplemented.
  * \deprecated Since 1.0.14
- *
- * The global configuration files are specified in the environment variable
- * \c ALSA_NAMES_FILE.
  */
 int snd_names_list(const char *iface ATTRIBUTE_UNUSED,
 		   snd_devname_t **list ATTRIBUTE_UNUSED)
@@ -53,11 +47,8 @@ int snd_names_list(const char *iface ATTRIBUTE_UNUSED,
 link_warning(snd_names_list, "Warning: snd_names_list is deprecated, use snd_device_name_hint");
 
 /**
- * \brief Release the list of device names
- * \param list the name list to release
+ * \brief This function is unimplemented.
  * \deprecated Since 1.0.14
- *
- * Releases the list of device names allocated via #snd_names_list().
  */
 void snd_names_list_free(snd_devname_t *list ATTRIBUTE_UNUSED)
 {
