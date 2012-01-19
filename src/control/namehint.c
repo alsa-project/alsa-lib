@@ -517,15 +517,18 @@ static int add_software_devices(struct hint_list *list)
 }
 
 /**
- * \brief Return string list with device name hints.
+ * \brief Get a set of device name hints
  * \param card Card number or -1 (means all cards)
  * \param iface Interface identification (like "pcm", "rawmidi", "timer", "seq")
- * \param hints Result - array of string with device name hints
+ * \param hints Result - array of device name hints
  * \result zero if success, otherwise a negative error code
  *
- * Note: The device description is separated with '|' char.
+ * hints will receive a NULL-terminated array of device name hints,
+ * which can be passed to #snd_device_name_get_hint to extract usable
+ * values. When no longer needed, hints should be passed to
+ * #snd_device_name_free_hint to release resources.
  *
- * User defined hints are gathered from namehint.IFACE tree like:
+ * User-defined hints are gathered from namehint.IFACE tree like:
  *
  * <code>
  * namehint.pcm {<br>
@@ -533,6 +536,8 @@ static int add_software_devices(struct hint_list *list)
  *   myplug "plug:front:Do all conversions for front speakers"<br>
  * }
  * </code>
+ *
+ * Note: The device description is separated with '|' char.
  *
  * Special variables: defaults.namehint.showall specifies if all device
  * definitions are accepted (boolean type).
@@ -626,8 +631,8 @@ int snd_device_name_hint(int card, const char *iface, void ***hints)
 }
 
 /**
- * \brief Free a string list with device name hints.
- * \param hints A string list to free
+ * \brief Free a list of device name hints.
+ * \param hints List to free
  * \result zero if success, otherwise a negative error code
  */
 int snd_device_name_free_hint(void **hints)
@@ -646,16 +651,17 @@ int snd_device_name_free_hint(void **hints)
 }
 
 /**
- * \brief Get a hint Free a string list with device name hints.
+ * \brief Extract a value from a hint
  * \param hint A pointer to hint
- * \param id Hint ID (see bellow)
+ * \param id Hint value to extract ("NAME", "DESC", or "IOID", see below)
  * \result an allocated ASCII string if success, otherwise NULL
  *
  * List of valid IDs:
  * NAME - name of device
  * DESC - description of device
- * IOID - input / output identification (Input or Output strings),
- *        not present (NULL) means both
+ * IOID - input / output identification ("Input" or "Output"), NULL means both
+ *
+ * The return value should be freed when no longer needed.
  */
 char *snd_device_name_get_hint(const void *hint, const char *id)
 {
