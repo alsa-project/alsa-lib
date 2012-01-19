@@ -166,6 +166,9 @@ int snd_card_get_index(const char *string)
  * \param card Card number
  * \param name Result - card name corresponding to card number
  * \result zero if success, otherwise a negative error code
+ *
+ * The value returned in name is allocated with strdup and should be
+ * freed when no longer used.
  */
 int snd_card_get_name(int card, char **name)
 {
@@ -193,6 +196,9 @@ int snd_card_get_name(int card, char **name)
  * \param card Card number
  * \param name Result - card long name corresponding to card number
  * \result zero if success, otherwise a negative error code
+ *
+ * The value returned in name is allocated with strdup and should be
+ * freed when no longer used.
  */
 int snd_card_get_longname(int card, char **name)
 {
