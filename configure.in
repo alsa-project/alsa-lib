@@ -117,6 +117,22 @@ AC_DEFINE_UNQUOTED(ALSA_PLUGIN_DIR, "$plugindir", [directory containing ALSA add
 ALSA_PLUGIN_DIR="$plugindir"
 AC_SUBST(ALSA_PLUGIN_DIR)
 
+AC_ARG_WITH(pkgconfdir,
+    AS_HELP_STRING([--with-pkgconfdir=dir],
+	[path where pkgconfig files are stored]),
+    pkgconfdir="$withval", pkgconfdir="")
+if test -z "$pkgconfdir"; then
+    eval dir="$libdir"
+    case "$dir" in
+    /*) ;;
+    *) dir="$dir"
+    esac
+    pkgconfdir="$dir/pkgconfig"
+fi
+AC_DEFINE_UNQUOTED(ALSA_PKGCONF_DIR, "$pkgconfdir", [directory containing pkgconfig files])
+ALSA_PKGCONF_DIR="$pkgconfdir"
+AC_SUBST(ALSA_PKGCONF_DIR)
+
 dnl Check for versioned symbols
 AC_MSG_CHECKING(for versioned symbols)
 AC_ARG_WITH(versioned,
