@@ -19,6 +19,7 @@ cfg_files = aliases.conf \
 	CMI8738-MC8.conf \
 	CMI8788.conf \
 	CS46xx.conf \
+	Echo_Echo3G.conf \
 	EMU10K1.conf \
 	EMU10K1X.conf \
 	ENS1370.conf \
