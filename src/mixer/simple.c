@@ -889,7 +889,6 @@ int snd_mixer_selem_is_enumerated(snd_mixer_elem_t *elem)
 int snd_mixer_selem_is_enum_playback(snd_mixer_elem_t *elem)
 {
 	CHECK_BASIC(elem);
-	CHECK_ENUM(elem);
 	return sm_selem_ops(elem)->is(elem, SM_PLAY, SM_OPS_IS_ENUMERATED, 1);
 }
 
@@ -901,7 +900,6 @@ int snd_mixer_selem_is_enum_playback(snd_mixer_elem_t *elem)
 int snd_mixer_selem_is_enum_capture(snd_mixer_elem_t *elem)
 {
 	CHECK_BASIC(elem);
-	CHECK_ENUM(elem);
 	return sm_selem_ops(elem)->is(elem, SM_CAPT, SM_OPS_IS_ENUMERATED, 1);
 }
 
