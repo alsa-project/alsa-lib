@@ -378,9 +378,18 @@ int snd_seq_sync_output_queue(snd_seq_t *seq)
  * \return 0 on success or negative error code
  *
  * This function parses the sequencer client and port numbers from the given string.
- * The client and port tokes are separated by either colon or period, e.g. 128:1.
+ * The client and port tokens are separated by either colon or period, e.g. 128:1.
  * When \a seq is not NULL, the function accepts also a client name not only
  * digit numbers.
+ * Actually \a arg need to be only a prefix of the wanted client.
+ * That is, if a client named "Foobar XXL Master 2012" with number 128 is available,
+ * then parsing "Foobar" will return the address 128:0.
+ * However parsing is biased towards small client numbers,
+ * thus if also a client named "Foobar" with number 129 exists,
+ * then parsing will still yield address 128:0 and not 129:0.
+ * If you want be able to access all clients by prefixes
+ * then you must write your own parser that checks for matching client names
+ * in the order of increasing name lengths.
  */
 int snd_seq_parse_address(snd_seq_t *seq, snd_seq_addr_t *addr, const char *arg)
 {
