@@ -209,13 +209,13 @@ The device is physicaly disconnected. It does not accept any I/O calls in this s
 \section pcm_formats PCM formats
 
 The full list of formats present the #snd_pcm_format_t type.
-The 24-bit linear samples uses 32-bit physical space, but the sample is
-stored in low three bits. Some hardware does not support processing of full
+The 24-bit linear samples use 32-bit physical space, but the sample is
+stored in the lower three bytes. Some hardware does not support processing of full
 range, thus you may get the significant bits for linear samples via
 #snd_pcm_hw_params_get_sbits() function. The example: ICE1712
 chips support 32-bit sample processing, but low byte is ignored (playback)
 or zero (capture). The function snd_pcm_hw_params_get_sbits()
-returns 24 in the case.
+returns 24 in this case.
 
 \section alsa_transfers ALSA transfers
 
