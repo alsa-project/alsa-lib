@@ -60,13 +60,16 @@ typedef struct snd_ctl_ext snd_ctl_ext_t;
 typedef struct snd_ctl_ext_callback snd_ctl_ext_callback_t;
 /** Key to access a control pointer */
 typedef unsigned long snd_ctl_ext_key_t;
+/** Callback to handle TLV commands. */
+typedef int (snd_ctl_ext_tlv_rw_t)(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key, int op_flag, unsigned int numid,
+				   unsigned int *tlv, unsigned int tlv_size);
 
 /*
  * Protocol version
  */
 #define SND_CTL_EXT_VERSION_MAJOR	1	/**< Protocol major version */
 #define SND_CTL_EXT_VERSION_MINOR	0	/**< Protocol minor version */
-#define SND_CTL_EXT_VERSION_TINY	0	/**< Protocol tiny version */
+#define SND_CTL_EXT_VERSION_TINY	1	/**< Protocol tiny version */
 /**
  * external plugin protocol version
  */
@@ -122,6 +125,13 @@ struct snd_ctl_ext {
 	 * control handle filled by #snd_ctl_ext_create()
 	 */
 	snd_ctl_t *handle;
+	/**
+	 * optional TLV data for the control.
+	 */
+	union {
+		snd_ctl_ext_tlv_rw_t *c;
+		const unsigned int *p;
+	} tlv;
 
 	int nonblock;			/**< non-block mode; read-only */
 	int subscribed;			/**< events subscribed; read-only */
@@ -245,7 +255,12 @@ typedef enum snd_ctl_ext_access {
 	SND_CTL_EXT_ACCESS_WRITE = (1<<1),
 	SND_CTL_EXT_ACCESS_READWRITE = (3<<0),
 	SND_CTL_EXT_ACCESS_VOLATILE = (1<<2),
+	SND_CTL_EXT_ACCESS_TLV_READ = (1<<4),
+	SND_CTL_EXT_ACCESS_TLV_WRITE = (1<<5),
+	SND_CTL_EXT_ACCESS_TLV_READWRITE = (3<<4),
+	SND_CTL_EXT_ACCESS_TLV_COMMAND = (1<<6),
 	SND_CTL_EXT_ACCESS_INACTIVE = (1<<8),
+	SND_CTL_EXT_ACCESS_TLV_CALLBACK = (1<<28),
 } snd_ctl_ext_access_t;
 
 /**

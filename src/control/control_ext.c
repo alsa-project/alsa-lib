@@ -324,6 +324,51 @@ static int snd_ctl_ext_elem_unlock(snd_ctl_t *handle ATTRIBUTE_UNUSED,
 	return -ENXIO;
 }
 
+static int snd_ctl_ext_elem_tlv(snd_ctl_t *handle, int op_flag,
+				unsigned int numid,
+				unsigned int *tlv, unsigned int tlv_size)
+{
+	snd_ctl_ext_t *ext = handle->private_data;
+	snd_ctl_ext_key_t key;
+	int type, ret;
+	unsigned int access, count, len;
+	snd_ctl_elem_id_t id;
+
+	/* we don't support TLV on protocol ver 1.0.0 or earlier */
+	if (ext->version <= SNDRV_PROTOCOL_VERSION(1, 0, 0))
+		return -ENXIO;
+
+	snd_ctl_elem_id_clear(&id);
+	if (numid > 0) {
+		ext->callback->elem_list(ext, numid - 1, &id);
+		id.numid = numid;
+	} else
+		id.numid = 0;
+	key = ext->callback->find_elem(ext, &id);
+
+	if (key == SND_CTL_EXT_KEY_NOT_FOUND)
+		return -ENOENT;
+	ret = ext->callback->get_attribute(ext, key, &type, &access, &count);
+	if (ret < 0)
+		return ret;
+
+	if ((op_flag == 0 && (access & SND_CTL_EXT_ACCESS_TLV_READ) == 0) ||
+	    (op_flag > 0 && (access & SND_CTL_EXT_ACCESS_TLV_WRITE) == 0) ||
+	    (op_flag < 0 && (access & SND_CTL_EXT_ACCESS_TLV_COMMAND) == 0))
+		return -ENXIO;
+	if (access & SNDRV_CTL_ELEM_ACCESS_TLV_CALLBACK) {
+		return ext->tlv.c(ext, key, op_flag, numid, tlv, tlv_size);
+	} else {
+		if (op_flag)
+			return -ENXIO;
+		len = ext->tlv.p[1] + 2 * sizeof(unsigned int);
+		if (tlv_size < len)
+			return -ENOMEM;
+		memcpy(tlv, ext->tlv.p, len);
+		return 0;
+	}
+}
+
 static int snd_ctl_ext_next_device(snd_ctl_t *handle ATTRIBUTE_UNUSED,
 				   int *device ATTRIBUTE_UNUSED)
 {
@@ -429,6 +474,7 @@ static const snd_ctl_ops_t snd_ctl_ext_ops = {
 	.element_write = snd_ctl_ext_elem_write,
 	.element_lock = snd_ctl_ext_elem_lock,
 	.element_unlock = snd_ctl_ext_elem_unlock,
+	.element_tlv = snd_ctl_ext_elem_tlv,
 	.hwdep_next_device = snd_ctl_ext_next_device,
 	.hwdep_info = snd_ctl_ext_hwdep_info,
 	.pcm_next_device = snd_ctl_ext_next_device,
