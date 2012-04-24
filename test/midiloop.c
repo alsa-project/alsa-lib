@@ -175,7 +175,7 @@ int main(int argc, char** argv)
 	printf("output.status.xruns = %zi\n", snd_rawmidi_status_get_xruns(ostat));
 
 	diff = timediff(end, start);
-	printf("Time diff: %Liusec (%Li bytes/sec)\n", diff, ((long long)opos * 1000000) / diff);
+	printf("Time diff: %lliusec (%lli bytes/sec)\n", diff, ((long long)opos * 1000000) / diff);
 
 	if (verbose) {
 		fprintf(stderr,"Closing\n");
