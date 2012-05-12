@@ -622,6 +622,7 @@ snd_pcm_sframes_t snd_pcm_read_mmap(snd_pcm_t *pcm, snd_pcm_uframes_t offset,
 			err = _snd_pcm_readn(pcm->fast_op_arg, bufs, frames);
 			if (err >= 0)
 				frames = err;
+			break;
 		}
 		default:
 			SNDMSG("invalid access type %d", pcm->access);
