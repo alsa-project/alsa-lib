@@ -223,6 +223,7 @@ static int snd_pcm_dsnoop_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 		err = snd_pcm_dsnoop_sync_ptr(pcm);
 		if (err < 0)
 			return err;
+		/* Fall through */
 	case SNDRV_PCM_STATE_PREPARED:
 	case SNDRV_PCM_STATE_SUSPENDED:
 		*delayp = snd_pcm_mmap_capture_hw_avail(pcm);
