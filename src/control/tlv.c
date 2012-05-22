@@ -291,41 +291,37 @@ int snd_tlv_convert_from_dB(unsigned int *tlv, long rangemin, long rangemax,
 {
 	switch (tlv[0]) {
 	case SND_CTL_TLVT_DB_RANGE: {
-		long dbmin, dbmax, prev_rangemax;
+		long dbmin, dbmax, prev_submax;
 		unsigned int pos, len;
 		len = int_index(tlv[1]);
-		if (len > MAX_TLV_RANGE_SIZE)
+		if (len < 6 || len > MAX_TLV_RANGE_SIZE)
 			return -EINVAL;
-		if (snd_tlv_get_dB_range(tlv, rangemin, rangemax,
-					 &dbmin, &dbmax))
-			return -EINVAL;
-		if (db_gain <= dbmin) {
-			*value = rangemin;
-			return 0;
-		} else if (db_gain >= dbmax) {
-			*value = rangemax;
-			return 0;
-		}
 		pos = 2;
-		prev_rangemax = 0;
+		prev_submax = 0;
 		while (pos + 4 <= len) {
-			rangemin = (int)tlv[pos];
-			rangemax = (int)tlv[pos + 1];
+			long submin, submax;
+			submin = (int)tlv[pos];
+			submax = (int)tlv[pos + 1];
+			if (rangemax < submax)
+				submax = rangemax;
 			if (!snd_tlv_get_dB_range(tlv + pos + 2,
-						  rangemin, rangemax,
+						  submin, submax,
 						  &dbmin, &dbmax) &&
 			    db_gain >= dbmin && db_gain <= dbmax)
 				return snd_tlv_convert_from_dB(tlv + pos + 2,
-							       rangemin, rangemax,
+							       submin, submax,
 							       db_gain, value, xdir);
 			else if (db_gain < dbmin) {
-				*value = xdir ? rangemin : prev_rangemax;
+				*value = xdir || pos == 2 ? submin : prev_submax;
 				return 0;
 			}
-			prev_rangemax = rangemax;
+			prev_submax = submax;
+			if (rangemax == submax)
+				break;
 			pos += int_index(tlv[pos + 3]) + 4;
 		}
-		return -EINVAL;
+		*value = prev_submax;
+		return 0;
 	}
 	case SND_CTL_TLVT_DB_SCALE: {
 		int min, step, max;
