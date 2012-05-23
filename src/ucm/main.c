@@ -565,6 +565,34 @@ static struct use_case_modifier *
 	return NULL;
 }
 
+long device_status(snd_use_case_mgr_t *uc_mgr,
+                   const char *device_name)
+{
+        struct use_case_device *dev;
+        struct list_head *pos;
+
+        list_for_each(pos, &uc_mgr->active_devices) {
+                dev = list_entry(pos, struct use_case_device, active_list);
+                if (strcmp(dev->name, device_name) == 0)
+                        return 1;
+        }
+        return 0;
+}
+
+long modifier_status(snd_use_case_mgr_t *uc_mgr,
+                     const char *modifier_name)
+{
+        struct use_case_modifier *mod;
+        struct list_head *pos;
+
+        list_for_each(pos, &uc_mgr->active_modifiers) {
+                mod = list_entry(pos, struct use_case_modifier, active_list);
+                if (strcmp(mod->name, modifier_name) == 0)
+                        return 1;
+        }
+        return 0;
+}
+
 /**
  * \brief Set verb
  * \param uc_mgr Use case manager
@@ -607,6 +635,9 @@ static int set_modifier(snd_use_case_mgr_t *uc_mgr,
 	struct list_head *seq;
 	int err;
 
+	if (modifier_status(uc_mgr, modifier->name) == enable)
+		return 0;
+
 	if (enable) {
 		seq = &modifier->enable_list;
 	} else {
@@ -637,6 +668,9 @@ static int set_device(snd_use_case_mgr_t *uc_mgr,
 {
 	struct list_head *seq;
 	int err;
+
+        if (device_status(uc_mgr, device->name) == enable)
+		return 0;
 
 	if (enable) {
 		seq = &device->enable_list;
@@ -1314,34 +1348,6 @@ int snd_use_case_get(snd_use_case_mgr_t *uc_mgr,
       __end:
 	pthread_mutex_unlock(&uc_mgr->mutex);
         return err;
-}
-
-long device_status(snd_use_case_mgr_t *uc_mgr,
-                   const char *device_name)
-{
-        struct use_case_device *dev;
-        struct list_head *pos;
-        
-        list_for_each(pos, &uc_mgr->active_devices) {
-                dev = list_entry(pos, struct use_case_device, active_list);
-                if (strcmp(dev->name, device_name) == 0)
-                        return 1;
-        }
-        return 0;
-}
-
-long modifier_status(snd_use_case_mgr_t *uc_mgr,
-                     const char *modifier_name)
-{
-        struct use_case_modifier *mod;
-        struct list_head *pos;
-        
-        list_for_each(pos, &uc_mgr->active_modifiers) {
-                mod = list_entry(pos, struct use_case_modifier, active_list);
-                if (strcmp(mod->name, modifier_name) == 0)
-                        return 1;
-        }
-        return 0;
 }
 
 
