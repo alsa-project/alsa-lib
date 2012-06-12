@@ -33,6 +33,7 @@ long long timediff(snd_htimestamp_t t1, snd_htimestamp_t t2)
 
 void gettimestamp(snd_pcm_t *handle, snd_htimestamp_t *timestamp,
 		  snd_htimestamp_t *trigger_timestamp,
+		  snd_htimestamp_t *audio_timestamp,
 		  snd_pcm_uframes_t *avail, snd_pcm_sframes_t *delay)
 {
 	int err;
@@ -45,6 +46,7 @@ void gettimestamp(snd_pcm_t *handle, snd_htimestamp_t *timestamp,
 	}
 	snd_pcm_status_get_trigger_htstamp(status, trigger_timestamp);
 	snd_pcm_status_get_htstamp(status, timestamp);
+	snd_pcm_status_get_audio_htstamp(status, audio_timestamp);
 	*avail = snd_pcm_status_get_avail(status);
 	*delay = snd_pcm_status_get_delay(status);
 }
@@ -53,6 +55,7 @@ void gettimestamp(snd_pcm_t *handle, snd_htimestamp_t *timestamp,
 #define PCM_LINK        /* sync start for playback and capture */
 #define TRACK_CAPTURE   /* dump capture timing info  */
 #define TRACK_PLAYBACK  /* dump playback timing info */
+#define TRACK_SAMPLE_COUNTS /* show difference between sample counters and audiotimestamps returned by driver */
 #define PLAYBACK_BUFFERS 4
 
 
@@ -65,8 +68,12 @@ int main(void)
         snd_pcm_sframes_t frames;
 	snd_htimestamp_t tstamp_c, tstamp_p;
 	snd_htimestamp_t trigger_tstamp_c, trigger_tstamp_p;
+	snd_htimestamp_t audio_tstamp_c, audio_tstamp_p;
 	unsigned char buffer_p[PERIOD*4*4];
 	unsigned char buffer_c[PERIOD*4*4];
+
+	snd_pcm_hw_params_t *hwparams_p;
+	snd_pcm_hw_params_t *hwparams_c;
 
 	snd_pcm_sw_params_t *swparams_p;
 	snd_pcm_sw_params_t *swparams_c;
@@ -93,6 +100,18 @@ int main(void)
 		printf("Playback open error: %s\n", snd_strerror(err));
 		goto _exit;
 	}
+
+	snd_pcm_hw_params_alloca(&hwparams_p);
+	/* get the current hwparams */
+	err = snd_pcm_hw_params_current(handle_p, hwparams_p);
+	if (err < 0) {
+		printf("Unable to determine current hwparams_p: %s\n", snd_strerror(err));
+		goto _exit;
+	}
+	if (snd_pcm_hw_params_supports_audio_wallclock_ts(hwparams_p))
+		printf("Playback relies on audio wallclock timestamps\n");
+	else
+		printf("Playback relies on audio sample counter timestamps\n");
 
 	snd_pcm_sw_params_alloca(&swparams_p);
 	/* get the current swparams */
@@ -130,6 +149,18 @@ int main(void)
 		printf("Capture open error: %s\n", snd_strerror(err));
 		goto _exit;
 	}
+
+	snd_pcm_hw_params_alloca(&hwparams_c);
+	/* get the current hwparams */
+	err = snd_pcm_hw_params_current(handle_c, hwparams_c);
+	if (err < 0) {
+		printf("Unable to determine current hwparams_c: %s\n", snd_strerror(err));
+		goto _exit;
+	}
+	if (snd_pcm_hw_params_supports_audio_wallclock_ts(hwparams_c))
+		printf("Capture relies on audio wallclock timestamps\n");
+	else
+		printf("Capture relies on audio sample counter timestamps\n");
 
 	snd_pcm_sw_params_alloca(&swparams_c);
 	/* get the current swparams */
@@ -202,26 +233,43 @@ int main(void)
 		frame_count_p += frames;
 
 #if defined(TRACK_PLAYBACK)
-		gettimestamp(handle_p, &tstamp_p, &trigger_tstamp_p, &avail_p, &delay_p);
+		gettimestamp(handle_p, &tstamp_p, &trigger_tstamp_p, &audio_tstamp_p, &avail_p, &delay_p);
 
+#if defined(TRACK_SAMPLE_COUNTS)
 		curr_count_p = frame_count_p - delay_p; /* written minus queued */
 
-		printf("playback: systime: %lli nsec, sample time %lli nsec \tsystime delta %lli \n",
-			timediff(tstamp_p,trigger_tstamp_p),
-			(long long)round(((float)curr_count_p * 1000000000.0 / 48000.0)),
-		       timediff(tstamp_p, trigger_tstamp_p) - (long long)round((double)curr_count_p * 1000000000.0 / 48000.0)
+		printf("playback: curr_count %lli driver count %lli, delta %lli\n",
+		       (long long)curr_count_p * 1000000000LL / 48000 ,
+		       timestamp2ns(audio_tstamp_p),
+		       (long long)curr_count_p * 1000000000LL / 48000 - timestamp2ns(audio_tstamp_p)
+		       );
+#endif
+
+		printf("playback: systime: %lli nsec, audio time %lli nsec, \tsystime delta %lli\n",
+		       timediff(tstamp_p, trigger_tstamp_p),
+		       timestamp2ns(audio_tstamp_p),
+		       timediff(tstamp_p, trigger_tstamp_p) - timestamp2ns(audio_tstamp_p)
 		       );
 #endif
 
 #if defined(TRACK_CAPTURE)
-		gettimestamp(handle_c, &tstamp_c, &trigger_tstamp_c, &avail_c, &delay_c);
+		gettimestamp(handle_c, &tstamp_c, &trigger_tstamp_c, &audio_tstamp_c, &avail_c, &delay_c);
 
+#if defined(TRACK_SAMPLE_COUNTS)
 		curr_count_c = frame_count_c + delay_c; /* read plus queued */
 
-		printf("\t capture: systime: %lli nsec, sample time %lli nsec \tsystime delta %lli \n",
-			timediff(tstamp_c,trigger_tstamp_c),
-			(long long)round(((float)curr_count_c * 1000000000.0 / 48000.0)),
-		       timediff(tstamp_c, trigger_tstamp_c) - (long long)round((double)curr_count_c * 1000000000.0 / 48000.0)
+
+		printf("capture: curr_count %lli driver count %lli, delta %lli\n",
+		       (long long)curr_count_c * 1000000000LL / 48000 ,
+		       timestamp2ns(audio_tstamp_c),
+		       (long long)curr_count_c * 1000000000LL / 48000 - timestamp2ns(audio_tstamp_c)
+		       );
+#endif
+
+		printf("\t capture: systime: %lli nsec, audio time %lli nsec, \tsystime delta %lli\n",
+		       timediff(tstamp_c, trigger_tstamp_c),
+		       timestamp2ns(audio_tstamp_c),
+		       timediff(tstamp_c, trigger_tstamp_c) - timestamp2ns(audio_tstamp_c)
 		       );
 #endif
 

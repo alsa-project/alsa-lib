@@ -3124,6 +3124,26 @@ int snd_pcm_hw_params_can_disable_period_wakeup(const snd_pcm_hw_params_t *param
 }
 
 /**
+ * \brief Check if hardware supports audio wallclock timestamps
+ * \param params Configuration space
+ * \retval 0 Hardware doesn't support audio wallclock timestamps
+ * \retval 1 Hardware supports audio wallclock timestamps
+ *
+ * This function should only be called when the configuration space
+ * contains a single configuration. Call #snd_pcm_hw_params to choose
+ * a single configuration from the configuration space.
+ */
+int snd_pcm_hw_params_supports_audio_wallclock_ts(const snd_pcm_hw_params_t *params)
+{
+	assert(params);
+	if (CHECK_SANITY(params->info == ~0U)) {
+		SNDMSG("invalid PCM info field");
+		return 0; /* FIXME: should be a negative error? */
+	}
+	return !!(params->info & SNDRV_PCM_INFO_HAS_WALL_CLOCK);
+}
+
+/**
  * \brief Get rate exact info from a configuration space
  * \param params Configuration space
  * \param rate_num Pointer to returned rate numerator
@@ -6214,6 +6234,17 @@ void snd_pcm_status_get_htstamp(const snd_pcm_status_t *obj, snd_htimestamp_t *p
 use_default_symbol_version(__snd_pcm_status_get_htstamp, snd_pcm_status_get_htstamp, ALSA_0.9.0rc8);
 
 /** 
+ * \brief Get "now" hi-res audio timestamp from a PCM status container
+ * \param obj pointer to #snd_pcm_status_t
+ * \param ptr Pointer to returned timestamp
+ */
+void snd_pcm_status_get_audio_htstamp(const snd_pcm_status_t *obj, snd_htimestamp_t *ptr)
+{
+	assert(obj && ptr);
+	*ptr = obj->audio_tstamp;
+}
+
+/**
  * \brief Get delay from a PCM status container (see #snd_pcm_delay)
  * \return Delay in frames
  *
