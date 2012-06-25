@@ -125,16 +125,17 @@ struct snd_ctl_ext {
 	 * control handle filled by #snd_ctl_ext_create()
 	 */
 	snd_ctl_t *handle;
+
+	int nonblock;			/**< non-block mode; read-only */
+	int subscribed;			/**< events subscribed; read-only */
+
 	/**
-	 * optional TLV data for the control.
+	 * optional TLV data for the control (since protocol 1.0.1)
 	 */
 	union {
 		snd_ctl_ext_tlv_rw_t *c;
 		const unsigned int *p;
 	} tlv;
-
-	int nonblock;			/**< non-block mode; read-only */
-	int subscribed;			/**< events subscribed; read-only */
 };
 
 /** Callback table of ext */
