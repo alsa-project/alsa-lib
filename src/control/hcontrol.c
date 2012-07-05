@@ -761,7 +761,6 @@ static int snd_hctl_handle_event(snd_hctl_t *hctl, snd_ctl_event_t *event)
 	if (event->data.elem.mask & (SNDRV_CTL_EVENT_MASK_VALUE |
 				     SNDRV_CTL_EVENT_MASK_INFO)) {
 		elem = snd_hctl_find_elem(hctl, &event->data.elem.id);
-		assert(elem);
 		if (!elem)
 			return -ENOENT;
 		res = snd_hctl_elem_throw_event(elem, event->data.elem.mask &
