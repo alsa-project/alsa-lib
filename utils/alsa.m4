@@ -57,6 +57,7 @@ LIBS="$ALSA_LIBS $LIBS"
 AC_MSG_RESULT($ALSA_LIBS)
 
 dnl Check for a working version of libasound that is of the right version.
+if test "x$enable_alsatest" = "xyes"; then
 min_alsa_version=ifelse([$1], ,0.1.1,$1)
 AC_MSG_CHECKING(for libasound headers version >= $min_alsa_version)
 no_alsa=""
@@ -110,6 +111,7 @@ exit(0);
    alsa_found=no]
 )
 AC_LANG_RESTORE
+fi
 
 dnl Now that we know that we have the right version, let's see if we have the library and not just the headers.
 if test "x$enable_alsatest" = "xyes"; then
