@@ -3505,7 +3505,12 @@ int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t 
 			struct dirent **namelist;
 			int n;
 
-			n = scandir(fi[idx].name, &namelist, config_filename_filter, versionsort);
+#ifdef _GNU_SOURCE
+#define SORTFUNC	versionsort
+#else
+#define SORTFUNC	alphasort
+#endif
+			n = scandir(fi[idx].name, &namelist, config_filename_filter, SORTFUNC);
 			if (n > 0) {
 				int j;
 				err = 0;

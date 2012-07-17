@@ -1254,7 +1254,12 @@ int uc_mgr_scan_master_configs(const char **_list[])
 		"%s", env ? env : ALSA_USE_CASE_DIR);
 	filename[MAX_FILE-1] = '\0';
 
-	err = scandir(filename, &namelist, filename_filter, versionsort);
+#ifdef _GNU_SOURCE
+#define SORTFUNC	versionsort
+#else
+#define SORTFUNC	alphasort
+#endif
+	err = scandir(filename, &namelist, filename_filter, SORTFUNC);
 	if (err < 0) {
 		err = -errno;
 		uc_error("error: could not scan directory %s: %s",
