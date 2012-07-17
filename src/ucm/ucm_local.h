@@ -36,6 +36,7 @@
 #define UC_MGR_DEBUG
 #endif
 
+#include <pthread.h>
 #include "local.h"
 #include "use-case.h"
 
