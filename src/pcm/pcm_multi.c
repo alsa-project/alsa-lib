@@ -739,6 +739,63 @@ static int snd_pcm_multi_mmap(snd_pcm_t *pcm)
 	return 0;
 }
 
+static int *snd_pcm_multi_get_chmap(snd_pcm_t *pcm)
+{
+	snd_pcm_multi_t *multi = pcm->private_data;
+	int *map;
+	unsigned int i, idx;
+
+	map = malloc(pcm->channels + 4);
+	if (!map)
+		return NULL;
+	idx = 0;
+	for (i = 0; i < multi->slaves_count; ++i) {
+		int c, *slave_map;
+		slave_map = snd_pcm_get_chmap(multi->slaves[i].pcm);
+		if (!slave_map) {
+			free(map);
+			return NULL;
+		}
+		for (c = 0; c < *slave_map; c++) {
+			if (idx >= pcm->channels)
+				break;
+			map[idx++] = slave_map[c + 1];
+		}
+		free(slave_map);
+	}
+	return map;
+}
+
+static int snd_pcm_multi_set_chmap(snd_pcm_t *pcm, const int *map)
+{
+	snd_pcm_multi_t *multi = pcm->private_data;
+	unsigned int i, idx, chs;
+	int err;
+
+	chs = *map;
+	if (chs != pcm->channels)
+		return -EINVAL;
+	map++;
+	for (i = 0; i < multi->slaves_count; ++i) {
+		int *slave_map;
+		unsigned int slave_chs;
+		slave_chs = multi->slaves[i].channels_count;
+		if (idx + slave_chs > chs)
+			break;
+		slave_map = malloc(slave_chs * 4 + 4);
+		if (!slave_map)
+			return -ENOMEM;
+		*slave_map = slave_chs;
+		memcpy(slave_map, map + idx, slave_chs * 4);
+		err = snd_pcm_set_chmap(multi->slaves[i].pcm, slave_map);
+		free(slave_map);
+		if (err < 0)
+			return err;
+		idx += slave_chs;
+	}
+	return 0;
+}
+
 static void snd_pcm_multi_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_pcm_multi_t *multi = pcm->private_data;
@@ -775,6 +832,9 @@ static const snd_pcm_ops_t snd_pcm_multi_ops = {
 	.async = snd_pcm_multi_async,
 	.mmap = snd_pcm_multi_mmap,
 	.munmap = snd_pcm_multi_munmap,
+	.query_chmaps = NULL, /* NYI */
+	.get_chmap = snd_pcm_multi_get_chmap,
+	.set_chmap = snd_pcm_multi_set_chmap,
 };
 
 static const snd_pcm_fast_ops_t snd_pcm_multi_fast_ops = {

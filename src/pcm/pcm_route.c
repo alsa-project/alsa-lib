@@ -703,6 +703,33 @@ snd_pcm_route_read_areas(snd_pcm_t *pcm,
 	return size;
 }
 
+static int *snd_pcm_route_get_chmap(snd_pcm_t *pcm)
+{
+	snd_pcm_route_t *route = pcm->private_data;
+	int *map, *slave_map;
+	unsigned int src, dst;
+
+	slave_map = snd_pcm_generic_get_chmap(pcm);
+	if (!slave_map)
+		return NULL;
+	map = calloc(4, route->schannels + 1);
+	if (!map) {
+		free(slave_map);
+		return NULL;
+	}
+	*map = route->schannels;
+	for (dst = 0; dst < route->params.ndsts; dst++) {
+		snd_pcm_route_ttable_dst_t *d = &route->params.dsts[dst];
+		for (src = 0; src < d->nsrcs; src++) {
+			int c = d->srcs[src].channel;
+			if (c < route->schannels && !map[c + 1])
+				map[c + 1] = slave_map[dst + 1];
+		}
+	}
+	free(slave_map);
+	return map;
+}
+
 static void snd_pcm_route_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_pcm_route_t *route = pcm->private_data;
@@ -760,6 +787,9 @@ static const snd_pcm_ops_t snd_pcm_route_ops = {
 	.async = snd_pcm_generic_async,
 	.mmap = snd_pcm_generic_mmap,
 	.munmap = snd_pcm_generic_munmap,
+	.query_chmaps = NULL, /* NYI */
+	.get_chmap = snd_pcm_route_get_chmap,
+	.set_chmap = NULL, /* NYI */
 };
 
 static int route_load_ttable(snd_pcm_route_params_t *params, snd_pcm_stream_t stream,
