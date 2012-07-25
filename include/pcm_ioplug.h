@@ -66,7 +66,7 @@ typedef struct snd_pcm_ioplug_callback snd_pcm_ioplug_callback_t;
  */
 #define SND_PCM_IOPLUG_VERSION_MAJOR	1	/**< Protocol major version */
 #define SND_PCM_IOPLUG_VERSION_MINOR	0	/**< Protocol minor version */
-#define SND_PCM_IOPLUG_VERSION_TINY	1	/**< Protocol tiny version */
+#define SND_PCM_IOPLUG_VERSION_TINY	2	/**< Protocol tiny version */
 /**
  * IO-plugin protocol version
  */
@@ -186,9 +186,21 @@ struct snd_pcm_ioplug_callback {
 	 */
 	void (*dump)(snd_pcm_ioplug_t *io, snd_output_t *out);
 	/**
-	 * get the delay for the running PCM; optional
+	 * get the delay for the running PCM; optional; since v1.0.1
 	 */
 	int (*delay)(snd_pcm_ioplug_t *io, snd_pcm_sframes_t *delayp);
+	/**
+	 * query the channel maps; optional; since v1.0.2
+	 */
+	int **(*query_chmaps)(snd_pcm_ioplug_t *io);
+	/**
+	 * get the channel map; optional; since v1.0.2
+	 */
+	int *(*get_chmap)(snd_pcm_ioplug_t *io);
+	/**
+	 * set the channel map; optional; since v1.0.2
+	 */
+	int (*set_chmap)(snd_pcm_ioplug_t *io, const int *map);
 };
 
 

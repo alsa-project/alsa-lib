@@ -425,6 +425,36 @@ static int snd_pcm_extplug_close(snd_pcm_t *pcm)
 	return 0;
 }
 
+static int **snd_pcm_extplug_query_chmaps(snd_pcm_t *pcm)
+{
+	extplug_priv_t *ext = pcm->private_data;
+
+	if (ext->data->version >= 0x010002 &&
+	    ext->data->callback->query_chmaps)
+		return ext->data->callback->query_chmaps(ext->data);
+	return snd_pcm_generic_query_chmaps(pcm);
+}
+
+static int *snd_pcm_extplug_get_chmap(snd_pcm_t *pcm)
+{
+	extplug_priv_t *ext = pcm->private_data;
+
+	if (ext->data->version >= 0x010002 &&
+	    ext->data->callback->get_chmap)
+		return ext->data->callback->get_chmap(ext->data);
+	return snd_pcm_generic_get_chmap(pcm);
+}
+
+static int snd_pcm_extplug_set_chmap(snd_pcm_t *pcm, const int *map)
+{
+	extplug_priv_t *ext = pcm->private_data;
+
+	if (ext->data->version >= 0x010002 &&
+	    ext->data->callback->set_chmap)
+		return ext->data->callback->set_chmap(ext->data, map);
+	return snd_pcm_generic_set_chmap(pcm, map);
+}
+
 static const snd_pcm_ops_t snd_pcm_extplug_ops = {
 	.close = snd_pcm_extplug_close,
 	.info = snd_pcm_generic_info,
@@ -438,6 +468,9 @@ static const snd_pcm_ops_t snd_pcm_extplug_ops = {
 	.async = snd_pcm_generic_async,
 	.mmap = snd_pcm_generic_mmap,
 	.munmap = snd_pcm_generic_munmap,
+	.query_chmaps = snd_pcm_extplug_query_chmaps,
+	.get_chmap = snd_pcm_extplug_get_chmap,
+	.set_chmap = snd_pcm_extplug_set_chmap,
 };
 
 #endif /* !DOC_HIDDEN */

@@ -710,6 +710,36 @@ static int snd_pcm_ioplug_munmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 	return 0;
 }
 
+static int **snd_pcm_ioplug_query_chmaps(snd_pcm_t *pcm)
+{
+	ioplug_priv_t *io = pcm->private_data;
+
+	if (io->data->version >= 0x010002 &&
+	    io->data->callback->query_chmaps)
+		return io->data->callback->query_chmaps(io->data);
+	return NULL;
+}
+
+static int *snd_pcm_ioplug_get_chmap(snd_pcm_t *pcm)
+{
+	ioplug_priv_t *io = pcm->private_data;
+
+	if (io->data->version >= 0x010002 &&
+	    io->data->callback->get_chmap)
+		return io->data->callback->get_chmap(io->data);
+	return NULL;
+}
+
+static int snd_pcm_ioplug_set_chmap(snd_pcm_t *pcm, const int *map)
+{
+	ioplug_priv_t *io = pcm->private_data;
+
+	if (io->data->version >= 0x010002 &&
+	    io->data->callback->set_chmap)
+		return io->data->callback->set_chmap(io->data, map);
+	return -ENXIO;
+}
+
 static void snd_pcm_ioplug_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	ioplug_priv_t *io = pcm->private_data;
@@ -760,6 +790,9 @@ static const snd_pcm_ops_t snd_pcm_ioplug_ops = {
 	.dump = snd_pcm_ioplug_dump,
 	.mmap = snd_pcm_ioplug_mmap,
 	.munmap = snd_pcm_ioplug_munmap,
+	.query_chmaps = snd_pcm_ioplug_query_chmaps,
+	.get_chmap = snd_pcm_ioplug_get_chmap,
+	.set_chmap = snd_pcm_ioplug_set_chmap,
 };
 
 static const snd_pcm_fast_ops_t snd_pcm_ioplug_fast_ops = {
