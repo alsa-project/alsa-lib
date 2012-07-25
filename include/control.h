@@ -182,6 +182,13 @@ typedef enum _snd_ctl_event_type {
 /** Mute state */
 #define SND_CTL_TLV_DB_GAIN_MUTE	-9999999
 
+/** TLV type - fixed channel map positions */
+#define SND_CTL_TLVT_CHMAP_FIXED	0x00101
+/** TLV type - freely swappable channel map positions */
+#define SND_CTL_TLVT_CHMAP_VAR		0x00102
+/** TLV type - pair-wise swappable channel map positions */
+#define SND_CTL_TLVT_CHMAP_PAIRED	0x00103
+
 /** CTL type */
 typedef enum _snd_ctl_type {
 	/** Kernel level CTL */

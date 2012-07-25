@@ -474,6 +474,18 @@ int snd_pcm_wait(snd_pcm_t *pcm, int timeout);
 int snd_pcm_link(snd_pcm_t *pcm1, snd_pcm_t *pcm2);
 int snd_pcm_unlink(snd_pcm_t *pcm);
 
+enum {
+	SND_CHMAP_NONE = 0,	/** unspecified channel position */
+	SND_CHMAP_FIXED,	/** fixed channel position */
+	SND_CHMAP_VAR,		/** freely swappable channel position */
+	SND_CHMAP_PAIRED,	/** pair-wise swappable channel position */
+};
+
+int **snd_pcm_query_chmaps(snd_pcm_t *pcm);
+void snd_pcm_free_chmaps(int **maps);
+int *snd_pcm_get_chmap(snd_pcm_t *pcm);
+int snd_pcm_set_chmap(snd_pcm_t *pcm, const int *map);
+
 //int snd_pcm_mixer_element(snd_pcm_t *pcm, snd_mixer_t *mixer, snd_mixer_elem_t **elem);
 
 /*

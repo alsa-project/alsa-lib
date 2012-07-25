@@ -103,6 +103,12 @@ typedef struct {
 	snd1_pcm_generic_mmap
 #define snd_pcm_generic_munmap \
 	snd1_pcm_generic_munmap
+#define snd_pcm_generic_query_chmaps \
+	snd1_pcm_generic_query_chmaps
+#define snd_pcm_generic_get_chmap \
+	snd1_pcm_generic_get_chmap
+#define snd_pcm_generic_set_chmap \
+	snd1_pcm_generic_set_chmap
 
 int snd_pcm_generic_close(snd_pcm_t *pcm);
 int snd_pcm_generic_nonblock(snd_pcm_t *pcm, int nonblock);
@@ -149,3 +155,8 @@ int snd_pcm_generic_real_htimestamp(snd_pcm_t *pcm, snd_pcm_uframes_t *avail,
 				    snd_htimestamp_t *tstamp);
 int snd_pcm_generic_mmap(snd_pcm_t *pcm);
 int snd_pcm_generic_munmap(snd_pcm_t *pcm);
+int **snd_pcm_generic_query_chmaps(snd_pcm_t *pcm);
+int *snd_pcm_generic_get_chmap(snd_pcm_t *pcm);
+int snd_pcm_generic_set_chmap(snd_pcm_t *pcm, const int *map);
+
+

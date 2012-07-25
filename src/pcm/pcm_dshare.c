@@ -573,6 +573,8 @@ static const snd_pcm_ops_t snd_pcm_dshare_ops = {
 	.async = snd_pcm_direct_async,
 	.mmap = snd_pcm_direct_mmap,
 	.munmap = snd_pcm_direct_munmap,
+	.get_chmap = snd_pcm_direct_get_chmap,
+	.set_chmap = snd_pcm_direct_set_chmap,
 };
 
 static const snd_pcm_fast_ops_t snd_pcm_dshare_fast_ops = {

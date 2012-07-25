@@ -143,6 +143,9 @@ typedef struct {
 	void (*dump)(snd_pcm_t *pcm, snd_output_t *out);
 	int (*mmap)(snd_pcm_t *pcm);
 	int (*munmap)(snd_pcm_t *pcm);
+	int **(*query_chmaps)(snd_pcm_t *pcm);
+	int *(*get_chmap)(snd_pcm_t *pcm);
+	int (*set_chmap)(snd_pcm_t *pcm, const int *map);
 } snd_pcm_ops_t;
 
 typedef struct {

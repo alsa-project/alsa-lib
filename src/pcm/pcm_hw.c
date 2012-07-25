@@ -1004,6 +1004,181 @@ static int snd_pcm_hw_htimestamp(snd_pcm_t *pcm, snd_pcm_uframes_t *avail,
 	return 0;
 }
 
+static void fill_chmap_ctl_id(snd_pcm_t *pcm, snd_ctl_elem_id_t *id)
+{
+	snd_pcm_hw_t *hw = pcm->private_data;
+	snd_ctl_elem_id_set_interface(id, SND_CTL_ELEM_IFACE_PCM);
+	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
+		snd_ctl_elem_id_set_name(id, "Playback Channel Map");
+	else
+		snd_ctl_elem_id_set_name(id, "Capture Channel Map");
+	snd_ctl_elem_id_set_device(id, hw->device);
+	snd_ctl_elem_id_set_index(id, hw->subdevice);
+}
+
+static int is_chmap_type(int type)
+{
+	return (type >= SND_CTL_TLVT_CHMAP_FIXED &&
+		type <= SND_CTL_TLVT_CHMAP_PAIRED);
+}
+
+static int **snd_pcm_hw_query_chmaps(snd_pcm_t *pcm)
+{
+	snd_pcm_hw_t *hw = pcm->private_data;
+	snd_ctl_t *ctl;
+	snd_ctl_elem_id_t *id;
+	unsigned int tlv[256], *start;
+	int **map;
+	int i, ret, nums;
+
+	ret = snd_ctl_hw_open(&ctl, NULL, hw->card, 0);
+	if (ret < 0) {
+		SYSMSG("Cannot open the associated CTL\n");
+		return NULL;
+	}
+
+	snd_ctl_elem_id_alloca(&id);
+	fill_chmap_ctl_id(pcm, id);
+	ret = snd_ctl_elem_tlv_read(ctl, id, tlv, sizeof(tlv));
+	snd_ctl_close(ctl);
+	if (ret < 0) {
+		SYSMSG("Cannot read Channel Map TLV\n");
+		return NULL;
+	}
+
+#if 0
+	for (i = 0; i < 32; i++)
+		fprintf(stderr, "%02x: %08x\n", i, tlv[i]);
+#endif
+	if (tlv[0] != SND_CTL_TLVT_CONTAINER) {
+		if (!is_chmap_type(tlv[0])) {
+			SYSMSG("Invalid TLV type %d\n", tlv[0]);
+			return NULL;
+		}
+		start = tlv;
+		nums = 1;
+	} else {
+		unsigned int *p;
+		int size;
+		start = tlv + 2;
+		size = tlv[1];
+		nums = 0;
+		for (p = start; size > 0; ) {
+			if (!is_chmap_type(p[0])) {
+				SYSMSG("Invalid TLV type %d\n", p[0]);
+				return NULL;
+			}
+			nums++;
+			size -= p[1] + 8;
+			p += p[1] / 4 + 2;
+		}
+	}
+	map = calloc(nums + 1, sizeof(int *));
+	if (!map)
+		return NULL;
+	for (i = 0; i < nums; i++) {
+		map[i] = malloc(start[1] + 8);
+		if (!map[i])
+			goto nomem;
+		map[i][0] = start[0] - 0x100;
+		map[i][1] = start[1] / 4;
+		memcpy(map[i] + 2, start + 2, start[1]);
+		start += start[1] / 4 + 2;
+	}
+	return map;
+
+ nomem:
+	for (; i >= 0; i--)
+		free(map[i]);
+	free(map);
+	return NULL;
+}
+
+static int *snd_pcm_hw_get_chmap(snd_pcm_t *pcm)
+{
+	snd_pcm_hw_t *hw = pcm->private_data;
+	int *map;
+	snd_ctl_t *ctl;
+	snd_ctl_elem_id_t *id;
+	snd_ctl_elem_value_t *val;
+	unsigned int i;
+	int ret;
+
+	switch (FAST_PCM_STATE(hw)) {
+	case SNDRV_PCM_STATE_PREPARED:
+	case SNDRV_PCM_STATE_RUNNING:
+	case SNDRV_PCM_STATE_XRUN:
+	case SNDRV_PCM_STATE_DRAINING:
+	case SNDRV_PCM_STATE_PAUSED:
+	case SNDRV_PCM_STATE_SUSPENDED:
+		break;
+	default:
+		SYSMSG("Invalid PCM state for chmap_get: %s\n",
+		       snd_pcm_state_name(FAST_PCM_STATE(hw)));
+		return NULL;
+	}
+	map = malloc(pcm->channels + 1);
+	if (!map)
+		return NULL;
+	*map = pcm->channels;
+	ret = snd_ctl_hw_open(&ctl, NULL, hw->card, 0);
+	if (ret < 0) {
+		free(map);
+		SYSMSG("Cannot open the associated CTL\n");
+		return NULL;
+	}
+	snd_ctl_elem_value_alloca(&val);
+	snd_ctl_elem_id_alloca(&id);
+	fill_chmap_ctl_id(pcm, id);
+	snd_ctl_elem_value_set_id(val, id);
+	ret = snd_ctl_elem_read(ctl, val);
+	if (ret < 0) {
+		snd_ctl_close(ctl);
+		free(map);
+		SYSMSG("Cannot read Channel Map ctl\n");
+		return NULL;
+	}
+	for (i = 0; i < pcm->channels; i++)
+		map[i + 1] = snd_ctl_elem_value_get_integer(val, i);
+	snd_ctl_close(ctl);
+	return map;
+}
+
+static int snd_pcm_hw_set_chmap(snd_pcm_t *pcm, const int *map)
+{
+	snd_pcm_hw_t *hw = pcm->private_data;
+	snd_ctl_t *ctl;
+	snd_ctl_elem_id_t *id;
+	snd_ctl_elem_value_t *val;
+	int i, ret;
+
+	if (*map < 0 || *map > 128) {
+		SYSMSG("Invalid number of channels %d\n", *map);
+		return -EINVAL;
+	}
+	if (FAST_PCM_STATE(hw) != SNDRV_PCM_STATE_PREPARED) {
+		SYSMSG("Invalid PCM state for chmap_set: %s\n",
+		       snd_pcm_state_name(FAST_PCM_STATE(hw)));
+		return -EBADFD;
+	}
+	ret = snd_ctl_hw_open(&ctl, NULL, hw->card, 0);
+	if (ret < 0) {
+		SYSMSG("Cannot open the associated CTL\n");
+		return ret;
+	}
+	snd_ctl_elem_id_alloca(&id);
+	snd_ctl_elem_value_alloca(&val);
+	fill_chmap_ctl_id(pcm, id);
+	snd_ctl_elem_value_set_id(val, id);
+	for (i = 0; i < *map; i++)
+		snd_ctl_elem_value_set_integer(val, i, map[i + 1]);
+	ret = snd_ctl_elem_write(ctl, val);
+	snd_ctl_close(ctl);
+	if (ret < 0)
+		SYSMSG("Cannot write Channel Map ctl\n");
+	return ret;
+}
+
 static void snd_pcm_hw_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
@@ -1037,6 +1212,9 @@ static const snd_pcm_ops_t snd_pcm_hw_ops = {
 	.async = snd_pcm_hw_async,
 	.mmap = snd_pcm_hw_mmap,
 	.munmap = snd_pcm_hw_munmap,
+	.query_chmaps = snd_pcm_hw_query_chmaps,
+	.get_chmap = snd_pcm_hw_get_chmap,
+	.set_chmap = snd_pcm_hw_set_chmap,
 };
 
 static const snd_pcm_fast_ops_t snd_pcm_hw_fast_ops = {
