@@ -105,6 +105,8 @@ typedef struct {
 	snd_pcm_format_t format;
 	int rate;
 	int channels;
+	/* for chmap */
+	unsigned int chmap_caps;
 } snd_pcm_hw_t;
 
 #define SNDRV_FILE_PCM_STREAM_PLAYBACK		ALSA_DEVICE_DIRECTORY "pcmC%iD%ip"
@@ -1022,6 +1024,27 @@ static int is_chmap_type(int type)
 		type <= SND_CTL_TLVT_CHMAP_PAIRED);
 }
 
+enum { CHMAP_CTL_QUERY, CHMAP_CTL_GET, CHMAP_CTL_SET };
+
+static int chmap_caps(snd_pcm_hw_t *hw, int type)
+{
+	if (hw->chmap_caps & (1 << type))
+		return 1;
+	if (hw->chmap_caps & (1 << (type + 8)))
+		return 0;
+	return 1;
+}
+
+static void chmap_caps_set_ok(snd_pcm_hw_t *hw, int type)
+{
+	hw->chmap_caps |= (1 << type);
+}
+
+static void chmap_caps_set_error(snd_pcm_hw_t *hw, int type)
+{
+	hw->chmap_caps |= (1 << (type + 8));
+}
+
 static int **snd_pcm_hw_query_chmaps(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
@@ -1031,10 +1054,13 @@ static int **snd_pcm_hw_query_chmaps(snd_pcm_t *pcm)
 	int **map;
 	int i, ret, nums;
 
+	if (!chmap_caps(hw, CHMAP_CTL_QUERY))
+		return NULL;
+
 	ret = snd_ctl_hw_open(&ctl, NULL, hw->card, 0);
 	if (ret < 0) {
 		SYSMSG("Cannot open the associated CTL\n");
-		return NULL;
+		goto error;
 	}
 
 	snd_ctl_elem_id_alloca(&id);
@@ -1043,7 +1069,7 @@ static int **snd_pcm_hw_query_chmaps(snd_pcm_t *pcm)
 	snd_ctl_close(ctl);
 	if (ret < 0) {
 		SYSMSG("Cannot read Channel Map TLV\n");
-		return NULL;
+		goto error;
 	}
 
 #if 0
@@ -1053,7 +1079,7 @@ static int **snd_pcm_hw_query_chmaps(snd_pcm_t *pcm)
 	if (tlv[0] != SND_CTL_TLVT_CONTAINER) {
 		if (!is_chmap_type(tlv[0])) {
 			SYSMSG("Invalid TLV type %d\n", tlv[0]);
-			return NULL;
+			goto error;
 		}
 		start = tlv;
 		nums = 1;
@@ -1066,7 +1092,7 @@ static int **snd_pcm_hw_query_chmaps(snd_pcm_t *pcm)
 		for (p = start; size > 0; ) {
 			if (!is_chmap_type(p[0])) {
 				SYSMSG("Invalid TLV type %d\n", p[0]);
-				return NULL;
+				goto error;
 			}
 			nums++;
 			size -= p[1] + 8;
@@ -1078,19 +1104,20 @@ static int **snd_pcm_hw_query_chmaps(snd_pcm_t *pcm)
 		return NULL;
 	for (i = 0; i < nums; i++) {
 		map[i] = malloc(start[1] + 8);
-		if (!map[i])
-			goto nomem;
+		if (!map[i]) {
+			snd_pcm_free_chmaps(map);
+			return NULL;
+		}
 		map[i][0] = start[0] - 0x100;
 		map[i][1] = start[1] / 4;
 		memcpy(map[i] + 2, start + 2, start[1]);
 		start += start[1] / 4 + 2;
 	}
+	chmap_caps_set_ok(hw, CHMAP_CTL_QUERY);
 	return map;
 
- nomem:
-	for (; i >= 0; i--)
-		free(map[i]);
-	free(map);
+ error:
+	chmap_caps_set_error(hw, CHMAP_CTL_QUERY);
 	return NULL;
 }
 
@@ -1103,6 +1130,9 @@ static int *snd_pcm_hw_get_chmap(snd_pcm_t *pcm)
 	snd_ctl_elem_value_t *val;
 	unsigned int i;
 	int ret;
+
+	if (!chmap_caps(hw, CHMAP_CTL_GET))
+		return NULL;
 
 	switch (FAST_PCM_STATE(hw)) {
 	case SNDRV_PCM_STATE_PREPARED:
@@ -1125,6 +1155,7 @@ static int *snd_pcm_hw_get_chmap(snd_pcm_t *pcm)
 	if (ret < 0) {
 		free(map);
 		SYSMSG("Cannot open the associated CTL\n");
+		chmap_caps_set_error(hw, CHMAP_CTL_GET);
 		return NULL;
 	}
 	snd_ctl_elem_value_alloca(&val);
@@ -1132,15 +1163,16 @@ static int *snd_pcm_hw_get_chmap(snd_pcm_t *pcm)
 	fill_chmap_ctl_id(pcm, id);
 	snd_ctl_elem_value_set_id(val, id);
 	ret = snd_ctl_elem_read(ctl, val);
+	snd_ctl_close(ctl);
 	if (ret < 0) {
-		snd_ctl_close(ctl);
 		free(map);
 		SYSMSG("Cannot read Channel Map ctl\n");
+		chmap_caps_set_error(hw, CHMAP_CTL_GET);
 		return NULL;
 	}
 	for (i = 0; i < pcm->channels; i++)
 		map[i + 1] = snd_ctl_elem_value_get_integer(val, i);
-	snd_ctl_close(ctl);
+	chmap_caps_set_ok(hw, CHMAP_CTL_GET);
 	return map;
 }
 
@@ -1151,6 +1183,9 @@ static int snd_pcm_hw_set_chmap(snd_pcm_t *pcm, const int *map)
 	snd_ctl_elem_id_t *id;
 	snd_ctl_elem_value_t *val;
 	int i, ret;
+
+	if (!chmap_caps(hw, CHMAP_CTL_SET))
+		return -ENXIO;
 
 	if (*map < 0 || *map > 128) {
 		SYSMSG("Invalid number of channels %d\n", *map);
@@ -1164,6 +1199,7 @@ static int snd_pcm_hw_set_chmap(snd_pcm_t *pcm, const int *map)
 	ret = snd_ctl_hw_open(&ctl, NULL, hw->card, 0);
 	if (ret < 0) {
 		SYSMSG("Cannot open the associated CTL\n");
+		chmap_caps_set_error(hw, CHMAP_CTL_SET);
 		return ret;
 	}
 	snd_ctl_elem_id_alloca(&id);
@@ -1174,6 +1210,12 @@ static int snd_pcm_hw_set_chmap(snd_pcm_t *pcm, const int *map)
 		snd_ctl_elem_value_set_integer(val, i, map[i + 1]);
 	ret = snd_ctl_elem_write(ctl, val);
 	snd_ctl_close(ctl);
+	if (ret >= 0)
+		chmap_caps_set_ok(hw, CHMAP_CTL_SET);
+	else if (ret == -ENOENT || ret == -EPERM || ret == -ENXIO) {
+		chmap_caps_set_error(hw, CHMAP_CTL_SET);
+		ret = -ENXIO;
+	}
 	if (ret < 0)
 		SYSMSG("Cannot write Channel Map ctl\n");
 	return ret;
