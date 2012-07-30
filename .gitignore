@@ -51,6 +51,7 @@ test/latency
 test/midiloop
 test/namehint
 test/oldapi
+test/chmap
 test/pcm
 test/pcm_min
 test/playmidi1
