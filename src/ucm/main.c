@@ -367,8 +367,10 @@ static int get_list0(struct list_head *list,
 	char *ptr, *str1;
 
 	cnt = alloc_str_list(list, 1, &res);
-	if (cnt <= 0)
+	if (cnt <= 0) {
+		*result = NULL;
 	        return cnt;
+	}
 	*result = (const char **)res;
 	list_for_each(pos, list) {
 		ptr = list_entry_offset(pos, char, offset);
@@ -414,8 +416,10 @@ static int get_list20(struct list_head *list,
 	char *ptr, *str1, *str2;
 
 	cnt = alloc_str_list(list, 2, &res);
-	if (cnt <= 0)
+	if (cnt <= 0) {
+		*result = NULL;
 	        return cnt;
+	}
         *result = (const char **)res;
 	list_for_each(pos, list) {
 		ptr = list_entry_offset(pos, char, offset);
