@@ -1,3 +1,4 @@
+.*
 configure
 config.log
 config.cache
@@ -20,8 +21,6 @@ autom4te.cache
 depcomp
 compile
 ltconfig
-.deps
-.libs
 *.la
 *.lo
 *.pc
