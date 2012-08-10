@@ -163,7 +163,7 @@ extern int __snd_ctl_ascii_elem_id_parse(snd_ctl_elem_id_t *dst,
 					 const char *str,
 					 const char **ret_ptr);
 
-static int execute_cset(snd_ctl_t *ctl, char *cset)
+static int execute_cset(snd_ctl_t *ctl, const char *cset)
 {
 	const char *pos;
 	int err;
