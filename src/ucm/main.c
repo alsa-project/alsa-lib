@@ -31,6 +31,7 @@
  */
 
 #include "ucm_local.h"
+#include <ctype.h>
 #include <stdarg.h>
 #include <pthread.h>
 
@@ -158,9 +159,13 @@ static int open_ctl(snd_use_case_mgr_t *uc_mgr,
 	return 0;
 }
 
+extern int __snd_ctl_ascii_elem_id_parse(snd_ctl_elem_id_t *dst,
+					 const char *str,
+					 const char **ret_ptr);
+
 static int execute_cset(snd_ctl_t *ctl, char *cset)
 {
-	char *pos;
+	const char *pos;
 	int err;
 	snd_ctl_elem_id_t *id;
 	snd_ctl_elem_value_t *value;
@@ -170,16 +175,16 @@ static int execute_cset(snd_ctl_t *ctl, char *cset)
 	snd_ctl_elem_value_malloc(&value);
 	snd_ctl_elem_info_malloc(&info);
 
-	pos = strrchr(cset, ' ');
-	if (pos == NULL) {
+	err = __snd_ctl_ascii_elem_id_parse(id, cset, &pos);
+	if (err < 0)
+		goto __fail;
+	while (*pos && isspace(*pos))
+		pos++;
+	if (!*pos) {
 		uc_error("undefined value for cset >%s<", cset);
 		err = -EINVAL;
 		goto __fail;
 	}
-	*pos = '\0';
-	err = snd_ctl_ascii_elem_id_parse(id, cset);
-	if (err < 0)
-		goto __fail;
 	snd_ctl_elem_value_set_id(value, id);
 	snd_ctl_elem_info_set_id(info, id);
 	err = snd_ctl_elem_read(ctl, value);
@@ -188,7 +193,7 @@ static int execute_cset(snd_ctl_t *ctl, char *cset)
 	err = snd_ctl_elem_info(ctl, info);
 	if (err < 0)
 		goto __fail;
-	err = snd_ctl_ascii_value_parse(ctl, value, info, pos + 1);
+	err = snd_ctl_ascii_value_parse(ctl, value, info, pos);
 	if (err < 0)
 		goto __fail;
 	err = snd_ctl_elem_write(ctl, value);
@@ -196,9 +201,6 @@ static int execute_cset(snd_ctl_t *ctl, char *cset)
 		goto __fail;
 	err = 0;
       __fail:
-	if (pos != NULL)
-		*pos = ' ';
-
 	if (id != NULL)
 		free(id);
 	if (value != NULL)
