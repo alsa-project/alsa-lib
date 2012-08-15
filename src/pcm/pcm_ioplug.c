@@ -917,7 +917,8 @@ int snd_pcm_ioplug_create(snd_pcm_ioplug_t *ioplug, const char *name,
 	/* We support 1.0.0 to current */
 	if (ioplug->version < 0x010000 ||
 	    ioplug->version > SND_PCM_IOPLUG_VERSION) {
-		SNDERR("ioplug: Plugin version mismatch\n");
+		SNDERR("ioplug: Plugin version mismatch: 0x%x\n",
+		       ioplug->version);
 		return -ENXIO;
 	}
 

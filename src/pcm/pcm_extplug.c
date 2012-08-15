@@ -641,8 +641,11 @@ int snd_pcm_extplug_create(snd_pcm_extplug_t *extplug, const char *name,
 	assert(extplug->callback->transfer);
 	assert(slave_conf);
 
-	if (extplug->version != SND_PCM_EXTPLUG_VERSION) {
-		SNDERR("extplug: Plugin version mismatch\n");
+	/* We support 1.0.0 to current */
+	if (extplug->version < 0x010000 ||
+	    extplug->version > SND_PCM_EXTPLUG_VERSION) {
+		SNDERR("extplug: Plugin version mismatch: 0x%x\n",
+		       extplug->version);
 		return -ENXIO;
 	}
 
@@ -668,7 +671,7 @@ int snd_pcm_extplug_create(snd_pcm_extplug_t *extplug, const char *name,
 	ext->plug.undo_write = snd_pcm_plugin_undo_write_generic;
 	ext->plug.gen.slave = spcm;
 	ext->plug.gen.close_slave = 1;
-	if (extplug->callback->init)
+	if (extplug->version >= 0x010001 && extplug->callback->init)
 		ext->plug.init = snd_pcm_extplug_init;
 
 	err = snd_pcm_new(&pcm, SND_PCM_TYPE_EXTPLUG, name, stream, mode);
