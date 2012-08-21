@@ -474,11 +474,37 @@ int snd_pcm_wait(snd_pcm_t *pcm, int timeout);
 int snd_pcm_link(snd_pcm_t *pcm1, snd_pcm_t *pcm2);
 int snd_pcm_unlink(snd_pcm_t *pcm);
 
-enum {
+/** channel map list type */
+enum snd_pcm_chmap_type {
 	SND_CHMAP_NONE = 0,	/** unspecified channel position */
 	SND_CHMAP_FIXED,	/** fixed channel position */
 	SND_CHMAP_VAR,		/** freely swappable channel position */
 	SND_CHMAP_PAIRED,	/** pair-wise swappable channel position */
+};
+
+/** channel positions */
+enum snd_pcm_chmap_position {
+	SND_CHMAP_UNKNOWN = 0,	/** unspecified */
+	SND_CHMAP_FL,		/** front left */
+	SND_CHMAP_FC,		/** front center */
+	SND_CHMAP_FR,		/** front right */
+	SND_CHMAP_FLC,		/** front left center */
+	SND_CHMAP_FRC,		/* front right center */
+	SND_CHMAP_RL,		/** rear left */
+	SND_CHMAP_RC,		/** rear center */
+	SND_CHMAP_RR,		/** rear right */
+	SND_CHMAP_RLC,		/** rear left center */
+	SND_CHMAP_RRC,		/** rear right center */
+	SND_CHMAP_SL,		/** side left */
+	SND_CHMAP_SR,		/** side right */
+	SND_CHMAP_LFE,		/** LFE */
+	SND_CHMAP_FLW,		/** front left wide */
+	SND_CHMAP_FRW,		/** front right wide */
+	SND_CHMAP_FLH,		/** front left high */
+	SND_CHMAP_FCH,		/** front center high */
+	SND_CHMAP_FRH,		/** front right high */
+	SND_CHMAP_TC,		/** top center */
+	SND_CHMAP_LAST = SND_CHMAP_TC,	/** last entry */
 };
 
 int **snd_pcm_query_chmaps(snd_pcm_t *pcm);
