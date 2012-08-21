@@ -486,18 +486,18 @@ enum snd_pcm_chmap_type {
 enum snd_pcm_chmap_position {
 	SND_CHMAP_UNKNOWN = 0,	/** unspecified */
 	SND_CHMAP_FL,		/** front left */
-	SND_CHMAP_FC,		/** front center */
 	SND_CHMAP_FR,		/** front right */
-	SND_CHMAP_FLC,		/** front left center */
-	SND_CHMAP_FRC,		/* front right center */
 	SND_CHMAP_RL,		/** rear left */
-	SND_CHMAP_RC,		/** rear center */
 	SND_CHMAP_RR,		/** rear right */
-	SND_CHMAP_RLC,		/** rear left center */
-	SND_CHMAP_RRC,		/** rear right center */
+	SND_CHMAP_FC,		/** front center */
+	SND_CHMAP_LFE,		/** LFE */
 	SND_CHMAP_SL,		/** side left */
 	SND_CHMAP_SR,		/** side right */
-	SND_CHMAP_LFE,		/** LFE */
+	SND_CHMAP_RC,		/** rear center */
+	SND_CHMAP_FLC,		/** front left center */
+	SND_CHMAP_FRC,		/** front right center */
+	SND_CHMAP_RLC,		/** rear left center */
+	SND_CHMAP_RRC,		/** rear right center */
 	SND_CHMAP_FLW,		/** front left wide */
 	SND_CHMAP_FRW,		/** front right wide */
 	SND_CHMAP_FLH,		/** front left high */

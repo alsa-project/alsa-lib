@@ -23,12 +23,9 @@ static void usage(void)
 
 static const char * const chname[] = {
 	"Unknown",
-	"FL", "FC", "FR",
-	"FLC", "FRC", "RL", "RC", "RR",
-	"RLC", "RRC", "SL", "SR", "LFE",
-	"FLW", "FRW", "FLH",
-	"FCH", "FCH", "FRH",
-	"TC"
+	"FL", "FR", "RL", "RR", "FC", "LFE", "SL", "SR", "RC",
+	"FLC", "FRC", "RLC", "RRC", "FLW", "FRW", "FLH",
+	"FCH", "FCH", "FRH", "TC"
 };
 
 #define ARRAY_SIZE(x)	(sizeof(x) / sizeof(x[0]))
@@ -56,7 +53,7 @@ static int to_channel(const char *name)
 	for (i = 0; i < ARRAY_SIZE(chname); i++)
 		if (!strcmp(chname[i], name))
 			return i;
-	return 0;
+	return SND_CHMAP_UNKNOWN;
 }
 
 static const char *chmap_type(int type)
