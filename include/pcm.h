@@ -504,8 +504,13 @@ enum snd_pcm_chmap_position {
 	SND_CHMAP_FCH,		/** front center high */
 	SND_CHMAP_FRH,		/** front right high */
 	SND_CHMAP_TC,		/** top center */
-	SND_CHMAP_LAST = SND_CHMAP_TC,	/** last entry */
+	SND_CHMAP_NA,		/** N/A, silent */
+	SND_CHMAP_LAST = SND_CHMAP_NA,	/** last entry */
 };
+
+#define SND_CHMAP_POSITION_MASK		0xffff /** bitmask for channel position */
+#define SND_CHMAP_PHASE_INVERSE		(0x01 << 16) /* the channel is phase inverted */
+#define SND_CHMAP_DRIVER_SPEC		(0x02 << 16) /* non-standard channel value */
 
 int **snd_pcm_query_chmaps(snd_pcm_t *pcm);
 void snd_pcm_free_chmaps(int **maps);

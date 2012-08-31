@@ -479,7 +479,7 @@ enum {
 
 /* channel positions */
 enum {
-	/* this follows the alsa-lib mixer channel value + 1*/
+	/* this follows the alsa-lib mixer channel value + 1 */
 	SNDRV_CHMAP_UNKNOWN = 0,
 	SNDRV_CHMAP_FL,		/* front left */
 	SNDRV_CHMAP_FR,		/* front right */
@@ -501,8 +501,13 @@ enum {
 	SNDRV_CHMAP_FCH,	/* front center high */
 	SNDRV_CHMAP_FRH,	/* front right high */
 	SNDRV_CHMAP_TC,		/* top center */
-	SNDRV_CHMAP_LAST = SNDRV_CHMAP_TC,
+	SNDRV_CHMAP_NA,		/* N/A, silent */
+	SNDRV_CHMAP_LAST = SNDRV_CHMAP_NA,
 };
+
+#define SNDRV_CHMAP_POSITION_MASK	0xffff
+#define SNDRV_CHMAP_PHASE_INVERSE	(0x01 << 16)
+#define SNDRV_CHMAP_DRIVER_SPEC		(0x02 << 16)
 
 enum {
 	SNDRV_PCM_IOCTL_PVERSION = _IOR('A', 0x00, int),

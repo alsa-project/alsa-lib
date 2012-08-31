@@ -25,7 +25,8 @@ static const char * const chname[] = {
 	"Unknown",
 	"FL", "FR", "RL", "RR", "FC", "LFE", "SL", "SR", "RC",
 	"FLC", "FRC", "RLC", "RRC", "FLW", "FRW", "FLH",
-	"FCH", "FCH", "FRH", "TC"
+	"FCH", "FCH", "FRH", "TC",
+	"N/A",
 };
 
 #define ARRAY_SIZE(x)	(sizeof(x) / sizeof(x[0]))
@@ -36,10 +37,15 @@ static void print_channels(int channels, int *map)
 	printf("  ");
 	for (i = 0; i < channels; i++) {
 		unsigned int c = *map++;
-		if (c >= ARRAY_SIZE(chname))
-			printf(" Ch%d", c);
+		unsigned int pos = c & SND_CHMAP_POSITION_MASK;
+		if (c & SND_CHMAP_DRIVER_SPEC)
+			printf(" %d", p);
+		else if (p >= ARRAY_SIZE(chname))
+			printf(" Ch%d", p);
 		else
-			printf(" %s", chname[c]);
+			printf(" %s", chname[p]);
+		if (c & SND_CHMAP_PHASE_INVERSE)
+			printf("[INV]");
 	}
 	printf("\n");
 }
