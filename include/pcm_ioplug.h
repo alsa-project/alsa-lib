@@ -192,15 +192,15 @@ struct snd_pcm_ioplug_callback {
 	/**
 	 * query the channel maps; optional; since v1.0.2
 	 */
-	int **(*query_chmaps)(snd_pcm_ioplug_t *io);
+	snd_pcm_chmap_query_t **(*query_chmaps)(snd_pcm_ioplug_t *io);
 	/**
 	 * get the channel map; optional; since v1.0.2
 	 */
-	int *(*get_chmap)(snd_pcm_ioplug_t *io);
+	snd_pcm_chmap_t *(*get_chmap)(snd_pcm_ioplug_t *io);
 	/**
 	 * set the channel map; optional; since v1.0.2
 	 */
-	int (*set_chmap)(snd_pcm_ioplug_t *io, const int *map);
+	int (*set_chmap)(snd_pcm_ioplug_t *io, const snd_pcm_chmap_t *map);
 };
 
 

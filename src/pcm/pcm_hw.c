@@ -1045,13 +1045,13 @@ static void chmap_caps_set_error(snd_pcm_hw_t *hw, int type)
 	hw->chmap_caps |= (1 << (type + 8));
 }
 
-static int **snd_pcm_hw_query_chmaps(snd_pcm_t *pcm)
+static snd_pcm_chmap_query_t **snd_pcm_hw_query_chmaps(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
 	snd_ctl_t *ctl;
 	snd_ctl_elem_id_t *id;
 	unsigned int tlv[256], *start;
-	int **map;
+	snd_pcm_chmap_query_t **map;
 	int i, ret, nums;
 
 	if (!chmap_caps(hw, CHMAP_CTL_QUERY))
@@ -1108,9 +1108,9 @@ static int **snd_pcm_hw_query_chmaps(snd_pcm_t *pcm)
 			snd_pcm_free_chmaps(map);
 			return NULL;
 		}
-		map[i][0] = start[0] - 0x100;
-		map[i][1] = start[1] / 4;
-		memcpy(map[i] + 2, start + 2, start[1]);
+		map[i]->type = start[0] - 0x100;
+		map[i]->map.channels = start[1] / 4;
+		memcpy(map[i]->map.pos, start + 2, start[1]);
 		start += start[1] / 4 + 2;
 	}
 	chmap_caps_set_ok(hw, CHMAP_CTL_QUERY);
@@ -1121,10 +1121,10 @@ static int **snd_pcm_hw_query_chmaps(snd_pcm_t *pcm)
 	return NULL;
 }
 
-static int *snd_pcm_hw_get_chmap(snd_pcm_t *pcm)
+static snd_pcm_chmap_t *snd_pcm_hw_get_chmap(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
-	int *map;
+	snd_pcm_chmap_t *map;
 	snd_ctl_t *ctl;
 	snd_ctl_elem_id_t *id;
 	snd_ctl_elem_value_t *val;
@@ -1150,7 +1150,7 @@ static int *snd_pcm_hw_get_chmap(snd_pcm_t *pcm)
 	map = malloc(pcm->channels + 1);
 	if (!map)
 		return NULL;
-	*map = pcm->channels;
+	map->channels = pcm->channels;
 	ret = snd_ctl_hw_open(&ctl, NULL, hw->card, 0);
 	if (ret < 0) {
 		free(map);
@@ -1171,24 +1171,25 @@ static int *snd_pcm_hw_get_chmap(snd_pcm_t *pcm)
 		return NULL;
 	}
 	for (i = 0; i < pcm->channels; i++)
-		map[i + 1] = snd_ctl_elem_value_get_integer(val, i);
+		map->pos[i] = snd_ctl_elem_value_get_integer(val, i);
 	chmap_caps_set_ok(hw, CHMAP_CTL_GET);
 	return map;
 }
 
-static int snd_pcm_hw_set_chmap(snd_pcm_t *pcm, const int *map)
+static int snd_pcm_hw_set_chmap(snd_pcm_t *pcm, const snd_pcm_chmap_t *map)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
 	snd_ctl_t *ctl;
 	snd_ctl_elem_id_t *id;
 	snd_ctl_elem_value_t *val;
-	int i, ret;
+	unsigned int i;
+	int ret;
 
 	if (!chmap_caps(hw, CHMAP_CTL_SET))
 		return -ENXIO;
 
-	if (*map < 0 || *map > 128) {
-		SYSMSG("Invalid number of channels %d\n", *map);
+	if (map->channels > 128) {
+		SYSMSG("Invalid number of channels %d\n", map->channels);
 		return -EINVAL;
 	}
 	if (FAST_PCM_STATE(hw) != SNDRV_PCM_STATE_PREPARED) {
@@ -1206,8 +1207,8 @@ static int snd_pcm_hw_set_chmap(snd_pcm_t *pcm, const int *map)
 	snd_ctl_elem_value_alloca(&val);
 	fill_chmap_ctl_id(pcm, id);
 	snd_ctl_elem_value_set_id(val, id);
-	for (i = 0; i < *map; i++)
-		snd_ctl_elem_value_set_integer(val, i, map[i + 1]);
+	for (i = 0; i < map->channels; i++)
+		snd_ctl_elem_value_set_integer(val, i, map->pos[i]);
 	ret = snd_ctl_elem_write(ctl, val);
 	snd_ctl_close(ctl);
 	if (ret >= 0)

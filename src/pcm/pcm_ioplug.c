@@ -710,7 +710,7 @@ static int snd_pcm_ioplug_munmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 	return 0;
 }
 
-static int **snd_pcm_ioplug_query_chmaps(snd_pcm_t *pcm)
+static snd_pcm_chmap_query_t **snd_pcm_ioplug_query_chmaps(snd_pcm_t *pcm)
 {
 	ioplug_priv_t *io = pcm->private_data;
 
@@ -720,7 +720,7 @@ static int **snd_pcm_ioplug_query_chmaps(snd_pcm_t *pcm)
 	return NULL;
 }
 
-static int *snd_pcm_ioplug_get_chmap(snd_pcm_t *pcm)
+static snd_pcm_chmap_t *snd_pcm_ioplug_get_chmap(snd_pcm_t *pcm)
 {
 	ioplug_priv_t *io = pcm->private_data;
 
@@ -730,7 +730,7 @@ static int *snd_pcm_ioplug_get_chmap(snd_pcm_t *pcm)
 	return NULL;
 }
 
-static int snd_pcm_ioplug_set_chmap(snd_pcm_t *pcm, const int *map)
+static int snd_pcm_ioplug_set_chmap(snd_pcm_t *pcm, const snd_pcm_chmap_t *map)
 {
 	ioplug_priv_t *io = pcm->private_data;
 

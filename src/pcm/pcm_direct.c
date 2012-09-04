@@ -789,19 +789,19 @@ int snd_pcm_direct_munmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 	return 0;
 }
 
-int **snd_pcm_direct_query_chmaps(snd_pcm_t *pcm)
+snd_pcm_chmap_query_t **snd_pcm_direct_query_chmaps(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dmix = pcm->private_data;
 	return snd_pcm_query_chmaps(dmix->spcm);
 }
 
-int *snd_pcm_direct_get_chmap(snd_pcm_t *pcm)
+snd_pcm_chmap_t *snd_pcm_direct_get_chmap(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dmix = pcm->private_data;
 	return snd_pcm_get_chmap(dmix->spcm);
 }
 
-int snd_pcm_direct_set_chmap(snd_pcm_t *pcm, const int *map)
+int snd_pcm_direct_set_chmap(snd_pcm_t *pcm, const snd_pcm_chmap_t *map)
 {
 	snd_pcm_direct_t *dmix = pcm->private_data;
 	return snd_pcm_set_chmap(dmix->spcm, map);

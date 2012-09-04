@@ -739,10 +739,10 @@ static int snd_pcm_multi_mmap(snd_pcm_t *pcm)
 	return 0;
 }
 
-static int *snd_pcm_multi_get_chmap(snd_pcm_t *pcm)
+static snd_pcm_chmap_t *snd_pcm_multi_get_chmap(snd_pcm_t *pcm)
 {
 	snd_pcm_multi_t *multi = pcm->private_data;
-	int *map;
+	snd_pcm_chmap_t *map;
 	unsigned int i, idx;
 
 	map = malloc(pcm->channels + 4);
@@ -750,34 +750,37 @@ static int *snd_pcm_multi_get_chmap(snd_pcm_t *pcm)
 		return NULL;
 	idx = 0;
 	for (i = 0; i < multi->slaves_count; ++i) {
-		int c, *slave_map;
+		unsigned int c;
+		snd_pcm_chmap_t *slave_map;
 		slave_map = snd_pcm_get_chmap(multi->slaves[i].pcm);
 		if (!slave_map) {
 			free(map);
 			return NULL;
 		}
-		for (c = 0; c < *slave_map; c++) {
+		for (c = 0; c < slave_map->channels; c++) {
 			if (idx >= pcm->channels)
 				break;
-			map[idx++] = slave_map[c + 1];
+			map->pos[idx++] = slave_map->pos[c];
 		}
 		free(slave_map);
 	}
 	return map;
 }
 
-static int snd_pcm_multi_set_chmap(snd_pcm_t *pcm, const int *map)
+static int snd_pcm_multi_set_chmap(snd_pcm_t *pcm, const snd_pcm_chmap_t *map)
 {
 	snd_pcm_multi_t *multi = pcm->private_data;
+	const unsigned int *pos;
 	unsigned int i, idx, chs;
 	int err;
 
-	chs = *map;
+	chs = map->channels;
 	if (chs != pcm->channels)
 		return -EINVAL;
-	map++;
+	pos = map->pos;
+	idx = 0;
 	for (i = 0; i < multi->slaves_count; ++i) {
-		int *slave_map;
+		snd_pcm_chmap_t *slave_map;
 		unsigned int slave_chs;
 		slave_chs = multi->slaves[i].channels_count;
 		if (idx + slave_chs > chs)
@@ -785,8 +788,8 @@ static int snd_pcm_multi_set_chmap(snd_pcm_t *pcm, const int *map)
 		slave_map = malloc(slave_chs * 4 + 4);
 		if (!slave_map)
 			return -ENOMEM;
-		*slave_map = slave_chs;
-		memcpy(slave_map, map + idx, slave_chs * 4);
+		slave_map->channels = slave_chs;
+		memcpy(slave_map->pos, pos + idx, slave_chs * 4);
 		err = snd_pcm_set_chmap(multi->slaves[i].pcm, slave_map);
 		free(slave_map);
 		if (err < 0)

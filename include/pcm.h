@@ -512,10 +512,23 @@ enum snd_pcm_chmap_position {
 #define SND_CHMAP_PHASE_INVERSE		(0x01 << 16) /* the channel is phase inverted */
 #define SND_CHMAP_DRIVER_SPEC		(0x02 << 16) /* non-standard channel value */
 
-int **snd_pcm_query_chmaps(snd_pcm_t *pcm);
-void snd_pcm_free_chmaps(int **maps);
-int *snd_pcm_get_chmap(snd_pcm_t *pcm);
-int snd_pcm_set_chmap(snd_pcm_t *pcm, const int *map);
+/** the channel map header */
+typedef struct snd_pcm_chmap {
+	unsigned int channels;
+	unsigned int pos[0];
+} snd_pcm_chmap_t;
+
+/** the header of array items returned from snd_pcm_query_chmaps() */
+typedef struct snd_pcm_chmap_query {
+	enum snd_pcm_chmap_type type;
+	snd_pcm_chmap_t map;
+} snd_pcm_chmap_query_t;
+
+
+snd_pcm_chmap_query_t **snd_pcm_query_chmaps(snd_pcm_t *pcm);
+void snd_pcm_free_chmaps(snd_pcm_chmap_query_t **maps);
+snd_pcm_chmap_t *snd_pcm_get_chmap(snd_pcm_t *pcm);
+int snd_pcm_set_chmap(snd_pcm_t *pcm, const snd_pcm_chmap_t *map);
 
 //int snd_pcm_mixer_element(snd_pcm_t *pcm, snd_mixer_t *mixer, snd_mixer_elem_t **elem);
 

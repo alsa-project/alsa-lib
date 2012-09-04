@@ -31,13 +31,14 @@ static const char * const chname[] = {
 
 #define ARRAY_SIZE(x)	(sizeof(x) / sizeof(x[0]))
 
-static void print_channels(int channels, int *map)
+static void print_channels(const snd_pcm_chmap_t *map)
 {
-	int i;
+	unsigned int i;
+
 	printf("  ");
-	for (i = 0; i < channels; i++) {
-		unsigned int c = *map++;
-		unsigned int pos = c & SND_CHMAP_POSITION_MASK;
+	for (i = 0; i < map->channels; i++) {
+		unsigned int c = map->pos[i];
+		unsigned int p = c & SND_CHMAP_POSITION_MASK;
 		if (c & SND_CHMAP_DRIVER_SPEC)
 			printf(" %d", p);
 		else if (p >= ARRAY_SIZE(chname))
@@ -80,16 +81,16 @@ static const char *chmap_type(int type)
 
 static int query_chmaps(snd_pcm_t *pcm)
 {
-	int **maps = snd_pcm_query_chmaps(pcm);
-	int **p, *v;
+	snd_pcm_chmap_query_t **maps = snd_pcm_query_chmaps(pcm);
+	snd_pcm_chmap_query_t **p, *v;
 
 	if (!maps) {
 		printf("Cannot query maps\n");
 		return 1;
 	}
 	for (p = maps; (v = *p) != NULL; p++) {
-		printf("Type = %s, Channels = %d\n", chmap_type(v[0]), v[1]);
-		print_channels(v[1], v + 2);
+		printf("Type = %s, Channels = %d\n", chmap_type(v->type), v->map.channels);
+		print_channels(&v->map);
 	}
 	snd_pcm_free_chmaps(maps);
 	return 0;
@@ -132,7 +133,7 @@ static int setup_pcm(snd_pcm_t *pcm, int format, int channels, int rate)
 
 static int get_chmap(snd_pcm_t *pcm, int format, int channels, int rate)
 {
-	int *map;
+	snd_pcm_chmap_t *map;
 
 	if (setup_pcm(pcm, format, channels, rate))
 		return 1;
@@ -141,8 +142,8 @@ static int get_chmap(snd_pcm_t *pcm, int format, int channels, int rate)
 		printf("Cannot get chmap\n");
 		return 1;
 	}
-	printf("Channels = %d\n", *map);
-	print_channels(*map, map + 1);
+	printf("Channels = %d\n", map->channels);
+	print_channels(map);
 	free(map);
 	return 0;
 }
@@ -151,7 +152,7 @@ static int set_chmap(snd_pcm_t *pcm, int format, int channels, int rate,
 		     int nargs, char **arg)
 {
 	int i;
-	int *map;
+	snd_pcm_chmap_t *map;
 
 	if (channels && channels != nargs) {
 		printf("Inconsistent channels %d vs %d\n", channels, nargs);
@@ -171,9 +172,9 @@ static int set_chmap(snd_pcm_t *pcm, int format, int channels, int rate,
 		printf("cannot malloc\n");
 		return 1;
 	}
-	*map = channels;
+	map->channels = channels;
 	for (i = 0; i < channels; i++)
-		map[i + 1] = to_channel(arg[i]);
+		map->pos[i] = to_channel(arg[i]);
 	if (snd_pcm_set_chmap(pcm, map) < 0) {
 		printf("Cannot set chmap\n");
 		return 1;
@@ -185,8 +186,8 @@ static int set_chmap(snd_pcm_t *pcm, int format, int channels, int rate,
 		printf("Cannot get chmap\n");
 		return 1;
 	}
-	printf("Get channels = %d\n", *map);
-	print_channels(*map, map + 1);
+	printf("Get channels = %d\n", map->channels);
+	print_channels(map);
 	free(map);
 	return 0;
 }

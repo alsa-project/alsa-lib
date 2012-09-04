@@ -7310,7 +7310,7 @@ OBSOLETE1(snd_pcm_sw_params_get_silence_size, ALSA_0.9, ALSA_0.9.0rc4);
  * integer array, beginning with the channel map type, followed by the
  * number of channels, and the position of each channel.
  */
-int **snd_pcm_query_chmaps(snd_pcm_t *pcm)
+snd_pcm_chmap_query_t **snd_pcm_query_chmaps(snd_pcm_t *pcm)
 {
 	if (!pcm->ops->query_chmaps)
 		return NULL;
@@ -7321,9 +7321,9 @@ int **snd_pcm_query_chmaps(snd_pcm_t *pcm)
  * \!brief Release the channel map array allocated via #snd_pcm_query_chmaps
  * \param maps the array pointer to release
  */
-void snd_pcm_free_chmaps(int **maps)
+void snd_pcm_free_chmaps(snd_pcm_chmap_query_t **maps)
 {
-	int **p;
+	snd_pcm_chmap_query_t **p = maps;
 	if (!maps)
 		return;
 	for (p = maps; *p; p++)
@@ -7336,7 +7336,7 @@ void snd_pcm_free_chmaps(int **maps)
  * \param pcm PCM instance
  * \return the current channel map, or NULL if error
  */
-int *snd_pcm_get_chmap(snd_pcm_t *pcm)
+snd_pcm_chmap_t *snd_pcm_get_chmap(snd_pcm_t *pcm)
 {
 	if (!pcm->ops->get_chmap)
 		return NULL;
@@ -7349,7 +7349,7 @@ int *snd_pcm_get_chmap(snd_pcm_t *pcm)
  * \param map the channel map to write
  * \return zero if succeeded, or a negative error code
  */
-int snd_pcm_set_chmap(snd_pcm_t *pcm, const int *map)
+int snd_pcm_set_chmap(snd_pcm_t *pcm, const snd_pcm_chmap_t *map)
 {
 	if (!pcm->ops->set_chmap)
 		return -ENXIO;

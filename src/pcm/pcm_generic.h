@@ -155,8 +155,8 @@ int snd_pcm_generic_real_htimestamp(snd_pcm_t *pcm, snd_pcm_uframes_t *avail,
 				    snd_htimestamp_t *tstamp);
 int snd_pcm_generic_mmap(snd_pcm_t *pcm);
 int snd_pcm_generic_munmap(snd_pcm_t *pcm);
-int **snd_pcm_generic_query_chmaps(snd_pcm_t *pcm);
-int *snd_pcm_generic_get_chmap(snd_pcm_t *pcm);
-int snd_pcm_generic_set_chmap(snd_pcm_t *pcm, const int *map);
+snd_pcm_chmap_query_t **snd_pcm_generic_query_chmaps(snd_pcm_t *pcm);
+snd_pcm_chmap_t *snd_pcm_generic_get_chmap(snd_pcm_t *pcm);
+int snd_pcm_generic_set_chmap(snd_pcm_t *pcm, const snd_pcm_chmap_t *map);
 
 

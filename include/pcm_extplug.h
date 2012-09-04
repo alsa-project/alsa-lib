@@ -154,15 +154,15 @@ struct snd_pcm_extplug_callback {
 	/**
 	 * query the channel maps; optional; since v1.0.2
 	 */
-	int **(*query_chmaps)(snd_pcm_extplug_t *ext);
+	snd_pcm_chmap_query_t **(*query_chmaps)(snd_pcm_extplug_t *ext);
 	/**
 	 * get the channel map; optional; since v1.0.2
 	 */
-	int *(*get_chmap)(snd_pcm_extplug_t *ext);
+	snd_pcm_chmap_t *(*get_chmap)(snd_pcm_extplug_t *ext);
 	/**
 	 * set the channel map; optional; since v1.0.2
 	 */
-	int (*set_chmap)(snd_pcm_extplug_t *ext, const int *map);
+	int (*set_chmap)(snd_pcm_extplug_t *ext, const snd_pcm_chmap_t *map);
 };
 
 
