@@ -16,7 +16,7 @@ doc-pack: doc
 	else \
 		$(TAR) --create --directory=$(top_srcdir)/doc/doxygen/html --verbose --file=- . | bzip2 -c -9 > $(top_srcdir)/../alsa-lib-doc.tar.bz2 ; \
 	fi
-	rm -f $(top_srcdir)/doc/doxygen/html/*
+	rm -rf $(top_srcdir)/doc/doxygen/html/*
 
 doc-clean:
-	rm -f $(top_srcdir)/doc/doxygen/html/*
+	rm -rf $(top_srcdir)/doc/doxygen/html/*
