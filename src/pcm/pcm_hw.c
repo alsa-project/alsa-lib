@@ -1006,22 +1006,116 @@ static int snd_pcm_hw_htimestamp(snd_pcm_t *pcm, snd_pcm_uframes_t *avail,
 	return 0;
 }
 
-static void fill_chmap_ctl_id(snd_pcm_t *pcm, snd_ctl_elem_id_t *id)
+static void __fill_chmap_ctl_id(snd_ctl_elem_id_t *id, int dev, int subdev,
+				int stream)
 {
-	snd_pcm_hw_t *hw = pcm->private_data;
 	snd_ctl_elem_id_set_interface(id, SND_CTL_ELEM_IFACE_PCM);
-	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
+	if (stream == SND_PCM_STREAM_PLAYBACK)
 		snd_ctl_elem_id_set_name(id, "Playback Channel Map");
 	else
 		snd_ctl_elem_id_set_name(id, "Capture Channel Map");
-	snd_ctl_elem_id_set_device(id, hw->device);
-	snd_ctl_elem_id_set_index(id, hw->subdevice);
+	snd_ctl_elem_id_set_device(id, dev);
+	snd_ctl_elem_id_set_index(id, subdev);
+}
+
+static void fill_chmap_ctl_id(snd_pcm_t *pcm, snd_ctl_elem_id_t *id)
+{
+	snd_pcm_hw_t *hw = pcm->private_data;
+	return __fill_chmap_ctl_id(id, hw->device, hw->subdevice, pcm->stream);
 }
 
 static int is_chmap_type(int type)
 {
 	return (type >= SND_CTL_TLVT_CHMAP_FIXED &&
 		type <= SND_CTL_TLVT_CHMAP_PAIRED);
+}
+
+/**
+ * \!brief Query the available channel maps
+ * \param card the card number
+ * \param dev the PCM device number
+ * \param subdev the PCM substream index
+ * \param stream the direction of PCM stream
+ * \return the NULL-terminated array of integer pointers, or NULL at error.
+ *
+ * This function works like snd_pcm_query_chmaps() but it takes the card,
+ * device, substream and stream numbers instead of the already opened
+ * snd_pcm_t instance, so that you can query available channel maps of
+ * a PCM before actually opening it.
+ *
+ * As the parameters stand, the query is performed only to the hw PCM
+ * devices, not the abstracted PCM object in alsa-lib.
+ */
+snd_pcm_chmap_query_t **
+snd_pcm_query_chmaps_from_hw(int card, int dev, int subdev,
+			     snd_pcm_stream_t stream)
+{
+	snd_ctl_t *ctl;
+	snd_ctl_elem_id_t *id;
+	unsigned int tlv[256], *start;
+	snd_pcm_chmap_query_t **map;
+	int i, ret, nums;
+
+	ret = snd_ctl_hw_open(&ctl, NULL, card, 0);
+	if (ret < 0) {
+		SYSMSG("Cannot open the associated CTL\n");
+		return NULL;
+	}
+
+	snd_ctl_elem_id_alloca(&id);
+	__fill_chmap_ctl_id(id, dev, subdev, stream);
+	ret = snd_ctl_elem_tlv_read(ctl, id, tlv, sizeof(tlv));
+	snd_ctl_close(ctl);
+	if (ret < 0) {
+		SYSMSG("Cannot read Channel Map TLV\n");
+		return NULL;
+	}
+
+#if 0
+	for (i = 0; i < 32; i++)
+		fprintf(stderr, "%02x: %08x\n", i, tlv[i]);
+#endif
+	/* FIXME: the parser below assumes that the TLV only contains
+	 * chmap-related blocks
+	 */
+	if (tlv[0] != SND_CTL_TLVT_CONTAINER) {
+		if (!is_chmap_type(tlv[0])) {
+			SYSMSG("Invalid TLV type %d\n", tlv[0]);
+			return NULL;
+		}
+		start = tlv;
+		nums = 1;
+	} else {
+		unsigned int *p;
+		int size;
+		start = tlv + 2;
+		size = tlv[1];
+		nums = 0;
+		for (p = start; size > 0; ) {
+			if (!is_chmap_type(p[0])) {
+				SYSMSG("Invalid TLV type %d\n", p[0]);
+				return NULL;
+			}
+			nums++;
+			size -= p[1] + 8;
+			p += p[1] / 4 + 2;
+		}
+	}
+	map = calloc(nums + 1, sizeof(int *));
+	if (!map)
+		return NULL;
+	for (i = 0; i < nums; i++) {
+		map[i] = malloc(start[1] + 8);
+		if (!map[i]) {
+			snd_pcm_free_chmaps(map);
+			return NULL;
+		}
+		map[i]->type = start[0] - 0x100;
+		map[i]->map.channels = start[1] / 4;
+		memcpy(map[i]->map.pos, start + 2, start[1]);
+		start += start[1] / 4 + 2;
+	}
+	return map;
 }
 
 enum { CHMAP_CTL_QUERY, CHMAP_CTL_GET, CHMAP_CTL_SET };
@@ -1048,77 +1142,18 @@ static void chmap_caps_set_error(snd_pcm_hw_t *hw, int type)
 static snd_pcm_chmap_query_t **snd_pcm_hw_query_chmaps(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
-	snd_ctl_t *ctl;
-	snd_ctl_elem_id_t *id;
-	unsigned int tlv[256], *start;
 	snd_pcm_chmap_query_t **map;
-	int i, ret, nums;
 
 	if (!chmap_caps(hw, CHMAP_CTL_QUERY))
 		return NULL;
 
-	ret = snd_ctl_hw_open(&ctl, NULL, hw->card, 0);
-	if (ret < 0) {
-		SYSMSG("Cannot open the associated CTL\n");
-		goto error;
-	}
-
-	snd_ctl_elem_id_alloca(&id);
-	fill_chmap_ctl_id(pcm, id);
-	ret = snd_ctl_elem_tlv_read(ctl, id, tlv, sizeof(tlv));
-	snd_ctl_close(ctl);
-	if (ret < 0) {
-		SYSMSG("Cannot read Channel Map TLV\n");
-		goto error;
-	}
-
-#if 0
-	for (i = 0; i < 32; i++)
-		fprintf(stderr, "%02x: %08x\n", i, tlv[i]);
-#endif
-	if (tlv[0] != SND_CTL_TLVT_CONTAINER) {
-		if (!is_chmap_type(tlv[0])) {
-			SYSMSG("Invalid TLV type %d\n", tlv[0]);
-			goto error;
-		}
-		start = tlv;
-		nums = 1;
-	} else {
-		unsigned int *p;
-		int size;
-		start = tlv + 2;
-		size = tlv[1];
-		nums = 0;
-		for (p = start; size > 0; ) {
-			if (!is_chmap_type(p[0])) {
-				SYSMSG("Invalid TLV type %d\n", p[0]);
-				goto error;
-			}
-			nums++;
-			size -= p[1] + 8;
-			p += p[1] / 4 + 2;
-		}
-	}
-	map = calloc(nums + 1, sizeof(int *));
-	if (!map)
-		return NULL;
-	for (i = 0; i < nums; i++) {
-		map[i] = malloc(start[1] + 8);
-		if (!map[i]) {
-			snd_pcm_free_chmaps(map);
-			return NULL;
-		}
-		map[i]->type = start[0] - 0x100;
-		map[i]->map.channels = start[1] / 4;
-		memcpy(map[i]->map.pos, start + 2, start[1]);
-		start += start[1] / 4 + 2;
-	}
-	chmap_caps_set_ok(hw, CHMAP_CTL_QUERY);
+	map = snd_pcm_query_chmaps_from_hw(hw->card, hw->device,
+					   hw->subdevice, pcm->stream);
+	if (map)
+		chmap_caps_set_ok(hw, CHMAP_CTL_QUERY);
+	else
+		chmap_caps_set_error(hw, CHMAP_CTL_QUERY);
 	return map;
-
- error:
-	chmap_caps_set_error(hw, CHMAP_CTL_QUERY);
-	return NULL;
 }
 
 static snd_pcm_chmap_t *snd_pcm_hw_get_chmap(snd_pcm_t *pcm)

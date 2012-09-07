@@ -526,6 +526,9 @@ typedef struct snd_pcm_chmap_query {
 
 
 snd_pcm_chmap_query_t **snd_pcm_query_chmaps(snd_pcm_t *pcm);
+snd_pcm_chmap_query_t **snd_pcm_query_chmaps_from_hw(int card, int dev,
+						     int subdev,
+						     snd_pcm_stream_t stream);
 void snd_pcm_free_chmaps(snd_pcm_chmap_query_t **maps);
 snd_pcm_chmap_t *snd_pcm_get_chmap(snd_pcm_t *pcm);
 int snd_pcm_set_chmap(snd_pcm_t *pcm, const snd_pcm_chmap_t *map);
