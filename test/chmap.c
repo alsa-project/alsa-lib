@@ -25,7 +25,7 @@ static const char * const chname[] = {
 	"Unknown",
 	"FL", "FR", "RL", "RR", "FC", "LFE", "SL", "SR", "RC",
 	"FLC", "FRC", "RLC", "RRC", "FLW", "FRW", "FLH",
-	"FCH", "FCH", "FRH", "TC",
+	"FCH", "FRH", "TC",
 	"N/A",
 };
 
