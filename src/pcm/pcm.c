@@ -633,6 +633,7 @@ playback devices.
 #include <malloc.h>
 #include <stdarg.h>
 #include <signal.h>
+#include <ctype.h>
 #include <sys/poll.h>
 #include <sys/shm.h>
 #include <sys/mman.h>
@@ -7356,6 +7357,147 @@ int snd_pcm_set_chmap(snd_pcm_t *pcm, const snd_pcm_chmap_t *map)
 	return pcm->ops->set_chmap(pcm, map);
 }
 
+/*
+ */
+#define _NAME(n) [SND_CHMAP_TYPE_##n] = #n
+static const char *chmap_type_names[SND_CHMAP_TYPE_LAST + 1] = {
+	_NAME(NONE), _NAME(FIXED), _NAME(VAR), _NAME(PAIRED),
+};
+#undef _NAME
+
+const char *snd_pcm_chmap_type_name(enum snd_pcm_chmap_type val)
+{
+	if (val <= SND_CHMAP_TYPE_LAST)
+		return chmap_type_names[val];
+	else
+		return NULL;
+}
+
+#define _NAME(n) [SND_CHMAP_##n] = #n
+static const char *chmap_names[SND_CHMAP_LAST + 1] = {
+	_NAME(UNKNOWN),
+	_NAME(FL), _NAME(FR),
+	_NAME(RL), _NAME(RR),
+	_NAME(FC), _NAME(LFE),
+	_NAME(SL), _NAME(SR),
+	_NAME(RC), _NAME(FLC), _NAME(FRC), _NAME(RLC), _NAME(RRC),
+	_NAME(FLW), _NAME(FRW),
+	_NAME(FLH), _NAME(FCH), _NAME(FRH), _NAME(TC),
+	_NAME(NA),
+};
+#undef _NAME
+
+const char *snd_pcm_chmap_name(enum snd_pcm_chmap_position val)
+{
+	if (val <= SND_CHMAP_LAST)
+		return chmap_names[val];
+	else
+		return NULL;
+}
+
+int snd_pcm_chmap_print(const snd_pcm_chmap_t *map, size_t maxlen, char *buf)
+{
+	unsigned int i, len = 0;
+
+	for (i = 0; i < map->channels; i++) {
+		unsigned int p = map->pos[i] & SND_CHMAP_POSITION_MASK;
+		if (i > 0) {
+			len += snprintf(buf + len, maxlen - len, " ");
+			if (len >= maxlen)
+				return -ENOMEM;
+		}
+		if (map->pos[i] & SND_CHMAP_DRIVER_SPEC)
+			len += snprintf(buf + len, maxlen, "%d", p);
+		else {
+			const char *name = chmap_names[p];
+			if (name)
+				len += snprintf(buf + len, maxlen - len,
+						"%s", name);
+			else
+				len += snprintf(buf + len, maxlen - len,
+						"Ch%d", p);
+		}
+		if (len >= maxlen)
+			return -ENOMEM;
+		if (map->pos[i] & SND_CHMAP_PHASE_INVERSE) {
+			len += snprintf(buf + len, maxlen - len, "[INV]");
+			if (len >= maxlen)
+				return -ENOMEM;
+		}
+	}
+	return len;
+}
+
+static int str_to_chmap(const char *str, int len)
+{
+	int val;
+
+	if (isdigit(*str)) {
+		val = atoi(str);
+		if (val < 0)
+			return -1;
+		return val | SND_CHMAP_DRIVER_SPEC;
+	} else if (str[0] == 'C' && str[1] == 'h') {
+		val = atoi(str + 2);
+		if (val < 0)
+			return -1;
+		return val;
+	} else {
+		for (val = 0; val <= SND_CHMAP_LAST; val++) {
+			if (!strncmp(str, chmap_names[val], len))
+				return val;
+		}
+		return -1;
+	}
+}
+
+unsigned int snd_pcm_chmap_from_string(const char *str)
+{
+	return str_to_chmap(str, strlen(str));
+}
+
+snd_pcm_chmap_t *snd_pcm_chmap_parse_string(const char *str)
+{
+	int i, ch = 0;
+	int tmp_map[64];
+	snd_pcm_chmap_t *map;
+
+	for (;;) {
+		const char *p;
+		int len, val;
+
+		if (ch >= (int)(sizeof(tmp_map) / sizeof(tmp_map[0])))
+			return NULL;
+		for (p = str; *p && isalnum(*p); p++)
+			;
+		len = p - str;
+		if (!len)
+			return NULL;
+		val = str_to_chmap(str, len);
+		if (val < 0)
+			return NULL;
+		str += len;
+		if (*str == '[') {
+			if (!strncmp(str, "[INV]", 5)) {
+				val |= SND_CHMAP_PHASE_INVERSE;
+				str += 5;
+			}
+		}
+		tmp_map[ch] = val;
+		ch++;
+		for (; *str && !isalnum(*str); str++)
+			;
+		if (!*str)
+			break;
+	}
+	map = malloc(sizeof(*map) + ch * sizeof(int));
+	if (!map)
+		return NULL;
+	map->channels = ch;
+	for (i = 0; i < ch; i++)
+		map->pos[i] = tmp_map[i];
+	return map;
+}
 
 /*
  * basic helpers

@@ -21,62 +21,11 @@ static void usage(void)
 	       "  -r rate       Sample rate\n");
 }
 
-static const char * const chname[] = {
-	"Unknown",
-	"FL", "FR", "RL", "RR", "FC", "LFE", "SL", "SR", "RC",
-	"FLC", "FRC", "RLC", "RRC", "FLW", "FRW", "FLH",
-	"FCH", "FRH", "TC",
-	"N/A",
-};
-
-#define ARRAY_SIZE(x)	(sizeof(x) / sizeof(x[0]))
-
 static void print_channels(const snd_pcm_chmap_t *map)
 {
-	unsigned int i;
-
-	printf("  ");
-	for (i = 0; i < map->channels; i++) {
-		unsigned int c = map->pos[i];
-		unsigned int p = c & SND_CHMAP_POSITION_MASK;
-		if (c & SND_CHMAP_DRIVER_SPEC)
-			printf(" %d", p);
-		else if (p >= ARRAY_SIZE(chname))
-			printf(" Ch%d", p);
-		else
-			printf(" %s", chname[p]);
-		if (c & SND_CHMAP_PHASE_INVERSE)
-			printf("[INV]");
-	}
-	printf("\n");
-}
-
-static int to_channel(const char *name)
-{
-	unsigned int i;
-
-	if (isdigit(*name))
-		return atoi(name);
-	for (i = 0; i < ARRAY_SIZE(chname); i++)
-		if (!strcmp(chname[i], name))
-			return i;
-	return SND_CHMAP_UNKNOWN;
-}
-
-static const char *chmap_type(int type)
-{
-	switch (type) {
-	case SND_CHMAP_NONE:
-		return "None";
-	case SND_CHMAP_FIXED:
-		return "Fixed";
-	case SND_CHMAP_VAR:
-		return "Variable";
-	case SND_CHMAP_PAIRED:
-		return "Paired";
-	default:
-		return "Unknown";
-	}
+	char tmp[128];
+	if (snd_pcm_chmap_print(map, sizeof(tmp), tmp) > 0)
+		printf("  %s\n", tmp);
 }
 
 static int query_chmaps(snd_pcm_t *pcm)
@@ -89,7 +38,9 @@ static int query_chmaps(snd_pcm_t *pcm)
 		return 1;
 	}
 	for (p = maps; (v = *p) != NULL; p++) {
-		printf("Type = %s, Channels = %d\n", chmap_type(v->type), v->map.channels);
+		printf("Type = %s, Channels = %d\n",
+		       snd_pcm_chmap_type_name(v->type),
+		       v->map.channels);
 		print_channels(&v->map);
 	}
 	snd_pcm_free_chmaps(maps);
@@ -173,8 +124,12 @@ static int set_chmap(snd_pcm_t *pcm, int format, int channels, int rate,
 		return 1;
 	}
 	map->channels = channels;
-	for (i = 0; i < channels; i++)
-		map->pos[i] = to_channel(arg[i]);
+	for (i = 0; i < channels; i++) {
+		int val = snd_pcm_chmap_from_string(arg[i]);
+		if (val < 0)
+			val = SND_CHMAP_UNKNOWN;
+		map->pos[i] = val;
+	}
 	if (snd_pcm_set_chmap(pcm, map) < 0) {
 		printf("Cannot set chmap\n");
 		return 1;

@@ -534,6 +534,12 @@ void snd_pcm_free_chmaps(snd_pcm_chmap_query_t **maps);
 snd_pcm_chmap_t *snd_pcm_get_chmap(snd_pcm_t *pcm);
 int snd_pcm_set_chmap(snd_pcm_t *pcm, const snd_pcm_chmap_t *map);
 
+const char *snd_pcm_chmap_type_name(enum snd_pcm_chmap_type val);
+const char *snd_pcm_chmap_name(enum snd_pcm_chmap_position val);
+int snd_pcm_chmap_print(const snd_pcm_chmap_t *map, size_t maxlen, char *buf);
+unsigned int snd_pcm_chmap_from_string(const char *str);
+snd_pcm_chmap_t *snd_pcm_chmap_parse_string(const char *str);
+
 //int snd_pcm_mixer_element(snd_pcm_t *pcm, snd_mixer_t *mixer, snd_mixer_elem_t **elem);
 
 /*
