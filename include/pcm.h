@@ -476,10 +476,11 @@ int snd_pcm_unlink(snd_pcm_t *pcm);
 
 /** channel map list type */
 enum snd_pcm_chmap_type {
-	SND_CHMAP_NONE = 0,	/** unspecified channel position */
-	SND_CHMAP_FIXED,	/** fixed channel position */
-	SND_CHMAP_VAR,		/** freely swappable channel position */
-	SND_CHMAP_PAIRED,	/** pair-wise swappable channel position */
+	SND_CHMAP_TYPE_NONE = 0,/** unspecified channel position */
+	SND_CHMAP_TYPE_FIXED,	/** fixed channel position */
+	SND_CHMAP_TYPE_VAR,	/** freely swappable channel position */
+	SND_CHMAP_TYPE_PAIRED,	/** pair-wise swappable channel position */
+	SND_CHMAP_TYPE_LAST = SND_CHMAP_TYPE_PAIRED, /** last entry */
 };
 
 /** channel positions */
