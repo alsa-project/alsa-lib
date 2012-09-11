@@ -7395,6 +7395,38 @@ const char *snd_pcm_chmap_name(enum snd_pcm_chmap_position val)
 		return NULL;
 }
 
+static const char *chmap_long_names[SND_CHMAP_LAST + 1] = {
+	[SND_CHMAP_UNKNOWN] = "Unknown",
+	[SND_CHMAP_FL] = "Front Left",
+	[SND_CHMAP_FR] = "Front Right",
+	[SND_CHMAP_RL] = "Rear Left",
+	[SND_CHMAP_RR] = "Rear Right",
+	[SND_CHMAP_FC] = "Front Center",
+	[SND_CHMAP_LFE] = "LFE",
+	[SND_CHMAP_SL] = "Side Left",
+	[SND_CHMAP_SR] = "Side Right",
+	[SND_CHMAP_RC] = "Rear Center",
+	[SND_CHMAP_FLC] = "Front Left Center",
+	[SND_CHMAP_FRC] = "Front Right Center",
+	[SND_CHMAP_RLC] = "Rear Left Center",
+	[SND_CHMAP_RRC] = "Rear Right Center",
+	[SND_CHMAP_FLW] = "Front Left Wide",
+	[SND_CHMAP_FRW] = "Front Right Wide",
+	[SND_CHMAP_FLH] = "Front Left High",
+	[SND_CHMAP_FCH] = "Front Center High",
+	[SND_CHMAP_FRH] = "Front Right High",
+	[SND_CHMAP_TC] = "Top Center",
+	[SND_CHMAP_NA] = "Unused",
+};
+
+const char *snd_pcm_chmap_long_name(enum snd_pcm_chmap_position val)
+{
+	if (val <= SND_CHMAP_LAST)
+		return chmap_long_names[val];
+	else
+		return NULL;
+}
+
 int snd_pcm_chmap_print(const snd_pcm_chmap_t *map, size_t maxlen, char *buf)
 {
 	unsigned int i, len = 0;
