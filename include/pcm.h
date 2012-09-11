@@ -474,6 +474,9 @@ int snd_pcm_wait(snd_pcm_t *pcm, int timeout);
 int snd_pcm_link(snd_pcm_t *pcm1, snd_pcm_t *pcm2);
 int snd_pcm_unlink(snd_pcm_t *pcm);
 
+/** channel mapping API version number */
+#define SND_CHMAP_API_VERSION	((1 << 16) | (0 << 8) | 0)
+
 /** channel map list type */
 enum snd_pcm_chmap_type {
 	SND_CHMAP_TYPE_NONE = 0,/** unspecified channel position */
