@@ -44,7 +44,7 @@ typedef struct {
 	snd_pcm_uframes_t appl_ptr;
 	snd_pcm_uframes_t hw_ptr;
 	int poll_fd;
-	snd_pcm_chmap_t *chmap;
+	snd_pcm_chmap_query_t **chmap;
 } snd_pcm_null_t;
 #endif
 
@@ -274,7 +274,7 @@ static snd_pcm_chmap_query_t **snd_pcm_null_query_chmaps(snd_pcm_t *pcm)
 	snd_pcm_null_t *null = pcm->private_data;
 
 	if (null->chmap)
-		return _snd_pcm_make_single_query_chmaps(null->chmap);
+		return _snd_pcm_copy_chmap_query(null->chmap);
 	return NULL;
 }
 
@@ -283,7 +283,7 @@ static snd_pcm_chmap_t *snd_pcm_null_get_chmap(snd_pcm_t *pcm)
 	snd_pcm_null_t *null = pcm->private_data;
 
 	if (null->chmap)
-		return _snd_pcm_copy_chmap(null->chmap);
+		return _snd_pcm_choose_fixed_chmap(pcm, null->chmap);
 	return NULL;
 }
 
@@ -407,7 +407,7 @@ and /dev/full (capture, must be readable).
 \code
 pcm.name {
         type null               # Null PCM
-	[chmap MAP]
+	[chmap MAP]		# Provide channel maps; MAP is a string array
 }
 \endcode
 
@@ -439,7 +439,7 @@ int _snd_pcm_null_open(snd_pcm_t **pcmp, const char *name,
 {
 	snd_config_iterator_t i, next;
 	snd_pcm_null_t *null;
-	snd_pcm_chmap_t *chmap = NULL;
+	snd_pcm_chmap_query_t **chmap = NULL;
 	int err;
 
 	snd_config_for_each(i, next, conf) {
@@ -450,14 +450,8 @@ int _snd_pcm_null_open(snd_pcm_t **pcmp, const char *name,
 		if (snd_pcm_conf_generic_id(id))
 			continue;
 		if (strcmp(id, "chmap") == 0) {
-			const char *str;
-			err = snd_config_get_string(n, &str);
-			if (err < 0) {
-				SNDERR("Invalid type for %s", id);
-				return -EINVAL;
-			}
-			free(chmap);
-			chmap = snd_pcm_chmap_parse_string(str);
+			snd_pcm_free_chmaps(chmap);
+			chmap = _snd_pcm_parse_config_chmaps(n);
 			if (!chmap) {
 				SNDERR("Invalid channel map for %s", id);
 				return -EINVAL;
@@ -465,11 +459,14 @@ int _snd_pcm_null_open(snd_pcm_t **pcmp, const char *name,
 			continue;
 		}
 		SNDERR("Unknown field %s", id);
+		snd_pcm_free_chmaps(chmap);
 		return -EINVAL;
 	}
 	err = snd_pcm_null_open(pcmp, name, stream, mode);
-	if (err < 0)
+	if (err < 0) {
+		snd_pcm_free_chmaps(chmap);
 		return err;
+	}
 
 	null = (*pcmp)->private_data;
 	null->chmap = chmap;

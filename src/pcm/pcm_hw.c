@@ -107,7 +107,7 @@ typedef struct {
 	int channels;
 	/* for chmap */
 	unsigned int chmap_caps;
-	snd_pcm_chmap_t *chmap_override;
+	snd_pcm_chmap_query_t **chmap_override;
 } snd_pcm_hw_t;
 
 #define SNDRV_FILE_PCM_STREAM_PLAYBACK		ALSA_DEVICE_DIRECTORY "pcmC%iD%ip"
@@ -1146,7 +1146,7 @@ static snd_pcm_chmap_query_t **snd_pcm_hw_query_chmaps(snd_pcm_t *pcm)
 	snd_pcm_chmap_query_t **map;
 
 	if (hw->chmap_override)
-		return _snd_pcm_make_single_query_chmaps(hw->chmap_override);
+		return _snd_pcm_copy_chmap_query(hw->chmap_override);
 
 	if (!chmap_caps(hw, CHMAP_CTL_QUERY))
 		return NULL;
@@ -1171,7 +1171,7 @@ static snd_pcm_chmap_t *snd_pcm_hw_get_chmap(snd_pcm_t *pcm)
 	int ret;
 
 	if (hw->chmap_override)
-		return _snd_pcm_copy_chmap(hw->chmap_override);
+		return _snd_pcm_choose_fixed_chmap(pcm, hw->chmap_override);
 
 	if (!chmap_caps(hw, CHMAP_CTL_GET))
 		return NULL;
@@ -1603,7 +1603,7 @@ pcm.name {
 	[format STR]		# Restrict only to the given format
 	[channels INT]		# Restrict only to the given channels
 	[rate INT]		# Restrict only to the given rate
-	[chmap MAP]		# Override channel map
+	[chmap MAP]		# Override channel maps; MAP is a string array
 }
 \endcode
 
@@ -1640,7 +1640,7 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 	snd_pcm_format_t format = SND_PCM_FORMAT_UNKNOWN;
 	snd_config_t *n;
 	int nonblock = 1; /* non-block per default */
-	snd_pcm_chmap_t *chmap = NULL;
+	snd_pcm_chmap_query_t **chmap = NULL;
 	snd_pcm_hw_t *hw;
 
 	/* look for defaults.pcm.nonblock definition */
@@ -1732,13 +1732,8 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 			continue;
 		}
 		if (strcmp(id, "chmap") == 0) {
-			err = snd_config_get_string(n, &str);
-			if (err < 0) {
-				SNDERR("Invalid type for %s", id);
-				return -EINVAL;
-			}
-			free(chmap);
-			chmap = snd_pcm_chmap_parse_string(str);
+			snd_pcm_free_chmaps(chmap);
+			chmap = _snd_pcm_parse_config_chmaps(n);
 			if (!chmap) {
 				SNDERR("Invalid channel map for %s", id);
 				return -EINVAL;
@@ -1746,17 +1741,21 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 			continue;
 		}
 		SNDERR("Unknown field %s", id);
+		snd_pcm_free_chmaps(chmap);
 		return -EINVAL;
 	}
 	if (card < 0) {
 		SNDERR("card is not defined");
+		snd_pcm_free_chmaps(chmap);
 		return -EINVAL;
 	}
 	err = snd_pcm_hw_open(pcmp, name, card, device, subdevice, stream,
 			      mode | (nonblock ? SND_PCM_NONBLOCK : 0),
 			      0, sync_ptr_ioctl);
-	if (err < 0)
+	if (err < 0) {
+		snd_pcm_free_chmaps(chmap);
 		return err;
+	}
 	if (nonblock && ! (mode & SND_PCM_NONBLOCK)) {
 		/* revert to blocking mode for read/write access */
 		snd_pcm_hw_nonblock(*pcmp, 0);

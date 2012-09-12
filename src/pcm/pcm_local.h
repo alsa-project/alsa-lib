@@ -975,6 +975,12 @@ static inline void gettimestamp(snd_htimestamp_t *tstamp, int monotonic)
 }
 
 snd_pcm_chmap_query_t **
-_snd_pcm_make_single_query_chmaps(snd_pcm_chmap_t *src);
-snd_pcm_chmap_t *_snd_pcm_copy_chmap(snd_pcm_chmap_t *src);
+_snd_pcm_make_single_query_chmaps(const snd_pcm_chmap_t *src);
+snd_pcm_chmap_t *_snd_pcm_copy_chmap(const snd_pcm_chmap_t *src);
+snd_pcm_chmap_query_t **
+_snd_pcm_copy_chmap_query(snd_pcm_chmap_query_t * const *src);
+snd_pcm_chmap_query_t **
+_snd_pcm_parse_config_chmaps(snd_config_t *conf);
+snd_pcm_chmap_t *
+_snd_pcm_choose_fixed_chmap(snd_pcm_t *pcm, snd_pcm_chmap_query_t * const *maps);
 

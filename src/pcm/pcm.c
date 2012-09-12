@@ -7531,25 +7531,37 @@ snd_pcm_chmap_t *snd_pcm_chmap_parse_string(const char *str)
 	return map;
 }
 
+/* copy a single channel map with the fixed type to chmap_query pointer */
+static int _copy_to_fixed_query_map(snd_pcm_chmap_query_t **dst,
+				    const snd_pcm_chmap_t *src)
+{
+	*dst = malloc((src->channels + 2) * sizeof(int));
+	if (!*dst)
+		return -ENOMEM;
+	(*dst)->type = SND_CHMAP_TYPE_FIXED;
+	memcpy(&(*dst)->map, src, (src->channels + 1) * sizeof(int));
+	return 0;
+}
+
+#ifndef DOC_HIDDEN
+/* make a chmap_query array from a single channel map */
 snd_pcm_chmap_query_t **
-_snd_pcm_make_single_query_chmaps(snd_pcm_chmap_t *src)
+_snd_pcm_make_single_query_chmaps(const snd_pcm_chmap_t *src)
 {
 	snd_pcm_chmap_query_t **maps;
 
 	maps = calloc(2, sizeof(*maps));
 	if (!maps)
 		return NULL;
-	*maps = malloc((src->channels + 2) * sizeof(int));
-	if (!*maps) {
+	if (_copy_to_fixed_query_map(maps, src)) {
 		free(maps);
 		return NULL;
 	}
-	(*maps)->type = SND_CHMAP_TYPE_FIXED;
-	memcpy(&(*maps)->map, src, (src->channels + 1) * sizeof(int));
 	return maps;
 }
 
-snd_pcm_chmap_t *_snd_pcm_copy_chmap(snd_pcm_chmap_t *src)
+/* make a copy of chmap */
+snd_pcm_chmap_t *_snd_pcm_copy_chmap(const snd_pcm_chmap_t *src)
 {
 	snd_pcm_chmap_t *map;
 
@@ -7559,6 +7571,91 @@ snd_pcm_chmap_t *_snd_pcm_copy_chmap(snd_pcm_chmap_t *src)
 	memcpy(map, src, (src->channels + 1) * sizeof(int));
 	return map;
 }
+
+/* make a copy of channel maps */
+snd_pcm_chmap_query_t **
+_snd_pcm_copy_chmap_query(snd_pcm_chmap_query_t * const *src)
+{
+	snd_pcm_chmap_query_t * const *p;
+	snd_pcm_chmap_query_t **maps;
+	int i, nums;
+
+	for (nums = 0, p = src; *p; p++)
+		nums++;
+
+	maps = calloc(nums + 1, sizeof(*maps));
+	if (!maps)
+		return NULL;
+	for (i = 0; i < nums; i++) {
+		maps[i] = malloc((src[i]->map.channels + 2) * sizeof(int));
+		if (!maps[i]) {
+			snd_pcm_free_chmaps(maps);
+			return NULL;
+		}
+		memcpy(maps[i], src[i], (src[i]->map.channels + 2) * sizeof(int));
+	}
+	return maps;
+}
+
+/* select the channel map with the current PCM channels and make a copy */
+snd_pcm_chmap_t *
+_snd_pcm_choose_fixed_chmap(snd_pcm_t *pcm, snd_pcm_chmap_query_t * const *maps)
+{
+	snd_pcm_chmap_query_t * const *p;
+
+	for (p = maps; *p; p++) {
+		if ((*p)->map.channels == pcm->channels)
+			return _snd_pcm_copy_chmap(&(*p)->map);
+	}
+	return NULL;
+}
+
+/* make chmap_query array from the config tree;
+ * conf must be a compound (array)
+ */
+snd_pcm_chmap_query_t **
+_snd_pcm_parse_config_chmaps(snd_config_t *conf)
+{
+	snd_pcm_chmap_t *chmap;
+	snd_pcm_chmap_query_t **maps;
+	snd_config_iterator_t i, next;
+	const char *str;
+	int nums, err;
+
+	if (snd_config_get_type(conf) != SND_CONFIG_TYPE_COMPOUND)
+		return NULL;
+
+	nums = 0;
+	snd_config_for_each(i, next, conf) {
+		nums++;
+	}
+
+	maps = calloc(nums + 1, sizeof(*maps));
+	if (!maps)
+		return NULL;
+
+	nums = 0;
+	snd_config_for_each(i, next, conf) {
+		snd_config_t *n = snd_config_iterator_entry(i);
+		err = snd_config_get_string(n, &str);
+		if (err < 0)
+			goto error;
+		chmap = snd_pcm_chmap_parse_string(str);
+		if (!chmap)
+			goto error;
+		if (_copy_to_fixed_query_map(maps + nums, chmap)) {
+			free(chmap);
+			goto error;
+		}
+		nums++;
+	}
+	return maps;
+
+ error:
+	snd_pcm_free_chmaps(maps);
+	return NULL;
+}
+#endif /* DOC_HIDDEN */
 
 /*
  * basic helpers
