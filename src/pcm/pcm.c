@@ -7375,7 +7375,7 @@ const char *snd_pcm_chmap_type_name(enum snd_pcm_chmap_type val)
 
 #define _NAME(n) [SND_CHMAP_##n] = #n
 static const char *chmap_names[SND_CHMAP_LAST + 1] = {
-	_NAME(UNKNOWN),
+	_NAME(UNKNOWN), _NAME(NA), _NAME(MONO),
 	_NAME(FL), _NAME(FR),
 	_NAME(RL), _NAME(RR),
 	_NAME(FC), _NAME(LFE),
@@ -7383,7 +7383,8 @@ static const char *chmap_names[SND_CHMAP_LAST + 1] = {
 	_NAME(RC), _NAME(FLC), _NAME(FRC), _NAME(RLC), _NAME(RRC),
 	_NAME(FLW), _NAME(FRW),
 	_NAME(FLH), _NAME(FCH), _NAME(FRH), _NAME(TC),
-	_NAME(NA),
+	_NAME(TFL), _NAME(TFR), _NAME(TFC),
+	_NAME(TRL), _NAME(TRR), _NAME(TRC),
 };
 #undef _NAME
 
@@ -7397,6 +7398,8 @@ const char *snd_pcm_chmap_name(enum snd_pcm_chmap_position val)
 
 static const char *chmap_long_names[SND_CHMAP_LAST + 1] = {
 	[SND_CHMAP_UNKNOWN] = "Unknown",
+	[SND_CHMAP_NA] = "Unused",
+	[SND_CHMAP_MONO] = "Mono",
 	[SND_CHMAP_FL] = "Front Left",
 	[SND_CHMAP_FR] = "Front Right",
 	[SND_CHMAP_RL] = "Rear Left",
@@ -7416,7 +7419,12 @@ static const char *chmap_long_names[SND_CHMAP_LAST + 1] = {
 	[SND_CHMAP_FCH] = "Front Center High",
 	[SND_CHMAP_FRH] = "Front Right High",
 	[SND_CHMAP_TC] = "Top Center",
-	[SND_CHMAP_NA] = "Unused",
+	[SND_CHMAP_TFL] = "Top Front Left",
+	[SND_CHMAP_TFR] = "Top Front Right",
+	[SND_CHMAP_TFC] = "Top Front Center",
+	[SND_CHMAP_TRL] = "Top Rear Left",
+	[SND_CHMAP_TRR] = "Top Rear Right",
+	[SND_CHMAP_TRC] = "Top Rear Center",
 };
 
 const char *snd_pcm_chmap_long_name(enum snd_pcm_chmap_position val)

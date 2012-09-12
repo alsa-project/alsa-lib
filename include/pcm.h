@@ -489,6 +489,8 @@ enum snd_pcm_chmap_type {
 /** channel positions */
 enum snd_pcm_chmap_position {
 	SND_CHMAP_UNKNOWN = 0,	/** unspecified */
+	SND_CHMAP_NA,		/** N/A, silent */
+	SND_CHMAP_MONO,		/** mono stream */
 	SND_CHMAP_FL,		/** front left */
 	SND_CHMAP_FR,		/** front right */
 	SND_CHMAP_RL,		/** rear left */
@@ -508,8 +510,13 @@ enum snd_pcm_chmap_position {
 	SND_CHMAP_FCH,		/** front center high */
 	SND_CHMAP_FRH,		/** front right high */
 	SND_CHMAP_TC,		/** top center */
-	SND_CHMAP_NA,		/** N/A, silent */
-	SND_CHMAP_LAST = SND_CHMAP_NA,	/** last entry */
+	SND_CHMAP_TFL,		/** top front left */
+	SND_CHMAP_TFR,		/** top front right */
+	SND_CHMAP_TFC,		/** top front center */
+	SND_CHMAP_TRL,		/** top rear left */
+	SND_CHMAP_TRR,		/** top rear right */
+	SND_CHMAP_TRC,		/** top rear center */
+	SND_CHMAP_LAST = SND_CHMAP_TRC,	/** last entry */
 };
 
 #define SND_CHMAP_POSITION_MASK		0xffff /** bitmask for channel position */
