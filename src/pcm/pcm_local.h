@@ -973,3 +973,8 @@ static inline void gettimestamp(snd_htimestamp_t *tstamp, int monotonic)
 	}
 #endif
 }
+
+snd_pcm_chmap_query_t **
+_snd_pcm_make_single_query_chmaps(snd_pcm_chmap_t *src);
+snd_pcm_chmap_t *_snd_pcm_copy_chmap(snd_pcm_chmap_t *src);
+

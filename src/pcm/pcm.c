@@ -7531,6 +7531,35 @@ snd_pcm_chmap_t *snd_pcm_chmap_parse_string(const char *str)
 	return map;
 }
 
+snd_pcm_chmap_query_t **
+_snd_pcm_make_single_query_chmaps(snd_pcm_chmap_t *src)
+{
+	snd_pcm_chmap_query_t **maps;
+
+	maps = calloc(2, sizeof(*maps));
+	if (!maps)
+		return NULL;
+	*maps = malloc((src->channels + 2) * sizeof(int));
+	if (!*maps) {
+		free(maps);
+		return NULL;
+	}
+	(*maps)->type = SND_CHMAP_TYPE_FIXED;
+	memcpy(&(*maps)->map, src, (src->channels + 1) * sizeof(int));
+	return maps;
+}
+
+snd_pcm_chmap_t *_snd_pcm_copy_chmap(snd_pcm_chmap_t *src)
+{
+	snd_pcm_chmap_t *map;
+
+	map = malloc((src->channels + 1) * sizeof(int));
+	if (!map)
+		return NULL;
+	memcpy(map, src, (src->channels + 1) * sizeof(int));
+	return map;
+}
+
 /*
  * basic helpers
  */

@@ -107,6 +107,7 @@ typedef struct {
 	int channels;
 	/* for chmap */
 	unsigned int chmap_caps;
+	snd_pcm_chmap_t *chmap_override;
 } snd_pcm_hw_t;
 
 #define SNDRV_FILE_PCM_STREAM_PLAYBACK		ALSA_DEVICE_DIRECTORY "pcmC%iD%ip"
@@ -1144,6 +1145,9 @@ static snd_pcm_chmap_query_t **snd_pcm_hw_query_chmaps(snd_pcm_t *pcm)
 	snd_pcm_hw_t *hw = pcm->private_data;
 	snd_pcm_chmap_query_t **map;
 
+	if (hw->chmap_override)
+		return _snd_pcm_make_single_query_chmaps(hw->chmap_override);
+
 	if (!chmap_caps(hw, CHMAP_CTL_QUERY))
 		return NULL;
 
@@ -1165,6 +1169,9 @@ static snd_pcm_chmap_t *snd_pcm_hw_get_chmap(snd_pcm_t *pcm)
 	snd_ctl_elem_value_t *val;
 	unsigned int i;
 	int ret;
+
+	if (hw->chmap_override)
+		return _snd_pcm_copy_chmap(hw->chmap_override);
 
 	if (!chmap_caps(hw, CHMAP_CTL_GET))
 		return NULL;
@@ -1219,6 +1226,9 @@ static int snd_pcm_hw_set_chmap(snd_pcm_t *pcm, const snd_pcm_chmap_t *map)
 	snd_ctl_elem_value_t *val;
 	unsigned int i;
 	int ret;
+
+	if (hw->chmap_override)
+		return -ENXIO;
 
 	if (!chmap_caps(hw, CHMAP_CTL_SET))
 		return -ENXIO;
@@ -1593,6 +1603,7 @@ pcm.name {
 	[format STR]		# Restrict only to the given format
 	[channels INT]		# Restrict only to the given channels
 	[rate INT]		# Restrict only to the given rate
+	[chmap MAP]		# Override channel map
 }
 \endcode
 
@@ -1629,6 +1640,7 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 	snd_pcm_format_t format = SND_PCM_FORMAT_UNKNOWN;
 	snd_config_t *n;
 	int nonblock = 1; /* non-block per default */
+	snd_pcm_chmap_t *chmap = NULL;
 	snd_pcm_hw_t *hw;
 
 	/* look for defaults.pcm.nonblock definition */
@@ -1719,6 +1731,20 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 			channels = val;
 			continue;
 		}
+		if (strcmp(id, "chmap") == 0) {
+			err = snd_config_get_string(n, &str);
+			if (err < 0) {
+				SNDERR("Invalid type for %s", id);
+				return -EINVAL;
+			}
+			free(chmap);
+			chmap = snd_pcm_chmap_parse_string(str);
+			if (!chmap) {
+				SNDERR("Invalid channel map for %s", id);
+				return -EINVAL;
+			}
+			continue;
+		}
 		SNDERR("Unknown field %s", id);
 		return -EINVAL;
 	}
@@ -1750,6 +1776,8 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 		hw->channels = channels;
 	if (rate > 0)
 		hw->rate = rate;
+	if (chmap)
+		hw->chmap_override = chmap;
 
 	return 0;
 }
