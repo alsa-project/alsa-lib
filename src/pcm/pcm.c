@@ -7471,24 +7471,41 @@ int snd_pcm_chmap_print(const snd_pcm_chmap_t *map, size_t maxlen, char *buf)
 static int str_to_chmap(const char *str, int len)
 {
 	int val;
+	unsigned long v;
+	char *p;
 
 	if (isdigit(*str)) {
-		val = atoi(str);
-		if (val < 0)
+		v = strtoul(str, &p, 0);
+		if (v == ULONG_MAX)
 			return -1;
-		return val | SND_CHMAP_DRIVER_SPEC;
-	} else if (str[0] == 'C' && str[1] == 'h') {
-		val = atoi(str + 2);
-		if (val < 0)
+		val = v;
+		val |= SND_CHMAP_DRIVER_SPEC;
+		str = p;
+	} else if (!strncasecmp(str, "ch", 2)) {
+		v = strtoul(str + 2, &p, 0);
+		if (v == ULONG_MAX)
 			return -1;
-		return val;
+		val = v;
+		str = p;
 	} else {
 		for (val = 0; val <= SND_CHMAP_LAST; val++) {
-			if (!strncmp(str, chmap_names[val], len))
-				return val;
+			int slen;
+			assert(chmap_names[val]);
+			slen = strlen(chmap_names[val]);
+			if (slen > len)
+				continue;
+			if (!strncasecmp(str, chmap_names[val], slen) &&
+			    !isalpha(str[slen])) {
+				str += slen;
+				break;
+			}
 		}
-		return -1;
+		if (val > SND_CHMAP_LAST)
+			return -1;
 	}
+	if (str && !strncasecmp(str, "[INV]", 5))
+		val |= SND_CHMAP_PHASE_INVERSE;
+	return val;
 }
 
 unsigned int snd_pcm_chmap_from_string(const char *str)
