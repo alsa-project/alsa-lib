@@ -118,7 +118,7 @@ static int set_chmap(snd_pcm_t *pcm, int format, int channels, int rate,
 	}
 	if (setup_pcm(pcm, format, channels, rate))
 		return 1;
-	map = malloc(sizeof(int) * channels + 1);
+	map = malloc(sizeof(int) * (channels + 1));
 	if (!map) {
 		printf("cannot malloc\n");
 		return 1;
