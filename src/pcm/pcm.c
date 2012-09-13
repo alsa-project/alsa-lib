@@ -7310,6 +7310,9 @@ OBSOLETE1(snd_pcm_sw_params_get_silence_size, ALSA_0.9, ALSA_0.9.0rc4);
  * which contains the channel map. A channel map is represented by an
  * integer array, beginning with the channel map type, followed by the
  * number of channels, and the position of each channel.
+ *
+ * Note: the caller is requested to release the returned value via
+ * snd_pcm_free_chmaps().
  */
 snd_pcm_chmap_query_t **snd_pcm_query_chmaps(snd_pcm_t *pcm)
 {
@@ -7336,6 +7339,8 @@ void snd_pcm_free_chmaps(snd_pcm_chmap_query_t **maps)
  * \!brief Get the current channel map
  * \param pcm PCM instance
  * \return the current channel map, or NULL if error
+ *
+ * Note: the caller is requested to release the returned value via free()
  */
 snd_pcm_chmap_t *snd_pcm_get_chmap(snd_pcm_t *pcm)
 {
@@ -7359,12 +7364,19 @@ int snd_pcm_set_chmap(snd_pcm_t *pcm, const snd_pcm_chmap_t *map)
 
 /*
  */
+#ifndef DOC_HIDDEN
 #define _NAME(n) [SND_CHMAP_TYPE_##n] = #n
 static const char *chmap_type_names[SND_CHMAP_TYPE_LAST + 1] = {
 	_NAME(NONE), _NAME(FIXED), _NAME(VAR), _NAME(PAIRED),
 };
 #undef _NAME
+#endif
 
+/**
+ * \!brief Get a name string for a channel map type as query results
+ * \param val Channel position
+ * \return The string corresponding to the given type, or NULL
+ */
 const char *snd_pcm_chmap_type_name(enum snd_pcm_chmap_type val)
 {
 	if (val <= SND_CHMAP_TYPE_LAST)
@@ -7373,6 +7385,7 @@ const char *snd_pcm_chmap_type_name(enum snd_pcm_chmap_type val)
 		return NULL;
 }
 
+#ifndef DOC_HIDDEN
 #define _NAME(n) [SND_CHMAP_##n] = #n
 static const char *chmap_names[SND_CHMAP_LAST + 1] = {
 	_NAME(UNKNOWN), _NAME(NA), _NAME(MONO),
@@ -7387,7 +7400,13 @@ static const char *chmap_names[SND_CHMAP_LAST + 1] = {
 	_NAME(TRL), _NAME(TRR), _NAME(TRC),
 };
 #undef _NAME
+#endif
 
+/**
+ * \!brief Get a name string for a standard channel map position
+ * \param val Channel position
+ * \return The string corresponding to the given position, or NULL
+ */
 const char *snd_pcm_chmap_name(enum snd_pcm_chmap_position val)
 {
 	if (val <= SND_CHMAP_LAST)
@@ -7427,6 +7446,11 @@ static const char *chmap_long_names[SND_CHMAP_LAST + 1] = {
 	[SND_CHMAP_TRC] = "Top Rear Center",
 };
 
+/**
+ * \!brief Get a longer name string for a standard channel map position
+ * \param val Channel position
+ * \return The string corresponding to the given position, or NULL
+ */
 const char *snd_pcm_chmap_long_name(enum snd_pcm_chmap_position val)
 {
 	if (val <= SND_CHMAP_LAST)
@@ -7435,6 +7459,13 @@ const char *snd_pcm_chmap_long_name(enum snd_pcm_chmap_position val)
 		return NULL;
 }
 
+/**
+ * \!brief Print the channels in chmap on the buffer
+ * \param map The channel map to print
+ * \param maxlen The maximal length to write (including NUL letter)
+ * \param buf The buffer to write
+ * \return The actual string length or a negative error code
+ */
 int snd_pcm_chmap_print(const snd_pcm_chmap_t *map, size_t maxlen, char *buf)
 {
 	unsigned int i, len = 0;
@@ -7508,11 +7539,23 @@ static int str_to_chmap(const char *str, int len)
 	return val;
 }
 
+/**
+ * \!brief Convert from string to channel position
+ * \param str The string to parse
+ * \return The channel position value or -1 as an error
+ */
 unsigned int snd_pcm_chmap_from_string(const char *str)
 {
 	return str_to_chmap(str, strlen(str));
 }
 
+/**
+ * \!brief Convert from string to channel map
+ * \param str The string to parse
+ * \return The channel map
+ *
+ * Note: the caller is requested to release the returned value via free()
+ */
 snd_pcm_chmap_t *snd_pcm_chmap_parse_string(const char *str)
 {
 	int i, ch = 0;

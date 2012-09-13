@@ -519,20 +519,24 @@ enum snd_pcm_chmap_position {
 	SND_CHMAP_LAST = SND_CHMAP_TRC,	/** last entry */
 };
 
-#define SND_CHMAP_POSITION_MASK		0xffff /** bitmask for channel position */
-#define SND_CHMAP_PHASE_INVERSE		(0x01 << 16) /* the channel is phase inverted */
-#define SND_CHMAP_DRIVER_SPEC		(0x02 << 16) /* non-standard channel value */
+/** bitmask for channel position */
+#define SND_CHMAP_POSITION_MASK		0xffff
+
+/** bit flag indicating the channel is phase inverted */
+#define SND_CHMAP_PHASE_INVERSE		(0x01 << 16)
+/** bit flag indicating the non-standard channel value */
+#define SND_CHMAP_DRIVER_SPEC		(0x02 << 16)
 
 /** the channel map header */
 typedef struct snd_pcm_chmap {
-	unsigned int channels;
-	unsigned int pos[0];
+	unsigned int channels;	/** number of channels */
+	unsigned int pos[0];	/** channel position array */
 } snd_pcm_chmap_t;
 
 /** the header of array items returned from snd_pcm_query_chmaps() */
 typedef struct snd_pcm_chmap_query {
-	enum snd_pcm_chmap_type type;
-	snd_pcm_chmap_t map;
+	enum snd_pcm_chmap_type type;	/** channel map type */
+	snd_pcm_chmap_t map;		/** available channel map */
 } snd_pcm_chmap_query_t;
 
 
