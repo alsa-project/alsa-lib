@@ -458,6 +458,7 @@ static int snd_pcm_dsnoop_htimestamp(snd_pcm_t *pcm,
 			break;
 		*avail = avail1;
 		*tstamp = snd_pcm_hw_fast_tstamp(dsnoop->spcm);
+		ok = 1;
 	}
 	return 0;
 }
