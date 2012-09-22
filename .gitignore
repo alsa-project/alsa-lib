@@ -45,6 +45,8 @@ src/control/ctl_symbols_list.c
 src/pcm/pcm_symbols_list.c
 doc/doxygen/*
 doc/doxygen.cfg
+test/audio_time
+test/chmap
 test/client_event_filter
 test/control
 test/latency
