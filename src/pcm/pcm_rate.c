@@ -1394,13 +1394,13 @@ int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name,
 		}
 	} else {
 		SNDERR("Invalid type for rate converter");
-		snd_pcm_close(pcm);
+		snd_pcm_free(pcm);
 		free(rate);
 		return -EINVAL;
 	}
 	if (err < 0) {
 		SNDERR("Cannot find rate converter");
-		snd_pcm_close(pcm);
+		snd_pcm_free(pcm);
 		free(rate);
 		return -ENOENT;
 	}
@@ -1409,7 +1409,7 @@ int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name,
 	open_func = SND_PCM_RATE_PLUGIN_ENTRY(linear);
 	err = open_func(SND_PCM_RATE_PLUGIN_VERSION, &rate->obj, &rate->ops);
 	if (err < 0) {
-		snd_pcm_close(pcm);
+		snd_pcm_free(pcm);
 		free(rate);
 		return err;
 	}
@@ -1418,7 +1418,7 @@ int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name,
 	if (! rate->ops.init || ! (rate->ops.convert || rate->ops.convert_s16) ||
 	    ! rate->ops.input_frames || ! rate->ops.output_frames) {
 		SNDERR("Inproper rate plugin %s initialization", type);
-		snd_pcm_close(pcm);
+		snd_pcm_free(pcm);
 		free(rate);
 		return err;
 	}
