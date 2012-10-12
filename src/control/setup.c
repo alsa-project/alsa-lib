@@ -400,7 +400,6 @@ static int add_elem(snd_sctl_t *h, snd_config_t *_conf, snd_config_t *private_da
 {
 	snd_config_t *conf;
 	snd_config_iterator_t i, next;
-	char *tmp;
 	int iface = SND_CTL_ELEM_IFACE_MIXER;
 	const char *name = NULL;
 	long index = 0;
@@ -464,33 +463,17 @@ static int add_elem(snd_sctl_t *h, snd_config_t *_conf, snd_config_t *private_da
 			continue;
 		}
 		if (strcmp(id, "lock") == 0) {
-			if ((err = snd_config_get_ascii(n, &tmp)) < 0) {
-				SNDERR("field %s has an invalid type", id);
+			err = snd_config_get_bool(n);
+			if (err < 0)
 				goto _err;
-			}
-			err = snd_config_get_bool_ascii(tmp);
-			if (err < 0) {
-				SNDERR("field %s is not a boolean", id);
-				free(tmp);
-				goto _err;
-			}
 			lock = err;
-			free(tmp);
 			continue;
 		}
 		if (strcmp(id, "preserve") == 0) {
-			if ((err = snd_config_get_ascii(n, &tmp)) < 0) {
-				SNDERR("field %s has an invalid type", id);
+			err = snd_config_get_bool(n);
+			if (err < 0)
 				goto _err;
-			}
-			err = snd_config_get_bool_ascii(tmp);
-			if (err < 0) {
-				SNDERR("field %s is not a boolean", id);
-				free(tmp);
-				goto _err;
-			}
 			preserve = err;
-			free(tmp);
 			continue;
 		}
 		if (strcmp(id, "value") == 0) {
@@ -502,18 +485,10 @@ static int add_elem(snd_sctl_t *h, snd_config_t *_conf, snd_config_t *private_da
 			continue;
 		}
 		if (strcmp(id, "optional") == 0) {
-			if ((err = snd_config_get_ascii(n, &tmp)) < 0) {
-				SNDERR("field %s has an invalid type", id);
+			err = snd_config_get_bool(n);
+			if (err < 0)
 				goto _err;
-			}
-			err = snd_config_get_bool_ascii(tmp);
-			if (err < 0) {
-				SNDERR("field %s is not a boolean", id);
-				free(tmp);
-				goto _err;
-			}
 			optional = err;
-			free(tmp);
 			continue;
 		}
 		SNDERR("Unknown field %s", id);
