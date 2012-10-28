@@ -427,8 +427,9 @@ struct sndrv_pcm_status {
 	sndrv_pcm_uframes_t avail_max;	/* max frames available on hw since last status */
 	sndrv_pcm_uframes_t overrange;	/* count of ADC (capture) overrange detections from last status */
 	int suspended_state;		/* suspended stream state */
+	u_int32_t reserved_alignment;	/* must be filled with zero */
 	struct timespec audio_tstamp;	/* from sample counter or wall clock */
-	unsigned char reserved[60-sizeof(struct timespec)]; /* must be filled with zero */
+	unsigned char reserved[56-sizeof(struct timespec)]; /* must be filled with zero */
 };
 
 struct sndrv_pcm_mmap_status {
