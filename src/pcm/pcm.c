@@ -2171,7 +2171,12 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 	if (open_func) {
 		err = open_func(pcmp, name, pcm_root, pcm_conf, stream, mode);
 		if (err >= 0) {
-			(*pcmp)->open_func = open_func;
+			if ((*pcmp)->open_func) {
+				/* only init plugin (like empty, asym) */
+				snd_dlobj_cache_put(open_func);
+			} else {
+				(*pcmp)->open_func = open_func;
+			}
 			err = 0;
 		} else {
 			snd_dlobj_cache_put(open_func);
