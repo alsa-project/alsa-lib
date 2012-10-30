@@ -3256,7 +3256,7 @@ int alsa_lisp(struct alisp_cfg *cfg, struct alisp_instance **_instance)
 	else
 		alsa_lisp_free(instance); 
 	
-	return 0;
+	return retval;
 }
 
 void alsa_lisp_free(struct alisp_instance *instance)

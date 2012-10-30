@@ -332,9 +332,7 @@ static snd_pcm_sframes_t snd_pcm_mmap_emul_avail_update(snd_pcm_t *pcm)
 {
 	mmap_emul_t *map = pcm->private_data;
 	snd_pcm_t *slave = map->gen.slave;
-	snd_pcm_sframes_t avail;
 
-	avail = snd_pcm_avail_update(slave);
 	if (!map->mmap_emul || pcm->stream == SND_PCM_STREAM_PLAYBACK)
 		map->hw_ptr = *slave->hw.ptr;
 	else

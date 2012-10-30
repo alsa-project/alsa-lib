@@ -136,18 +136,15 @@ static snd_pcm_uframes_t snd_pcm_share_slave_avail(snd_pcm_share_slave_t *slave)
 static snd_pcm_uframes_t _snd_pcm_share_slave_forward(snd_pcm_share_slave_t *slave)
 {
 	struct list_head *i;
-	snd_pcm_uframes_t buffer_size, boundary;
-	snd_pcm_uframes_t slave_appl_ptr;
+	snd_pcm_uframes_t buffer_size;
 	snd_pcm_sframes_t frames, safety_frames;
 	snd_pcm_sframes_t min_frames, max_frames;
 	snd_pcm_uframes_t avail, slave_avail;
 	snd_pcm_uframes_t slave_hw_avail;
 	slave_avail = snd_pcm_share_slave_avail(slave);
-	boundary = slave->pcm->boundary;
 	buffer_size = slave->pcm->buffer_size;
 	min_frames = slave_avail;
 	max_frames = 0;
-	slave_appl_ptr = *slave->pcm->appl.ptr;
 	list_for_each(i, &slave->clients) {
 		snd_pcm_share_t *share = list_entry(i, snd_pcm_share_t, list);
 		snd_pcm_t *pcm = share->pcm;

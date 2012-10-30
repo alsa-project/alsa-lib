@@ -625,7 +625,7 @@ static snd_pcm_sframes_t snd_pcm_ioplug_avail_update(snd_pcm_t *pcm)
 	snd_pcm_uframes_t avail;
 
 	snd_pcm_ioplug_hw_ptr_update(pcm);
-	if (io->data->state == SNDRV_PCM_STATE_XRUN)
+	if (io->data->state == SND_PCM_STATE_XRUN)
 		return -EPIPE;
 	if (pcm->stream == SND_PCM_STREAM_CAPTURE &&
 	    pcm->access != SND_PCM_ACCESS_RW_INTERLEAVED &&

@@ -612,8 +612,7 @@ static int snd_pcm_ladspa_allocate_instances(snd_pcm_t *pcm, snd_pcm_ladspa_t *l
 {
 	struct list_head *list, *pos;
 	unsigned int depth, idx, count;
-        unsigned int in_channel, out_channel;
-        unsigned int in_channels, out_channels;
+        unsigned int in_channels;
 	unsigned int in_ports, out_ports;
 	snd_pcm_ladspa_instance_t *instance = NULL;
 	int err;
@@ -622,11 +621,8 @@ static int snd_pcm_ladspa_allocate_instances(snd_pcm_t *pcm, snd_pcm_ladspa_t *l
 	in_channels = ladspa->channels > 0 ? ladspa->channels :
 	              (pcm->stream == SND_PCM_STREAM_PLAYBACK ? pcm->channels : ladspa->plug.gen.slave->channels);
 	depth = 0;
-	out_channels = 0;
 	list_for_each(pos, list) {
 		snd_pcm_ladspa_plugin_t *plugin = list_entry(pos, snd_pcm_ladspa_plugin_t, list);
-		if (pos->next == list)	/* last entry */
-		        out_channels = pcm->stream == SND_PCM_STREAM_PLAYBACK ? ladspa->plug.gen.slave->channels : pcm->channels;
                 in_ports = snd_pcm_ladspa_count_ports(plugin, LADSPA_PORT_INPUT | LADSPA_PORT_AUDIO);
                 out_ports = snd_pcm_ladspa_count_ports(plugin, LADSPA_PORT_OUTPUT | LADSPA_PORT_AUDIO);
 		count = 1;
@@ -636,8 +632,6 @@ static int snd_pcm_ladspa_allocate_instances(snd_pcm_t *pcm, snd_pcm_ladspa_t *l
                         else
                                 plugin->policy = SND_PCM_LADSPA_POLICY_NONE;
                 }
-                in_channel = 0;
-                out_channel = 0;
         	for (idx = 0; idx < count; idx++) {
 			instance = (snd_pcm_ladspa_instance_t *)calloc(1, sizeof(snd_pcm_ladspa_instance_t));
 			if (instance == NULL)

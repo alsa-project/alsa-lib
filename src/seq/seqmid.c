@@ -423,7 +423,7 @@ int snd_seq_parse_address(snd_seq_t *seq, snd_seq_addr_t *addr, const char *arg)
 			return -EINVAL;
 		cinfo.client = -1;
 		while (snd_seq_query_next_client(seq, &cinfo) >= 0) {
-			if ((strlen(cinfo.name) == len) &&
+			if ((strlen(cinfo.name) == (size_t)len) &&
 				! strncmp(arg, cinfo.name, len)) {
 				addr->client = cinfo.client;
 				return 0;

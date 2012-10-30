@@ -672,7 +672,6 @@ static int simple_update(snd_mixer_elem_t *melem)
 	unsigned int caps, pchannels, cchannels;
 	long pmin, pmax, cmin, cmax;
 	selem_ctl_t *ctl;
-	const char *name;
 
 	caps = 0;
 	pchannels = 0;
@@ -683,7 +682,6 @@ static int simple_update(snd_mixer_elem_t *melem)
 	cmax = LONG_MIN;
 	assert(snd_mixer_elem_get_type(melem) == SND_MIXER_ELEM_SIMPLE);
 	simple = snd_mixer_elem_get_private(melem);
-	name = snd_mixer_selem_get_name(melem);
 	ctl = &simple->ctls[CTL_SINGLE];
 	if (ctl->elem) {
 		pchannels = cchannels = ctl->values;

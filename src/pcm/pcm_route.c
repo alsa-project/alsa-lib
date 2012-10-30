@@ -725,7 +725,7 @@ static snd_pcm_chmap_t *snd_pcm_route_get_chmap(snd_pcm_t *pcm)
 	for (dst = 0; dst < route->params.ndsts; dst++) {
 		snd_pcm_route_ttable_dst_t *d = &route->params.dsts[dst];
 		for (src = 0; src < d->nsrcs; src++) {
-			int c = d->srcs[src].channel;
+			unsigned int c = d->srcs[src].channel;
 			if (c < nsrcs && map->pos[c] == SND_CHMAP_NA)
 				map->pos[c] = slave_map->pos[dst];
 		}

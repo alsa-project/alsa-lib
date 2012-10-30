@@ -41,7 +41,7 @@ int snd_pcm_generic_close(snd_pcm_t *pcm)
 	if (generic->close_slave)
 		err = snd_pcm_close(generic->slave);
 	free(generic);
-	return 0;
+	return err;
 }
 
 int snd_pcm_generic_nonblock(snd_pcm_t *pcm, int nonblock)
