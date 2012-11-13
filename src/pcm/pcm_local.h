@@ -177,6 +177,7 @@ typedef struct {
 	int (*poll_descriptors_count)(snd_pcm_t *pcm);
 	int (*poll_descriptors)(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int space);
 	int (*poll_revents)(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents);
+	int (*may_wait_for_avail_min)(snd_pcm_t *pcm, snd_pcm_uframes_t avail);
 } snd_pcm_fast_ops_t;
 
 struct _snd_pcm {
@@ -983,4 +984,14 @@ snd_pcm_chmap_query_t **
 _snd_pcm_parse_config_chmaps(snd_config_t *conf);
 snd_pcm_chmap_t *
 _snd_pcm_choose_fixed_chmap(snd_pcm_t *pcm, snd_pcm_chmap_query_t * const *maps);
+
+/* return true if the PCM stream may wait to get avail_min space */
+static inline int snd_pcm_may_wait_for_avail_min(snd_pcm_t *pcm, snd_pcm_uframes_t avail)
+{
+	if (avail >= pcm->avail_min)
+		return 0;
+	if (pcm->fast_ops->may_wait_for_avail_min)
+		return pcm->fast_ops->may_wait_for_avail_min(pcm, avail);
+	return 1;
+}
 

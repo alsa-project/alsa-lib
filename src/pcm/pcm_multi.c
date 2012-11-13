@@ -739,6 +739,13 @@ static int snd_pcm_multi_mmap(snd_pcm_t *pcm)
 	return 0;
 }
 
+static int snd_pcm_multi_may_wait_for_avail_min(snd_pcm_t *pcm, snd_pcm_uframes_t avail)
+{
+	snd_pcm_multi_t *multi = pcm->private_data;
+	snd_pcm_t *slave = multi->slaves[multi->master_slave].pcm;
+	return snd_pcm_may_wait_for_avail_min(slave, snd_pcm_mmap_avail(slave));
+}
+
 static snd_pcm_chmap_query_t **snd_pcm_multi_query_chmaps(snd_pcm_t *pcm)
 {
 	snd_pcm_multi_t *multi = pcm->private_data;
@@ -937,6 +944,7 @@ static const snd_pcm_fast_ops_t snd_pcm_multi_fast_ops = {
 	.poll_descriptors_count = snd_pcm_multi_poll_descriptors_count,
 	.poll_descriptors = snd_pcm_multi_poll_descriptors,
 	.poll_revents = snd_pcm_multi_poll_revents,
+	.may_wait_for_avail_min = snd_pcm_multi_may_wait_for_avail_min,
 };
 
 /**

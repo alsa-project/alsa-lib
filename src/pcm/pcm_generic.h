@@ -109,6 +109,8 @@ typedef struct {
 	snd1_pcm_generic_get_chmap
 #define snd_pcm_generic_set_chmap \
 	snd1_pcm_generic_set_chmap
+#define snd_pcm_generic_may_wait_for_avail_min \
+	snd1_pcm_generic_may_wait_for_avail_min
 
 int snd_pcm_generic_close(snd_pcm_t *pcm);
 int snd_pcm_generic_nonblock(snd_pcm_t *pcm, int nonblock);
@@ -158,5 +160,5 @@ int snd_pcm_generic_munmap(snd_pcm_t *pcm);
 snd_pcm_chmap_query_t **snd_pcm_generic_query_chmaps(snd_pcm_t *pcm);
 snd_pcm_chmap_t *snd_pcm_generic_get_chmap(snd_pcm_t *pcm);
 int snd_pcm_generic_set_chmap(snd_pcm_t *pcm, const snd_pcm_chmap_t *map);
-
+int snd_pcm_generic_may_wait_for_avail_min(snd_pcm_t *pcm, snd_pcm_uframes_t avail);
 

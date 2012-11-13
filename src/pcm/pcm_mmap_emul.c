@@ -400,6 +400,7 @@ static const snd_pcm_fast_ops_t snd_pcm_mmap_emul_fast_ops = {
 	.poll_descriptors = snd_pcm_generic_poll_descriptors,
 	.poll_descriptors_count = snd_pcm_generic_poll_descriptors_count,
 	.poll_revents = snd_pcm_generic_poll_revents,
+	.may_wait_for_avail_min = snd_pcm_generic_may_wait_for_avail_min,
 };
 
 #ifndef DOC_HIDDEN

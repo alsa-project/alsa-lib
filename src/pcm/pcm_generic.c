@@ -341,4 +341,10 @@ int snd_pcm_generic_set_chmap(snd_pcm_t *pcm, const snd_pcm_chmap_t *map)
 	return snd_pcm_set_chmap(generic->slave, map);
 }
 
+int snd_pcm_generic_may_wait_for_avail_min(snd_pcm_t *pcm, snd_pcm_uframes_t avail ATTRIBUTE_UNUSED)
+{
+	snd_pcm_generic_t *generic = pcm->private_data;
+	return snd_pcm_may_wait_for_avail_min(generic->slave, snd_pcm_mmap_avail(generic->slave));
+}
+
 #endif /* DOC_HIDDEN */

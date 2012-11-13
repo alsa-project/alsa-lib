@@ -2357,7 +2357,7 @@ int snd_pcm_open_named_slave(snd_pcm_t **pcmp, const char *name,
  */
 int snd_pcm_wait(snd_pcm_t *pcm, int timeout)
 {
-	if (snd_pcm_mmap_avail(pcm) >= pcm->avail_min) {
+	if (!snd_pcm_may_wait_for_avail_min(pcm, snd_pcm_mmap_avail(pcm))) {
 		/* check more precisely */
 		switch (snd_pcm_state(pcm)) {
 		case SND_PCM_STATE_XRUN:
@@ -6776,14 +6776,14 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 			goto _end;
 		}
 		if ((state == SND_PCM_STATE_RUNNING &&
-		     (snd_pcm_uframes_t)avail < pcm->avail_min &&
-		     size > (snd_pcm_uframes_t)avail)) {
+		     size > (snd_pcm_uframes_t)avail &&
+		     snd_pcm_may_wait_for_avail_min(pcm, avail))) {
 			if (pcm->mode & SND_PCM_NONBLOCK) {
 				err = -EAGAIN;
 				goto _end;
 			}
 
-			err = snd_pcm_wait(pcm, -1);
+			err = snd_pcm_wait_nocheck(pcm, -1);
 			if (err < 0)
 				break;
 			goto _again;			
