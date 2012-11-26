@@ -7434,6 +7434,9 @@ static const char *chmap_names[SND_CHMAP_LAST + 1] = {
 	_NAME(FLH), _NAME(FCH), _NAME(FRH), _NAME(TC),
 	_NAME(TFL), _NAME(TFR), _NAME(TFC),
 	_NAME(TRL), _NAME(TRR), _NAME(TRC),
+	_NAME(TFLC), _NAME(TFRC), _NAME(TSL), _NAME(TSR),
+	_NAME(LLFE), _NAME(RLFE),
+	_NAME(BC), _NAME(BLC), _NAME(BRC),
 };
 #undef _NAME
 #endif
@@ -7480,6 +7483,15 @@ static const char *chmap_long_names[SND_CHMAP_LAST + 1] = {
 	[SND_CHMAP_TRL] = "Top Rear Left",
 	[SND_CHMAP_TRR] = "Top Rear Right",
 	[SND_CHMAP_TRC] = "Top Rear Center",
+	[SND_CHMAP_TFLC] = "Top Front Left Center",
+	[SND_CHMAP_TFRC] = "Top Front Right Center",
+	[SND_CHMAP_TSL] = "Top Side Left",
+	[SND_CHMAP_TSR] = "Top Side Right",
+	[SND_CHMAP_LLFE] = "Left LFE",
+	[SND_CHMAP_RLFE] = "Right LFE",
+	[SND_CHMAP_BC] = "Bottom Center",
+	[SND_CHMAP_BLC] = "Bottom Left Center",
+	[SND_CHMAP_BRC] = "Bottom Right Center",
 };
 
 /**

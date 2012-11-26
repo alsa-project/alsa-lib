@@ -475,7 +475,7 @@ int snd_pcm_link(snd_pcm_t *pcm1, snd_pcm_t *pcm2);
 int snd_pcm_unlink(snd_pcm_t *pcm);
 
 /** channel mapping API version number */
-#define SND_CHMAP_API_VERSION	((1 << 16) | (0 << 8) | 0)
+#define SND_CHMAP_API_VERSION	((1 << 16) | (0 << 8) | 1)
 
 /** channel map list type */
 enum snd_pcm_chmap_type {
@@ -516,7 +516,16 @@ enum snd_pcm_chmap_position {
 	SND_CHMAP_TRL,		/** top rear left */
 	SND_CHMAP_TRR,		/** top rear right */
 	SND_CHMAP_TRC,		/** top rear center */
-	SND_CHMAP_LAST = SND_CHMAP_TRC,	/** last entry */
+	SND_CHMAP_TFLC,		/* top front left center */
+	SND_CHMAP_TFRC,		/* top front right center */
+	SND_CHMAP_TSL,		/* top side left */
+	SND_CHMAP_TSR,		/* top side right */
+	SND_CHMAP_LLFE,		/* left LFE */
+	SND_CHMAP_RLFE,		/* right LFE */
+	SND_CHMAP_BC,		/* bottom center */
+	SND_CHMAP_BLC,		/* bottom left center */
+	SND_CHMAP_BRC,		/* bottom right center */
+	SND_CHMAP_LAST = SND_CHMAP_BRC,
 };
 
 /** bitmask for channel position */
