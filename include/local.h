@@ -32,6 +32,7 @@
 #include <stdarg.h>
 #include <sys/poll.h>
 #include <errno.h>
+#include <linux/ioctl.h>
 
 #include "config.h"
 #ifdef SUPPORT_RESMGR
@@ -44,65 +45,82 @@
 #endif
 
 #define _snd_config_iterator list_head
-#define _snd_interval sndrv_interval
-#define _snd_pcm_info sndrv_pcm_info
-#define _snd_pcm_hw_params sndrv_pcm_hw_params
-#define _snd_pcm_sw_params sndrv_pcm_sw_params
-#define _snd_pcm_status sndrv_pcm_status
+#define _snd_interval snd_interval
+#define _snd_pcm_info snd_pcm_info
+#define _snd_pcm_hw_params snd_pcm_hw_params
+#define _snd_pcm_sw_params snd_pcm_sw_params
+#define _snd_pcm_status snd_pcm_status
 
-#define _snd_ctl_card_info sndrv_ctl_card_info
-#define _snd_ctl_elem_id sndrv_ctl_elem_id
-#define _snd_ctl_elem_list sndrv_ctl_elem_list
-#define _snd_ctl_elem_info sndrv_ctl_elem_info
-#define _snd_ctl_elem_value sndrv_ctl_elem_value
-#define _snd_ctl_event sndrv_ctl_event
+#define _snd_ctl_card_info snd_ctl_card_info
+#define _snd_ctl_elem_id snd_ctl_elem_id
+#define _snd_ctl_elem_list snd_ctl_elem_list
+#define _snd_ctl_elem_info snd_ctl_elem_info
+#define _snd_ctl_elem_value snd_ctl_elem_value
+#define _snd_ctl_event snd_ctl_event
 
-#define _snd_rawmidi_info sndrv_rawmidi_info
-#define _snd_rawmidi_params sndrv_rawmidi_params
-#define _snd_rawmidi_status sndrv_rawmidi_status
+#define _snd_rawmidi_info snd_rawmidi_info
+#define _snd_rawmidi_params snd_rawmidi_params
+#define _snd_rawmidi_status snd_rawmidi_status
 
-#define _snd_hwdep_info sndrv_hwdep_info
-#define _snd_hwdep_dsp_status sndrv_hwdep_dsp_status
-#define _snd_hwdep_dsp_image sndrv_hwdep_dsp_image
+#define _snd_hwdep_info snd_hwdep_info
+#define _snd_hwdep_dsp_status snd_hwdep_dsp_status
+#define _snd_hwdep_dsp_image snd_hwdep_dsp_image
 
-#define _snd_seq_queue_tempo sndrv_seq_queue_tempo
-#define _snd_seq_client_info sndrv_seq_client_info
-#define _snd_seq_port_info sndrv_seq_port_info
-#define _snd_seq_system_info sndrv_seq_system_info
-#define _snd_seq_queue_info sndrv_seq_queue_info
-#define _snd_seq_queue_status sndrv_seq_queue_status
-#define _snd_seq_queue_timer sndrv_seq_queue_timer
-#define _snd_seq_port_subscribe sndrv_seq_port_subscribe
-#define _snd_seq_query_subscribe sndrv_seq_query_subs
-#define _snd_seq_client_pool sndrv_seq_client_pool
-#define _snd_seq_remove_events sndrv_seq_remove_events
+#define _snd_seq_queue_tempo snd_seq_queue_tempo
+#define _snd_seq_client_info snd_seq_client_info
+#define _snd_seq_port_info snd_seq_port_info
+#define _snd_seq_system_info snd_seq_system_info
+#define _snd_seq_queue_info snd_seq_queue_info
+#define _snd_seq_queue_status snd_seq_queue_status
+#define _snd_seq_queue_timer snd_seq_queue_timer
+#define _snd_seq_port_subscribe snd_seq_port_subscribe
+#define _snd_seq_query_subscribe snd_seq_query_subs
+#define _snd_seq_client_pool snd_seq_client_pool
+#define _snd_seq_remove_events snd_seq_remove_events
 
-#define sndrv_seq_addr	snd_seq_addr
-#define sndrv_seq_tick_time_t	snd_seq_tick_time_t
-#define sndrv_seq_real_time	snd_seq_real_time
-#define sndrv_seq_timestamp	snd_seq_timestamp
-#define sndrv_seq_event		snd_seq_event
-
-#if 0
-typedef struct sndrv_seq_addr snd_seq_addr_t;
-#define snd_seq_tick_time_t sndrv_seq_tick_time_t
-typedef struct sndrv_seq_real_time snd_seq_real_time_t;
-typedef union sndrv_seq_timestamp snd_seq_timestamp_t;
-typedef struct sndrv_seq_event snd_seq_event_t;
-#endif
-
-#define _snd_timer_id sndrv_timer_id
-#define _snd_timer_ginfo sndrv_timer_ginfo
-#define _snd_timer_gparams sndrv_timer_gparams
-#define _snd_timer_gstatus sndrv_timer_gstatus
-#define _snd_timer_select sndrv_timer_select
-#define _snd_timer_info sndrv_timer_info
-#define _snd_timer_params sndrv_timer_params
-#define _snd_timer_status sndrv_timer_status
+#define _snd_timer_id snd_timer_id
+#define _snd_timer_ginfo snd_timer_ginfo
+#define _snd_timer_gparams snd_timer_gparams
+#define _snd_timer_gstatus snd_timer_gstatus
+#define _snd_timer_select snd_timer_select
+#define _snd_timer_info snd_timer_info
+#define _snd_timer_params snd_timer_params
+#define _snd_timer_status snd_timer_status
 
 #define ALSA_LIBRARY_BUILD
 
+/* rename some types for avoiding conflicts with alsalib's definitions */
+#define snd_aes_iec958		sndrv_aes_iec958
+#define snd_pcm_uframes_t	sndrv_pcm_uframes_t
+#define snd_pcm_sframes_t	sndrv_pcm_sframes_t
+#define snd_pcm_access_t	sndrv_pcm_access_t
+#define snd_pcm_format_t	sndrv_pcm_format_t
+#define snd_pcm_subformat_t	sndrv_pcm_subformat_t
+#define snd_pcm_state_t		sndrv_pcm_state_t
+#define snd_interval		sndrv_interval
+#define snd_mask		sndrv_mask
+#define snd_ctl_elem_type_t	sndrv_ctl_elem_type_t
+#define snd_ctl_elem_iface_t	sndrv_ctl_elem_iface_t
+#define snd_ctl_tlv		sndrv_ctl_tlv
+
+/* kill and replace kernel-specific types */
+#define __user
+#define __force
+#define __kernel_off_t		off_t
+
 #include <sound/asound.h>
+
+/* take back superfluous renames; some can be kept as is */
+#undef snd_aes_iec958
+#undef snd_pcm_uframes_t
+#undef snd_pcm_sframes_t
+#undef snd_pcm_access_t
+#undef snd_pcm_format_t
+#undef snd_pcm_subformat_t
+#undef snd_pcm_state_t
+#undef snd_ctl_elem_type_t
+#undef snd_ctl_elem_iface_t
+
 #include <sound/asoundef.h>
 #include "alsa-symbols.h"
 #include "version.h"
@@ -120,7 +138,31 @@ typedef struct sndrv_seq_event snd_seq_event_t;
 #include "mixer.h"
 #include "seq_event.h"
 #include "seq.h"
+
+/* rename some types for avoiding conflicts with alsalib's definitions */
+#define snd_seq_addr		sndrv_seq_addr
+#define snd_seq_tick_time_t	sndrv_seq_tick_time_t
+#define snd_seq_real_time	sndrv_seq_real_time
+#define snd_seq_timestamp	sndrv_seq_timestamp
+#define snd_seq_event		sndrv_seq_event
+#define snd_seq_connect		sndrv_seq_connect
+#define snd_seq_ev_note		sndrv_seq_ev_note
+#define snd_seq_ev_ctrl		sndrv_seq_ev_ctrl
+#define snd_seq_ev_raw8		sndrv_seq_ev_raw8
+#define snd_seq_ev_raw32	sndrv_seq_ev_raw32
+#define snd_seq_ev_ext		sndrv_seq_ev_ext
+#define snd_seq_result		sndrv_seq_result
+#define snd_seq_queue_skew	sndrv_seq_queue_skew
+#define snd_seq_ev_queue_control	sndrv_seq_ev_queue_control
+#define snd_seq_client_t	sndrv_seq_client_t
+#define snd_seq_client_type_t	sndrv_seq_client_type_t
+
 #include <sound/asequencer.h>
+
+/* take back some renames */
+#undef snd_seq_client_t
+#undef snd_seq_client_type_t
+
 #include "seqmid.h"
 #include "seq_midi_event.h"
 #include "list.h"

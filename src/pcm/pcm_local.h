@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <sys/uio.h>
+#include <sys/time.h>
 
 #define _snd_mask sndrv_mask
 #define _snd_pcm_access_mask _snd_mask
@@ -38,7 +39,6 @@
 #define SND_MASK_INLINE
 #include "mask.h"
 
-typedef enum sndrv_pcm_hw_param snd_pcm_hw_param_t;
 #define SND_PCM_HW_PARAM_ACCESS SNDRV_PCM_HW_PARAM_ACCESS
 #define SND_PCM_HW_PARAM_FIRST_MASK SNDRV_PCM_HW_PARAM_FIRST_MASK
 #define SND_PCM_HW_PARAM_FORMAT SNDRV_PCM_HW_PARAM_FORMAT
@@ -578,7 +578,7 @@ static inline int muldiv_near(int a, int b, int c)
 }
 
 int snd_pcm_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
-int _snd_pcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
+int _snd_pcm_hw_params_internal(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 int snd_pcm_hw_refine_soft(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 int snd_pcm_hw_refine_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 			    int (*cprepare)(snd_pcm_t *pcm,
@@ -995,3 +995,13 @@ static inline int snd_pcm_may_wait_for_avail_min(snd_pcm_t *pcm, snd_pcm_uframes
 	return 1;
 }
 
+/* hack to access to internal period_event in snd_pcm_sw_parmams */
+static inline int sw_get_period_event(const snd_pcm_sw_params_t *params)
+{
+	return params->reserved[sizeof(params->reserved) / sizeof(params->reserved[0])- 1];
+}
+
+static inline void sw_set_period_event(snd_pcm_sw_params_t *params, int val)
+{
+	params->reserved[sizeof(params->reserved) / sizeof(params->reserved[0]) - 1] = val;
+}

@@ -2309,7 +2309,7 @@ int snd_pcm_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
    max periods
    Return 0 on success otherwise a negative error code
 */
-int _snd_pcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+int _snd_pcm_hw_params_internal(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	int err;
 	snd_pcm_sw_params_t sw;

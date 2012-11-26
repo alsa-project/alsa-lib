@@ -35,7 +35,7 @@ const char *_snd_module_timer_hw = "";
 #define SNDRV_FILE_TIMER		ALSA_DEVICE_DIRECTORY "timer"
 #define SNDRV_TIMER_VERSION_MAX	SNDRV_PROTOCOL_VERSION(2, 0, 5)
 
-#define SNDRV_TIMER_IOCTL_STATUS_OLD	_IOW('T', 0x14, struct sndrv_timer_status)
+#define SNDRV_TIMER_IOCTL_STATUS_OLD	_IOW('T', 0x14, struct snd_timer_status)
 
 enum {
 	SNDRV_TIMER_IOCTL_START_OLD = _IO('T', 0x20),
@@ -225,7 +225,7 @@ int snd_timer_hw_open(snd_timer_t **handle, const char *name, int dev_class, int
 {
 	int fd, ver, tmode, ret;
 	snd_timer_t *tmr;
-	struct sndrv_timer_select sel;
+	struct snd_timer_select sel;
 
 	*handle = NULL;
 

@@ -63,7 +63,7 @@ struct sndrv_pcm_hw_params_old {
 	unsigned int flags;
 	unsigned int masks[SNDRV_PCM_HW_PARAM_SUBFORMAT -
 			   SNDRV_PCM_HW_PARAM_ACCESS + 1];
-	struct sndrv_interval intervals[SNDRV_PCM_HW_PARAM_TICK_TIME -
+	struct snd_interval intervals[SNDRV_PCM_HW_PARAM_TICK_TIME -
 					SNDRV_PCM_HW_PARAM_SAMPLE_BITS + 1];
 	unsigned int rmask;
 	unsigned int cmask;
@@ -92,9 +92,9 @@ typedef struct {
 	int fd;
 	int card, device, subdevice;
 	int sync_ptr_ioctl;
-	volatile struct sndrv_pcm_mmap_status * mmap_status;
-	struct sndrv_pcm_mmap_control *mmap_control;
-	struct sndrv_pcm_sync_ptr *sync_ptr;
+	volatile struct snd_pcm_mmap_status * mmap_status;
+	struct snd_pcm_mmap_control *mmap_control;
+	struct snd_pcm_sync_ptr *sync_ptr;
 	snd_pcm_uframes_t hw_ptr;
 	snd_pcm_uframes_t appl_ptr;
 	int period_event;
@@ -116,7 +116,7 @@ typedef struct {
 
 /* update appl_ptr with driver */
 #define FAST_PCM_STATE(hw) \
-	((enum sndrv_pcm_state) (hw)->mmap_status->state)
+	((snd_pcm_state_t) (hw)->mmap_status->state)
 #define FAST_PCM_TSTAMP(hw) \
 	((hw)->mmap_status->tstamp)
 
@@ -434,8 +434,8 @@ static int snd_pcm_hw_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd, err;
-	int old_period_event = params->period_event;
-	params->period_event = 0;
+	int old_period_event = sw_get_period_event(params);
+	sw_set_period_event(params, 0);
 	if ((snd_pcm_tstamp_t) params->tstamp_mode == pcm->tstamp_mode &&
 	    params->period_step == pcm->period_step &&
 	    params->start_threshold == pcm->start_threshold &&
@@ -451,7 +451,7 @@ static int snd_pcm_hw_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 		SYSMSG("SNDRV_PCM_IOCTL_SW_PARAMS failed (%i)", err);
 		return err;
 	}
-	params->period_event = old_period_event;
+	sw_set_period_event(params, old_period_event);
 	hw->mmap_control->avail_min = params->avail_min;
 	if (hw->period_event != old_period_event) {
 		err = snd_pcm_hw_change_timer(pcm, old_period_event);
@@ -465,7 +465,7 @@ static int snd_pcm_hw_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 static int snd_pcm_hw_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
-	struct sndrv_pcm_channel_info i;
+	struct snd_pcm_channel_info i;
 	int fd = hw->fd, err;
 	i.channel = info->channel;
 	if (ioctl(fd, SNDRV_PCM_IOCTL_CHANNEL_INFO, &i) < 0) {
@@ -761,7 +761,7 @@ static snd_pcm_sframes_t snd_pcm_hw_writei(snd_pcm_t *pcm, const void *buffer, s
 	int err;
 	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd;
-	struct sndrv_xferi xferi;
+	struct snd_xferi xferi;
 	xferi.buf = (char*) buffer;
 	xferi.frames = size;
 	xferi.result = 0; /* make valgrind happy */
@@ -780,7 +780,7 @@ static snd_pcm_sframes_t snd_pcm_hw_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_
 	int err;
 	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd;
-	struct sndrv_xfern xfern;
+	struct snd_xfern xfern;
 	memset(&xfern, 0, sizeof(xfern)); /* make valgrind happy */
 	xfern.bufs = bufs;
 	xfern.frames = size;
@@ -799,7 +799,7 @@ static snd_pcm_sframes_t snd_pcm_hw_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_
 	int err;
 	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd;
-	struct sndrv_xferi xferi;
+	struct snd_xferi xferi;
 	xferi.buf = buffer;
 	xferi.frames = size;
 	xferi.result = 0; /* make valgrind happy */
@@ -818,7 +818,7 @@ static snd_pcm_sframes_t snd_pcm_hw_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_u
 	int err;
 	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd;
-	struct sndrv_xfern xfern;
+	struct snd_xfern xfern;
 	memset(&xfern, 0, sizeof(xfern)); /* make valgrind happy */
 	xfern.bufs = bufs;
 	xfern.frames = size;
@@ -835,12 +835,12 @@ static snd_pcm_sframes_t snd_pcm_hw_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_u
 static int snd_pcm_hw_mmap_status(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
-	struct sndrv_pcm_sync_ptr sync_ptr;
+	struct snd_pcm_sync_ptr sync_ptr;
 	void *ptr;
 	int err;
 	ptr = MAP_FAILED;
 	if (hw->sync_ptr_ioctl == 0)
-		ptr = mmap(NULL, page_align(sizeof(struct sndrv_pcm_mmap_status)),
+		ptr = mmap(NULL, page_align(sizeof(struct snd_pcm_mmap_status)),
 			   PROT_READ, MAP_FILE|MAP_SHARED, 
 			   hw->fd, SNDRV_PCM_MMAP_OFFSET_STATUS);
 	if (ptr == MAP_FAILED || ptr == NULL) {
@@ -853,7 +853,7 @@ static int snd_pcm_hw_mmap_status(snd_pcm_t *pcm)
 			SYSMSG("SNDRV_PCM_IOCTL_SYNC_PTR failed (%i)", err);
 			return err;
 		}
-		hw->sync_ptr = calloc(1, sizeof(struct sndrv_pcm_sync_ptr));
+		hw->sync_ptr = calloc(1, sizeof(struct snd_pcm_sync_ptr));
 		if (hw->sync_ptr == NULL)
 			return -ENOMEM;
 		hw->mmap_status = &hw->sync_ptr->s.status;
@@ -862,7 +862,7 @@ static int snd_pcm_hw_mmap_status(snd_pcm_t *pcm)
 	} else {
 		hw->mmap_status = ptr;
 	}
-	snd_pcm_set_hw_ptr(pcm, &hw->mmap_status->hw_ptr, hw->fd, SNDRV_PCM_MMAP_OFFSET_STATUS + offsetof(struct sndrv_pcm_mmap_status, hw_ptr));
+	snd_pcm_set_hw_ptr(pcm, &hw->mmap_status->hw_ptr, hw->fd, SNDRV_PCM_MMAP_OFFSET_STATUS + offsetof(struct snd_pcm_mmap_status, hw_ptr));
 	return 0;
 }
 
@@ -872,7 +872,7 @@ static int snd_pcm_hw_mmap_control(snd_pcm_t *pcm)
 	void *ptr;
 	int err;
 	if (hw->sync_ptr == NULL) {
-		ptr = mmap(NULL, page_align(sizeof(struct sndrv_pcm_mmap_control)),
+		ptr = mmap(NULL, page_align(sizeof(struct snd_pcm_mmap_control)),
 			   PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, 
 			   hw->fd, SNDRV_PCM_MMAP_OFFSET_CONTROL);
 		if (ptr == MAP_FAILED || ptr == NULL) {

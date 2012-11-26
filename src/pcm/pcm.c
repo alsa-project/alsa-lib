@@ -895,7 +895,7 @@ int snd_pcm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 	pcm->tstamp_mode = params->tstamp_mode;
 	pcm->period_step = params->period_step;
 	pcm->avail_min = params->avail_min;
-	pcm->period_event = params->period_event;
+	pcm->period_event = sw_get_period_event(params);
 	pcm->start_threshold = params->start_threshold;
 	pcm->stop_threshold = params->stop_threshold;
 	pcm->silence_threshold = params->silence_threshold;
@@ -5572,7 +5572,7 @@ int snd_pcm_sw_params_current(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 	params->period_step = pcm->period_step;
 	params->sleep_min = 0;
 	params->avail_min = pcm->avail_min;
-	params->period_event = pcm->period_event;
+	sw_set_period_event(params, pcm->period_event);
 	params->xfer_align = 1;
 	params->start_threshold = pcm->start_threshold;
 	params->stop_threshold = pcm->stop_threshold;
@@ -5880,7 +5880,7 @@ int snd_pcm_sw_params_get_avail_min(const snd_pcm_sw_params_t *params, snd_pcm_u
 int snd_pcm_sw_params_set_period_event(snd_pcm_t *pcm, snd_pcm_sw_params_t *params, int val)
 {
 	assert(pcm && params);
-	params->period_event = val;
+	sw_set_period_event(params, val);
 	return 0;
 }
 
@@ -5893,7 +5893,7 @@ int snd_pcm_sw_params_set_period_event(snd_pcm_t *pcm, snd_pcm_sw_params_t *para
 int snd_pcm_sw_params_get_period_event(const snd_pcm_sw_params_t *params, int *val)
 {
 	assert(params && val);
-	*val = params->period_event;
+	*val = sw_get_period_event(params);
 	return 0;
 }
 

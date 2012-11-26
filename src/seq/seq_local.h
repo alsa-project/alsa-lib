@@ -32,7 +32,7 @@
 #define SND_SEQ_IBUF_SIZE	500		/* in event_size aligned */
 #define DEFAULT_TMPBUF_SIZE	20
 
-typedef struct sndrv_seq_queue_client snd_seq_queue_client_t;
+typedef struct snd_seq_queue_client snd_seq_queue_client_t;
 
 
 typedef struct {

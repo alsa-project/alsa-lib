@@ -217,7 +217,7 @@ static int snd_ctl_hw_elem_tlv(snd_ctl_t *handle, int op_flag,
 {
 	int inum;
 	snd_ctl_hw_t *hw = handle->private_data;
-	struct sndrv_ctl_tlv *xtlv;
+	struct snd_ctl_tlv *xtlv;
 	
 	/* we don't support TLV on protocol ver 2.0.3 or earlier */
 	if (hw->protocol < SNDRV_PROTOCOL_VERSION(2, 0, 4))
@@ -229,7 +229,7 @@ static int snd_ctl_hw_elem_tlv(snd_ctl_t *handle, int op_flag,
 	case 1:	inum = SNDRV_CTL_IOCTL_TLV_WRITE; break;
 	default: return -EINVAL;
 	}
-	xtlv = malloc(sizeof(struct sndrv_ctl_tlv) + tlv_size);
+	xtlv = malloc(sizeof(struct snd_ctl_tlv) + tlv_size);
 	if (xtlv == NULL)
 		return -ENOMEM; 
 	xtlv->numid = numid;

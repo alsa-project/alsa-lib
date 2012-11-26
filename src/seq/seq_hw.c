@@ -518,7 +518,7 @@ int snd_seq_hw_open(snd_seq_t **handle, const char *name, int streams, int mode)
 
 #ifdef SNDRV_SEQ_IOCTL_RUNNING_MODE
 	{
-		struct sndrv_seq_running_info run_mode;
+		struct snd_seq_running_info run_mode;
 		/* check running mode */
 		memset(&run_mode, 0, sizeof(run_mode));
 		run_mode.client = client;
