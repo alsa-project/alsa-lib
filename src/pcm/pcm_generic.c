@@ -101,7 +101,7 @@ int snd_pcm_generic_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 int snd_pcm_generic_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_generic_t *generic = pcm->private_data;
-	return _snd_pcm_hw_params(generic->slave, params);
+	return _snd_pcm_hw_params_internal(generic->slave, params);
 }
 
 int snd_pcm_generic_prepare(snd_pcm_t *pcm)

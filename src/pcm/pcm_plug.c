@@ -1040,7 +1040,7 @@ static int snd_pcm_plug_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 			return err;
 	}
 	slave = plug->gen.slave;
-	err = _snd_pcm_hw_params(slave, params);
+	err = _snd_pcm_hw_params_internal(slave, params);
 	if (err < 0) {
 		snd_pcm_plug_clear(pcm);
 		return err;

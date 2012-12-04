@@ -595,7 +595,7 @@ static int snd_pcm_share_hw_refine_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *pa
 static int snd_pcm_share_hw_params_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_share_t *share = pcm->private_data;
-	return _snd_pcm_hw_params(share->slave->pcm, params);
+	return _snd_pcm_hw_params_internal(share->slave->pcm, params);
 }
 
 static int snd_pcm_share_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)

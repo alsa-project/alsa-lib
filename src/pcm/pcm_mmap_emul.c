@@ -160,7 +160,7 @@ static int snd_pcm_mmap_emul_hw_params(snd_pcm_t *pcm,
 	snd_pcm_access_mask_t *pmask;
 	int err;
 
-	err = _snd_pcm_hw_params(map->gen.slave, params);
+	err = _snd_pcm_hw_params_internal(map->gen.slave, params);
 	if (err >= 0) {
 		map->mmap_emul = 0;
 		return err;
@@ -186,7 +186,7 @@ static int snd_pcm_mmap_emul_hw_params(snd_pcm_t *pcm,
 	default:
 		goto _err;
 	}
-	err = _snd_pcm_hw_params(map->gen.slave, params);
+	err = _snd_pcm_hw_params_internal(map->gen.slave, params);
 	if (err < 0)
 		goto _err;
 

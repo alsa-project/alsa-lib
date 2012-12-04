@@ -419,7 +419,7 @@ static int snd_pcm_meter_hw_refine_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *pa
 static int snd_pcm_meter_hw_params_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_meter_t *meter = pcm->private_data;
-	return _snd_pcm_hw_params(meter->gen.slave, params);
+	return _snd_pcm_hw_params_internal(meter->gen.slave, params);
 }
 
 static int snd_pcm_meter_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
