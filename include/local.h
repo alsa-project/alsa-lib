@@ -44,6 +44,16 @@
 #define RTLD_NOW	0
 #endif
 
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+#define SND_LITTLE_ENDIAN
+#define SNDRV_LITTLE_ENDIAN
+#elif __BYTE_ORDER == __BIG_ENDIAN
+#define SND_BIG_ENDIAN
+#define SNDRV_BIG_ENDIAN
+#else
+#error "Unsupported endian..."
+#endif
+
 #define _snd_config_iterator list_head
 #define _snd_interval snd_interval
 #define _snd_pcm_info snd_pcm_info
@@ -167,13 +177,6 @@
 #include "seqmid.h"
 #include "seq_midi_event.h"
 #include "list.h"
-
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-#define SND_LITTLE_ENDIAN
-#endif
-#if __BYTE_ORDER == __BIG_ENDIAN
-#define SND_BIG_ENDIAN
-#endif
 
 struct _snd_async_handler {
 	enum {
