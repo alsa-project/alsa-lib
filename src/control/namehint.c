@@ -80,7 +80,8 @@ static void zero_handler(const char *file ATTRIBUTE_UNUSED,
 			 int line ATTRIBUTE_UNUSED,
 			 const char *function ATTRIBUTE_UNUSED,
 			 int err ATTRIBUTE_UNUSED,
-			 const char *fmt ATTRIBUTE_UNUSED, ...)
+			 const char *fmt ATTRIBUTE_UNUSED,
+			 va_list arg ATTRIBUTE_UNUSED)
 {
 }
 
@@ -212,7 +213,7 @@ static int try_config(struct hint_list *list,
 		      const char *base,
 		      const char *name)
 {
-	snd_lib_error_handler_t eh;
+	snd_local_error_handler_t eh;
 	snd_config_t *res = NULL, *cfg, *cfg1, *n;
 	snd_config_iterator_t i, next;
 	char *buf, *buf1 = NULL, *buf2;
@@ -239,10 +240,9 @@ static int try_config(struct hint_list *list,
 		sprintf(buf, "%s:CARD=%s", name, snd_ctl_card_info_get_id(list->info));
 	else
 		strcpy(buf, name);
-	eh = snd_lib_error;
-	snd_lib_error_set_handler(&zero_handler);
+	eh = snd_lib_error_set_local(&zero_handler);
 	err = snd_config_search_definition(snd_config, base, buf, &res);
-	snd_lib_error_set_handler(eh);
+	snd_lib_error_set_local(eh);
 	if (err < 0)
 		goto __skip_add;
 	cleanup_res = 1;
@@ -337,10 +337,9 @@ static int try_config(struct hint_list *list,
 		goto __ok;
 	/* find, if all parameters have a default, */
 	/* otherwise filter this definition */
-	eh = snd_lib_error;
-	snd_lib_error_set_handler(&zero_handler);
+	eh = snd_lib_error_set_local(&zero_handler);
 	err = snd_config_search_alias_hooks(snd_config, base, buf, &res);
-	snd_lib_error_set_handler(eh);
+	snd_lib_error_set_local(eh);
 	if (err < 0)
 		goto __cleanup;
 	if (snd_config_search(res, "@args", &cfg) >= 0) {
