@@ -3530,7 +3530,7 @@ int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t 
 				if (err < 0)
 					goto _err;
 			}
-		} else if (config_file_open(root, fi[idx].name) < 0)
+		} else if ((err = config_file_open(root, fi[idx].name)) < 0)
 			goto _err;
 	}
 	*dst = NULL;
