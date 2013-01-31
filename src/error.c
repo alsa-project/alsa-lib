@@ -60,6 +60,21 @@ const char *snd_strerror(int errnum)
 	return snd_error_codes[errnum];
 }
 
+#ifdef HAVE___THREAD
+#define TLS_PFX		__thread
+#else
+#define TLS_PFX		/* NOP */
+#endif
+
+static TLS_PFX snd_local_error_handler_t local_error = NULL;
+
+snd_local_error_handler_t snd_lib_error_set_local(snd_local_error_handler_t func)
+{
+	snd_local_error_handler_t old = local_error;
+	local_error = func;
+	return old;
+}
+
 /**
  * \brief The default error handler function.
  * \param file The filename where the error was hit.
@@ -69,12 +84,19 @@ const char *snd_strerror(int errnum)
  * \param fmt The message (including the format characters).
  * \param ... Optional arguments.
  *
- * Prints the error message including location to \c stderr.
+ * If a local error function has been installed for the current thread by
+ * \ref snd_lib_error_set_local, it is called. Otherwise, prints the error
+ * message including location to \c stderr.
  */
 static void snd_lib_error_default(const char *file, int line, const char *function, int err, const char *fmt, ...)
 {
 	va_list arg;
 	va_start(arg, fmt);
+	if (local_error) {
+		local_error(file, line, function, err, fmt, arg);
+		va_end(arg);
+		return;
+	}
 	fprintf(stderr, "ALSA lib %s:%i:(%s) ", file, line, function);
 	vfprintf(stderr, fmt, arg);
 	if (err)

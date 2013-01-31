@@ -74,5 +74,11 @@ extern int snd_lib_error_set_handler(snd_lib_error_handler_t handler);
 }
 #endif
 
+typedef void (*snd_local_error_handler_t)(const char *file, int line,
+					  const char *func, int err,
+					  const char *fmt, va_list arg);
+
+snd_local_error_handler_t snd_lib_error_set_local(snd_local_error_handler_t func);
+
 #endif /* __ALSA_ERROR_H */
 

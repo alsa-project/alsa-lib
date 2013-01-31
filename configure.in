@@ -281,6 +281,16 @@ else
   AC_MSG_RESULT(no)
 fi
 
+dnl Check for __thread
+AC_MSG_CHECKING([for __thread])
+AC_LINK_IFELSE([AC_LANG_PROGRAM([#if defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__)) && ((__GNUC__ < 4) || (__GNUC__ == 4 && __GNUC_MINOR__ < 1) || (__GNUC__ == 4 && __GNUC_MINOR__ == 1 && __GNUC_PATCHLEVEL__ < 2))
+#error gcc has this bug: http://gcc.gnu.org/ml/gcc-bugs/2006-09/msg02275.html
+#endif], [static __thread int p = 0])],
+[AC_DEFINE(HAVE___THREAD, 1,
+Define to 1 if compiler supports __thread)
+AC_MSG_RESULT([yes])],
+[AC_MSG_RESULT([no])])
+
 dnl Check for librt
 AC_MSG_CHECKING(for librt)
 AC_ARG_WITH(librt,
