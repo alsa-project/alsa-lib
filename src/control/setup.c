@@ -396,7 +396,7 @@ static int snd_config_get_ctl_elem_value(snd_config_t *conf,
 	return 0;
 }
 
-static int add_elem(snd_sctl_t *h, snd_config_t *_conf, snd_config_t *private_data)
+static int add_elem(snd_sctl_t *h, snd_config_t *_conf, snd_config_t *private_data, int *quit)
 {
 	snd_config_t *conf;
 	snd_config_iterator_t i, next;
@@ -408,6 +408,7 @@ static int add_elem(snd_sctl_t *h, snd_config_t *_conf, snd_config_t *private_da
 	int lock = 0;
 	int preserve = 0;
 	int optional = 0;
+	int skip_rest = 0;
 	snd_config_t *value = NULL, *mask = NULL;
 	snd_sctl_elem_t *elem = NULL;
 	int err;
@@ -491,6 +492,13 @@ static int add_elem(snd_sctl_t *h, snd_config_t *_conf, snd_config_t *private_da
 			optional = err;
 			continue;
 		}
+		if (strcmp(id, "skip_rest") == 0) {
+			err = snd_config_get_bool(n);
+			if (err < 0)
+				goto _err;
+			skip_rest = err;
+			continue;
+		}
 		SNDERR("Unknown field %s", id);
 		return -EINVAL;
 	}
@@ -539,6 +547,9 @@ static int add_elem(snd_sctl_t *h, snd_config_t *_conf, snd_config_t *private_da
 		if (! optional)
 			SNDERR("Cannot obtain info for CTL elem (%s,'%s',%li,%li,%li): %s", snd_ctl_elem_iface_name(iface), name, index, device, subdevice, snd_strerror(err));
 		goto _err;
+	} else {
+		if (skip_rest)
+			*quit = 1;
 	}
 	snd_ctl_elem_value_set_id(elem->val, elem->id);
 	snd_ctl_elem_value_set_id(elem->old, elem->id);
@@ -594,7 +605,7 @@ int snd_sctl_build(snd_sctl_t **sctl, snd_ctl_t *handle, snd_config_t *conf, snd
 {
 	snd_sctl_t *h;
 	snd_config_iterator_t i, next;
-	int err;
+	int err, quit = 0;
 
 	assert(sctl);
 	assert(handle);
@@ -614,11 +625,13 @@ int snd_sctl_build(snd_sctl_t **sctl, snd_ctl_t *handle, snd_config_t *conf, snd
 	INIT_LIST_HEAD(&h->elems);
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
-		err = add_elem(h, n, private_data);
+		err = add_elem(h, n, private_data, &quit);
 		if (err < 0) {
 			free_elems(h);
 			return err;
 		}
+		if (quit)
+			break;
 	}
 	*sctl = h;
 	return 0;
