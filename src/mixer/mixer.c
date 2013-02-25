@@ -743,7 +743,7 @@ int snd_mixer_poll_descriptors_revents(snd_mixer_t *mixer, struct pollfd *pfds, 
 	if (nfds == 0)
 		return -EINVAL;
 	res = 0;
-	for (idx = 0; idx < nfds; idx++)
+	for (idx = 0; idx < nfds; idx++, pfds++)
 		res |= pfds->revents & (POLLIN|POLLERR|POLLNVAL);
 	*revents = res;
 	return 0;
