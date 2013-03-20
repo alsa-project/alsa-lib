@@ -2711,6 +2711,8 @@ int snd_pcm_area_copy(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes_t 
 	    dst_area->step == (unsigned int) width) {
 		size_t bytes = samples * width / 8;
 		samples -= bytes * 8 / width;
+		assert(src < dst || src >= dst + bytes);
+		assert(dst < src || dst >= src + bytes);
 		memcpy(dst, src, bytes);
 		if (samples == 0)
 			return 0;
@@ -2845,17 +2847,21 @@ int snd_pcm_areas_copy(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_
 				break;
 		}
 		if (chns > 1 && chns * width == step) {
-			/* Collapse the areas */
-			snd_pcm_channel_area_t s, d;
-			s.addr = src_start->addr;
-			s.first = src_start->first;
-			s.step = width;
-			d.addr = dst_start->addr;
-			d.first = dst_start->first;
-			d.step = width;
-			snd_pcm_area_copy(&d, dst_offset * chns,
-					  &s, src_offset * chns, 
-					  frames * chns, format);
+			if (src_offset != dst_offset ||
+			    src_start->addr != dst_start->addr ||
+			    src_start->first != dst_start->first) {
+				/* Collapse the areas */
+				snd_pcm_channel_area_t s, d;
+				s.addr = src_start->addr;
+				s.first = src_start->first;
+				s.step = width;
+				d.addr = dst_start->addr;
+				d.first = dst_start->first;
+				d.step = width;
+				snd_pcm_area_copy(&d, dst_offset * chns,
+						  &s, src_offset * chns, 
+						  frames * chns, format);
+			}
 			channels -= chns;
 		} else {
 			snd_pcm_area_copy(dst_start, dst_offset,
