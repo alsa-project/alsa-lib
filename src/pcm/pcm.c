@@ -162,7 +162,7 @@ The PCM device has accepted communication parameters and it is waiting
 for #snd_pcm_prepare() call to prepare the hardware for
 selected operation (playback or capture).
 
-\par SND_PCM_STATE_PREPARE
+\par SND_PCM_STATE_PREPARED
 The PCM device is prepared for operation. Application can use
 #snd_pcm_start() call, write or read data to start
 the operation.
