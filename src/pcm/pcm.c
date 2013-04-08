@@ -716,7 +716,7 @@ int snd_pcm_close(snd_pcm_t *pcm)
 /**
  * \brief set nonblock mode
  * \param pcm PCM handle
- * \param nonblock 0 = block, 1 = nonblock mode
+ * \param nonblock 0 = block, 1 = nonblock mode, 2 = abort
  * \return 0 on success otherwise a negative error code
  */
 int snd_pcm_nonblock(snd_pcm_t *pcm, int nonblock)
@@ -725,6 +725,10 @@ int snd_pcm_nonblock(snd_pcm_t *pcm, int nonblock)
 	assert(pcm);
 	if ((err = pcm->ops->nonblock(pcm->op_arg, nonblock)) < 0)
 		return err;
+	if (nonblock == 2) {
+		pcm->mode |= SND_PCM_ABORT;
+		return 0;
+	}
 	if (nonblock)
 		pcm->mode |= SND_PCM_NONBLOCK;
 	else {
@@ -2401,7 +2405,7 @@ int snd_pcm_wait_nocheck(snd_pcm_t *pcm, int timeout)
 	do {
 		err_poll = poll(pfd, npfds, timeout);
 		if (err_poll < 0) {
-		        if (errno == EINTR)
+		        if (errno == EINTR && !PCMINABORT(pcm))
 		                continue;
 			return -errno;
                 }

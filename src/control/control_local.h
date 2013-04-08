@@ -98,3 +98,5 @@ int _snd_ctl_poll_descriptor(snd_ctl_t *ctl);
 int snd_ctl_hw_open(snd_ctl_t **handle, const char *name, int card, int mode);
 int snd_ctl_shm_open(snd_ctl_t **handlep, const char *name, const char *sockname, const char *sname, int mode);
 int snd_ctl_async(snd_ctl_t *ctl, int sig, pid_t pid);
+
+#define CTLINABORT(x) ((x)->nonblock == 2)

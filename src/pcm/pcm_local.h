@@ -1006,3 +1006,5 @@ static inline void sw_set_period_event(snd_pcm_sw_params_t *params, int val)
 {
 	params->reserved[sizeof(params->reserved) / sizeof(params->reserved[0]) - 1] = val;
 }
+
+#define PCMINABORT(pcm) (((pcm)->mode & SND_PCM_ABORT) != 0)

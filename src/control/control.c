@@ -103,7 +103,7 @@ int snd_ctl_close(snd_ctl_t *ctl)
 /**
  * \brief set nonblock mode
  * \param ctl CTL handle
- * \param nonblock 0 = block, 1 = nonblock mode
+ * \param nonblock 0 = block, 1 = nonblock mode, 2 = abort
  * \return 0 on success otherwise a negative error code
  */
 int snd_ctl_nonblock(snd_ctl_t *ctl, int nonblock)

@@ -314,6 +314,8 @@ typedef long snd_pcm_sframes_t;
 #define SND_PCM_NONBLOCK		0x00000001
 /** Async notification (flag for open mode) \hideinitializer */
 #define SND_PCM_ASYNC			0x00000002
+/** In an abort state (internal, not allowed for open) */
+#define SND_PCM_ABORT			0x00008000
 /** Disable automatic (but not forced!) rate resamplinig */
 #define SND_PCM_NO_AUTO_RESAMPLE	0x00010000
 /** Disable automatic (but not forced!) channel conversion */
@@ -437,6 +439,7 @@ int snd_pcm_poll_descriptors_count(snd_pcm_t *pcm);
 int snd_pcm_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int space);
 int snd_pcm_poll_descriptors_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents);
 int snd_pcm_nonblock(snd_pcm_t *pcm, int nonblock);
+static inline int snd_pcm_abort(snd_pcm_t *pcm) { return snd_pcm_nonblock(pcm, 2); }
 int snd_async_add_pcm_handler(snd_async_handler_t **handler, snd_pcm_t *pcm, 
 			      snd_async_callback_t callback, void *private_data);
 snd_pcm_t *snd_async_handler_get_pcm(snd_async_handler_t *handler);

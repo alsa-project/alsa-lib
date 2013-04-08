@@ -696,7 +696,7 @@ int snd_hctl_wait(snd_hctl_t *hctl, int timeout)
 		pollio = 0;
 		err_poll = poll(pfd, npfds, timeout);
 		if (err_poll < 0) {
-			if (errno == EINTR)
+			if (errno == EINTR && !CTLINABORT(hctl->ctl))
 				continue;
 			return -errno;
 		}
