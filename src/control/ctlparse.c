@@ -297,6 +297,7 @@ static int get_ctl_enum_item_index(snd_ctl_t *handle,
 
 /**
  * \brief parse ASCII string as CTL element value
+ * \param handle CTL handle
  * \param dst destination CTL element value
  * \param info CTL element info structure
  * \param value source ASCII string

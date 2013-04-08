@@ -74,6 +74,7 @@ extern int snd_lib_error_set_handler(snd_lib_error_handler_t handler);
 }
 #endif
 
+/** Local error handler function type */
 typedef void (*snd_local_error_handler_t)(const char *file, int line,
 					  const char *func, int err,
 					  const char *fmt, va_list arg);

@@ -254,10 +254,16 @@ typedef struct snd_seq_ev_raw32 {
 } snd_seq_ev_raw32_t;
 
 /** external stored data */
-typedef struct snd_seq_ev_ext {
+struct snd_seq_ev_ext {
 	unsigned int len;		/**< length of data */
 	void *ptr;			/**< pointer to data (note: can be 64-bit) */
-} __attribute__((packed)) snd_seq_ev_ext_t;
+} __attribute__((packed));
+/** external stored data */
+typedef struct snd_seq_ev_ext snd_seq_ev_ext_t;
+#ifdef DOC_HIDDEN
+/* redefine typedef for stupid doxygen */
+typedef snd_seq_ev_ext snd_seq_ev_ext_t;
+#endif
 
 /** Result events */
 typedef struct snd_seq_result {

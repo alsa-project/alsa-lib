@@ -1062,7 +1062,7 @@ int snd_mixer_class_set_private(snd_mixer_class_t *obj, void *private_data)
  * \param private_free Mixer class private data free callback
  * \return zero if success, otherwise a negative error code
  */
-int snd_mixer_class_set_private_free(snd_mixer_class_t *obj, void (*private_free)(snd_mixer_class_t *class))
+int snd_mixer_class_set_private_free(snd_mixer_class_t *obj, void (*private_free)(snd_mixer_class_t *))
 {
 	assert(obj);
 	obj->private_free = private_free;

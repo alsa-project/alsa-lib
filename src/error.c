@@ -60,14 +60,21 @@ const char *snd_strerror(int errnum)
 	return snd_error_codes[errnum];
 }
 
+#ifndef DOC_HIDDEN
 #ifdef HAVE___THREAD
 #define TLS_PFX		__thread
 #else
 #define TLS_PFX		/* NOP */
 #endif
+#endif
 
 static TLS_PFX snd_local_error_handler_t local_error = NULL;
 
+/**
+ * \brief Install local error handler
+ * \param func The local error handler function
+ * \retval Previous local error handler function
+ */
 snd_local_error_handler_t snd_lib_error_set_local(snd_local_error_handler_t func)
 {
 	snd_local_error_handler_t old = local_error;

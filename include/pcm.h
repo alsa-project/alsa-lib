@@ -491,43 +491,43 @@ enum snd_pcm_chmap_type {
 
 /** channel positions */
 enum snd_pcm_chmap_position {
-	SND_CHMAP_UNKNOWN = 0,	/** unspecified */
-	SND_CHMAP_NA,		/** N/A, silent */
-	SND_CHMAP_MONO,		/** mono stream */
-	SND_CHMAP_FL,		/** front left */
-	SND_CHMAP_FR,		/** front right */
-	SND_CHMAP_RL,		/** rear left */
-	SND_CHMAP_RR,		/** rear right */
-	SND_CHMAP_FC,		/** front center */
-	SND_CHMAP_LFE,		/** LFE */
-	SND_CHMAP_SL,		/** side left */
-	SND_CHMAP_SR,		/** side right */
-	SND_CHMAP_RC,		/** rear center */
-	SND_CHMAP_FLC,		/** front left center */
-	SND_CHMAP_FRC,		/** front right center */
-	SND_CHMAP_RLC,		/** rear left center */
-	SND_CHMAP_RRC,		/** rear right center */
-	SND_CHMAP_FLW,		/** front left wide */
-	SND_CHMAP_FRW,		/** front right wide */
-	SND_CHMAP_FLH,		/** front left high */
-	SND_CHMAP_FCH,		/** front center high */
-	SND_CHMAP_FRH,		/** front right high */
-	SND_CHMAP_TC,		/** top center */
-	SND_CHMAP_TFL,		/** top front left */
-	SND_CHMAP_TFR,		/** top front right */
-	SND_CHMAP_TFC,		/** top front center */
-	SND_CHMAP_TRL,		/** top rear left */
-	SND_CHMAP_TRR,		/** top rear right */
-	SND_CHMAP_TRC,		/** top rear center */
-	SND_CHMAP_TFLC,		/* top front left center */
-	SND_CHMAP_TFRC,		/* top front right center */
-	SND_CHMAP_TSL,		/* top side left */
-	SND_CHMAP_TSR,		/* top side right */
-	SND_CHMAP_LLFE,		/* left LFE */
-	SND_CHMAP_RLFE,		/* right LFE */
-	SND_CHMAP_BC,		/* bottom center */
-	SND_CHMAP_BLC,		/* bottom left center */
-	SND_CHMAP_BRC,		/* bottom right center */
+	SND_CHMAP_UNKNOWN = 0,	/**< unspecified */
+	SND_CHMAP_NA,		/**< N/A, silent */
+	SND_CHMAP_MONO,		/**< mono stream */
+	SND_CHMAP_FL,		/**< front left */
+	SND_CHMAP_FR,		/**< front right */
+	SND_CHMAP_RL,		/**< rear left */
+	SND_CHMAP_RR,		/**< rear right */
+	SND_CHMAP_FC,		/**< front center */
+	SND_CHMAP_LFE,		/**< LFE */
+	SND_CHMAP_SL,		/**< side left */
+	SND_CHMAP_SR,		/**< side right */
+	SND_CHMAP_RC,		/**< rear center */
+	SND_CHMAP_FLC,		/**< front left center */
+	SND_CHMAP_FRC,		/**< front right center */
+	SND_CHMAP_RLC,		/**< rear left center */
+	SND_CHMAP_RRC,		/**< rear right center */
+	SND_CHMAP_FLW,		/**< front left wide */
+	SND_CHMAP_FRW,		/**< front right wide */
+	SND_CHMAP_FLH,		/**< front left high */
+	SND_CHMAP_FCH,		/**< front center high */
+	SND_CHMAP_FRH,		/**< front right high */
+	SND_CHMAP_TC,		/**< top center */
+	SND_CHMAP_TFL,		/**< top front left */
+	SND_CHMAP_TFR,		/**< top front right */
+	SND_CHMAP_TFC,		/**< top front center */
+	SND_CHMAP_TRL,		/**< top rear left */
+	SND_CHMAP_TRR,		/**< top rear right */
+	SND_CHMAP_TRC,		/**< top rear center */
+	SND_CHMAP_TFLC,		/**< top front left center */
+	SND_CHMAP_TFRC,		/**< top front right center */
+	SND_CHMAP_TSL,		/**< top side left */
+	SND_CHMAP_TSR,		/**< top side right */
+	SND_CHMAP_LLFE,		/**< left LFE */
+	SND_CHMAP_RLFE,		/**< right LFE */
+	SND_CHMAP_BC,		/**< bottom center */
+	SND_CHMAP_BLC,		/**< bottom left center */
+	SND_CHMAP_BRC,		/**< bottom right center */
 	SND_CHMAP_LAST = SND_CHMAP_BRC,
 };
 
@@ -541,14 +541,14 @@ enum snd_pcm_chmap_position {
 
 /** the channel map header */
 typedef struct snd_pcm_chmap {
-	unsigned int channels;	/** number of channels */
-	unsigned int pos[0];	/** channel position array */
+	unsigned int channels;	/**< number of channels */
+	unsigned int pos[0];	/**< channel position array */
 } snd_pcm_chmap_t;
 
 /** the header of array items returned from snd_pcm_query_chmaps() */
 typedef struct snd_pcm_chmap_query {
-	enum snd_pcm_chmap_type type;	/** channel map type */
-	snd_pcm_chmap_t map;		/** available channel map */
+	enum snd_pcm_chmap_type type;	/**< channel map type */
+	snd_pcm_chmap_t map;		/**< available channel map */
 } snd_pcm_chmap_query_t;
 
 

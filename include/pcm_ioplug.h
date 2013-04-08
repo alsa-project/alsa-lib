@@ -54,6 +54,11 @@ enum {
 typedef struct snd_pcm_ioplug snd_pcm_ioplug_t;
 /** Callback table of ioplug */
 typedef struct snd_pcm_ioplug_callback snd_pcm_ioplug_callback_t;
+#ifdef DOC_HIDDEN
+/* redefine typedefs for stupid doxygen */
+typedef snd_pcm_ioplug snd_pcm_ioplug_t;
+typedef snd_pcm_ioplug_callback snd_pcm_ioplug_callback_t;
+#endif
 
 /*
  * bit flags for additional conditions

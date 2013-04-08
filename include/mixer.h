@@ -154,7 +154,7 @@ void *snd_mixer_class_get_private(const snd_mixer_class_t *class_);
 snd_mixer_compare_t snd_mixer_class_get_compare(const snd_mixer_class_t *class_);
 int snd_mixer_class_set_event(snd_mixer_class_t *class_, snd_mixer_event_t event);
 int snd_mixer_class_set_private(snd_mixer_class_t *class_, void *private_data);
-int snd_mixer_class_set_private_free(snd_mixer_class_t *class_, void (*private_free)(snd_mixer_class_t *class_));
+int snd_mixer_class_set_private_free(snd_mixer_class_t *class_, void (*private_free)(snd_mixer_class_t *));
 int snd_mixer_class_set_compare(snd_mixer_class_t *class_, snd_mixer_compare_t compare);
 
 /**

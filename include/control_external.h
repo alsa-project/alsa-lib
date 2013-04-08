@@ -60,6 +60,11 @@ typedef struct snd_ctl_ext snd_ctl_ext_t;
 typedef struct snd_ctl_ext_callback snd_ctl_ext_callback_t;
 /** Key to access a control pointer */
 typedef unsigned long snd_ctl_ext_key_t;
+#ifdef DOC_HIDDEN
+/* redefine typedef's for stupid doxygen */
+typedef snd_ctl_ext snd_ctl_ext_t;
+typedef snd_ctl_ext_callback snd_ctl_ext_callback_t;
+#endif
 /** Callback to handle TLV commands. */
 typedef int (snd_ctl_ext_tlv_rw_t)(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key, int op_flag, unsigned int numid,
 				   unsigned int *tlv, unsigned int tlv_size);
@@ -138,7 +143,7 @@ struct snd_ctl_ext {
 	} tlv;
 };
 
-/** Callback table of ext */
+/** Callback table of ext. */
 struct snd_ctl_ext_callback {
 	/**
 	 * close the control handle; optional

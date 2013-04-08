@@ -49,6 +49,11 @@ enum {
 typedef struct snd_pcm_extplug snd_pcm_extplug_t;
 /** Callback table of extplug */
 typedef struct snd_pcm_extplug_callback snd_pcm_extplug_callback_t;
+#ifdef DOC_HIDDEN
+/* redefine typedefs for stupid doxygen */
+typedef snd_pcm_extplug snd_pcm_extplug_t;
+typedef snd_pcm_extplug_callback snd_pcm_extplug_callback_t;
+#endif
 
 /*
  * Protocol version
