@@ -391,10 +391,11 @@ static int snd_pcm_dsnoop_close(snd_pcm_t *pcm)
  		snd_pcm_direct_server_discard(dsnoop);
  	if (dsnoop->client)
  		snd_pcm_direct_client_discard(dsnoop);
-	if (snd_pcm_direct_shm_discard(dsnoop))
-		snd_pcm_direct_semaphore_discard(dsnoop);
-	else
-		snd_pcm_direct_semaphore_up(dsnoop, DIRECT_IPC_SEM_CLIENT);
+	if (snd_pcm_direct_shm_discard(dsnoop)) {
+		if (snd_pcm_direct_semaphore_discard(dsnoop))
+			snd_pcm_direct_semaphore_final(dsnoop, DIRECT_IPC_SEM_CLIENT);
+	} else
+		snd_pcm_direct_semaphore_final(dsnoop, DIRECT_IPC_SEM_CLIENT);
 	free(dsnoop->bindings);
 	pcm->private_data = NULL;
 	free(dsnoop);

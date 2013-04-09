@@ -781,9 +781,9 @@ static int snd_pcm_dmix_close(snd_pcm_t *pcm)
  	shm_sum_discard(dmix);
 	if (snd_pcm_direct_shm_discard(dmix)) {
 		if (snd_pcm_direct_semaphore_discard(dmix))
-			snd_pcm_direct_semaphore_up(dmix, DIRECT_IPC_SEM_CLIENT);
+			snd_pcm_direct_semaphore_final(dmix, DIRECT_IPC_SEM_CLIENT);
 	} else
-		snd_pcm_direct_semaphore_up(dmix, DIRECT_IPC_SEM_CLIENT);
+		snd_pcm_direct_semaphore_final(dmix, DIRECT_IPC_SEM_CLIENT);
 	free(dmix->bindings);
 	pcm->private_data = NULL;
 	free(dmix);

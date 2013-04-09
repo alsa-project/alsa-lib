@@ -122,6 +122,7 @@ struct snd_pcm_direct {
 	mode_t ipc_perm;		/* IPC socket permissions */
 	int ipc_gid;			/* IPC socket gid */
 	int semid;			/* IPC global semaphore identification */
+	int locked[DIRECT_IPC_SEMS];	/* local lock counter */
 	int shmid;			/* IPC global shared memory identification */
 	snd_pcm_direct_share_t *shmptr;	/* pointer to shared memory area */
 	snd_pcm_t *spcm; 		/* slave PCM handle */
@@ -257,13 +258,26 @@ static inline int snd_pcm_direct_semaphore_discard(snd_pcm_direct_t *dmix)
 static inline int snd_pcm_direct_semaphore_down(snd_pcm_direct_t *dmix, int sem_num)
 {
 	struct sembuf op[2] = { { sem_num, 0, 0 }, { sem_num, 1, SEM_UNDO } };
-	return semop(dmix->semid, op, 2);
+	int err = semop(dmix->semid, op, 2);
+	if (err == 0) dmix->locked[sem_num]++;
+	return err;
 }
 
 static inline int snd_pcm_direct_semaphore_up(snd_pcm_direct_t *dmix, int sem_num)
 {
 	struct sembuf op = { sem_num, -1, SEM_UNDO | IPC_NOWAIT };
-	return semop(dmix->semid, &op, 1);
+	int err = semop(dmix->semid, &op, 1);
+	if (err == 0) dmix->locked[sem_num]--;
+	return err;
+}
+
+static inline int snd_pcm_direct_semaphore_final(snd_pcm_direct_t *dmix, int sem_num)
+{
+	if (dmix->locked[sem_num] != 1) {
+		assert(dmix->locked[sem_num] != 1);
+		abort();
+	}
+	return snd_pcm_direct_semaphore_up(dmix, sem_num);
 }
 
 int snd_pcm_direct_shm_create_or_connect(snd_pcm_direct_t *dmix);

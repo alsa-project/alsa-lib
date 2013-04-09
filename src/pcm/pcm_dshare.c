@@ -470,10 +470,11 @@ static int snd_pcm_dshare_close(snd_pcm_t *pcm)
  		snd_pcm_direct_server_discard(dshare);
  	if (dshare->client)
  		snd_pcm_direct_client_discard(dshare);
-	if (snd_pcm_direct_shm_discard(dshare))
-		snd_pcm_direct_semaphore_discard(dshare);
-	else
-		snd_pcm_direct_semaphore_up(dshare, DIRECT_IPC_SEM_CLIENT);
+	if (snd_pcm_direct_shm_discard(dshare)) {
+		if (snd_pcm_direct_semaphore_discard(dshare))
+			snd_pcm_direct_semaphore_final(dshare, DIRECT_IPC_SEM_CLIENT);
+	} else
+		snd_pcm_direct_semaphore_final(dshare, DIRECT_IPC_SEM_CLIENT);
 	free(dshare->bindings);
 	pcm->private_data = NULL;
 	free(dshare);
