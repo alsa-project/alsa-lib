@@ -275,6 +275,9 @@ int snd_dlobj_cache_put(void *func)
 	struct dlobj_cache *c;
 	unsigned int refcnt;
 
+	if (!func)
+		return -ENOENT;
+
 	snd_dlobj_lock();
 	list_for_each(p, &pcm_dlobj_list) {
 		c = list_entry(p, struct dlobj_cache, list);
