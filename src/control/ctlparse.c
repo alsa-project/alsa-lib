@@ -302,6 +302,9 @@ static int get_ctl_enum_item_index(snd_ctl_t *handle,
  * \param info CTL element info structure
  * \param value source ASCII string
  * \return zero on success, otherwise a negative error code
+ *
+ * Note: For toggle command, the dst must contain previous (current)
+ * state (do the #snd_ctl_elem_read call to obtain it).
  */
 int snd_ctl_ascii_value_parse(snd_ctl_t *handle,
 			      snd_ctl_elem_value_t *dst,
