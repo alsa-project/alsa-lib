@@ -208,8 +208,7 @@ void *snd_dlobj_cache_get(const char *lib, const char *name,
 {
 	struct list_head *p;
 	struct dlobj_cache *c;
-	void *func, *dlobj = NULL;
-	int dlobj_close = 0;
+	void *func, *dlobj;
 
 	snd_dlobj_lock();
 	list_for_each(p, &pcm_dlobj_list) {
@@ -220,7 +219,6 @@ void *snd_dlobj_cache_get(const char *lib, const char *name,
 			continue;
 		if (!lib && c->lib)
 			continue;
-		dlobj = c->dlobj;
 		if (strcmp(c->name, name) == 0) {
 			c->refcnt++;
 			func = c->func;
@@ -228,17 +226,16 @@ void *snd_dlobj_cache_get(const char *lib, const char *name,
 			return func;
 		}
 	}
+
+	dlobj = snd_dlopen(lib, RTLD_NOW);
 	if (dlobj == NULL) {
-		dlobj = snd_dlopen(lib, RTLD_NOW);
-		if (dlobj == NULL) {
-			if (verbose)
-				SNDERR("Cannot open shared library %s",
+		if (verbose)
+			SNDERR("Cannot open shared library %s",
 						lib ? lib : "[builtin]");
-			snd_dlobj_unlock();
-			return NULL;
-		}
-		dlobj_close = 1;
+		snd_dlobj_unlock();
+		return NULL;
 	}
+
 	func = snd_dlsym(dlobj, name, version);
 	if (func == NULL) {
 		if (verbose)
@@ -257,8 +254,7 @@ void *snd_dlobj_cache_get(const char *lib, const char *name,
 		free((void *)c->lib);
 		free(c);
 	      __err:
-		if (dlobj_close)
-			snd_dlclose(dlobj);
+		snd_dlclose(dlobj);
 		snd_dlobj_unlock();
 		return NULL;
 	}
@@ -298,16 +294,11 @@ void snd_dlobj_cache_cleanup(void)
 	struct list_head *p, *npos;
 	struct dlobj_cache *c;
 
-	/* clean up caches only when really no user is present */
 	snd_dlobj_lock();
-	list_for_each(p, &pcm_dlobj_list) {
-		c = list_entry(p, struct dlobj_cache, list);
-		if (c->refcnt)
-			goto unlock;
-	}
-
 	list_for_each_safe(p, npos, &pcm_dlobj_list) {
 		c = list_entry(p, struct dlobj_cache, list);
+		if (c->refcnt)
+			continue;
 		list_del(p);
 		snd_dlclose(c->dlobj);
 		free((void *)c->name); /* shut up gcc warning */
