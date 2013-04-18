@@ -199,7 +199,19 @@ typedef enum _snd_pcm_format {
 	SND_PCM_FORMAT_U18_3LE,
 	/** Unsigned 18bit Big Endian in 3bytes format */
 	SND_PCM_FORMAT_U18_3BE,
-	SND_PCM_FORMAT_LAST = SND_PCM_FORMAT_U18_3BE,
+	/* G.723 (ADPCM) 24 kbit/s, 8 samples in 3 bytes */
+	SND_PCM_FORMAT_G723_24,
+	/* G.723 (ADPCM) 24 kbit/s, 1 sample in 1 byte */
+	SND_PCM_FORMAT_G723_24_1B,
+	/* G.723 (ADPCM) 40 kbit/s, 8 samples in 3 bytes */
+	SND_PCM_FORMAT_G723_40,
+	/* G.723 (ADPCM) 40 kbit/s, 1 sample in 1 byte */
+	SND_PCM_FORMAT_G723_40_1B,
+	/* Direct Stream Digital (DSD) in 1-byte samples (x8) */
+	SND_PCM_FORMAT_DSD_U8,
+	/* Direct Stream Digital (DSD) in 2-byte samples (x16) */
+	SND_PCM_FORMAT_DSD_U16_LE,
+	SND_PCM_FORMAT_LAST = SND_PCM_FORMAT_DSD_U16_LE,
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 	/** Signed 16 bit CPU endian */
