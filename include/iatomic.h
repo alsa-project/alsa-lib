@@ -980,7 +980,7 @@ static __inline__ int atomic_dec_and_test(volatile atomic_t *v)
 	return result;
 }
 
-static inline int atomic_add_negative(int i, volatile atomic_t *v)
+static __inline__ int atomic_add_negative(int i, volatile atomic_t *v)
 {
 	unsigned long flags;
 	int result;
@@ -1160,36 +1160,36 @@ typedef struct {
 
 void snd_atomic_read_wait(snd_atomic_read_t *t);
 
-static inline void snd_atomic_write_init(snd_atomic_write_t *w)
+static __inline__ void snd_atomic_write_init(snd_atomic_write_t *w)
 {
 	w->begin = 0;
 	w->end = 0;
 }
 
-static inline void snd_atomic_write_begin(snd_atomic_write_t *w)
+static __inline__ void snd_atomic_write_begin(snd_atomic_write_t *w)
 {
 	w->begin++;
 	wmb();
 }
 
-static inline void snd_atomic_write_end(snd_atomic_write_t *w)
+static __inline__ void snd_atomic_write_end(snd_atomic_write_t *w)
 {
 	wmb();
 	w->end++;
 }
 
-static inline void snd_atomic_read_init(snd_atomic_read_t *r, snd_atomic_write_t *w)
+static __inline__ void snd_atomic_read_init(snd_atomic_read_t *r, snd_atomic_write_t *w)
 {
 	r->write = w;
 }
 
-static inline void snd_atomic_read_begin(snd_atomic_read_t *r)
+static __inline__ void snd_atomic_read_begin(snd_atomic_read_t *r)
 {
 	r->end = r->write->end;
 	rmb();
 }
 
-static inline int snd_atomic_read_ok(snd_atomic_read_t *r)
+static __inline__ int snd_atomic_read_ok(snd_atomic_read_t *r)
 {
 	rmb();
 	return r->end == r->write->begin;

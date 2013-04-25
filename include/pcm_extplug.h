@@ -188,7 +188,7 @@ int snd_pcm_extplug_set_slave_param_minmax(snd_pcm_extplug_t *extplug, int type,
 /**
  * set the parameter constraint with a single value
  */
-static inline int snd_pcm_extplug_set_param(snd_pcm_extplug_t *extplug, int type, unsigned int val)
+static __inline__ int snd_pcm_extplug_set_param(snd_pcm_extplug_t *extplug, int type, unsigned int val)
 {
 	return snd_pcm_extplug_set_param_list(extplug, type, 1, &val);
 }
@@ -196,7 +196,7 @@ static inline int snd_pcm_extplug_set_param(snd_pcm_extplug_t *extplug, int type
 /**
  * set the parameter constraint for slave PCM with a single value
  */
-static inline int snd_pcm_extplug_set_slave_param(snd_pcm_extplug_t *extplug, int type, unsigned int val)
+static __inline__ int snd_pcm_extplug_set_slave_param(snd_pcm_extplug_t *extplug, int type, unsigned int val)
 {
 	return snd_pcm_extplug_set_slave_param_list(extplug, type, 1, &val);
 }

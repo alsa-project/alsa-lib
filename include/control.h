@@ -234,7 +234,7 @@ int snd_ctl_open_lconf(snd_ctl_t **ctl, const char *name, int mode, snd_config_t
 int snd_ctl_open_fallback(snd_ctl_t **ctl, snd_config_t *root, const char *name, const char *orig_name, int mode);
 int snd_ctl_close(snd_ctl_t *ctl);
 int snd_ctl_nonblock(snd_ctl_t *ctl, int nonblock);
-static inline int snd_ctl_abort(snd_ctl_t *ctl) { return snd_ctl_nonblock(ctl, 2); }
+static __inline__ int snd_ctl_abort(snd_ctl_t *ctl) { return snd_ctl_nonblock(ctl, 2); }
 int snd_async_add_ctl_handler(snd_async_handler_t **handler, snd_ctl_t *ctl, 
 			      snd_async_callback_t callback, void *private_data);
 snd_ctl_t *snd_async_handler_get_ctl(snd_async_handler_t *handler);
@@ -532,7 +532,7 @@ int snd_hctl_open(snd_hctl_t **hctl, const char *name, int mode);
 int snd_hctl_open_ctl(snd_hctl_t **hctlp, snd_ctl_t *ctl);
 int snd_hctl_close(snd_hctl_t *hctl);
 int snd_hctl_nonblock(snd_hctl_t *hctl, int nonblock);
-static inline int snd_hctl_abort(snd_hctl_t *hctl) { return snd_hctl_nonblock(hctl, 2); }
+static __inline__ int snd_hctl_abort(snd_hctl_t *hctl) { return snd_hctl_nonblock(hctl, 2); }
 int snd_hctl_poll_descriptors_count(snd_hctl_t *hctl);
 int snd_hctl_poll_descriptors(snd_hctl_t *hctl, struct pollfd *pfds, unsigned int space);
 int snd_hctl_poll_descriptors_revents(snd_hctl_t *ctl, struct pollfd *pfds, unsigned int nfds, unsigned short *revents);

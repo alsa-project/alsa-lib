@@ -354,7 +354,7 @@ int snd_use_case_mgr_reset(snd_use_case_mgr_t *uc_mgr);
  * \param list Returned allocated list
  * \return Number of list entries if success, otherwise a negative error code
  */
-static inline int snd_use_case_card_list(const char **list[])
+static __inline__ int snd_use_case_card_list(const char **list[])
 {
 	return snd_use_case_get_list(NULL, NULL, list);
 }
@@ -365,7 +365,7 @@ static inline int snd_use_case_card_list(const char **list[])
  * \param list Returned list of verbs
  * \return Number of list entries if success, otherwise a negative error code
  */
-static inline int snd_use_case_verb_list(snd_use_case_mgr_t *uc_mgr,
+static __inline__ int snd_use_case_verb_list(snd_use_case_mgr_t *uc_mgr,
 					 const char **list[])
 {
 	return snd_use_case_get_list(uc_mgr, "_verbs", list);
