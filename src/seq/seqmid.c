@@ -383,13 +383,8 @@ int snd_seq_sync_output_queue(snd_seq_t *seq)
  * digit numbers.
  * Actually \a arg need to be only a prefix of the wanted client.
  * That is, if a client named "Foobar XXL Master 2012" with number 128 is available,
- * then parsing "Foobar" will return the address 128:0.
- * However parsing is biased towards small client numbers,
- * thus if also a client named "Foobar" with number 129 exists,
- * then parsing will still yield address 128:0 and not 129:0.
- * If you want be able to access all clients by prefixes
- * then you must write your own parser that checks for matching client names
- * in the order of increasing name lengths.
+ * then parsing "Foobar" will return the address 128:0 if no other client is
+ * an exact match.
  */
 int snd_seq_parse_address(snd_seq_t *seq, snd_seq_addr_t *addr, const char *arg)
 {
@@ -421,13 +416,23 @@ int snd_seq_parse_address(snd_seq_t *seq, snd_seq_addr_t *addr, const char *arg)
 			return -EINVAL;
 		if (len <= 0)
 			return -EINVAL;
+		client = -1;
 		cinfo.client = -1;
 		while (snd_seq_query_next_client(seq, &cinfo) >= 0) {
-			if ((strlen(cinfo.name) == (size_t)len) &&
-				! strncmp(arg, cinfo.name, len)) {
-				addr->client = cinfo.client;
-				return 0;
+			if (!strncmp(arg, cinfo.name, len)) {
+				if (strlen(cinfo.name) == (size_t)len) {
+					/* exact match */
+					addr->client = cinfo.client;
+					return 0;
+				}
+				if (client < 0)
+					client = cinfo.client;
 			}
+		}
+		if (client >= 0) {
+			/* prefix match */
+			addr->client = client;
+			return 0;
 		}
 		return -ENOENT; /* not found */
 	}
