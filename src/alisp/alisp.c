@@ -989,7 +989,7 @@ static void dump_objects(struct alisp_instance *instance, const char *fname)
 	else
 		err = snd_output_stdio_open(&out, fname, "w+");
 	if (err < 0) {
-		SNDERR("alisp: cannot open file '%s' for writting (%s)", fname, snd_strerror(errno));
+		SNDERR("alisp: cannot open file '%s' for writing (%s)", fname, snd_strerror(errno));
 		return;
 	}
 
@@ -1062,7 +1062,7 @@ static void dump_obj_lists(struct alisp_instance *instance, const char *fname)
 	else
 		err = snd_output_stdio_open(&out, fname, "w+");
 	if (err < 0) {
-		SNDERR("alisp: cannot open file '%s' for writting (%s)", fname, snd_strerror(errno));
+		SNDERR("alisp: cannot open file '%s' for writing (%s)", fname, snd_strerror(errno));
 		return;
 	}
 
