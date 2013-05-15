@@ -67,7 +67,25 @@ void *snd_dlopen(const char *name, int mode)
 #endif
 #endif
 #ifdef HAVE_LIBDL
-	return dlopen(name, mode);
+	/*
+	 * Handle the plugin dir not being on the default dlopen search
+	 * path, without resorting to polluting the entire system namespace
+	 * via ld.so.conf.
+	 */
+	void *handle = NULL;
+	char *filename;
+
+	if (name && name[0] != '/') {
+		filename = malloc(sizeof(ALSA_PLUGIN_DIR) + 1 + strlen(name) + 1);
+		strcpy(filename, ALSA_PLUGIN_DIR);
+		strcat(filename, "/");
+		strcat(filename, name);
+		handle = dlopen(filename, mode);
+		free(filename);
+	}
+	if (!handle)
+		handle = dlopen(name, mode);
+	return handle;
 #else
 	return NULL;
 #endif
