@@ -55,7 +55,7 @@ CC_NOUNDEFINED
 
 dnl Checks for header files.
 AC_HEADER_STDC
-AM_CONFIG_HEADER(include/config.h)
+AC_CONFIG_HEADERS(include/config.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
