@@ -112,7 +112,7 @@ int snd_hwdep_hw_open(snd_hwdep_t **handle, const char *name, int card, int devi
 
 	*handle = NULL;
 	
-	if (card < 0 || card >= 32)
+	if (card < 0 || card >= SND_MAX_CARDS)
 		return -EINVAL;
 	sprintf(filename, SNDRV_FILE_HWDEP, card, device);
 	fd = snd_open_device(filename, mode);

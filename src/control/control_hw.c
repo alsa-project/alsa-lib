@@ -382,7 +382,7 @@ int snd_ctl_hw_open(snd_ctl_t **handle, const char *name, int card, int mode)
 
 	*handle = NULL;	
 
-	if (CHECK_SANITY(card < 0 || card >= 32)) {
+	if (CHECK_SANITY(card < 0 || card >= SND_MAX_CARDS)) {
 		SNDMSG("Invalid card index %d", card);
 		return -EINVAL;
 	}

@@ -632,6 +632,20 @@ for t in $CTL_PLUGIN_LIST; do
   fi
 done
 
+dnl Max number of cards
+AC_MSG_CHECKING(for max number of cards)
+AC_ARG_WITH(max-cards,
+  AS_HELP_STRING([--with-max-cards], [Specify the max number of cards (default = 32)]),
+  [ max_cards="$withval" ], [ max_cards="32" ])
+AC_MSG_RESULT([$max_cards])
+
+if test "$max_cards" -lt 1; then
+   AC_ERROR([Invalid max cards $max_cards])
+elif test "$max_cards" -gt 256; then
+   AC_ERROR([Invalid max cards $max_cards])
+fi
+AC_DEFINE_UNQUOTED(SND_MAX_CARDS, $max_cards, [Max number of cards])
+
 dnl Make a symlink for inclusion of alsa/xxx.h
 if test ! -L "$srcdir"/include/alsa ; then
   echo "Making a symlink include/alsa"

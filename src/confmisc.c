@@ -668,7 +668,7 @@ int snd_determine_driver(int card, char **driver)
 	char *res = NULL;
 	int err;
 
-	assert(card >= 0 && card <= 32);
+	assert(card >= 0 && card <= SND_MAX_CARDS);
 	err = open_ctl(card, &ctl);
 	if (err < 0) {
 		SNDERR("could not open control for card %i", card);

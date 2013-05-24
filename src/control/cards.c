@@ -103,7 +103,7 @@ int snd_card_next(int *rcard)
 		return -EINVAL;
 	card = *rcard;
 	card = card < 0 ? 0 : card + 1;
-	for (; card < 32; card++) {
+	for (; card < SND_MAX_CARDS; card++) {
 		if (snd_card_load(card)) {
 			*rcard = card;
 			return 0;
@@ -134,7 +134,7 @@ int snd_card_get_index(const char *string)
 	    (isdigit(*string) && isdigit(*(string + 1)) && *(string + 2) == 0)) {
 		if (sscanf(string, "%i", &card) != 1)
 			return -EINVAL;
-		if (card < 0 || card > 31)
+		if (card < 0 || card >= SND_MAX_CARDS)
 			return -EINVAL;
 		err = snd_card_load1(card);
 		if (err >= 0)
@@ -143,7 +143,7 @@ int snd_card_get_index(const char *string)
 	}
 	if (string[0] == '/')	/* device name */
 		return snd_card_load2(string);
-	for (card = 0; card < 32; card++) {
+	for (card = 0; card < SND_MAX_CARDS; card++) {
 #ifdef SUPPORT_ALOAD
 		if (! snd_card_load(card))
 			continue;
