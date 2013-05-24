@@ -1647,7 +1647,8 @@ int snd_use_case_set(snd_use_case_mgr_t *uc_mgr,
                 		goto __end;
                         }
                 } else {
-                        str = NULL;
+                        err = -EINVAL;
+                        goto __end;
                 }
                 if (check_identifier(identifier, "_swdev"))
                         err = switch_device(uc_mgr, str, value);
