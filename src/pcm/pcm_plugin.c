@@ -219,9 +219,9 @@ static snd_pcm_sframes_t snd_pcm_plugin_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t
 		snd_atomic_write_end(&plugin->watom);
 		return sframes;
 	}
-	snd_pcm_mmap_appl_backward(pcm, (snd_pcm_uframes_t) frames);
+	snd_pcm_mmap_appl_backward(pcm, (snd_pcm_uframes_t) sframes);
 	snd_atomic_write_end(&plugin->watom);
-	return (snd_pcm_sframes_t) frames;
+	return (snd_pcm_sframes_t) sframes;
 }
 
 static snd_pcm_sframes_t snd_pcm_plugin_forwardable(snd_pcm_t *pcm)
