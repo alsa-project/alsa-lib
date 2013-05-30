@@ -95,8 +95,6 @@ typedef struct {
 	volatile struct snd_pcm_mmap_status * mmap_status;
 	struct snd_pcm_mmap_control *mmap_control;
 	struct snd_pcm_sync_ptr *sync_ptr;
-	snd_pcm_uframes_t hw_ptr;
-	snd_pcm_uframes_t appl_ptr;
 	int period_event;
 	snd_timer_t *period_timer;
 	struct pollfd period_timer_pfd;
