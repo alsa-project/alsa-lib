@@ -1453,7 +1453,7 @@ static int _snd_pcm_direct_get_slave_ipc_offset(snd_config_t *root,
 						int hop)
 {
 	snd_config_iterator_t i, next;
-	snd_config_t *pcm_conf;
+	snd_config_t *pcm_conf, *pcm_conf2;
 	int err;
 	long card = 0, device = 0, subdevice = 0;
 	const char *str;
@@ -1484,14 +1484,28 @@ static int _snd_pcm_direct_get_slave_ipc_offset(snd_config_t *root,
 	}
 #endif
 
-	if (snd_config_search(sconf, "slave", &pcm_conf) >= 0 &&
-	    (snd_config_search(pcm_conf, "pcm", &pcm_conf) >= 0 ||
-	    (snd_config_get_string(pcm_conf, &str) >= 0 &&
-	    snd_config_search_definition(root, "pcm_slave", str, &pcm_conf) >= 0 &&
-	    snd_config_search(pcm_conf, "pcm", &pcm_conf) >= 0)))
-		return _snd_pcm_direct_get_slave_ipc_offset(root, pcm_conf,
-							    direction,
-							    hop + 1);
+	if (snd_config_search(sconf, "slave", &pcm_conf) >= 0) {
+		if (snd_config_search(pcm_conf, "pcm", &pcm_conf) >= 0) {
+			return _snd_pcm_direct_get_slave_ipc_offset(root,
+								   pcm_conf,
+								   direction,
+								   hop + 1);
+		} else {
+			if (snd_config_get_string(pcm_conf, &str) >= 0 &&
+			    snd_config_search_definition(root, "pcm_slave",
+						    str, &pcm_conf) >= 0) {
+				if (snd_config_search(pcm_conf, "pcm",
+							&pcm_conf2) >= 0) {
+					err =
+					 _snd_pcm_direct_get_slave_ipc_offset(
+					     root, pcm_conf2, direction, hop + 1);
+					snd_config_delete(pcm_conf);
+					return err;
+				}
+				snd_config_delete(pcm_conf);
+			}
+		}
+	}
 
 	snd_config_for_each(i, next, sconf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
