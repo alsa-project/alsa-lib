@@ -7361,6 +7361,13 @@ OBSOLETE1(snd_pcm_sw_params_get_silence_size, ALSA_0.9, ALSA_0.9.0rc4);
 
 #endif /* DOC_HIDDEN */
 
+static int chmap_equal(const snd_pcm_chmap_t *a, const snd_pcm_chmap_t *b)
+{
+	if (a->channels != b->channels)
+		return 0;
+	return !memcmp(a->pos, b->pos, a->channels * sizeof(a->pos[0]));
+}
+
 /**
  * \!brief Query the available channel maps
  * \param pcm PCM handle to query
@@ -7415,6 +7422,10 @@ snd_pcm_chmap_t *snd_pcm_get_chmap(snd_pcm_t *pcm)
  */
 int snd_pcm_set_chmap(snd_pcm_t *pcm, const snd_pcm_chmap_t *map)
 {
+	const snd_pcm_chmap_t *oldmap = snd_pcm_get_chmap(pcm);
+	if (oldmap && chmap_equal(oldmap, map))
+		return 0;
+
 	if (!pcm->ops->set_chmap)
 		return -ENXIO;
 	return pcm->ops->set_chmap(pcm, map);
