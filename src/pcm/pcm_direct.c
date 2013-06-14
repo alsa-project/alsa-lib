@@ -1650,7 +1650,7 @@ int snd_pcm_direct_parse_open_conf(snd_config_t *root, snd_config_t *conf,
 				if (buffer == NULL)
 					return -ENOMEM;
 				int st = getgrnam_r(group, &grp, buffer, len, &pgrp);
-				if (st != 0) {
+				if (st != 0 || !pgrp) {
 					SNDERR("The field ipc_gid must be a valid group (create group %s)", group);
 					free(buffer);
 					return -EINVAL;
