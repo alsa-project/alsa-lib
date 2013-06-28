@@ -7,8 +7,10 @@ check_PROGRAMS=control pcm pcm_min latency seq \
 
 control_LDADD=../src/libasound.la
 pcm_LDADD=../src/libasound.la
+pcm_LDFLAGS= -lm
 pcm_min_LDADD=../src/libasound.la
 latency_LDADD=../src/libasound.la
+latency_LDFLAGS= -lm
 seq_LDADD=../src/libasound.la
 playmidi1_LDADD=../src/libasound.la
 timer_LDADD=../src/libasound.la
