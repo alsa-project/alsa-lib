@@ -32,6 +32,7 @@
 #include <stdarg.h>
 #include <sys/poll.h>
 #include <errno.h>
+#include <linux/types.h>
 #include <linux/ioctl.h>
 
 #include "config.h"
@@ -114,9 +115,12 @@
 #define snd_ctl_tlv		sndrv_ctl_tlv
 
 /* kill and replace kernel-specific types */
+#ifndef __user
 #define __user
+#endif
+#ifndef __force
 #define __force
-#define __kernel_off_t		off_t
+#endif
 
 #include <sound/asound.h>
 
