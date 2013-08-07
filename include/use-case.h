@@ -259,9 +259,13 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
  *   TQ			- Tone Quality
  *   PlaybackPCM	- full PCM playback device name
  *   CapturePCM		- full PCM capture device name
+ *   PlaybackRate	- playback device sample rate
+ *   PlaybackChannels	- playback device channel count
  *   PlaybackCTL	- playback control device name
  *   PlaybackVolume	- playback control volume ID string
  *   PlaybackSwitch	- playback control switch ID string
+ *   CaptureRate	- capture device sample rate
+ *   CaptureChannels	- capture device channel count
  *   CaptureCTL		- capture control device name
  *   CaptureVolume	- capture control volume ID string
  *   CaptureSwitch	- capture control switch ID string
