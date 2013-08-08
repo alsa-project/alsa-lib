@@ -7932,7 +7932,7 @@ int snd_pcm_set_params(snd_pcm_t *pcm,
 		return err;
 	}
 	if (rrate != rate) {
-		SNDERR("Rate doesn't match (requested %iHz, get %iHz)", rate, err);
+		SNDERR("Rate doesn't match (requested %iHz, get %iHz)", rate, rrate);
 		return -EINVAL;
 	}
 	/* set the buffer time */
