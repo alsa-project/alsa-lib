@@ -406,7 +406,7 @@ static const next_devices_t next_devices[] = {
 };
 #endif
 
-static int add_card(snd_config_t *config, struct hint_list *list, int card)
+static int add_card(snd_config_t *config, snd_config_t *rw_config, struct hint_list *list, int card)
 {
 	int err, ok;
 	snd_config_t *conf, *n;
@@ -449,7 +449,7 @@ static int add_card(snd_config_t *config, struct hint_list *list, int card)
 			ok = 0;
 			for (device = 0; err >= 0 && device <= max_device; device++) {
 				list->device = device;
-				err = try_config(config, list, list->siface, str);
+				err = try_config(rw_config, list, list->siface, str);
 				if (err < 0)
 					break;
 				ok++;
@@ -464,7 +464,7 @@ static int add_card(snd_config_t *config, struct hint_list *list, int card)
 		if (err < 0) {
 			list->card = card;
 			list->device = -1;
-			err = try_config(config, list, list->siface, str);
+			err = try_config(rw_config, list, list->siface, str);
 		}
 		if (err == -ENOMEM)
 			goto __error;
@@ -493,7 +493,8 @@ static int get_card_name(struct hint_list *list, int card)
 	return 0;
 }
 
-static int add_software_devices(snd_config_t *config, struct hint_list *list)
+static int add_software_devices(snd_config_t *config, snd_config_t *rw_config,
+				struct hint_list *list)
 {
 	int err;
 	snd_config_t *conf, *n;
@@ -509,7 +510,7 @@ static int add_software_devices(snd_config_t *config, struct hint_list *list)
 			continue;
 		list->card = -1;
 		list->device = -1;
-		err = try_config(config, list, list->siface, str);
+		err = try_config(rw_config, list, list->siface, str);
 		if (err == -ENOMEM)
 			return -ENOMEM;
 	}
@@ -547,7 +548,7 @@ int snd_device_name_hint(int card, const char *iface, void ***hints)
 	struct hint_list list;
 	char ehints[24];
 	const char *str;
-	snd_config_t *conf, *local_config = NULL;
+	snd_config_t *conf, *local_config = NULL, *local_config_rw = NULL;
 	snd_config_update_t *local_config_update = NULL;
 	snd_config_iterator_t i, next;
 	int err;
@@ -557,6 +558,7 @@ int snd_device_name_hint(int card, const char *iface, void ***hints)
 	err = snd_config_update_r(&local_config, &local_config_update, NULL);
 	if (err < 0)
 		return err;
+	err = snd_config_copy(&local_config_rw, local_config);
 	list.list = NULL;
 	list.count = list.allocated = 0;
 	list.siface = iface;
@@ -586,9 +588,9 @@ int snd_device_name_hint(int card, const char *iface, void ***hints)
 	if (card >= 0) {
 		err = get_card_name(&list, card);
 		if (err >= 0)
-			err = add_card(local_config, &list, card);
+			err = add_card(local_config, local_config_rw, &list, card);
 	} else {
-		add_software_devices(local_config, &list);
+		add_software_devices(local_config, local_config_rw, &list);
 		err = snd_card_next(&card);
 		if (err < 0)
 			goto __error;
@@ -596,7 +598,7 @@ int snd_device_name_hint(int card, const char *iface, void ***hints)
 			err = get_card_name(&list, card);
 			if (err < 0)
 				goto __error;
-			err = add_card(local_config, &list, card);
+			err = add_card(local_config, local_config_rw, &list, card);
 			if (err < 0)
 				goto __error;
 			err = snd_card_next(&card);
@@ -630,6 +632,8 @@ int snd_device_name_hint(int card, const char *iface, void ***hints)
       		if (list.cardname)
 	      		free(list.cardname);
 	}
+	if (local_config_rw)
+		snd_config_delete(local_config_rw);
 	if (local_config)
 		snd_config_delete(local_config);
 	if (local_config_update)
