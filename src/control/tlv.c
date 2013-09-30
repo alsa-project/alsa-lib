@@ -312,7 +312,7 @@ int snd_tlv_convert_from_dB(unsigned int *tlv, long rangemin, long rangemax,
 							       submin, submax,
 							       db_gain, value, xdir);
 			else if (db_gain < dbmin) {
-				*value = xdir || pos == 2 ? submin : prev_submax;
+				*value = xdir > 0 || pos == 2 ? submin : prev_submax;
 				return 0;
 			}
 			prev_submax = submax;
