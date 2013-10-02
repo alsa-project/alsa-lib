@@ -46,8 +46,8 @@ if BUILD_ALISP
 SUBDIRS += alisp
 libasound_la_LIBADD += alisp/libalisp.la
 endif
-SUBDIRS += compat conf
-libasound_la_LIBADD += compat/libcompat.la @ALSA_DEPLIBS@
+SUBDIRS += conf
+libasound_la_LIBADD += @ALSA_DEPLIBS@
 
 libasound_la_LDFLAGS = -version-info $(COMPATNUM) $(VSYMS) $(SYMFUNCS) $(LDFLAGS_NOUNDEFINED)
 
@@ -83,9 +83,6 @@ ucm/libucm.la:
 
 instr/libinstr.la:
 	$(MAKE) -C instr libinstr.la
-
-compat/libcompat.la:
-	$(MAKE) -C compat libcompat.la
 
 alisp/libalisp.la:
 	$(MAKE) -C alisp libalisp.la

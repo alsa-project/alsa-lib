@@ -64,8 +64,6 @@ AC_HEADER_TIME
 
 dnl Checks for library functions.
 AC_PROG_GCC_TRADITIONAL
-AC_CHECK_FUNC([hsearch_r], [HAVE_HSEARCH_R=yes])
-AM_CONDITIONAL([ALSA_HSEARCH_R], [test "x$HAVE_HSEARCH_R" != xyes])
 AC_CHECK_FUNCS([uselocale])
 
 SAVE_LIBRARY_VERSION
@@ -659,7 +657,7 @@ AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile doc/doxygen.cfg \
 	  src/pcm/Makefile src/pcm/scopes/Makefile \
 	  src/rawmidi/Makefile src/timer/Makefile \
           src/hwdep/Makefile src/seq/Makefile src/ucm/Makefile \
-          src/compat/Makefile src/alisp/Makefile \
+          src/alisp/Makefile \
 	  src/conf/Makefile src/conf/alsa.conf.d/Makefile \
 	  src/conf/cards/Makefile \
 	  src/conf/pcm/Makefile \
