@@ -31,6 +31,7 @@
 #include <endian.h>
 #include <stdarg.h>
 #include <sys/poll.h>
+#include <sys/types.h>
 #include <errno.h>
 #include <linux/types.h>
 #include <linux/ioctl.h>
