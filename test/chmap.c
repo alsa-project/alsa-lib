@@ -16,6 +16,7 @@ static void usage(void)
 	       "       chmap [options] set CH0 CH1 CH2...\n"
 	       "options:\n"
 	       "  -D device     Specify PCM device to handle\n"
+	       "  -s stream     Specify PCM stream direction (playback/capture)\n"
 	       "  -f format     PCM format\n"
 	       "  -c channels   Channels\n"
 	       "  -r rate       Sample rate\n");
