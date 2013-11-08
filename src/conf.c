@@ -427,8 +427,8 @@ beginning:</P>
 #ifndef DOC_HIDDEN
 
 #ifdef HAVE_LIBPTHREAD
-static pthread_mutex_t snd_config_update_mutex =
-				PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+static pthread_mutex_t snd_config_update_mutex;
+static pthread_once_t snd_config_update_mutex_once = PTHREAD_ONCE_INIT;
 #endif
 
 struct _snd_config {
@@ -472,8 +472,19 @@ typedef struct {
 
 #ifdef HAVE_LIBPTHREAD
 
+static void snd_config_init_mutex(void)
+{
+	pthread_mutexattr_t attr;
+
+	pthread_mutexattr_init(&attr);
+	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+	pthread_mutex_init(&snd_config_update_mutex, &attr);
+	pthread_mutexattr_destroy(&attr);
+}
+
 static inline void snd_config_lock(void)
 {
+	pthread_once(&snd_config_update_mutex_once, snd_config_init_mutex);
 	pthread_mutex_lock(&snd_config_update_mutex);
 }
 
