@@ -592,8 +592,10 @@ static int snd_pcm_file_hw_free(snd_pcm_t *pcm)
 	snd_pcm_file_t *file = pcm->private_data;
 	free(file->wbuf);
 	free(file->wbuf_areas);
+	free(file->final_fname);
 	file->wbuf = NULL;
 	file->wbuf_areas = NULL;
+	file->final_fname = NULL;
 	return snd_pcm_hw_free(file->gen.slave);
 }
 
