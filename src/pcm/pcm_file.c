@@ -406,7 +406,9 @@ static int snd_pcm_file_close(snd_pcm_t *pcm)
 		if (file->wav_header.fmt)
 			fixup_wav_header(pcm);
 		free((void *)file->fname);
-		close(file->fd);
+		if (file->fd >= 0) {
+			close(file->fd);
+		}
 	}
 	if (file->ifname) {
 		free((void *)file->ifname);
@@ -533,7 +535,6 @@ static snd_pcm_sframes_t snd_pcm_file_writen(snd_pcm_t *pcm, void **bufs, snd_pc
 static snd_pcm_sframes_t snd_pcm_file_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t size)
 {
 	snd_pcm_file_t *file = pcm->private_data;
-	snd_pcm_channel_area_t areas[pcm->channels];
 	snd_pcm_sframes_t n;
 
 	n = snd_pcm_readi(file->gen.slave, buffer, size);
@@ -545,15 +546,12 @@ static snd_pcm_sframes_t snd_pcm_file_readi(snd_pcm_t *pcm, void *buffer, snd_pc
 			return n;
 		return n * 8 / pcm->frame_bits;
 	}
-	snd_pcm_areas_from_buf(pcm, areas, buffer);
-	snd_pcm_file_add_frames(pcm, areas, 0, n);
 	return n;
 }
 
 static snd_pcm_sframes_t snd_pcm_file_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
 	snd_pcm_file_t *file = pcm->private_data;
-	snd_pcm_channel_area_t areas[pcm->channels];
 	snd_pcm_sframes_t n;
 
 	if (file->ifd >= 0) {
@@ -562,10 +560,6 @@ static snd_pcm_sframes_t snd_pcm_file_readn(snd_pcm_t *pcm, void **bufs, snd_pcm
 	}
 
 	n = snd_pcm_readn(file->gen.slave, bufs, size);
-	if (n > 0) {
-		snd_pcm_areas_from_bufs(pcm, areas, bufs);
-		snd_pcm_file_add_frames(pcm, areas, 0, n);
-	}
 	return n;
 }
 
@@ -629,7 +623,7 @@ static int snd_pcm_file_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 		a->first = slave->sample_bits * channel;
 		a->step = slave->frame_bits;
 	}
-	if (file->fd < 0) {
+	if ((file->fd < 0) && (pcm->stream == SND_PCM_STREAM_PLAYBACK)) {
 		err = snd_pcm_file_open_output_file(file);
 		if (err < 0) {
 			SYSERR("failed opening output file %s", file->fname);
@@ -728,7 +722,8 @@ static const snd_pcm_fast_ops_t snd_pcm_file_fast_ops = {
 int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 		      const char *fname, int fd, const char *ifname, int ifd,
 		      int trunc,
-		      const char *fmt, int perm, snd_pcm_t *slave, int close_slave)
+		      const char *fmt, int perm, snd_pcm_t *slave, int close_slave,
+		      snd_pcm_stream_t stream)
 {
 	snd_pcm_t *pcm;
 	snd_pcm_file_t *file;
@@ -758,7 +753,7 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	file->trunc = trunc;
 	file->perm = perm;
 
-	if (ifname) {
+	if (ifname && (stream == SND_PCM_STREAM_CAPTURE)) {
 		ifd = open(ifname, O_RDONLY);	/* TODO: mind blocking mode */
 		if (ifd < 0) {
 			SYSERR("open %s for reading failed", ifname);
@@ -790,6 +785,7 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 #else
 	pcm->monotonic = 0;
 #endif
+	pcm->stream = stream;
 	snd_pcm_link_hw_ptr(pcm, slave);
 	snd_pcm_link_appl_ptr(pcm, slave);
 	*pcmp = pcm;
@@ -960,7 +956,7 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	if (err < 0)
 		return err;
 	err = snd_pcm_file_open(pcmp, name, fname, fd, ifname, ifd,
-				trunc, format, perm, spcm, 1);
+				trunc, format, perm, spcm, 1, stream);
 	if (err < 0)
 		snd_pcm_close(spcm);
 	return err;
