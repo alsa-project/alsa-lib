@@ -948,7 +948,7 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	err = snd_pcm_slave_conf(root, slave, &sconf, 0);
 	if (err < 0)
 		return err;
-	if ((!fname || strlen(fname) == 0) && fd < 0 && !ifname) {
+	if ((!fname || strlen(fname) == 0) && fd < 0) {
 		snd_config_delete(sconf);
 		SNDERR("file is not defined");
 		return -EINVAL;
