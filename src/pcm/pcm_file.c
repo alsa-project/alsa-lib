@@ -714,6 +714,7 @@ static const snd_pcm_fast_ops_t snd_pcm_file_fast_ops = {
  * \param perm File permission
  * \param slave Slave PCM handle
  * \param close_slave When set, the slave PCM handle is closed with copy PCM
+ * \param stream the direction of PCM stream
  * \retval zero on success otherwise a negative error code
  * \warning Using of this function might be dangerous in the sense
  *          of compatibility reasons. The prototype might be freely
