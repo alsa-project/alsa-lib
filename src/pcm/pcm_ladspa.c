@@ -1326,7 +1326,7 @@ static int snd_pcm_ladspa_parse_bindings(snd_pcm_ladspa_plugin_t *lplug,
 			count = (unsigned int)(channel + 1);
 	}
 	if (count > 0) {
-		array = (unsigned int *)calloc(count, sizeof(unsigned int));
+		array = (unsigned int *)malloc(count * sizeof(unsigned int));
 		if (! array)
 			return -ENOMEM;
 		memset(array, 0xff, count * sizeof(unsigned int));

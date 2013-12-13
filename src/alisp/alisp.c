@@ -3202,12 +3202,11 @@ int alsa_lisp(struct alisp_cfg *cfg, struct alisp_instance **_instance)
 	struct alisp_object *p, *p1;
 	int i, j, retval = 0;
 	
-	instance = (struct alisp_instance *)malloc(sizeof(struct alisp_instance));
+	instance = (struct alisp_instance *)calloc(1, sizeof(struct alisp_instance));
 	if (instance == NULL) {
 		nomem();
 		return -ENOMEM;
 	}
-	memset(instance, 0, sizeof(struct alisp_instance));
 	instance->verbose = cfg->verbose && cfg->vout;
 	instance->warning = cfg->warning && cfg->wout;
 	instance->debug = cfg->debug && cfg->dout;
