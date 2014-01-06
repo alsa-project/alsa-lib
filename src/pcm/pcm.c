@@ -105,7 +105,7 @@ The poll or select functions (see 'man 2 poll' or 'man 2 select' for further
 details) allows to receive requests/events from the device while
 an application is waiting on events from other sources (like keyboard, screen,
 network etc.), too. \ref snd_pcm_poll_descriptors can be used to get file
-descriptors to poll or select on (note that wait direction might be diferent
+descriptors to poll or select on (note that wait direction might be different
 than expected - do not use only returned file descriptors, but handle
 events member as well - see \ref snd_pcm_poll_descriptors function
 description for more details and \ref snd_pcm_poll_descriptors_revents for
