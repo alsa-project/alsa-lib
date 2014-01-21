@@ -240,8 +240,10 @@ static int snd_ctl_hw_elem_tlv(snd_ctl_t *handle, int op_flag,
 		return -errno;
 	}
 	if (op_flag == 0) {
-		if (xtlv->tlv[1] + 2 * sizeof(unsigned int) > tlv_size)
+		if (xtlv->tlv[1] + 2 * sizeof(unsigned int) > tlv_size) {
+			free(xtlv);
 			return -EFAULT;
+		}
 		memcpy(tlv, xtlv->tlv, xtlv->tlv[1] + 2 * sizeof(unsigned int));
 	}
 	free(xtlv);
