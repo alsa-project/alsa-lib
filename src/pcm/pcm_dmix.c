@@ -1104,7 +1104,7 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 		
 	pcm->poll_fd = dmix->poll_fd;
 	pcm->poll_events = POLLIN;	/* it's different than other plugins */
-		
+	pcm->monotonic = spcm->monotonic;
 	pcm->mmap_rw = 1;
 	snd_pcm_set_hw_ptr(pcm, &dmix->hw_ptr, -1, 0);
 	snd_pcm_set_appl_ptr(pcm, &dmix->appl_ptr, -1, 0);
