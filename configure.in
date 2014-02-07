@@ -309,40 +309,6 @@ fi
 
 AC_SUBST(ALSA_DEPLIBS)
 
-dnl Check for architecture
-AC_MSG_CHECKING(for architecture)
-case "$host" in
-i?86*)
-  AC_MSG_RESULT(x86)
-  ;;
-x86_64*)
-  AC_MSG_RESULT(x86)
-  ;;
-alpha*)
-  AC_MSG_RESULT(alpha)
-  ;;
-powerpc*|ppc*)
-  AC_MSG_RESULT(ppc)
-  CPPFLAGS="$CPPFLAGS -D__ppc__"
-  ;;
-ia64*)
-  AC_MSG_RESULT(ia64)
-  CPPFLAGS="$CPPFLAGS -D__ia64__"
-  ;;
-mips*)
-  AC_MSG_RESULT(mips)
-  CPPFLAGS="$CPPFLAGS -D__mips__"
-  ;;
-arm*)
-  AC_MSG_RESULT(arm)
-  CPPFLAGS="$CPPFLAGS -D__arm__"
-  ;;
-*)
-  AC_MSG_RESULT($host_cpu)
-  echo "No atomic operations supported.." 
-  ;;
-esac
-
 dnl Check for wordexp.h
 AC_CHECK_HEADERS([wordexp.h])
 
@@ -488,6 +454,21 @@ else
 pcm_plugins=""
 fi
 
+dnl check atomics for pcm_meter
+
+AC_MSG_CHECKING([whether GCC supports builtin atomic intrinsics])
+if test -z "$gcc_have_atomics"; then
+  gcc_have_atomics=no
+  AC_TRY_LINK([],
+    [int i;
+     __atomic_load_n(&i, __ATOMIC_SEQ_CST);
+     __atomic_add_fetch(&i, 0, __ATOMIC_SEQ_CST);
+    ],
+    [gcc_have_atomics=yes],
+    [gcc_have_atomics=no])
+fi
+AC_MSG_RESULT($gcc_have_atomics)
+
 PCM_PLUGIN_LIST="copy linear route mulaw alaw adpcm rate plug multi shm file null empty share meter hooks lfloat ladspa dmix dshare dsnoop asym iec958 softvol extplug ioplug mmap_emul"
 
 build_pcm_plugin="no"
@@ -529,6 +510,10 @@ fi
 if test "$softfloat" = "yes"; then
   build_pcm_lfloat="no"
   build_pcm_ladspa="no"
+fi
+
+if test "$gcc_have_atomics" != "yes"; then
+  build_pcm_meter="no"
 fi
 
 AM_CONDITIONAL([BUILD_PCM_PLUGIN], [test x$build_pcm_plugin = xyes])

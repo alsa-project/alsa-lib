@@ -33,7 +33,10 @@
 #include <dlfcn.h>
 #include "pcm_local.h"
 #include "pcm_plugin.h"
-#include "iatomic.h"
+
+#define atomic_read(ptr)    __atomic_load_n(ptr, __ATOMIC_SEQ_CST )
+#define atomic_add(ptr, n)  __atomic_add_fetch(ptr, n, __ATOMIC_SEQ_CST)
+#define atomic_dec(ptr)     __atomic_sub_fetch(ptr, 1, __ATOMIC_SEQ_CST)
 
 #ifndef PIC
 /* entry for static linking */
@@ -61,7 +64,7 @@ typedef struct _snd_pcm_meter {
 	struct list_head scopes;
 	int closed;
 	int running;
-	atomic_t reset;
+	int reset;
 	pthread_t thread;
 	pthread_mutex_t update_mutex;
 	pthread_mutex_t running_mutex;
@@ -288,7 +291,7 @@ static int snd_pcm_meter_prepare(snd_pcm_t *pcm)
 {
 	snd_pcm_meter_t *meter = pcm->private_data;
 	int err;
-	atomic_inc(&meter->reset);
+	atomic_add(&meter->reset, 1);
 	err = snd_pcm_prepare(meter->gen.slave);
 	if (err >= 0) {
 		if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
