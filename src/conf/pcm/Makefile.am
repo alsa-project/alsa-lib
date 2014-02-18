@@ -1,5 +1,5 @@
 cfg_files = default.conf front.conf rear.conf center_lfe.conf side.conf\
-	    surround40.conf surround41.conf \
+	    surround21.conf surround40.conf surround41.conf \
 	    surround50.conf surround51.conf \
 	    surround71.conf iec958.conf hdmi.conf modem.conf \
 	    dmix.conf dsnoop.conf \
