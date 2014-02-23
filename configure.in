@@ -309,8 +309,8 @@ fi
 
 AC_SUBST(ALSA_DEPLIBS)
 
-dnl Check for wordexp.h
-AC_CHECK_HEADERS([wordexp.h])
+dnl Check for headers
+AC_CHECK_HEADERS([wordexp.h endian.h sys/endian.h])
 
 dnl Check for resmgr support...
 AC_MSG_CHECKING(for resmgr support)
@@ -660,6 +660,35 @@ AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile doc/doxygen.cfg \
 dnl Create asoundlib.h dynamically according to configure options
 echo "Creating asoundlib.h..."
 cp "$srcdir"/include/asoundlib-head.h include/asoundlib.h
+test "$ac_cv_header_endian_h" = "yes" && echo "#include <endian.h>" >> include/asoundlib.h
+if test "$ac_cv_header_sys_endian_h" = "yes"; then
+cat >> include/asoundlib.h <<EOF
+#include <sys/endian.h>
+#ifndef __BYTE_ORDER
+#define __BYTE_ORDER BYTE_ORDER
+#endif
+#ifndef __LITTLE_ENDIAN
+#define __LITTLE_ENDIAN LITTLE_ENDIAN
+#endif
+#ifndef __BIG_ENDIAN
+#define __BIG_ENDIAN BIG_ENDIAN
+#endif
+EOF
+fi
+cat >> include/asoundlib.h <<EOF
+
+#ifndef __GNUC__
+#define __inline__ inline
+#endif
+
+#include <alsa/asoundef.h>
+#include <alsa/version.h>
+#include <alsa/global.h>
+#include <alsa/input.h>
+#include <alsa/output.h>
+#include <alsa/error.h>
+#include <alsa/conf.h>
+EOF
 test "$build_pcm" = "yes" && echo "#include <alsa/pcm.h>" >> include/asoundlib.h
 test "$build_rawmidi" = "yes" && echo "#include <alsa/rawmidi.h>" >> include/asoundlib.h
 test "$build_pcm" = "yes" && echo "#include <alsa/timer.h>" >> include/asoundlib.h

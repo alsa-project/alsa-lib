@@ -26,7 +26,6 @@
  *
  */
   
-#include <endian.h>
 #include <byteswap.h>
 #include <ctype.h>
 #include <string.h>
