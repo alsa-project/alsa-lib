@@ -15,4 +15,4 @@ noinst_HEADERS = control_local.h
 all: libcontrol.la
 
 
-INCLUDES=-I$(top_srcdir)/include
+AM_CPPFLAGS=-I$(top_srcdir)/include

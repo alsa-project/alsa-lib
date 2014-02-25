@@ -7,4 +7,4 @@ noinst_HEADERS = ucm_local.h
 all: libucm.la
 
 
-INCLUDES=-I$(top_srcdir)/include
+AM_CPPFLAGS=-I$(top_srcdir)/include

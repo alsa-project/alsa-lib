@@ -87,4 +87,4 @@ instr/libinstr.la:
 alisp/libalisp.la:
 	$(MAKE) -C alisp libalisp.la
 
-INCLUDES=-I$(top_srcdir)/include
+AM_CPPFLAGS=-I$(top_srcdir)/include

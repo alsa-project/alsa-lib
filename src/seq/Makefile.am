@@ -10,4 +10,4 @@ noinst_HEADERS = seq_local.h
 all: libseq.la
 
 
-INCLUDES=-I$(top_srcdir)/include
+AM_CPPFLAGS=-I$(top_srcdir)/include

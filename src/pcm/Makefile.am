@@ -114,4 +114,4 @@ alsadir = $(datadir)/alsa
 
 all: libpcm.la
 
-INCLUDES=-I$(top_srcdir)/include
+AM_CPPFLAGS=-I$(top_srcdir)/include

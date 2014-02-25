@@ -17,7 +17,7 @@ EXTRA_DIST=ChangeLog INSTALL TODO NOTES configure gitcompile libtool \
 	   depcomp version MEMORY-LEAK m4/attributes.m4
 AUTOMAKE_OPTIONS=foreign
 
-INCLUDES=-I$(top_srcdir)/include
+AM_CPPFLAGS=-I$(top_srcdir)/include
 
 rpm: dist
 	$(MAKE) -C utils rpm

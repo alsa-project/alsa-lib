@@ -2,7 +2,7 @@ SUBDIRS=pictures
 
 EXTRA_DIST=README.1st asoundrc.txt doxygen.cfg index.doxygen
 
-INCLUDES=-I$(top_srcdir)/include
+AM_CPPFLAGS=-I$(top_srcdir)/include
 
 doc:
 	test -e doxygen.cfg || sed s:[@]top_srcdir[@]:..:g doxygen.cfg.in > doxygen.cfg

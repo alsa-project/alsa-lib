@@ -3,7 +3,7 @@ pkglibdir = $(alsaplugindir)/smixer
 
 AM_CFLAGS = -g -O2 -W -Wall
 
-INCLUDES=-I$(top_srcdir)/include
+AM_CPPFLAGS=-I$(top_srcdir)/include
 
 pkglib_LTLIBRARIES = smixer-sbase.la \
 		     smixer-ac97.la \

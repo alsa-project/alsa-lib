@@ -22,7 +22,7 @@ code_CFLAGS=-Wall -pipe -g -O2
 chmap_LDADD=../src/libasound.la
 audio_time_LDADD=../src/libasound.la
 
-INCLUDES=-I$(top_srcdir)/include
+AM_CPPFLAGS=-I$(top_srcdir)/include
 AM_CFLAGS=-Wall -pipe -g
 
 EXTRA_DIST=seq-decoder.c seq-sender.c midifile.h midifile.c midifile.3
