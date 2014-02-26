@@ -522,15 +522,13 @@ static int snd_pcm_plug_change_format(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_p
 		}
 #ifdef BUILD_PCM_PLUGIN_LFLOAT
 	} else if (snd_pcm_format_float(slv->format)) {
-		/* Conversion is done in another plugin */
-		if (clt->format == slv->format &&
-		    clt->rate == slv->rate &&
-		    clt->channels == slv->channels)
-			return 0;
-		cfmt = clt->format;
-		if (snd_pcm_format_linear(clt->format))
+		if (snd_pcm_format_linear(clt->format)) {
+			cfmt = clt->format;
 			f = snd_pcm_lfloat_open;
-		else
+		} else if (clt->rate != slv->rate || clt->channels != slv->channels) {
+			cfmt = SND_PCM_FORMAT_S16;
+			f = snd_pcm_lfloat_open;
+		} else
 			return -EINVAL;
 #endif
 #ifdef BUILD_PCM_NONLINEAR
