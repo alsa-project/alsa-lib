@@ -789,6 +789,24 @@ static void snd_pcm_route_dump(snd_pcm_t *pcm, snd_output_t *out)
 	snd_pcm_dump(route->plug.gen.slave, out);
 }
 
+static int strtochannel(const char *id, long *channel)
+{
+	int err;
+	int ch;
+	err = safe_strtol(id, channel);
+	if (err >= 0)
+		return err;
+
+	ch = (int) snd_pcm_chmap_from_string(id);
+	if (ch == -1)
+		return -EINVAL;
+
+	/* For now, assume standard channel mapping */
+	*channel = ch - SND_CHMAP_FL;
+	return 0;
+}
+
+
 static const snd_pcm_ops_t snd_pcm_route_ops = {
 	.close = snd_pcm_route_close,
 	.info = snd_pcm_generic_info,
@@ -983,7 +1001,7 @@ int snd_pcm_route_determine_ttable(snd_config_t *tt,
 			const char *id;
 			if (snd_config_get_id(jnode, &id) < 0)
 				continue;
-			err = safe_strtol(id, &schannel);
+			err = strtochannel(id, &schannel);
 			if (err < 0) {
 				SNDERR("Invalid slave channel: %s", id);
 				return -EINVAL;
@@ -1046,7 +1064,7 @@ int snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_entry_t *tt
 			const char *id;
 			if (snd_config_get_id(jnode, &id) < 0)
 				continue;
-			err = safe_strtol(id, &schannel);
+			err = strtochannel(id, &schannel);
 			if (err < 0 || 
 			    schannel < 0 || (unsigned int) schannel > tt_ssize || 
 			    (schannels > 0 && schannel >= schannels)) {
