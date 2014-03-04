@@ -60,7 +60,7 @@ static void snd_pcm_ioplug_hw_ptr_update(snd_pcm_t *pcm)
 			delta = hw - io->last_hw;
 		else
 			delta = pcm->buffer_size + hw - io->last_hw;
-		io->data->hw_ptr += delta;
+		snd_pcm_mmap_hw_forward(io->data->pcm, delta);
 		io->last_hw = hw;
 	} else
 		io->data->state = SNDRV_PCM_STATE_XRUN;
