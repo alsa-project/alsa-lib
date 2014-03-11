@@ -35,6 +35,7 @@ cfg_files = aliases.conf \
 	ICH.conf \
 	ICH4.conf \
 	ICH-MODEM.conf \
+	Loopback.conf \
 	Maestro3.conf \
 	NFORCE.conf \
 	PC-Speaker.conf \
