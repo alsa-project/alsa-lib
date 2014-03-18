@@ -883,7 +883,10 @@ static int determine_chmap(snd_config_t *tt, snd_pcm_chmap_t **tt_chmap)
 		}
 	}
 
-
+	if (chmap->channels == 0) {
+		free(chmap);
+		chmap = NULL;
+	}
 	*tt_chmap = chmap;
 	return 0;
 
