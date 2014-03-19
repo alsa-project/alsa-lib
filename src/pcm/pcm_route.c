@@ -1361,7 +1361,7 @@ int _snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 	int err;
 	snd_pcm_t *spcm;
 	snd_config_t *slave = NULL, *sconf;
-	snd_pcm_chmap_t *tt_chmap, *chmap;
+	snd_pcm_chmap_t *tt_chmap = NULL, *chmap = NULL;
 	snd_pcm_format_t sformat = SND_PCM_FORMAT_UNKNOWN;
 	int schannels = -1;
 	snd_config_t *tt = NULL;
@@ -1460,8 +1460,9 @@ int _snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 	if (err < 0) {
 		free(chmap);
 		snd_pcm_close(spcm);
+	} else {
+		((snd_pcm_route_t*) (*pcmp)->private_data)->chmap = chmap;
 	}
-	((snd_pcm_route_t*) (*pcmp)->private_data)->chmap = chmap;
 
 	return err;
 }
