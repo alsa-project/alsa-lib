@@ -943,8 +943,10 @@ static int find_matching_chmap(snd_pcm_t *spcm, snd_pcm_chmap_t *tt_chmap,
 
 	snd_pcm_free_chmaps(chmaps);
 
-	if (*found_chmap == NULL)
+	if (*found_chmap == NULL) {
 		SNDERR("Found no matching channel map");
+		return -EINVAL;
+	}
 	return 0;
 }
 
