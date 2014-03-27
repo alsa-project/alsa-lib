@@ -645,8 +645,6 @@ static int snd_pcm_ladspa_allocate_instances(snd_pcm_t *pcm, snd_pcm_ladspa_t *l
 				return -EINVAL;
 			}
 			list_add_tail(&instance->list, &plugin->instances);
-			if (plugin->desc->activate)
-				plugin->desc->activate(instance->handle);
 			if (plugin->policy == SND_PCM_LADSPA_POLICY_DUPLICATE) {
 				err = snd_pcm_ladspa_connect_plugin_duplicate(plugin, &plugin->input, &plugin->output, instance, idx);
 				if (err < 0) {
@@ -664,6 +662,8 @@ static int snd_pcm_ladspa_allocate_instances(snd_pcm_t *pcm, snd_pcm_ladspa_t *l
 			assert(err >= 0);
 			err = snd_pcm_ladspa_connect_controls(plugin, &plugin->output, instance);
 			assert(err >= 0);
+			if (plugin->desc->activate)
+				plugin->desc->activate(instance->handle);
 		}
 		err = snd_pcm_ladspa_check_connect(plugin, &plugin->input, &instance->input, depth);
 		if (err < 0)
