@@ -702,7 +702,7 @@ static snd_pcm_sframes_t snd_pcm_rate_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t f
 	snd_atomic_write_begin(&rate->watom);
 	n = snd_pcm_rate_move_applptr(pcm, -frames);
 	snd_atomic_write_end(&rate->watom);
-	return n;
+	return n < 0 ? -n : n;
 }
 
 static snd_pcm_sframes_t snd_pcm_rate_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
