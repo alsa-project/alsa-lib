@@ -58,8 +58,14 @@ typedef struct {
 	snd1_pcm_plugin_undo_read_generic
 #define snd_pcm_plugin_undo_write_generic \
 	snd1_pcm_plugin_undo_write_generic
+#define snd_pcm_plugin_rewind \
+	snd1_pcm_plugin_rewind
+#define snd_pcm_plugin_forward \
+	snd1_pcm_plugin_forward
 
 void snd_pcm_plugin_init(snd_pcm_plugin_t *plugin);
+snd_pcm_sframes_t snd_pcm_plugin_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
+snd_pcm_sframes_t snd_pcm_plugin_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
 
 extern const snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops;
 
