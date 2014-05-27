@@ -1429,8 +1429,10 @@ int _snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 	if (tt_chmap) {
 		err = find_matching_chmap(spcm, tt_chmap, &chmap, &schannels);
 		free(tt_chmap);
-		if (err < 0)
+		if (err < 0) {
+			snd_pcm_close(spcm);
 			return err;
+		}
 	}
 
 	err = _snd_pcm_route_determine_ttable(tt, &csize, &ssize, chmap);
