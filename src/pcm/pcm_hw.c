@@ -1051,7 +1051,7 @@ snd_pcm_query_chmaps_from_hw(int card, int dev, int subdev,
 {
 	snd_ctl_t *ctl;
 	snd_ctl_elem_id_t *id;
-	unsigned int tlv[256], *start;
+	unsigned int tlv[2048], *start;
 	snd_pcm_chmap_query_t **map;
 	int i, ret, nums;
 
