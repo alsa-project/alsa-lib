@@ -555,6 +555,42 @@ static int snd_pcm_multi_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *in
 	return err;
 }
 
+static snd_pcm_sframes_t snd_pcm_multi_rewindable(snd_pcm_t *pcm)
+{
+	snd_pcm_multi_t *multi = pcm->private_data;
+	unsigned int i;
+	snd_pcm_sframes_t frames = LONG_MAX;
+
+	for (i = 0; i < multi->slaves_count; ++i) {
+		snd_pcm_sframes_t f = snd_pcm_rewindable(multi->slaves[i].pcm);
+		if (f <= 0)
+			return f;
+		if (f < frames)
+			frames = f;
+	}
+
+	return frames;
+
+}
+
+static snd_pcm_sframes_t snd_pcm_multi_forwardable(snd_pcm_t *pcm)
+{
+	snd_pcm_multi_t *multi = pcm->private_data;
+	unsigned int i;
+	snd_pcm_sframes_t frames = LONG_MAX;
+
+	for (i = 0; i < multi->slaves_count; ++i) {
+		snd_pcm_sframes_t f = snd_pcm_forwardable(multi->slaves[i].pcm);
+		if (f <= 0)
+			return f;
+		if (f < frames)
+			frames = f;
+	}
+
+	return frames;
+
+}
+
 static snd_pcm_sframes_t snd_pcm_multi_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_multi_t *multi = pcm->private_data;
@@ -932,7 +968,9 @@ static const snd_pcm_fast_ops_t snd_pcm_multi_fast_ops = {
 	.writen = snd_pcm_mmap_writen,
 	.readi = snd_pcm_mmap_readi,
 	.readn = snd_pcm_mmap_readn,
+	.rewindable = snd_pcm_multi_rewindable,
 	.rewind = snd_pcm_multi_rewind,
+	.forwardable = snd_pcm_multi_forwardable,
 	.forward = snd_pcm_multi_forward,
 	.resume = snd_pcm_multi_resume,
 	.link = snd_pcm_multi_link,
