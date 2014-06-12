@@ -689,6 +689,16 @@ static int snd_pcm_rate_reset(snd_pcm_t *pcm)
 	return 0;
 }
 
+static snd_pcm_sframes_t snd_pcm_rate_rewindable(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
+{
+	return 0;
+}
+
+static snd_pcm_sframes_t snd_pcm_rate_forwardable(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
+{
+	return 0;
+}
+
 static snd_pcm_sframes_t snd_pcm_rate_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_rate_t *rate = pcm->private_data;
@@ -1221,7 +1231,9 @@ static const snd_pcm_fast_ops_t snd_pcm_rate_fast_ops = {
 	.drop = snd_pcm_generic_drop,
 	.drain = snd_pcm_rate_drain,
 	.pause = snd_pcm_generic_pause,
+	.rewindable = snd_pcm_rate_rewindable,
 	.rewind = snd_pcm_rate_rewind,
+	.forwardable = snd_pcm_rate_forwardable,
 	.forward = snd_pcm_rate_forward,
 	.resume = snd_pcm_generic_resume,
 	.writei = snd_pcm_mmap_writei,
