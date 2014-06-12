@@ -168,6 +168,17 @@ static int snd_pcm_null_pause(snd_pcm_t *pcm, int enable)
 	return 0;
 }
 
+static snd_pcm_sframes_t snd_pcm_null_rewindable(snd_pcm_t *pcm)
+{
+	return pcm->buffer_size;
+}
+
+static snd_pcm_sframes_t snd_pcm_null_forwardable(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
+{
+	return 0;
+}
+
+
 static snd_pcm_sframes_t snd_pcm_null_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_null_t *null = pcm->private_data;
@@ -325,7 +336,9 @@ static const snd_pcm_fast_ops_t snd_pcm_null_fast_ops = {
 	.drop = snd_pcm_null_drop,
 	.drain = snd_pcm_null_drain,
 	.pause = snd_pcm_null_pause,
+	.rewindable = snd_pcm_null_rewindable,
 	.rewind = snd_pcm_null_rewind,
+	.forwardable = snd_pcm_null_forwardable,
 	.forward = snd_pcm_null_forward,
 	.resume = snd_pcm_null_resume,
 	.writei = snd_pcm_null_writei,
