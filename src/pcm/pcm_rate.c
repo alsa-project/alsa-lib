@@ -561,58 +561,6 @@ snd_pcm_rate_read_areas1(snd_pcm_t *pcm,
 		   pcm->channels, rate);
 }
 
-static inline snd_pcm_sframes_t snd_pcm_rate_move_applptr(snd_pcm_t *pcm, snd_pcm_sframes_t frames)
-{
-	snd_pcm_rate_t *rate = pcm->private_data;
-	snd_pcm_uframes_t orig_appl_ptr, appl_ptr = rate->appl_ptr, slave_appl_ptr;
-	snd_pcm_sframes_t diff, ndiff;
-	snd_pcm_t *slave = rate->gen.slave;
-
-	orig_appl_ptr = rate->appl_ptr;
-	if (frames > 0)
-		snd_pcm_mmap_appl_forward(pcm, frames);
-	else
-		snd_pcm_mmap_appl_backward(pcm, -frames);
-	slave_appl_ptr =
-		(appl_ptr / pcm->period_size) * rate->gen.slave->period_size;
-	diff = slave_appl_ptr - *slave->appl.ptr;
-	if (diff < -(snd_pcm_sframes_t)(slave->boundary / 2)) {
-		diff = (slave->boundary - *slave->appl.ptr) + slave_appl_ptr;
-	} else if (diff > (snd_pcm_sframes_t)(slave->boundary / 2)) {
-		diff = -((slave->boundary - slave_appl_ptr) + *slave->appl.ptr);
-	}
-	if (diff == 0)
-		return frames;
-	if (diff > 0) {
-		ndiff = snd_pcm_forward(rate->gen.slave, diff);
-	} else {
-		ndiff = snd_pcm_rewind(rate->gen.slave, diff);
-	}
-	if (ndiff < 0)
-		return diff;
-	slave_appl_ptr = *slave->appl.ptr;
-	rate->appl_ptr =
-		(slave_appl_ptr / rate->gen.slave->period_size) * pcm->period_size +
-		orig_appl_ptr % pcm->period_size;
-	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
-		rate->appl_ptr += rate->ops.input_frames(rate->obj, slave_appl_ptr % rate->gen.slave->period_size);
-	else
-		rate->appl_ptr += rate->ops.output_frames(rate->obj, slave_appl_ptr % rate->gen.slave->period_size);
-
-	diff = orig_appl_ptr - rate->appl_ptr;
-	if (diff < -(snd_pcm_sframes_t)(slave->boundary / 2)) {
-		diff = (slave->boundary - rate->appl_ptr) + orig_appl_ptr;
-	} else if (diff > (snd_pcm_sframes_t)(slave->boundary / 2)) {
-		diff = -((slave->boundary - orig_appl_ptr) + rate->appl_ptr);
-	}
-	if (frames < 0)
-		diff = -diff;
-
-	rate->last_commit_ptr = rate->appl_ptr - rate->appl_ptr % pcm->period_size;
-
-	return diff;
-}
-
 static inline void snd_pcm_rate_sync_hwptr(snd_pcm_t *pcm)
 {
 	snd_pcm_rate_t *rate = pcm->private_data;
@@ -699,36 +647,16 @@ static snd_pcm_sframes_t snd_pcm_rate_forwardable(snd_pcm_t *pcm ATTRIBUTE_UNUSE
 	return 0;
 }
 
-static snd_pcm_sframes_t snd_pcm_rate_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
+static snd_pcm_sframes_t snd_pcm_rate_rewind(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
+                                             snd_pcm_uframes_t frames ATTRIBUTE_UNUSED)
 {
-	snd_pcm_rate_t *rate = pcm->private_data;
-	snd_pcm_sframes_t n = snd_pcm_mmap_hw_avail(pcm);
-
-	if ((snd_pcm_uframes_t)n > frames)
-		frames = n;
-	if (frames == 0)
-		return 0;
-	
-	snd_atomic_write_begin(&rate->watom);
-	n = snd_pcm_rate_move_applptr(pcm, -frames);
-	snd_atomic_write_end(&rate->watom);
-	return n < 0 ? -n : n;
+        return 0;
 }
 
-static snd_pcm_sframes_t snd_pcm_rate_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
+static snd_pcm_sframes_t snd_pcm_rate_forward(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
+                                              snd_pcm_uframes_t frames ATTRIBUTE_UNUSED)
 {
-	snd_pcm_rate_t *rate = pcm->private_data;
-	snd_pcm_sframes_t n = snd_pcm_mmap_avail(pcm);
-
-	if ((snd_pcm_uframes_t)n > frames)
-		frames = n;
-	if (frames == 0)
-		return 0;
-	
-	snd_atomic_write_begin(&rate->watom);
-	n = snd_pcm_rate_move_applptr(pcm, frames);
-	snd_atomic_write_end(&rate->watom);
-	return n;
+        return 0;
 }
 
 static int snd_pcm_rate_commit_area(snd_pcm_t *pcm, snd_pcm_rate_t *rate,
