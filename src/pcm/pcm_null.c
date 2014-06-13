@@ -80,6 +80,20 @@ static int snd_pcm_null_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 	return 0;
 }
 
+static snd_pcm_sframes_t snd_pcm_null_avail_update(snd_pcm_t *pcm)
+{
+	snd_pcm_null_t *null = pcm->private_data;
+        if (null->state == SND_PCM_STATE_PREPARED) {
+                /* it is required to return the correct avail count for */
+                /* the prepared stream, otherwise the start is not called */
+                if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
+                        return snd_pcm_mmap_playback_avail(pcm);
+                else
+                        return snd_pcm_mmap_capture_avail(pcm);
+        }
+	return pcm->buffer_size;
+}
+
 static int snd_pcm_null_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 {
 	snd_pcm_null_t *null = pcm->private_data;
@@ -87,8 +101,8 @@ static int snd_pcm_null_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	status->state = null->state;
 	status->trigger_tstamp = null->trigger_tstamp;
 	gettimestamp(&status->tstamp, pcm->monotonic);
-	status->avail = pcm->buffer_size;
-	status->avail_max = status->avail;
+	status->avail = snd_pcm_null_avail_update(pcm);
+	status->avail_max = pcm->buffer_size;
 	return 0;
 }
 
@@ -109,20 +123,18 @@ static int snd_pcm_null_delay(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sframes_t
 	return 0;
 }
 
-static int snd_pcm_null_prepare(snd_pcm_t *pcm)
-{
-	snd_pcm_null_t *null = pcm->private_data;
-	null->state = SND_PCM_STATE_PREPARED;
-	*pcm->appl.ptr = 0;
-	*pcm->hw.ptr = 0;
-	return 0;
-}
-
 static int snd_pcm_null_reset(snd_pcm_t *pcm)
 {
 	*pcm->appl.ptr = 0;
 	*pcm->hw.ptr = 0;
 	return 0;
+}
+
+static int snd_pcm_null_prepare(snd_pcm_t *pcm)
+{
+	snd_pcm_null_t *null = pcm->private_data;
+	null->state = SND_PCM_STATE_PREPARED;
+	return snd_pcm_null_reset(pcm);
 }
 
 static int snd_pcm_null_start(snd_pcm_t *pcm)
@@ -249,11 +261,6 @@ static snd_pcm_sframes_t snd_pcm_null_mmap_commit(snd_pcm_t *pcm,
 						  snd_pcm_uframes_t size)
 {
 	return snd_pcm_null_forward(pcm, size);
-}
-
-static snd_pcm_sframes_t snd_pcm_null_avail_update(snd_pcm_t *pcm)
-{
-	return pcm->buffer_size;
 }
 
 static int snd_pcm_null_hw_refine(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params)
