@@ -202,6 +202,7 @@ struct _snd_pcm {
 	unsigned int period_time;	/* period duration */
 	snd_interval_t periods;
 	snd_pcm_tstamp_t tstamp_mode;	/* timestamp mode */
+	snd_pcm_tstamp_type_t tstamp_type;	/* timestamp type */
 	unsigned int period_step;
 	snd_pcm_uframes_t avail_min;	/* min avail frames for wakeup */
 	int period_event;

@@ -2258,6 +2258,7 @@ static int snd_pcm_sw_params_default(snd_pcm_t *pcm, snd_pcm_sw_params_t *params
 	assert(pcm && params);
 	assert(pcm->setup);
 	params->tstamp_mode = SND_PCM_TSTAMP_NONE;
+	params->tstamp_type = pcm->tstamp_type;
 	params->period_step = 1;
 	params->sleep_min = 0;
 	params->avail_min = pcm->period_size;
