@@ -304,7 +304,8 @@ static int snd_pcm_hw_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 
 	if (params->info != ~0U) {
 		params->info &= ~0xf0000000;
-		params->info |= (pcm->monotonic ? SND_PCM_INFO_MONOTONIC : 0);
+		if (pcm->tstamp_type != SND_PCM_TSTAMP_TYPE_GETTIMEOFDAY)
+			params->info |= SND_PCM_INFO_MONOTONIC;
 	}
 	
 	return 0;
@@ -328,7 +329,8 @@ static int snd_pcm_hw_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 		return err;
 	}
 	params->info &= ~0xf0000000;
-	params->info |= (pcm->monotonic ? SND_PCM_INFO_MONOTONIC : 0);
+	if (pcm->tstamp_type != SND_PCM_TSTAMP_TYPE_GETTIMEOFDAY)
+		params->info |= SND_PCM_INFO_MONOTONIC;
 	err = sync_ptr(hw, 0);
 	if (err < 0)
 		return err;
@@ -435,6 +437,7 @@ static int snd_pcm_hw_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 	int old_period_event = sw_get_period_event(params);
 	sw_set_period_event(params, 0);
 	if ((snd_pcm_tstamp_t) params->tstamp_mode == pcm->tstamp_mode &&
+	    (snd_pcm_tstamp_type_t) params->tstamp_type == pcm->tstamp_type &&
 	    params->period_step == pcm->period_step &&
 	    params->start_threshold == pcm->start_threshold &&
 	    params->stop_threshold == pcm->stop_threshold &&
@@ -444,10 +447,32 @@ static int snd_pcm_hw_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 		hw->mmap_control->avail_min = params->avail_min;
 		return sync_ptr(hw, 0);
 	}
+	if (params->tstamp_type == SND_PCM_TSTAMP_TYPE_MONOTONIC_RAW &&
+	    hw->version < SNDRV_PROTOCOL_VERSION(2, 0, 12)) {
+		SYSMSG("Kernel doesn't support SND_PCM_TSTAMP_TYPE_MONOTONIC_RAW");
+		return -EINVAL;
+	}
+	if (params->tstamp_type == SND_PCM_TSTAMP_TYPE_MONOTONIC &&
+	    hw->version < SNDRV_PROTOCOL_VERSION(2, 0, 5)) {
+		SYSMSG("Kernel doesn't support SND_PCM_TSTAMP_TYPE_MONOTONIC");
+		return -EINVAL;
+	}
 	if (ioctl(fd, SNDRV_PCM_IOCTL_SW_PARAMS, params) < 0) {
 		err = -errno;
 		SYSMSG("SNDRV_PCM_IOCTL_SW_PARAMS failed (%i)", err);
 		return err;
+	}
+	if ((snd_pcm_tstamp_type_t) params->tstamp_type != pcm->tstamp_type) {
+		if (hw->version < SNDRV_PROTOCOL_VERSION(2, 0, 12)) {
+			int on = (snd_pcm_tstamp_type_t) params->tstamp_type ==
+				SND_PCM_TSTAMP_TYPE_MONOTONIC;
+			if (ioctl(fd, SNDRV_PCM_IOCTL_TSTAMP, &on) < 0) {
+				err = -errno;
+				SNDMSG("TSTAMP failed\n");
+				return err;
+			}
+		}
+		pcm->tstamp_type = params->tstamp_type;
 	}
 	sw_set_period_event(params, old_period_event);
 	hw->mmap_control->avail_min = params->avail_min;
@@ -1381,7 +1406,8 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name,
 		       int fd, int mmap_emulation ATTRIBUTE_UNUSED,
 		       int sync_ptr_ioctl)
 {
-	int ver, mode, monotonic = 0;
+	int ver, mode;
+	snd_pcm_tstamp_type_t tstamp_type = SND_PCM_TSTAMP_TYPE_GETTIMEOFDAY;
 	long fmode;
 	snd_pcm_t *pcm = NULL;
 	snd_pcm_hw_t *hw = NULL;
@@ -1429,7 +1455,7 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name,
 				SNDMSG("TTSTAMP failed\n");
 				return ret;
 			}
-			monotonic = 1;
+			tstamp_type = SND_PCM_TSTAMP_TYPE_MONOTONIC;
 		}
 	} else
 #endif
@@ -1471,7 +1497,8 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name,
 	pcm->private_data = hw;
 	pcm->poll_fd = fd;
 	pcm->poll_events = info.stream == SND_PCM_STREAM_PLAYBACK ? POLLOUT : POLLIN;
-	pcm->monotonic = monotonic;
+	pcm->tstamp_type = tstamp_type;
+	pcm->monotonic = tstamp_type != SND_PCM_TSTAMP_TYPE_GETTIMEOFDAY;
 
 	ret = snd_pcm_hw_mmap_status(pcm);
 	if (ret < 0) {
