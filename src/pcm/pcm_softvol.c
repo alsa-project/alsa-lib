@@ -903,7 +903,7 @@ int snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 	 * an extra buffer.
 	 */
 	pcm->mmap_shadow = 1;
-	pcm->monotonic = slave->monotonic;
+	pcm->tstamp_type = slave->tstamp_type;
 	snd_pcm_set_hw_ptr(pcm, &svol->plug.hw_ptr, -1, 0);
 	snd_pcm_set_appl_ptr(pcm, &svol->plug.appl_ptr, -1, 0);
 	*pcmp = pcm;

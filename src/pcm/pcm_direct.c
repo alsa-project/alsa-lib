@@ -840,6 +840,7 @@ static void save_slave_setting(snd_pcm_direct_t *dmix, snd_pcm_t *spcm)
 	COPY_SLAVE(period_time);
 	COPY_SLAVE(periods);
 	COPY_SLAVE(tstamp_mode);
+	COPY_SLAVE(tstamp_type);
 	COPY_SLAVE(period_step);
 	COPY_SLAVE(avail_min);
 	COPY_SLAVE(start_threshold);
@@ -857,7 +858,6 @@ static void save_slave_setting(snd_pcm_direct_t *dmix, snd_pcm_t *spcm)
 	COPY_SLAVE(buffer_time);
 	COPY_SLAVE(sample_bits);
 	COPY_SLAVE(frame_bits);
-	COPY_SLAVE(monotonic);
 }
 
 #undef COPY_SLAVE
@@ -1204,6 +1204,7 @@ static void copy_slave_setting(snd_pcm_direct_t *dmix, snd_pcm_t *spcm)
 	COPY_SLAVE(period_time);
 	COPY_SLAVE(periods);
 	COPY_SLAVE(tstamp_mode);
+	COPY_SLAVE(tstamp_type);
 	COPY_SLAVE(period_step);
 	COPY_SLAVE(avail_min);
 	COPY_SLAVE(start_threshold);
@@ -1221,7 +1222,6 @@ static void copy_slave_setting(snd_pcm_direct_t *dmix, snd_pcm_t *spcm)
 	COPY_SLAVE(buffer_time);
 	COPY_SLAVE(sample_bits);
 	COPY_SLAVE(frame_bits);
-	COPY_SLAVE(monotonic);
 
 	spcm->info &= ~SND_PCM_INFO_PAUSE;
 	spcm->boundary = recalc_boundary_size(dmix->shmptr->s.boundary, spcm->buffer_size);

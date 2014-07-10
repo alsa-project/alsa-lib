@@ -1069,7 +1069,7 @@ static int snd_pcm_rate_start(snd_pcm_t *pcm)
 	if (snd_pcm_state(rate->gen.slave) != SND_PCM_STATE_PREPARED)
 		return -EBADFD;
 
-	gettimestamp(&rate->trigger_tstamp, pcm->monotonic);
+	gettimestamp(&rate->trigger_tstamp, pcm->tstamp_type);
 
 	avail = snd_pcm_mmap_playback_hw_avail(rate->gen.slave);
 	if (avail == 0) {
@@ -1372,7 +1372,7 @@ int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name,
 	pcm->poll_fd = slave->poll_fd;
 	pcm->poll_events = slave->poll_events;
 	pcm->mmap_rw = 1;
-	pcm->monotonic = slave->monotonic;
+	pcm->tstamp_type = slave->tstamp_type;
 	snd_pcm_set_hw_ptr(pcm, &rate->hw_ptr, -1, 0);
 	snd_pcm_set_appl_ptr(pcm, &rate->appl_ptr, -1, 0);
 	*pcmp = pcm;

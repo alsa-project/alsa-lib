@@ -428,7 +428,7 @@ static int snd_pcm_dmix_sync_ptr(snd_pcm_t *pcm)
 		dmix->avail_max = avail;
 	if (avail >= pcm->stop_threshold) {
 		snd_timer_stop(dmix->timer);
-		gettimestamp(&dmix->trigger_tstamp, pcm->monotonic);
+		gettimestamp(&dmix->trigger_tstamp, pcm->tstamp_type);
 		if (dmix->state == SND_PCM_STATE_RUNNING) {
 			dmix->state = SND_PCM_STATE_XRUN;
 			return -EPIPE;
@@ -477,7 +477,7 @@ static int snd_pcm_dmix_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	memset(status, 0, sizeof(*status));
 	status->state = snd_pcm_dmix_state(pcm);
 	status->trigger_tstamp = dmix->trigger_tstamp;
-	gettimestamp(&status->tstamp, pcm->monotonic);
+	gettimestamp(&status->tstamp, pcm->tstamp_type);
 	status->avail = snd_pcm_mmap_playback_avail(pcm);
 	status->avail_max = status->avail > dmix->avail_max ? status->avail : dmix->avail_max;
 	dmix->avail_max = 0;
@@ -596,7 +596,7 @@ static int snd_pcm_dmix_start(snd_pcm_t *pcm)
 			return err;
 		snd_pcm_dmix_sync_area(pcm);
 	}
-	gettimestamp(&dmix->trigger_tstamp, pcm->monotonic);
+	gettimestamp(&dmix->trigger_tstamp, pcm->tstamp_type);
 	return 0;
 }
 
@@ -1104,7 +1104,7 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 		
 	pcm->poll_fd = dmix->poll_fd;
 	pcm->poll_events = POLLIN;	/* it's different than other plugins */
-	pcm->monotonic = spcm->monotonic;
+	pcm->tstamp_type = spcm->tstamp_type;
 	pcm->mmap_rw = 1;
 	snd_pcm_set_hw_ptr(pcm, &dmix->hw_ptr, -1, 0);
 	snd_pcm_set_appl_ptr(pcm, &dmix->appl_ptr, -1, 0);

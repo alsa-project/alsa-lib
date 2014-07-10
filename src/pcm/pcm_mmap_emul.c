@@ -428,7 +428,7 @@ int __snd_pcm_mmap_emul_open(snd_pcm_t **pcmp, const char *name,
 	pcm->private_data = map;
 	pcm->poll_fd = slave->poll_fd;
 	pcm->poll_events = slave->poll_events;
-	pcm->monotonic = slave->monotonic;
+	pcm->tstamp_type = slave->tstamp_type;
 	snd_pcm_set_hw_ptr(pcm, &map->hw_ptr, -1, 0);
 	snd_pcm_set_appl_ptr(pcm, &map->appl_ptr, -1, 0);
 	*pcmp = pcm;

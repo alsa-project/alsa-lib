@@ -781,10 +781,10 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	pcm->poll_fd = slave->poll_fd;
 	pcm->poll_events = slave->poll_events;
 	pcm->mmap_shadow = 1;
+	pcm->tstamp_type = SND_PCM_TSTAMP_TYPE_GETTIMEOFDAY;
 #if defined(HAVE_CLOCK_GETTIME) && defined(CLOCK_MONOTONIC)
-	pcm->monotonic = clock_gettime(CLOCK_MONOTONIC, &timespec) == 0;
-#else
-	pcm->monotonic = 0;
+	if (clock_gettime(CLOCK_MONOTONIC, &timespec) == 0)
+		pcm->tstamp_type = SND_PCM_TSTAMP_TYPE_MONOTONIC;
 #endif
 	pcm->stream = stream;
 	snd_pcm_link_hw_ptr(pcm, slave);

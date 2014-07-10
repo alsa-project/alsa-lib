@@ -294,7 +294,7 @@ int snd_pcm_generic_real_htimestamp(snd_pcm_t *pcm, snd_pcm_uframes_t *avail,
 		if (ok && (snd_pcm_uframes_t)avail1 == *avail)
 			break;
 		*avail = avail1;
-		gettimestamp(tstamp, pcm->monotonic);
+		gettimestamp(tstamp, pcm->tstamp_type);
 		ok = 1;
 	}
 	return 0;

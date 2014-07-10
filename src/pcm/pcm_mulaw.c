@@ -467,7 +467,7 @@ int snd_pcm_mulaw_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sfor
 	pcm->private_data = mulaw;
 	pcm->poll_fd = slave->poll_fd;
 	pcm->poll_events = slave->poll_events;
-	pcm->monotonic = slave->monotonic;
+	pcm->tstamp_type = slave->tstamp_type;
 	snd_pcm_set_hw_ptr(pcm, &mulaw->plug.hw_ptr, -1, 0);
 	snd_pcm_set_appl_ptr(pcm, &mulaw->plug.appl_ptr, -1, 0);
 	*pcmp = pcm;

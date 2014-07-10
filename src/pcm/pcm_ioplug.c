@@ -448,7 +448,7 @@ static int snd_pcm_ioplug_start(snd_pcm_t *pcm)
 	if (err < 0)
 		return err;
 
-	gettimestamp(&io->trigger_tstamp, pcm->monotonic);
+	gettimestamp(&io->trigger_tstamp, pcm->tstamp_type);
 	io->data->state = SND_PCM_STATE_RUNNING;
 
 	return 0;
@@ -463,7 +463,7 @@ static int snd_pcm_ioplug_drop(snd_pcm_t *pcm)
 
 	io->data->callback->stop(io->data);
 
-	gettimestamp(&io->trigger_tstamp, pcm->monotonic);
+	gettimestamp(&io->trigger_tstamp, pcm->tstamp_type);
 	io->data->state = SND_PCM_STATE_SETUP;
 
 	return 0;
@@ -1069,7 +1069,10 @@ int snd_pcm_ioplug_reinit_status(snd_pcm_ioplug_t *ioplug)
 {
 	ioplug->pcm->poll_fd = ioplug->poll_fd;
 	ioplug->pcm->poll_events = ioplug->poll_events;
-	ioplug->pcm->monotonic = (ioplug->flags & SND_PCM_IOPLUG_FLAG_MONOTONIC) != 0;
+	if (ioplug->flags & SND_PCM_IOPLUG_FLAG_MONOTONIC)
+		ioplug->pcm->tstamp_type = SND_PCM_TSTAMP_TYPE_MONOTONIC;
+	else
+		ioplug->pcm->tstamp_type = SND_PCM_TSTAMP_TYPE_GETTIMEOFDAY;
 	ioplug->pcm->mmap_rw = ioplug->mmap_rw;
 	return 0;
 }

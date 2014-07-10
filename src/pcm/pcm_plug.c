@@ -1127,7 +1127,7 @@ int snd_pcm_plug_open(snd_pcm_t **pcmp,
 	pcm->poll_fd = slave->poll_fd;
 	pcm->poll_events = slave->poll_events;
 	pcm->mmap_shadow = 1;
-	pcm->monotonic = slave->monotonic;
+	pcm->tstamp_type = slave->tstamp_type;
 	snd_pcm_link_hw_ptr(pcm, slave);
 	snd_pcm_link_appl_ptr(pcm, slave);
 	*pcmp = pcm;
