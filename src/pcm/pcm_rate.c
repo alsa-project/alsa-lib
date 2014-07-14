@@ -574,6 +574,8 @@ static inline void snd_pcm_rate_sync_hwptr(snd_pcm_t *pcm)
 	rate->hw_ptr =
 		(slave_hw_ptr / rate->gen.slave->period_size) * pcm->period_size +
 		rate->ops.input_frames(rate->obj, slave_hw_ptr % rate->gen.slave->period_size);
+
+	rate->hw_ptr %= pcm->boundary;
 }
 
 static int snd_pcm_rate_hwsync(snd_pcm_t *pcm)
