@@ -57,6 +57,7 @@ void gettimestamp(snd_pcm_t *handle, snd_htimestamp_t *timestamp,
 #define TRACK_PLAYBACK  /* dump playback timing info */
 #define TRACK_SAMPLE_COUNTS /* show difference between sample counters and audiotimestamps returned by driver */
 #define PLAYBACK_BUFFERS 4
+#define TSTAMP_TYPE	SND_PCM_TSTAMP_TYPE_MONOTONIC
 
 
 int main(void)
@@ -128,6 +129,12 @@ int main(void)
 		goto _exit;
 	}
 
+	err = snd_pcm_sw_params_set_tstamp_type(handle_p, swparams_p, TSTAMP_TYPE);
+	if (err < 0) {
+		printf("Unable to set tstamp type : %s\n", snd_strerror(err));
+		goto _exit;
+	}
+
 	/* write the sw parameters */
 	err = snd_pcm_sw_params(handle_p, swparams_p);
 	if (err < 0) {
@@ -174,6 +181,12 @@ int main(void)
 	err = snd_pcm_sw_params_set_tstamp_mode(handle_c, swparams_c, SND_PCM_TSTAMP_ENABLE);
 	if (err < 0) {
 		printf("Unable to set tstamp mode : %s\n", snd_strerror(err));
+		goto _exit;
+	}
+
+	err = snd_pcm_sw_params_set_tstamp_type(handle_c, swparams_c, TSTAMP_TYPE);
+	if (err < 0) {
+		printf("Unable to set tstamp type : %s\n", snd_strerror(err));
 		goto _exit;
 	}
 
