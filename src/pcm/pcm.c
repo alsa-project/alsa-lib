@@ -5610,6 +5610,7 @@ int snd_pcm_sw_params_current(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 		SNDMSG("PCM not set up");
 		return -EIO;
 	}
+	params->proto = SNDRV_PCM_VERSION;
 	params->tstamp_mode = pcm->tstamp_mode;
 	params->tstamp_type = pcm->tstamp_type;
 	params->period_step = pcm->period_step;

@@ -2257,6 +2257,7 @@ static int snd_pcm_sw_params_default(snd_pcm_t *pcm, snd_pcm_sw_params_t *params
 {
 	assert(pcm && params);
 	assert(pcm->setup);
+	params->proto = SNDRV_PCM_VERSION;
 	params->tstamp_mode = SND_PCM_TSTAMP_NONE;
 	params->tstamp_type = pcm->tstamp_type;
 	params->period_step = 1;
