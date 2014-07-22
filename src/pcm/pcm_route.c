@@ -60,7 +60,7 @@ typedef struct {
 typedef struct snd_pcm_route_ttable_dst snd_pcm_route_ttable_dst_t;
 
 typedef struct {
-	enum {UINT32=0, UINT64=1, FLOAT=2} sum_idx;
+	enum {UINT64, FLOAT} sum_idx;
 	unsigned int get_idx;
 	unsigned int put_idx;
 	unsigned int conv_idx;
@@ -233,55 +233,34 @@ static void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *dst_area,
 					const snd_pcm_route_ttable_dst_t* ttable,
 					const snd_pcm_route_params_t *params)
 {
-#define GETS_LABELS
+#define GET32_LABELS
 #define PUT32_LABELS
 #include "plugin_ops.h"
-#undef GETS_LABELS
+#undef GET32_LABELS
 #undef PUT32_LABELS
-	static void *const zero_labels[3] = {
-		&&zero_int32, &&zero_int64,
+	static void *const zero_labels[2] = {
+		&&zero_int64,
 #if SND_PCM_PLUGIN_ROUTE_FLOAT
 		&&zero_float
 #endif
 	};
 	/* sum_type att */
-	static void *const add_labels[3 * 2] = {
-		&&add_int32_noatt, &&add_int32_att,
+	static void *const add_labels[2 * 2] = {
 		&&add_int64_noatt, &&add_int64_att,
 #if SND_PCM_PLUGIN_ROUTE_FLOAT
 		&&add_float_noatt, &&add_float_att
 #endif
 	};
-	/* sum_type att shift */
-	static void *const norm_labels[3 * 2 * 4] = {
-		0,
-		&&norm_int32_8_noatt,
-		&&norm_int32_16_noatt,
-		&&norm_int32_24_noatt,
-		0,
-		&&norm_int32_8_att,
-		&&norm_int32_16_att,
-		&&norm_int32_24_att,
-		&&norm_int64_0_noatt,
-		&&norm_int64_8_noatt,
-		&&norm_int64_16_noatt,
-		&&norm_int64_24_noatt,
-		&&norm_int64_0_att,
-		&&norm_int64_8_att,
-		&&norm_int64_16_att,
-		&&norm_int64_24_att,
+	/* sum_type att */
+	static void *const norm_labels[2 * 2] = {
+		&&norm_int64_noatt,
+		&&norm_int64_att,
 #if SND_PCM_PLUGIN_ROUTE_FLOAT
-		&&norm_float_0,
-		&&norm_float_8,
-		&&norm_float_16,
-		&&norm_float_24,
-		&&norm_float_0,
-		&&norm_float_8,
-		&&norm_float_16,
-		&&norm_float_24,
+		&&norm_float,
+		&&norm_float,
 #endif
 	};
-	void *zero, *get, *add, *norm, *put32;
+	void *zero, *get32, *add, *norm, *put32;
 	int nsrcs = ttable->nsrcs;
 	char *dst;
 	int dst_step;
@@ -323,9 +302,9 @@ static void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *dst_area,
 	}
 
 	zero = zero_labels[params->sum_idx];
-	get = gets_labels[params->get_idx];
+	get32 = get32_labels[params->get_idx];
 	add = add_labels[params->sum_idx * 2 + ttable->att];
-	norm = norm_labels[params->sum_idx * 8 + ttable->att * 4 + 4 - params->src_size];
+	norm = norm_labels[params->sum_idx * 2 + ttable->att];
 	put32 = put32_labels[params->put_idx];
 	dst = snd_pcm_channel_area_addr(dst_area, dst_offset);
 	dst_step = snd_pcm_channel_area_step(dst_area);
@@ -336,9 +315,6 @@ static void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *dst_area,
 
 		/* Zero sum */
 		goto *zero;
-	zero_int32:
-		sum.as_sint32 = 0;
-		goto zero_end;
 	zero_int64: 
 		sum.as_sint64 = 0;
 		goto zero_end;
@@ -352,21 +328,14 @@ static void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *dst_area,
 			const char *src = srcs[srcidx];
 			
 			/* Get sample */
-			goto *get;
-#define GETS_END after_get
+			goto *get32;
+#define GET32_END after_get
 #include "plugin_ops.h"
-#undef GETS_END
+#undef GET32_END
 		after_get:
 
 			/* Sum */
 			goto *add;
-		add_int32_att:
-			sum.as_sint32 += sample * ttp->as_int;
-			goto after_sum;
-		add_int32_noatt:
-			if (ttp->as_int)
-				sum.as_sint32 += sample;
-			goto after_sum;
 		add_int64_att:
 			sum.as_sint64 += (int64_t) sample * ttp->as_int;
 			goto after_sum;
@@ -390,48 +359,10 @@ static void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *dst_area,
 		
 		/* Normalization */
 		goto *norm;
-	norm_int32_8_att:
-		sum.as_sint64 = sum.as_sint32;
-	norm_int64_8_att:
-		sum.as_sint64 <<= 8;
-	norm_int64_0_att:
+	norm_int64_att:
 		div(sum.as_sint64);
-		goto norm_int;
-
-	norm_int32_16_att:
-		sum.as_sint64 = sum.as_sint32;
-	norm_int64_16_att:
-		sum.as_sint64 <<= 16;
-		div(sum.as_sint64);
-		goto norm_int;
-
-	norm_int32_24_att:
-		sum.as_sint64 = sum.as_sint32;
-	norm_int64_24_att:
-		sum.as_sint64 <<= 24;
-		div(sum.as_sint64);
-		goto norm_int;
-
-	norm_int32_8_noatt:
-		sum.as_sint64 = sum.as_sint32;
-	norm_int64_8_noatt:
-		sum.as_sint64 <<= 8;
-		goto norm_int;
-
-	norm_int32_16_noatt:
-		sum.as_sint64 = sum.as_sint32;
-	norm_int64_16_noatt:
-		sum.as_sint64 <<= 16;
-		goto norm_int;
-
-	norm_int32_24_noatt:
-		sum.as_sint64 = sum.as_sint32;
-	norm_int64_24_noatt:
-		sum.as_sint64 <<= 24;
-		goto norm_int;
-
-	norm_int64_0_noatt:
-	norm_int:
+		/* fallthru */
+	norm_int64_noatt:
 		if (sum.as_sint64 > (int64_t)0x7fffffff)
 			sample = 0x7fffffff;	/* maximum positive value */
 		else if (sum.as_sint64 < -(int64_t)0x80000000)
@@ -441,16 +372,6 @@ static void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *dst_area,
 		goto after_norm;
 
 #if SND_PCM_PLUGIN_ROUTE_FLOAT
-	norm_float_8:
-		sum.as_float *= 1 << 8;
-		goto norm_float;
-	norm_float_16:
-		sum.as_float *= 1 << 16;
-		goto norm_float;
-	norm_float_24:
-		sum.as_float *= 1 << 24;
-		goto norm_float;
-	norm_float_0:
 	norm_float:
 		sum.as_float = rint(sum.as_float);
 		if (sum.as_float > (int64_t)0x7fffffff)
@@ -648,7 +569,7 @@ static int snd_pcm_route_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	route->params.use_getput =
 		(snd_pcm_format_physical_width(src_format) + 7) / 3 == 3 ||
 		(snd_pcm_format_physical_width(dst_format) + 7) / 3 == 3;
-	route->params.get_idx = snd_pcm_linear_get_index(src_format, SND_PCM_FORMAT_S16);
+	route->params.get_idx = snd_pcm_linear_get32_index(src_format, SND_PCM_FORMAT_S32);
 	route->params.put_idx = snd_pcm_linear_put32_index(SND_PCM_FORMAT_S32, dst_format);
 	route->params.conv_idx = snd_pcm_linear_convert_index(src_format, dst_format);
 	route->params.src_size = snd_pcm_format_width(src_format) / 8;
@@ -656,10 +577,7 @@ static int snd_pcm_route_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 #if SND_PCM_PLUGIN_ROUTE_FLOAT
 	route->params.sum_idx = FLOAT;
 #else
-	if (snd_pcm_format_width(src_format) == 32)
-		route->params.sum_idx = UINT64;
-	else
-		route->params.sum_idx = UINT32;
+	route->params.sum_idx = UINT64;
 #endif
 	return 0;
 }
