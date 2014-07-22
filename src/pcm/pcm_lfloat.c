@@ -286,11 +286,11 @@ static int snd_pcm_lfloat_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 		err = INTERNAL(snd_pcm_hw_params_get_format)(params, &dst_format);
 	}
 	if (snd_pcm_format_linear(src_format)) {
-		lfloat->int32_idx = snd_pcm_linear_get32_index(src_format, SND_PCM_FORMAT_S32);
+		lfloat->int32_idx = snd_pcm_linear_get_index(src_format, SND_PCM_FORMAT_S32);
 		lfloat->float32_idx = snd_pcm_lfloat_put_s32_index(dst_format);
 		lfloat->func = snd_pcm_lfloat_convert_integer_float;
 	} else {
-		lfloat->int32_idx = snd_pcm_linear_put32_index(SND_PCM_FORMAT_S32, dst_format);
+		lfloat->int32_idx = snd_pcm_linear_put_index(SND_PCM_FORMAT_S32, dst_format);
 		lfloat->float32_idx = snd_pcm_lfloat_get_s32_index(src_format);
 		lfloat->func = snd_pcm_lfloat_convert_float_integer;
 	}

@@ -86,8 +86,6 @@ snd_pcm_sframes_t snd_pcm_plugin_undo_write_generic
 /* make local functions really local */
 #define snd_pcm_linear_get_index	snd1_pcm_linear_get_index
 #define snd_pcm_linear_put_index	snd1_pcm_linear_put_index
-#define snd_pcm_linear_get32_index	snd1_pcm_linear_get32_index
-#define snd_pcm_linear_put32_index	snd1_pcm_linear_put32_index
 #define snd_pcm_linear_convert_index	snd1_pcm_linear_convert_index
 #define snd_pcm_linear_convert	snd1_pcm_linear_convert
 #define snd_pcm_linear_getput	snd1_pcm_linear_getput
@@ -100,8 +98,6 @@ snd_pcm_sframes_t snd_pcm_plugin_undo_write_generic
 
 int snd_pcm_linear_get_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format);
 int snd_pcm_linear_put_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format);
-int snd_pcm_linear_get32_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format);
-int snd_pcm_linear_put32_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format);
 int snd_pcm_linear_convert_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format);
 
 void snd_pcm_linear_convert(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_t dst_offset,

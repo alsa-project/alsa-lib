@@ -107,43 +107,7 @@ int snd_pcm_linear_get_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_f
 	}
 }
 
-int snd_pcm_linear_get32_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format)
-{
-	return snd_pcm_linear_get_index(src_format, dst_format);
-}
-
 int snd_pcm_linear_put_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format)
-{
-	int sign, width, pwidth, endian;
-	sign = (snd_pcm_format_signed(src_format) != 
-		snd_pcm_format_signed(dst_format));
-#ifdef SND_LITTLE_ENDIAN
-	endian = snd_pcm_format_big_endian(dst_format);
-#else
-	endian = snd_pcm_format_little_endian(dst_format);
-#endif
-	if (endian < 0)
-		endian = 0;
-	pwidth = snd_pcm_format_physical_width(dst_format);
-	width = snd_pcm_format_width(dst_format);
-	if (pwidth == 24) {
-		switch (width) {
-		case 24:
-			width = 0; break;
-		case 20:
-			width = 1; break;
-		case 18:
-		default:
-			width = 2; break;
-		}
-		return width * 4 + endian * 2 + sign + 16;
-	} else {
-		width = width / 8 - 1;
-		return width * 4 + endian * 2 + sign;
-	}
-}
-
-int snd_pcm_linear_put32_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format)
 {
 	int sign, width, pwidth, endian;
 	sign = (snd_pcm_format_signed(src_format) != 
@@ -342,11 +306,11 @@ static int snd_pcm_linear_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 			      snd_pcm_format_physical_width(linear->sformat) == 24);
 	if (linear->use_getput) {
 		if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
-			linear->get_idx = snd_pcm_linear_get32_index(format, SND_PCM_FORMAT_S32);
-			linear->put_idx = snd_pcm_linear_put32_index(SND_PCM_FORMAT_S32, linear->sformat);
+			linear->get_idx = snd_pcm_linear_get_index(format, SND_PCM_FORMAT_S32);
+			linear->put_idx = snd_pcm_linear_put_index(SND_PCM_FORMAT_S32, linear->sformat);
 		} else {
-			linear->get_idx = snd_pcm_linear_get32_index(linear->sformat, SND_PCM_FORMAT_S32);
-			linear->put_idx = snd_pcm_linear_put32_index(SND_PCM_FORMAT_S32, format);
+			linear->get_idx = snd_pcm_linear_get_index(linear->sformat, SND_PCM_FORMAT_S32);
+			linear->put_idx = snd_pcm_linear_put_index(SND_PCM_FORMAT_S32, format);
 		}
 	} else {
 		if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
