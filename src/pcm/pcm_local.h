@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <sys/uio.h>
+#include <time.h>
 #include <sys/time.h>
 
 #define _snd_mask sndrv_mask
