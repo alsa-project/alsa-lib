@@ -195,11 +195,13 @@ int snd_pcm_format_width(snd_pcm_format_t format)
 	switch (format) {
 	case SNDRV_PCM_FORMAT_S8:
 	case SNDRV_PCM_FORMAT_U8:
+	case SNDRV_PCM_FORMAT_DSD_U8:
 		return 8;
 	case SNDRV_PCM_FORMAT_S16_LE:
 	case SNDRV_PCM_FORMAT_S16_BE:
 	case SNDRV_PCM_FORMAT_U16_LE:
 	case SNDRV_PCM_FORMAT_U16_BE:
+	case SNDRV_PCM_FORMAT_DSD_U16_LE:
 		return 16;
 	case SNDRV_PCM_FORMAT_S18_3LE:
 	case SNDRV_PCM_FORMAT_S18_3BE:
@@ -253,11 +255,13 @@ int snd_pcm_format_physical_width(snd_pcm_format_t format)
 	switch (format) {
 	case SNDRV_PCM_FORMAT_S8:
 	case SNDRV_PCM_FORMAT_U8:
+	case SNDRV_PCM_FORMAT_DSD_U8:
 		return 8;
 	case SNDRV_PCM_FORMAT_S16_LE:
 	case SNDRV_PCM_FORMAT_S16_BE:
 	case SNDRV_PCM_FORMAT_U16_LE:
 	case SNDRV_PCM_FORMAT_U16_BE:
+	case SNDRV_PCM_FORMAT_DSD_U16_LE:
 		return 16;
 	case SNDRV_PCM_FORMAT_S18_3LE:
 	case SNDRV_PCM_FORMAT_S18_3BE:
