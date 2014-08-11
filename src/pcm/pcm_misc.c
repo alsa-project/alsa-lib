@@ -62,6 +62,8 @@ int snd_pcm_format_signed(snd_pcm_format_t format)
 	case SNDRV_PCM_FORMAT_U20_3BE:
 	case SNDRV_PCM_FORMAT_U18_3LE:
 	case SNDRV_PCM_FORMAT_U18_3BE:
+	case SNDRV_PCM_FORMAT_DSD_U8:
+	case SNDRV_PCM_FORMAT_DSD_U16_LE:
 		return 0;
 	default:
 		return -EINVAL;
@@ -150,6 +152,8 @@ int snd_pcm_format_little_endian(snd_pcm_format_t format)
 	case SNDRV_PCM_FORMAT_U24_3BE:
 	case SNDRV_PCM_FORMAT_U20_3BE:
 	case SNDRV_PCM_FORMAT_U18_3BE:
+	case SNDRV_PCM_FORMAT_DSD_U8:
+	case SNDRV_PCM_FORMAT_DSD_U16_LE:
 		return 0;
 	default:
 		return -EINVAL;
