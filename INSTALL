@@ -78,16 +78,13 @@ When you would like to cross-compile ALSA library (e.g. compile on
 i686 host but for arm architecture) you will need to call ./configure
 script with additional parameters:
 
-CC=arm-linux-gcc ./configure --target=arm-linux
+CC=arm-linux-gcc ./configure --host=arm-linux
 
-In this example host where the library is build is guessed (should be
-given with --host=platform) and target for which is the library build is
-Linux on ARM architecture.  You should omit setting 'CC' variable and
-cross-compiler will be guessed too.
+You can omit setting 'CC' variable and cross-compiler will be guessed too.
 
 So simplest version would be:
 
-./configure --target=arm-linux
+./configure --host=arm-linux
 
 For platform names in the form cpu-vendor-os (or aliases for this)
 you should look in 'config.guess' script. Target and all paths
