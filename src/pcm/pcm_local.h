@@ -461,13 +461,7 @@ static inline snd_pcm_sframes_t snd_pcm_mmap_capture_hw_avail(snd_pcm_t *pcm)
 
 static inline snd_pcm_sframes_t snd_pcm_mmap_hw_avail(snd_pcm_t *pcm)
 {
-	snd_pcm_sframes_t avail;
-	avail = *pcm->hw.ptr - *pcm->appl.ptr;
-	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
-		avail += pcm->buffer_size;
-	if (avail < 0)
-		avail += pcm->boundary;
-	return pcm->buffer_size - avail;
+	return pcm->buffer_size - snd_pcm_mmap_avail(pcm);
 }
 
 static inline const snd_pcm_channel_area_t *snd_pcm_mmap_areas(snd_pcm_t *pcm)
