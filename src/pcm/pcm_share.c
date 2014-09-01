@@ -128,6 +128,8 @@ static snd_pcm_uframes_t snd_pcm_share_slave_avail(snd_pcm_share_slave_t *slave)
 		avail += pcm->buffer_size;
 	if (avail < 0)
 		avail += pcm->boundary;
+	else if ((snd_pcm_uframes_t) avail >= pcm->boundary)
+		avail -= pcm->boundary;
 	return avail;
 }
 
