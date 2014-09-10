@@ -211,7 +211,9 @@ typedef enum _snd_pcm_format {
 	SND_PCM_FORMAT_DSD_U8,
 	/* Direct Stream Digital (DSD) in 2-byte samples (x16) */
 	SND_PCM_FORMAT_DSD_U16_LE,
-	SND_PCM_FORMAT_LAST = SND_PCM_FORMAT_DSD_U16_LE,
+	/* Direct Stream Digital (DSD) in 4-byte samples (x32) */
+	SND_PCM_FORMAT_DSD_U32_LE,
+	SND_PCM_FORMAT_LAST = SND_PCM_FORMAT_DSD_U32_LE,
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 	/** Signed 16 bit CPU endian */

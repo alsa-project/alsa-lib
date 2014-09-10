@@ -64,6 +64,7 @@ int snd_pcm_format_signed(snd_pcm_format_t format)
 	case SNDRV_PCM_FORMAT_U18_3BE:
 	case SNDRV_PCM_FORMAT_DSD_U8:
 	case SNDRV_PCM_FORMAT_DSD_U16_LE:
+	case SNDRV_PCM_FORMAT_DSD_U32_LE:
 		return 0;
 	default:
 		return -EINVAL;
@@ -154,6 +155,7 @@ int snd_pcm_format_little_endian(snd_pcm_format_t format)
 	case SNDRV_PCM_FORMAT_U18_3BE:
 	case SNDRV_PCM_FORMAT_DSD_U8:
 	case SNDRV_PCM_FORMAT_DSD_U16_LE:
+	case SNDRV_PCM_FORMAT_DSD_U32_LE:
 		return 0;
 	default:
 		return -EINVAL;
@@ -232,6 +234,7 @@ int snd_pcm_format_width(snd_pcm_format_t format)
 	case SNDRV_PCM_FORMAT_U32_BE:
 	case SNDRV_PCM_FORMAT_FLOAT_LE:
 	case SNDRV_PCM_FORMAT_FLOAT_BE:
+	case SNDRV_PCM_FORMAT_DSD_U32_LE:
 		return 32;
 	case SNDRV_PCM_FORMAT_FLOAT64_LE:
 	case SNDRV_PCM_FORMAT_FLOAT64_BE:
@@ -292,6 +295,7 @@ int snd_pcm_format_physical_width(snd_pcm_format_t format)
 	case SNDRV_PCM_FORMAT_FLOAT_BE:
 	case SNDRV_PCM_FORMAT_IEC958_SUBFRAME_LE:
 	case SNDRV_PCM_FORMAT_IEC958_SUBFRAME_BE:
+	case SNDRV_PCM_FORMAT_DSD_U32_LE:
 		return 32;
 	case SNDRV_PCM_FORMAT_FLOAT64_LE:
 	case SNDRV_PCM_FORMAT_FLOAT64_BE:
@@ -348,6 +352,7 @@ ssize_t snd_pcm_format_size(snd_pcm_format_t format, size_t samples)
 	case SNDRV_PCM_FORMAT_U32_BE:
 	case SNDRV_PCM_FORMAT_FLOAT_LE:
 	case SNDRV_PCM_FORMAT_FLOAT_BE:
+	case SNDRV_PCM_FORMAT_DSD_U32_LE:
 		return samples * 4;
 	case SNDRV_PCM_FORMAT_FLOAT64_LE:
 	case SNDRV_PCM_FORMAT_FLOAT64_BE:
@@ -394,6 +399,7 @@ u_int64_t snd_pcm_format_silence_64(snd_pcm_format_t format)
 		return 0x8080808080808080ULL;
 	case SNDRV_PCM_FORMAT_DSD_U8:
 	case SNDRV_PCM_FORMAT_DSD_U16_LE:
+	case SNDRV_PCM_FORMAT_DSD_U32_LE:
 		return 0x6969696969696969ULL;
 #ifdef SNDRV_LITTLE_ENDIAN
 	case SNDRV_PCM_FORMAT_U16_LE:
