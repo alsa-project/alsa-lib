@@ -454,7 +454,7 @@ static int snd_pcm_file_drain(snd_pcm_t *pcm)
 static snd_pcm_sframes_t snd_pcm_file_rewindable(snd_pcm_t *pcm)
 {
 	snd_pcm_file_t *file = pcm->private_data;
-	snd_pcm_sframes_t res = snd_pcm_rewindable(pcm);
+	snd_pcm_sframes_t res = snd_pcm_rewindable(file->gen.slave);
 	snd_pcm_sframes_t n = snd_pcm_bytes_to_frames(pcm, file->wbuf_used_bytes);
 	if (res > n)
 		res = n;
@@ -482,7 +482,7 @@ static snd_pcm_sframes_t snd_pcm_file_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t f
 static snd_pcm_sframes_t snd_pcm_file_forwardable(snd_pcm_t *pcm)
 {
 	snd_pcm_file_t *file = pcm->private_data;
-	snd_pcm_sframes_t res = snd_pcm_forwardable(pcm);
+	snd_pcm_sframes_t res = snd_pcm_forwardable(file->gen.slave);
 	snd_pcm_sframes_t n = snd_pcm_bytes_to_frames(pcm, file->wbuf_size_bytes - file->wbuf_used_bytes);
 	if (res > n)
 		res = n;
