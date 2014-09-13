@@ -335,7 +335,7 @@ static int snd_pcm_dsnoop_pause(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int enable ATTR
 
 static snd_pcm_sframes_t snd_pcm_dsnoop_rewindable(snd_pcm_t *pcm)
 {
-	return snd_pcm_mmap_capture_avail(pcm);
+	return snd_pcm_mmap_capture_hw_avail(pcm);
 }
 
 static snd_pcm_sframes_t snd_pcm_dsnoop_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
@@ -351,7 +351,7 @@ static snd_pcm_sframes_t snd_pcm_dsnoop_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t
 
 static snd_pcm_sframes_t snd_pcm_dsnoop_forwardable(snd_pcm_t *pcm)
 {
-	return snd_pcm_mmap_capture_hw_avail(pcm);
+	return snd_pcm_mmap_capture_avail(pcm);
 }
 
 static snd_pcm_sframes_t snd_pcm_dsnoop_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
@@ -359,8 +359,6 @@ static snd_pcm_sframes_t snd_pcm_dsnoop_forward(snd_pcm_t *pcm, snd_pcm_uframes_
 	snd_pcm_sframes_t avail;
 
 	avail = snd_pcm_dsnoop_forwardable(pcm);
-	if (avail < 0)
-		return 0;
 	if (frames > (snd_pcm_uframes_t)avail)
 		frames = avail;
 	snd_pcm_mmap_appl_forward(pcm, frames);
