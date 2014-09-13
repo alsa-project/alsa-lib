@@ -412,6 +412,9 @@ static int snd_pcm_dshare_pause(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int enable ATTR
 
 static snd_pcm_sframes_t snd_pcm_dshare_rewindable(snd_pcm_t *pcm)
 {
+	int err = snd_pcm_dshare_hwsync(pcm);
+	if (err < 0)
+		return err;
 	return snd_pcm_mmap_playback_hw_rewindable(pcm);
 }
 
@@ -428,6 +431,9 @@ static snd_pcm_sframes_t snd_pcm_dshare_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t
 
 static snd_pcm_sframes_t snd_pcm_dshare_forwardable(snd_pcm_t *pcm)
 {
+	int err = snd_pcm_dshare_hwsync(pcm);
+	if (err < 0)
+		return err;
 	return snd_pcm_mmap_playback_avail(pcm);
 }
 

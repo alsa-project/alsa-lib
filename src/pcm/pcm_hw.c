@@ -659,6 +659,9 @@ static int snd_pcm_hw_pause(snd_pcm_t *pcm, int enable)
 
 static snd_pcm_sframes_t snd_pcm_hw_rewindable(snd_pcm_t *pcm)
 {
+	int err = snd_pcm_hw_hwsync(pcm);
+	if (err < 0)
+		return err;
 	return snd_pcm_mmap_hw_rewindable(pcm);
 }
 
@@ -679,6 +682,9 @@ static snd_pcm_sframes_t snd_pcm_hw_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t fra
 
 static snd_pcm_sframes_t snd_pcm_hw_forwardable(snd_pcm_t *pcm)
 {
+	int err = snd_pcm_hw_hwsync(pcm);
+	if (err < 0)
+		return err;
 	return snd_pcm_mmap_avail(pcm);
 }
 

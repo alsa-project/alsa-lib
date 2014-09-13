@@ -503,6 +503,7 @@ static int snd_pcm_ioplug_pause(snd_pcm_t *pcm, int enable)
 
 static snd_pcm_sframes_t snd_pcm_ioplug_rewindable(snd_pcm_t *pcm)
 {
+	snd_pcm_ioplug_hw_ptr_update(pcm);
 	return snd_pcm_mmap_hw_rewindable(pcm);
 }
 
@@ -514,6 +515,7 @@ static snd_pcm_sframes_t snd_pcm_ioplug_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t
 
 static snd_pcm_sframes_t snd_pcm_ioplug_forwardable(snd_pcm_t *pcm)
 {
+	snd_pcm_ioplug_hw_ptr_update(pcm);
 	return snd_pcm_mmap_avail(pcm);
 }
 
