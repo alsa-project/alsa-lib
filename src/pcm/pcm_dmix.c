@@ -669,11 +669,15 @@ static snd_pcm_sframes_t snd_pcm_dmix_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t f
 	snd_pcm_direct_t *dmix = pcm->private_data;
 	snd_pcm_uframes_t slave_appl_ptr, slave_size;
 	snd_pcm_uframes_t appl_ptr, size, transfer, result;
+	int err;
 	const snd_pcm_channel_area_t *src_areas, *dst_areas;
 
 	if (dmix->state == SND_PCM_STATE_RUNNING ||
-	    dmix->state == SND_PCM_STATE_DRAINING)
-	    	return snd_pcm_dmix_hwsync(pcm);
+	    dmix->state == SND_PCM_STATE_DRAINING) {
+		err = snd_pcm_dmix_hwsync(pcm);
+		if (err < 0)
+			return err;
+	}
 
 	if (dmix->last_appl_ptr < dmix->appl_ptr)
 		size = dmix->appl_ptr - dmix->last_appl_ptr;
