@@ -464,6 +464,24 @@ static inline snd_pcm_sframes_t snd_pcm_mmap_hw_avail(snd_pcm_t *pcm)
 	return pcm->buffer_size - snd_pcm_mmap_avail(pcm);
 }
 
+static inline snd_pcm_sframes_t snd_pcm_mmap_playback_hw_rewindable(snd_pcm_t *pcm)
+{
+	snd_pcm_sframes_t ret = snd_pcm_mmap_playback_hw_avail(pcm);
+	return (ret >= 0) ? ret : 0;
+}
+
+static inline snd_pcm_sframes_t snd_pcm_mmap_capture_hw_rewindable(snd_pcm_t *pcm)
+{
+	snd_pcm_sframes_t ret = snd_pcm_mmap_capture_hw_avail(pcm);
+	return (ret >= 0) ? ret : 0;
+}
+
+static inline snd_pcm_uframes_t snd_pcm_mmap_hw_rewindable(snd_pcm_t *pcm)
+{
+	snd_pcm_sframes_t ret = snd_pcm_mmap_hw_avail(pcm);
+	return (ret >= 0) ? ret : 0;
+}
+
 static inline const snd_pcm_channel_area_t *snd_pcm_mmap_areas(snd_pcm_t *pcm)
 {
 	if (pcm->stopped_areas &&

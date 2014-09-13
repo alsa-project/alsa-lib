@@ -198,7 +198,7 @@ static int snd_pcm_plugin_reset(snd_pcm_t *pcm)
 
 static snd_pcm_sframes_t snd_pcm_plugin_rewindable(snd_pcm_t *pcm)
 {
-	return snd_pcm_mmap_hw_avail(pcm);
+	return snd_pcm_mmap_hw_rewindable(pcm);
 }
 
 snd_pcm_sframes_t snd_pcm_plugin_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)

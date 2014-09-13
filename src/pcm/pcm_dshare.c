@@ -412,7 +412,7 @@ static int snd_pcm_dshare_pause(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int enable ATTR
 
 static snd_pcm_sframes_t snd_pcm_dshare_rewindable(snd_pcm_t *pcm)
 {
-	return snd_pcm_mmap_playback_hw_avail(pcm);
+	return snd_pcm_mmap_playback_hw_rewindable(pcm);
 }
 
 static snd_pcm_sframes_t snd_pcm_dshare_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
@@ -420,8 +420,6 @@ static snd_pcm_sframes_t snd_pcm_dshare_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t
 	snd_pcm_sframes_t avail;
 
 	avail = snd_pcm_dshare_rewindable(pcm);
-	if (avail < 0)
-		return 0;
 	if (frames > (snd_pcm_uframes_t)avail)
 		frames = avail;
 	snd_pcm_mmap_appl_backward(pcm, frames);
