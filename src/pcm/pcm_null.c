@@ -86,10 +86,7 @@ static snd_pcm_sframes_t snd_pcm_null_avail_update(snd_pcm_t *pcm)
         if (null->state == SND_PCM_STATE_PREPARED) {
                 /* it is required to return the correct avail count for */
                 /* the prepared stream, otherwise the start is not called */
-                if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
-                        return snd_pcm_mmap_playback_avail(pcm);
-                else
-                        return snd_pcm_mmap_capture_avail(pcm);
+                return snd_pcm_mmap_avail(pcm);
         }
 	return pcm->buffer_size;
 }
