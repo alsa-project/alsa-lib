@@ -1058,7 +1058,7 @@ static snd_pcm_state_t snd_pcm_rate_state(snd_pcm_t *pcm)
 static int snd_pcm_rate_start(snd_pcm_t *pcm)
 {
 	snd_pcm_rate_t *rate = pcm->private_data;
-	snd_pcm_uframes_t avail;
+	snd_pcm_sframes_t avail;
 		
 	if (pcm->stream == SND_PCM_STREAM_CAPTURE)
 		return snd_pcm_start(rate->gen.slave);
@@ -1069,7 +1069,7 @@ static int snd_pcm_rate_start(snd_pcm_t *pcm)
 	gettimestamp(&rate->trigger_tstamp, pcm->tstamp_type);
 
 	avail = snd_pcm_mmap_playback_hw_avail(rate->gen.slave);
-	if (avail == 0) {
+	if (avail <= 0) {
 		/* postpone the trigger since we have no data committed yet */
 		rate->start_pending = 1;
 		return 0;
