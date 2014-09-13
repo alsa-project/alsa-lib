@@ -751,9 +751,7 @@ static snd_pcm_sframes_t snd_pcm_dmix_forward(snd_pcm_t *pcm, snd_pcm_uframes_t 
 {
 	snd_pcm_sframes_t avail;
 
-	avail = snd_pcm_mmap_playback_avail(pcm);
-	if (avail < 0)
-		return 0;
+	avail = snd_pcm_dmix_forwardable(pcm);
 	if (frames > (snd_pcm_uframes_t)avail)
 		frames = avail;
 	snd_pcm_mmap_appl_forward(pcm, frames);

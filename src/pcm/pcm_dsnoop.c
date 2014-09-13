@@ -342,9 +342,7 @@ static snd_pcm_sframes_t snd_pcm_dsnoop_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t
 {
 	snd_pcm_sframes_t avail;
 
-	avail = snd_pcm_mmap_capture_avail(pcm);
-	if (avail < 0)
-		return 0;
+	avail = snd_pcm_dsnoop_rewindable(pcm);
 	if (frames > (snd_pcm_uframes_t)avail)
 		frames = avail;
 	snd_pcm_mmap_appl_backward(pcm, frames);
@@ -360,7 +358,7 @@ static snd_pcm_sframes_t snd_pcm_dsnoop_forward(snd_pcm_t *pcm, snd_pcm_uframes_
 {
 	snd_pcm_sframes_t avail;
 
-	avail = snd_pcm_mmap_capture_hw_avail(pcm);
+	avail = snd_pcm_dsnoop_forwardable(pcm);
 	if (avail < 0)
 		return 0;
 	if (frames > (snd_pcm_uframes_t)avail)

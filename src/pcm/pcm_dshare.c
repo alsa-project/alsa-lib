@@ -419,7 +419,7 @@ static snd_pcm_sframes_t snd_pcm_dshare_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t
 {
 	snd_pcm_sframes_t avail;
 
-	avail = snd_pcm_mmap_playback_hw_avail(pcm);
+	avail = snd_pcm_dshare_rewindable(pcm);
 	if (avail < 0)
 		return 0;
 	if (frames > (snd_pcm_uframes_t)avail)
@@ -437,9 +437,7 @@ static snd_pcm_sframes_t snd_pcm_dshare_forward(snd_pcm_t *pcm, snd_pcm_uframes_
 {
 	snd_pcm_sframes_t avail;
 
-	avail = snd_pcm_mmap_playback_avail(pcm);
-	if (avail < 0)
-		return 0;
+	avail = snd_pcm_dshare_forwardable(pcm);
 	if (frames > (snd_pcm_uframes_t)avail)
 		frames = avail;
 	snd_pcm_mmap_appl_forward(pcm, frames);

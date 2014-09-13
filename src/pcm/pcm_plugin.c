@@ -204,7 +204,7 @@ static snd_pcm_sframes_t snd_pcm_plugin_rewindable(snd_pcm_t *pcm)
 snd_pcm_sframes_t snd_pcm_plugin_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_plugin_t *plugin = pcm->private_data;
-	snd_pcm_sframes_t n = snd_pcm_mmap_hw_avail(pcm);
+	snd_pcm_sframes_t n = snd_pcm_plugin_rewindable(pcm);
 	snd_pcm_sframes_t sframes;
 
 	if ((snd_pcm_uframes_t)n < frames)
@@ -232,7 +232,7 @@ static snd_pcm_sframes_t snd_pcm_plugin_forwardable(snd_pcm_t *pcm)
 snd_pcm_sframes_t snd_pcm_plugin_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_plugin_t *plugin = pcm->private_data;
-	snd_pcm_sframes_t n = snd_pcm_mmap_avail(pcm);
+	snd_pcm_sframes_t n = snd_pcm_plugin_forwardable(pcm);
 	snd_pcm_sframes_t sframes;
 
 	if ((snd_pcm_uframes_t)n < frames)
