@@ -198,9 +198,6 @@ static int snd_pcm_plugin_reset(snd_pcm_t *pcm)
 
 static snd_pcm_sframes_t snd_pcm_plugin_rewindable(snd_pcm_t *pcm)
 {
-	int err = snd_pcm_generic_hwsync(pcm);
-	if (err < 0)
-		return err;
 	return snd_pcm_mmap_hw_rewindable(pcm);
 }
 
@@ -229,9 +226,6 @@ snd_pcm_sframes_t snd_pcm_plugin_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames
 
 static snd_pcm_sframes_t snd_pcm_plugin_forwardable(snd_pcm_t *pcm)
 {
-	int err = snd_pcm_generic_hwsync(pcm);
-	if (err < 0)
-		return err;
 	return snd_pcm_mmap_avail(pcm);
 }
 
