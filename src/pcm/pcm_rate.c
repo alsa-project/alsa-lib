@@ -1069,7 +1069,10 @@ static int snd_pcm_rate_start(snd_pcm_t *pcm)
 	gettimestamp(&rate->trigger_tstamp, pcm->tstamp_type);
 
 	avail = snd_pcm_mmap_playback_hw_avail(rate->gen.slave);
-	if (avail <= 0) {
+	if (avail < 0) /* can't happen on healthy drivers */
+		return -EBADFD;
+
+	if (avail == 0) {
 		/* postpone the trigger since we have no data committed yet */
 		rate->start_pending = 1;
 		return 0;
