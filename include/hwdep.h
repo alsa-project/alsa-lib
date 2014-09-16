@@ -102,6 +102,7 @@ typedef struct _snd_hwdep snd_hwdep_t;
 int snd_hwdep_open(snd_hwdep_t **hwdep, const char *name, int mode);
 int snd_hwdep_close(snd_hwdep_t *hwdep);
 int snd_hwdep_poll_descriptors(snd_hwdep_t *hwdep, struct pollfd *pfds, unsigned int space);
+int snd_hwdep_poll_descriptors_count(snd_hwdep_t *hwdep);
 int snd_hwdep_poll_descriptors_revents(snd_hwdep_t *hwdep, struct pollfd *pfds, unsigned int nfds, unsigned short *revents);
 int snd_hwdep_nonblock(snd_hwdep_t *hwdep, int nonblock);
 int snd_hwdep_info(snd_hwdep_t *hwdep, snd_hwdep_info_t * info);
