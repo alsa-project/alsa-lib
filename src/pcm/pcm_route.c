@@ -1147,7 +1147,7 @@ static int _snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_ent
 		snd_config_iterator_t j, jnext;
 		long cchannel;
 		const char *id;
-		if (!snd_config_get_id(in, &id) < 0)
+		if (snd_config_get_id(in, &id) < 0)
 			continue;
 		err = safe_strtol(id, &cchannel);
 		if (err < 0 || 
