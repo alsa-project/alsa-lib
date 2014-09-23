@@ -70,6 +70,8 @@ static int try_open(snd_mixer_class_t *class, const char *lib)
 	void *h;
 	int err = 0;
 
+	if (!lib)
+		return -ENXIO;
 	path = getenv("ALSA_MIXER_SIMPLE_MODULES");
 	if (!path)
 		path = SO_PATH;
