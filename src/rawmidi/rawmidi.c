@@ -256,8 +256,11 @@ static int snd_rawmidi_open_conf(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp
 		snd_config_delete(type_conf);
 	if (err >= 0)
 		err = open_func(inputp, outputp, name, rawmidi_root, rawmidi_conf, mode);
-	if (err < 0)
+	if (err < 0) {
+		if (h)
+			snd_dlclose(h);
 		return err;
+	}
 	if (inputp) {
 		(*inputp)->dl_handle = h; h = NULL;
 		snd_rawmidi_params_default(*inputp, &params);
