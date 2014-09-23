@@ -653,6 +653,7 @@ AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile doc/doxygen.cfg \
 	  src/conf/ucm/PandaBoardES/Makefile \
 	  src/conf/ucm/SDP4430/Makefile \
 	  src/conf/ucm/tegraalc5632/Makefile \
+	  src/conf/ucm/PAZ00/Makefile \
 	  modules/Makefile modules/mixer/Makefile modules/mixer/simple/Makefile \
 	  alsalisp/Makefile aserver/Makefile \
 	  test/Makefile test/lsb/Makefile \
