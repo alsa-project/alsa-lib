@@ -758,6 +758,7 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 		ifd = open(ifname, O_RDONLY);	/* TODO: mind blocking mode */
 		if (ifd < 0) {
 			SYSERR("open %s for reading failed", ifname);
+			free(file->fname);
 			free(file);
 			return -errno;
 		}
@@ -772,6 +773,7 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	err = snd_pcm_new(&pcm, SND_PCM_TYPE_FILE, name, slave->stream, slave->mode);
 	if (err < 0) {
 		free(file->fname);
+		free(file->ifname);
 		free(file);
 		return err;
 	}
