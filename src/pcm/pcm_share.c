@@ -369,6 +369,7 @@ static void *snd_pcm_share_thread(void *data)
 	err = pipe(slave->poll);
 	if (err < 0) {
 		SYSERR("can't create a pipe");
+		Pthread_mutex_unlock(&slave->mutex);
 		return NULL;
 	}
 	while (slave->open_count > 0) {
@@ -395,6 +396,7 @@ static void *snd_pcm_share_thread(void *data)
 				err = snd_pcm_sw_params(spcm, &slave->sw_params);
 				if (err < 0) {
 					SYSERR("snd_pcm_sw_params error");
+					Pthread_mutex_unlock(&slave->mutex);
 					return NULL;
 				}
 			}
