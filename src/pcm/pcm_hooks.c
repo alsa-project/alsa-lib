@@ -457,7 +457,8 @@ static int snd_pcm_hook_add_conf(snd_pcm_t *pcm, snd_config_t *root, snd_config_
 		err = hook_add_dlobj(pcm, h);
 
 	if (err < 0) {
-		snd_dlclose(h);
+		if(h)
+			snd_dlclose(h);
 		return err;
 	}
 	return 0;
