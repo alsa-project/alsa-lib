@@ -204,10 +204,8 @@ int snd_mixer_attach(snd_mixer_t *mixer, const char *name)
 	if (err < 0)
 		return err;
 	err = snd_mixer_attach_hctl(mixer, hctl);
-	if (err < 0) {
-		snd_hctl_close(hctl);
+	if (err < 0)
 		return err;
-	}
 	return 0;
 }
 
