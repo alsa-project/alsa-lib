@@ -124,12 +124,15 @@ int snd_is_local(struct hostent *hent)
 	
 	conf.ifc_len = numreqs * sizeof(struct ifreq);
 	conf.ifc_buf = malloc((unsigned int) conf.ifc_len);
-	if (! conf.ifc_buf)
+	if (! conf.ifc_buf) {
+		close(s);
 		return -ENOMEM;
+	}
 	while (1) {
 		err = ioctl(s, SIOCGIFCONF, &conf);
 		if (err < 0) {
 			SYSERR("SIOCGIFCONF failed");
+			close(s);
 			return -errno;
 		}
 		if ((size_t)conf.ifc_len < numreqs * sizeof(struct ifreq))
@@ -137,8 +140,10 @@ int snd_is_local(struct hostent *hent)
 		numreqs *= 2;
 		conf.ifc_len = numreqs * sizeof(struct ifreq);
 		conf.ifc_buf = realloc(conf.ifc_buf, (unsigned int) conf.ifc_len);
-		if (! conf.ifc_buf)
+		if (! conf.ifc_buf) {
+			close(s);
 			return -ENOMEM;
+		}
 	}
 	numreqs = conf.ifc_len / sizeof(struct ifreq);
 	for (i = 0; i < numreqs; ++i) {
