@@ -377,6 +377,7 @@ static int simple_event_add1(snd_mixer_class_t *class,
 		if (ctype != SND_CTL_ELEM_TYPE_BOOLEAN) {
 		      __invalid_type:
 		      	snd_mixer_selem_id_free(id);
+			free(hsimple);
 			return -EINVAL;
 		}
 		break;
