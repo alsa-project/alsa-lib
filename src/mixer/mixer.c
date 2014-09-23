@@ -214,6 +214,8 @@ int snd_mixer_attach(snd_mixer_t *mixer, const char *name)
  * \param mixer Mixer handle
  * \param hctl the HCTL to be attached
  * \return 0 on success otherwise a negative error code
+ *
+ * Upon error, this function closes the given hctl handle automatically.
  */
 int snd_mixer_attach_hctl(snd_mixer_t *mixer, snd_hctl_t *hctl)
 {
@@ -222,8 +224,10 @@ int snd_mixer_attach_hctl(snd_mixer_t *mixer, snd_hctl_t *hctl)
 
 	assert(hctl);
 	slave = calloc(1, sizeof(*slave));
-	if (slave == NULL)
+	if (slave == NULL) {
+		snd_hctl_close(hctl);
 		return -ENOMEM;
+	}
 	err = snd_hctl_nonblock(hctl, 1);
 	if (err < 0) {
 		snd_hctl_close(hctl);
