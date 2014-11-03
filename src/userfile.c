@@ -44,19 +44,20 @@ int snd_user_file(const char *file, char **result)
 	err = wordexp(file, &we, WRDE_NOCMD);
 	switch (err) {
 	case WRDE_NOSPACE:
+		wordfree(&we);
 		return -ENOMEM;
 	case 0:
 		if (we.we_wordc == 1)
 			break;
+		wordfree(&we);
 		/* fall thru */
 	default:
-		wordfree(&we);
 		return -EINVAL;
 	}
 	*result = strdup(we.we_wordv[0]);
+	wordfree(&we);
 	if (*result == NULL)
 		return -ENOMEM;
-	wordfree(&we);
 	return 0;
 }
 
