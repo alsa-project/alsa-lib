@@ -1148,6 +1148,7 @@ int snd_pcm_direct_initialize_poll_fd(snd_pcm_direct_t *dmix)
 
 	dmix->timer_events = (1<<SND_TIMER_EVENT_MSUSPEND) |
 			     (1<<SND_TIMER_EVENT_MRESUME) |
+			     (1<<SND_TIMER_EVENT_MSTOP) |
 			     (1<<SND_TIMER_EVENT_STOP);
 
 	/*
