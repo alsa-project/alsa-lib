@@ -177,11 +177,13 @@ void *snd_dlsym(void *handle, const char *name, const char *version)
 	}
 #endif
 #ifdef HAVE_LIBDL
+#ifdef VERSIONED_SYMBOLS
 	if (version) {
 		err = snd_dlsym_verify(handle, name, version);
 		if (err < 0)
 			return NULL;
 	}
+#endif
 	return dlsym(handle, name);
 #else
 	return NULL;
