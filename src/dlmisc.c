@@ -326,7 +326,6 @@ void snd_dlobj_cache_cleanup(void)
 		free(c);
 	}
 
- unlock:
 	snd_dlobj_unlock();
 }
 #endif
