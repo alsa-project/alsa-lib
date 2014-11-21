@@ -32,9 +32,9 @@ int snd_mixer_simple_none_register(snd_mixer_t *mixer, struct snd_mixer_selem_re
 #ifdef HAVE_LIBDL
 int snd_mixer_simple_basic_register(snd_mixer_t *mixer, struct snd_mixer_selem_regopt *options, snd_mixer_class_t **classp);
 #else
-static inline int snd_mixer_simple_basic_register(snd_mixer_t *mixer,
-						  struct snd_mixer_selem_regopt *options,
-						  snd_mixer_class_t **classp)
+static inline int snd_mixer_simple_basic_register(snd_mixer_t *mixer ATTRIBUTE_UNUSED,
+						  struct snd_mixer_selem_regopt *options ATTRIBUTE_UNUSED,
+						  snd_mixer_class_t **classp ATTRIBUTE_UNUSED)
 {
 	return -ENXIO;
 }
