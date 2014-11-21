@@ -1566,6 +1566,8 @@ static const char *const snd_pcm_format_names[] = {
 	FORMAT(DSD_U8),
 	FORMAT(DSD_U16_LE),
 	FORMAT(DSD_U32_LE),
+	FORMAT(DSD_U16_BE),
+	FORMAT(DSD_U32_BE),
 };
 
 static const char *const snd_pcm_format_aliases[SND_PCM_FORMAT_LAST+1] = {
@@ -1626,6 +1628,8 @@ static const char *const snd_pcm_format_descriptions[] = {
 	FORMATD(DSD_U8,  "Direct Stream Digital, 1-byte (x8), oldest bit in MSB"),
 	FORMATD(DSD_U16_LE, "Direct Stream Digital, 2-byte (x16), little endian, oldest bits in MSB"),
 	FORMATD(DSD_U32_LE, "Direct Stream Digital, 4-byte (x32), little endian, oldest bits in MSB"),
+	FORMATD(DSD_U16_BE, "Direct Stream Digital, 2-byte (x16), big endian, oldest bits in MSB"),
+	FORMATD(DSD_U32_BE, "Direct Stream Digital, 4-byte (x32), big endian, oldest bits in MSB"),
 };
 
 static const char *const snd_pcm_type_names[] = {
