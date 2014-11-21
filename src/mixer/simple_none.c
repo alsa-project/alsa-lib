@@ -39,8 +39,8 @@
 #include <math.h>
 #include <limits.h>
 #include <alsa/asoundlib.h>
-#include "mixer_simple.h"
 #include "config.h"
+#include "mixer_simple.h"
 
 #ifndef DOC_HIDDEN
 

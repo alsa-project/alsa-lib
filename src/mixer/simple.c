@@ -36,6 +36,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <math.h>
+#include "config.h"
 #include "mixer_local.h"
 #include "mixer_simple.h"
 
