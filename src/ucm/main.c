@@ -1443,7 +1443,7 @@ static int set_verb_user(snd_use_case_mgr_t *uc_mgr,
                          const char *verb_name)
 {
         struct use_case_verb *verb;
-        int err;
+        int err = 0;
 
         if (uc_mgr->active_verb &&
             strcmp(uc_mgr->active_verb->name, verb_name) == 0)
@@ -1625,7 +1625,7 @@ int snd_use_case_set(snd_use_case_mgr_t *uc_mgr,
                      const char *value)
 {
 	char *str, *str1;
-	int err;
+	int err = 0;
 
 	pthread_mutex_lock(&uc_mgr->mutex);
 	if (strcmp(identifier, "_verb") == 0)
