@@ -897,6 +897,7 @@ int snd_pcm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 	if (err < 0)
 		return err;
 	pcm->tstamp_mode = params->tstamp_mode;
+	pcm->tstamp_type = params->tstamp_type;
 	pcm->period_step = params->period_step;
 	pcm->avail_min = params->avail_min;
 	pcm->period_event = sw_get_period_event(params);
@@ -1843,7 +1844,7 @@ const char *snd_pcm_tstamp_mode_name(snd_pcm_tstamp_t mode)
  * \param mode PCM tstamp type
  * \return ascii name of PCM tstamp type setting
  */
-const char *snd_pcm_tstamp_type_name(snd_pcm_tstamp_t type)
+const char *snd_pcm_tstamp_type_name(snd_pcm_tstamp_type_t type)
 {
 	if (type > SND_PCM_TSTAMP_TYPE_LAST)
 		return NULL;
@@ -1924,7 +1925,7 @@ int snd_pcm_dump_sw_setup(snd_pcm_t *pcm, snd_output_t *out)
 		return -EIO;
 	}
 	snd_output_printf(out, "  tstamp_mode  : %s\n", snd_pcm_tstamp_mode_name(pcm->tstamp_mode));
-	snd_output_printf(out, "  tstamp_type  : %s\n", snd_pcm_tstamp_type_name(pcm->tstamp_mode));
+	snd_output_printf(out, "  tstamp_type  : %s\n", snd_pcm_tstamp_type_name(pcm->tstamp_type));
 	snd_output_printf(out, "  period_step  : %d\n", pcm->period_step);
 	snd_output_printf(out, "  avail_min    : %ld\n", pcm->avail_min);
 	snd_output_printf(out, "  period_event : %i\n", pcm->period_event);
