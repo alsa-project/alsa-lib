@@ -5,7 +5,7 @@ alsaincludedir = ${includedir}/alsa
 
 alsainclude_HEADERS = asoundlib.h asoundef.h \
 		      version.h global.h input.h output.h error.h \
-		      conf.h control.h iatomic.h use-case.h
+		      conf.h control.h iatomic.h
 
 if BUILD_CTL_PLUGIN_EXT
 alsainclude_HEADERS += control_external.h
@@ -17,7 +17,7 @@ if BUILD_PCM_PLUGIN
 alsainclude_HEADERS += pcm_plugin.h
 endif
 if BUILD_PCM_PLUGIN_RATE
-alsainclude_HEADERS += pcm_rate.h 
+alsainclude_HEADERS += pcm_rate.h
 endif
 if BUILD_PCM_PLUGIN_EXTPLUG
 alsainclude_HEADERS += pcm_external.h pcm_extplug.h
@@ -44,6 +44,10 @@ endif
 
 if BUILD_SEQ
 alsainclude_HEADERS += seq_event.h seq.h seqmid.h seq_midi_event.h
+endif
+
+if BUILD_UCM
+alsainclude_HEADERS += use-case.h
 endif
 
 if BUILD_ALISP
