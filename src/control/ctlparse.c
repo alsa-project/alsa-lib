@@ -59,7 +59,7 @@ static long get_integer(const char **ptr, long min, long max)
 		goto out;
 
 	s = p;
-	val = strtol(s, &p, 10);
+	val = strtol(s, &p, 0);
 	if (*p == '.') {
 		p++;
 		strtol(p, &p, 10);
@@ -87,7 +87,7 @@ static long long get_integer64(const char **ptr, long long min, long long max)
 		goto out;
 
 	s = p;
-	val = strtol(s, &p, 10);
+	val = strtol(s, &p, 0);
 	if (*p == '.') {
 		p++;
 		strtol(p, &p, 10);
