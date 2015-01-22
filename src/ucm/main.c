@@ -34,6 +34,7 @@
 #include <ctype.h>
 #include <stdarg.h>
 #include <pthread.h>
+#include <sys/stat.h>
 
 /*
  * misc
@@ -160,11 +161,65 @@ static int open_ctl(snd_use_case_mgr_t *uc_mgr,
 	return 0;
 }
 
+static int binary_file_parse(snd_ctl_elem_value_t *dst,
+			      snd_ctl_elem_info_t *info,
+			      const char *filepath)
+{
+	int err = 0;
+	int fd;
+	struct stat st;
+	size_t sz;
+	ssize_t sz_read;
+	char *res;
+	snd_ctl_elem_type_t type;
+	unsigned int idx, count;
+
+	type = snd_ctl_elem_info_get_type(info);
+	if (type != SND_CTL_ELEM_TYPE_BYTES) {
+		uc_error("only support byte type!");
+		err = -EINVAL;
+		return err;
+	}
+	fd = open(filepath, O_RDONLY);
+	if (fd < 0) {
+		err = -errno;
+		return err;
+	}
+	if (stat(filepath, &st) == -1) {
+		err = -errno;
+		goto __fail;
+	}
+	sz = st.st_size;
+	count = snd_ctl_elem_info_get_count(info);
+	if (sz != count || sz > sizeof(dst->value.bytes)) {
+		uc_error("invalid parameter size %d!", sz);
+		err = -EINVAL;
+		goto __fail;
+	}
+	res = malloc(sz);
+	if (res == NULL) {
+		err = -ENOMEM;
+		goto __fail;
+	}
+	sz_read = read(fd, res, sz);
+	if (sz_read < 0 || (size_t)sz_read != sz) {
+		err = -errno;
+		goto __fail_read;
+	}
+	for (idx = 0; idx < sz; idx++)
+		snd_ctl_elem_value_set_byte(dst, idx, *(res + idx));
+      __fail_read:
+	free(res);
+      __fail:
+	close(fd);
+	return err;
+}
+
 extern int __snd_ctl_ascii_elem_id_parse(snd_ctl_elem_id_t *dst,
 					 const char *str,
 					 const char **ret_ptr);
 
-static int execute_cset(snd_ctl_t *ctl, const char *cset)
+static int execute_cset(snd_ctl_t *ctl, const char *cset, unsigned int type)
 {
 	const char *pos;
 	int err;
@@ -194,7 +249,10 @@ static int execute_cset(snd_ctl_t *ctl, const char *cset)
 	err = snd_ctl_elem_info(ctl, info);
 	if (err < 0)
 		goto __fail;
-	err = snd_ctl_ascii_value_parse(ctl, value, info, pos);
+	if (type == SEQUENCE_ELEMENT_TYPE_CSET_BIN_FILE)
+		err = binary_file_parse(value, info, pos);
+	else
+		err = snd_ctl_ascii_value_parse(ctl, value, info, pos);
 	if (err < 0)
 		goto __fail;
 	err = snd_ctl_elem_write(ctl, value);
@@ -239,6 +297,7 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 				goto __fail_nomem;
 			break;
 		case SEQUENCE_ELEMENT_TYPE_CSET:
+		case SEQUENCE_ELEMENT_TYPE_CSET_BIN_FILE:
 			if (cdev == NULL) {
 				const char *cdev1 = NULL, *cdev2 = NULL;
 				err = get_value3(&cdev1, "PlaybackCTL",
@@ -274,7 +333,7 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 					goto __fail;
 				}
 			}
-			err = execute_cset(ctl, s->data.cset);
+			err = execute_cset(ctl, s->data.cset, s->type);
 			if (err < 0) {
 				uc_error("unable to execute cset '%s'\n", s->data.cset);
 				goto __fail;
