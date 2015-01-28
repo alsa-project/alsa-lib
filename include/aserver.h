@@ -23,7 +23,6 @@
 #include "../src/control/control_local.h"
 
 int snd_receive_fd(int sock, void *data, size_t len, int *fd);
-int snd_is_local(struct hostent *hent);
 
 typedef enum _snd_dev_type {
 	SND_DEV_TYPE_PCM,

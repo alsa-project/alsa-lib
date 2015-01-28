@@ -654,33 +654,6 @@ static int make_local_socket(const char *filename)
 	return sock;
 }
 
-#if 0
-static int make_inet_socket(const char *host, int port)
-{
-	struct sockaddr_in addr;
-	int sock;
-	struct hostent *h = gethostbyname(host);
-	if (!h)
-		return -ENOENT;
-
-	sock = socket(PF_INET, SOCK_STREAM, 0);
-	if (sock < 0) {
-		SYSERR("socket failed");
-		return -errno;
-	}
-	
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons(port);
-	memcpy(&addr.sin_addr, h->h_addr_list[0], sizeof(struct in_addr));
-
-	if (connect(sock, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
-		SYSERR("connect failed");
-		return -errno;
-	}
-	return sock;
-}
-#endif
-
 /**
  * \brief Creates a new shared memory PCM
  * \param pcmp Returns created PCM handle
@@ -842,12 +815,10 @@ int _snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name,
 	const char *server = NULL;
 	const char *pcm_name = NULL;
 	snd_config_t *sconfig;
-	const char *host = NULL;
 	const char *sockname = NULL;
 	long port = -1;
 	int err;
-	int local;
-	struct hostent *h;
+
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id;
@@ -898,14 +869,8 @@ int _snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name,
 			continue;
 		if (strcmp(id, "comment") == 0)
 			continue;
-		if (strcmp(id, "host") == 0) {
-			err = snd_config_get_string(n, &host);
-			if (err < 0) {
-				SNDERR("Invalid type for %s", id);
-				goto _err;
-			}
+		if (strcmp(id, "host") == 0)
 			continue;
-		}
 		if (strcmp(id, "socket") == 0) {
 			err = snd_config_get_string(n, &sockname);
 			if (err < 0) {
@@ -928,22 +893,8 @@ int _snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name,
 		goto __error;
 	}
 
-	if (!host) {
-		SNDERR("host is not defined");
-		goto _err;
-	}
 	if (!sockname) {
 		SNDERR("socket is not defined");
-		goto _err;
-	}
-	h = gethostbyname(host);
-	if (!h) {
-		SNDERR("Cannot resolve %s", host);
-		goto _err;
-	}
-	local = snd_is_local(h);
-	if (!local) {
-		SNDERR("%s is not the local host", host);
 		goto _err;
 	}
 	err = snd_pcm_shm_open(pcmp, name, sockname, pcm_name, stream, mode);
