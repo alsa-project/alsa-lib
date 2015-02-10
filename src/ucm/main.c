@@ -308,7 +308,7 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 					uc_error("cdev is not defined!");
 					return err;
 				}
-				err = get_value3(&cdev1, "CaptureCTL",
+				err = get_value3(&cdev2, "CaptureCTL",
 						 value_list1,
 						 value_list2,
 						 value_list3);
