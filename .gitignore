@@ -11,6 +11,7 @@ Makefile
 libtool
 depcomp
 ltmain.sh
+test-driver
 version
 Makefile.in
 aclocal.m4
