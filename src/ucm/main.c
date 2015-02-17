@@ -304,7 +304,7 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 						 value_list1,
 						 value_list2,
 						 value_list3);
-				if (err < 0 && err != ENOENT) {
+				if (err < 0 && err != -ENOENT) {
 					uc_error("cdev is not defined!");
 					return err;
 				}
@@ -312,7 +312,7 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 						 value_list1,
 						 value_list2,
 						 value_list3);
-				if (err < 0 && err != ENOENT) {
+				if (err < 0 && err != -ENOENT) {
 					free((char *)cdev1);
 					uc_error("cdev is not defined!");
 					return err;
