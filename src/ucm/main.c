@@ -40,9 +40,9 @@
  * misc
  */
 
-static int get_value1(const char **value, struct list_head *value_list,
+static int get_value1(char **value, struct list_head *value_list,
                       const char *identifier);
-static int get_value3(const char **value,
+static int get_value3(char **value,
 		      const char *identifier,
 		      struct list_head *value_list1,
 		      struct list_head *value_list2,
@@ -299,8 +299,8 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 		case SEQUENCE_ELEMENT_TYPE_CSET:
 		case SEQUENCE_ELEMENT_TYPE_CSET_BIN_FILE:
 			if (cdev == NULL) {
-				const char *playback_ctl = NULL;
-				const char *capture_ctl = NULL;
+				char *playback_ctl = NULL;
+				char *capture_ctl = NULL;
 
 				err = get_value3(&playback_ctl, "PlaybackCTL",
 						 value_list1,
@@ -315,7 +315,7 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 						 value_list2,
 						 value_list3);
 				if (err < 0 && err != -ENOENT) {
-					free((char *)playback_ctl);
+					free(playback_ctl);
 					uc_error("cdev is not defined!");
 					return err;
 				}
@@ -327,16 +327,16 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 				if (playback_ctl != NULL &&
 				    capture_ctl != NULL &&
 				    strcmp(playback_ctl, capture_ctl) != 0) {
-					free((char *)playback_ctl);
-					free((char *)capture_ctl);
+					free(playback_ctl);
+					free(capture_ctl);
 					uc_error("cdev is not defined!");
 					return -EINVAL;
 				}
 				if (playback_ctl != NULL) {
-					cdev = (char *)playback_ctl;
-					free((char *)capture_ctl);
+					cdev = playback_ctl;
+					free(capture_ctl);
 				} else
-					cdev = (char *)capture_ctl;
+					cdev = capture_ctl;
 			}
 			if (ctl == NULL) {
 				err = open_ctl(uc_mgr, &ctl, cdev);
@@ -1237,7 +1237,7 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
 	return err;
 }
 
-static int get_value1(const char **value, struct list_head *value_list,
+static int get_value1(char **value, struct list_head *value_list,
                       const char *identifier)
 {
         struct ucm_value *val;
@@ -1258,7 +1258,7 @@ static int get_value1(const char **value, struct list_head *value_list,
         return -ENOENT;
 }
 
-static int get_value3(const char **value,
+static int get_value3(char **value,
 		      const char *identifier,
 		      struct list_head *value_list1,
 		      struct list_head *value_list2,
@@ -1288,7 +1288,7 @@ static int get_value3(const char **value,
  */
 static int get_value(snd_use_case_mgr_t *uc_mgr,
 			const char *identifier,
-			const char **value,
+			char **value,
 			const char *mod_dev_name,
 			const char *verb_name,
 			int exact)
@@ -1419,7 +1419,8 @@ int snd_use_case_get(snd_use_case_mgr_t *uc_mgr,
 			verb = NULL;
 		}
 
-		err = get_value(uc_mgr, ident, value, mod_dev, verb, exact);
+		err = get_value(uc_mgr, ident, (char **)value, mod_dev, verb,
+		                exact);
 		if (ident != identifier)
 			free((void *)ident);
 		if (mod_dev)

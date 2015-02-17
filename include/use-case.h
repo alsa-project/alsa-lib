@@ -224,8 +224,9 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
  * \param value Value pointer
  * \return Zero if success, otherwise a negative error code
  *
- * Note: String is dynamically allocated, use free() to
- * deallocate this string.
+ * Note: The returned string is dynamically allocated, use free() to
+ * deallocate this string. (Yes, the value parameter shouldn't be marked as
+ * "const", but it's too late to fix it, sorry about that.)
  *
  * Known identifiers:
  *   NULL 		- return current card
