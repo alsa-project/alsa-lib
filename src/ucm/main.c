@@ -299,8 +299,10 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 		case SEQUENCE_ELEMENT_TYPE_CSET:
 		case SEQUENCE_ELEMENT_TYPE_CSET_BIN_FILE:
 			if (cdev == NULL) {
-				const char *cdev1 = NULL, *cdev2 = NULL;
-				err = get_value3(&cdev1, "PlaybackCTL",
+				const char *playback_ctl = NULL;
+				const char *capture_ctl = NULL;
+
+				err = get_value3(&playback_ctl, "PlaybackCTL",
 						 value_list1,
 						 value_list2,
 						 value_list3);
@@ -308,23 +310,33 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 					uc_error("cdev is not defined!");
 					return err;
 				}
-				err = get_value3(&cdev2, "CaptureCTL",
+				err = get_value3(&capture_ctl, "CaptureCTL",
 						 value_list1,
 						 value_list2,
 						 value_list3);
 				if (err < 0 && err != -ENOENT) {
-					free((char *)cdev1);
+					free((char *)playback_ctl);
 					uc_error("cdev is not defined!");
 					return err;
 				}
-				if (cdev1 == NULL || cdev2 == NULL ||
-                                    strcmp(cdev1, cdev2) == 0) {
-					cdev = (char *)cdev1;
-					free((char *)cdev2);
-				} else {
-					free((char *)cdev1);
-					free((char *)cdev2);
+				if (playback_ctl == NULL &&
+				    capture_ctl == NULL) {
+					uc_error("cdev is not defined!");
+					return -EINVAL;
 				}
+				if (playback_ctl != NULL &&
+				    capture_ctl != NULL &&
+				    strcmp(playback_ctl, capture_ctl) != 0) {
+					free((char *)playback_ctl);
+					free((char *)capture_ctl);
+					uc_error("cdev is not defined!");
+					return -EINVAL;
+				}
+				if (playback_ctl != NULL) {
+					cdev = (char *)playback_ctl;
+					free((char *)capture_ctl);
+				} else
+					cdev = (char *)capture_ctl;
 			}
 			if (ctl == NULL) {
 				err = open_ctl(uc_mgr, &ctl, cdev);
