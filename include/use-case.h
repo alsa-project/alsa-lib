@@ -301,12 +301,24 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
  *      - name of capture mixer
  *   - CaptureMixerID
  *      - mixer capture ID
- *   - JackDev
- *      - jack device name
- *   - JackControl
- *      - jack control name
- *   - JackHWMute
- *      - indicate if the HW mutes a device on jack insertion or not.
+ *   - JackControl, JackDev, JackHWMute
+ *      - Jack information for a device. The jack status can be reported via
+ *        a kcontrol and/or via an input device. **JackControl** is the
+ *        kcontrol name of the jack, and **JackDev** is the input device id of
+ *        the jack (if the full input device path is /dev/input/by-id/foo, the
+ *        JackDev value should be "foo"). UCM configuration files should
+ *        contain both JackControl and JackDev when possible, because
+ *        applications are likely to support only one or the other.
+ *
+ *        If **JackHWMute** is set, it indicates that when the jack is plugged
+ *        in, the hardware automatically mutes some other device. The
+ *        JackHWMute value is the name of the muted device. Note that
+ *        JackHWMute should be used only when the hardware enforces the
+ *        automatic muting. If the hardware doesn't enforce any muting, it may
+ *        still be tempting to set JackHWMute to trick upper software layers to
+ *        e.g. automatically mute speakers when headphones are plugged in, but
+ *        that's application policy configuration that doesn't belong to UCM
+ *        configuration files.
  */
 int snd_use_case_get(snd_use_case_mgr_t *uc_mgr,
                      const char *identifier,
