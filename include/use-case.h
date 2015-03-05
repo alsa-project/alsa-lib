@@ -229,10 +229,10 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
  * "const", but it's too late to fix it, sorry about that.)
  *
  * Known identifiers:
- *   NULL 		- return current card
- *   _verb		- return current verb
+ *   - NULL 		- return current card
+ *   - _verb		- return current verb
  *
- *   [=]{NAME}[/[{modifier}|{/device}][/{verb}]]
+ *   - [=]{NAME}[/[{modifier}|{/device}][/{verb}]]
  *                      - value identifier {NAME}
  *                      - Search starts at given modifier or device if any,
  *                          else at a verb
@@ -243,51 +243,70 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
  *                        device/modifier/verb specified, and not search
  *                        through each object in turn.
  *                      - Examples:
- *                          "PlaybackPCM/Play Music"
- *                          "CapturePCM/SPDIF"
- *                        From ValueDefaults only:
- *                          "=Variable"
- *                        From current active verb:
- *                          "=Variable//"
- *                        From verb "Verb":
- *                          "=Variable//Verb"
- *                        From "Modifier" in current active verb:
- *                          "=Variable/Modifier/"
- *                        From "Modifier" in "Verb":
- *                          "=Variable/Modifier/Verb"
+ *                          - "PlaybackPCM/Play Music"
+ *                          - "CapturePCM/SPDIF"
+ *                          - From ValueDefaults only:
+ *                              "=Variable"
+ *                          - From current active verb:
+ *                              "=Variable//"
+ *                          - From verb "Verb":
+ *                              "=Variable//Verb"
+ *                          - From "Modifier" in current active verb:
+ *                              "=Variable/Modifier/"
+ *                          - From "Modifier" in "Verb":
+ *                              "=Variable/Modifier/Verb"
  *
  * Recommended names for values:
- *   TQ			- Tone Quality
- *   PlaybackPCM	- full PCM playback device name
- *   PlaybackPCMIsDummy	- Valid values: "yes" and "no". If set to "yes", the
- *			  PCM named by the PlaybackPCM value is a dummy device,
- *			  meaning that opening it enables an audio path in the
- *			  hardware, but writing to the PCM device has no
- *			  effect.
- *   CapturePCM		- full PCM capture device name
- *   CapturePCMIsDummy	- Valid values: "yes" and "no". If set to "yes", the
- *			  PCM named by the CapturePCM value is a dummy device,
- *			  meaning that opening it enables an audio path in the
- *			  hardware, but reading from the PCM device has no
- *			  effect.
- *   PlaybackRate	- playback device sample rate
- *   PlaybackChannels	- playback device channel count
- *   PlaybackCTL	- playback control device name
- *   PlaybackVolume	- playback control volume ID string
- *   PlaybackSwitch	- playback control switch ID string
- *   CaptureRate	- capture device sample rate
- *   CaptureChannels	- capture device channel count
- *   CaptureCTL		- capture control device name
- *   CaptureVolume	- capture control volume ID string
- *   CaptureSwitch	- capture control switch ID string
- *   PlaybackMixer	- name of playback mixer
- *   PlaybackMixerID	- mixer playback ID
- *   CaptureMixer	- name of capture mixer
- *   CaptureMixerID	- mixer capture ID
- *   JackDev		- jack device name
- *   JackControl	- jack control name
- *   JackHWMute		- indicate if the HW mutes a device on jack insertion
- *			  or not.
+ *   - TQ
+ *      - Tone Quality
+ *   - PlaybackPCM
+ *      - full PCM playback device name
+ *   - PlaybackPCMIsDummy
+ *      - Valid values: "yes" and "no". If set to "yes", the PCM named by the
+ *        PlaybackPCM value is a dummy device, meaning that opening it enables
+ *        an audio path in the hardware, but writing to the PCM device has no
+ *        effect.
+ *   - CapturePCM
+ *      - full PCM capture device name
+ *   - CapturePCMIsDummy
+ *      - Valid values: "yes" and "no". If set to "yes", the PCM named by the
+ *        CapturePCM value is a dummy device, meaning that opening it enables
+ *        an audio path in the hardware, but reading from the PCM device has no
+ *        effect.
+ *   - PlaybackRate
+ *      - playback device sample rate
+ *   - PlaybackChannels
+ *      - playback device channel count
+ *   - PlaybackCTL
+ *      - playback control device name
+ *   - PlaybackVolume
+ *      - playback control volume ID string
+ *   - PlaybackSwitch
+ *      - playback control switch ID string
+ *   - CaptureRate
+ *      - capture device sample rate
+ *   - CaptureChannels
+ *      - capture device channel count
+ *   - CaptureCTL
+ *      - capture control device name
+ *   - CaptureVolume
+ *      - capture control volume ID string
+ *   - CaptureSwitch
+ *      - capture control switch ID string
+ *   - PlaybackMixer
+ *      - name of playback mixer
+ *   - PlaybackMixerID
+ *      - mixer playback ID
+ *   - CaptureMixer
+ *      - name of capture mixer
+ *   - CaptureMixerID
+ *      - mixer capture ID
+ *   - JackDev
+ *      - jack device name
+ *   - JackControl
+ *      - jack control name
+ *   - JackHWMute
+ *      - indicate if the HW mutes a device on jack insertion or not.
  */
 int snd_use_case_get(snd_use_case_mgr_t *uc_mgr,
                      const char *identifier,
