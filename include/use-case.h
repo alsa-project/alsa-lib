@@ -284,6 +284,10 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
  *   PlaybackMixerID	- mixer playback ID
  *   CaptureMixer	- name of capture mixer
  *   CaptureMixerID	- mixer capture ID
+ *   JackDev		- jack device name
+ *   JackControl	- jack control name
+ *   JackHWMute		- indicate if the HW mutes a device on jack insertion
+ *			  or not.
  */
 int snd_use_case_get(snd_use_case_mgr_t *uc_mgr,
                      const char *identifier,
