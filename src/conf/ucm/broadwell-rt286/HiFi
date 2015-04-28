@@ -43,7 +43,7 @@ SectionDevice."Headphones" {
 	Value {
 		PlaybackChannels "2"
 		JackDev "rt286-jack"
-		JackControl "Headset Jack"
+		JackControl "Headphone Jack"
 		JackHWMute "Speaker"
 	}
 }
