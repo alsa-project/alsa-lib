@@ -52,10 +52,11 @@ static int hint_list_add(struct hint_list *list,
 {
 	char *x;
 
-	if (list->count == list->allocated) {
+	if (list->count + 1 >= list->allocated) {
 		char **n = realloc(list->list, (list->allocated + 10) * sizeof(char *));
 		if (n == NULL)
 			return -ENOMEM;
+		memset(n + list->allocated, 0, 10 * sizeof(*n));
 		list->allocated += 10;
 		list->list = n;
 	}
@@ -620,18 +621,16 @@ int snd_device_name_hint(int card, const char *iface, void ***hints)
 	}
 	err = 0;
       __error:
-      	if (err < 0) {
+	/* add an empty entry if nothing has been added yet; the caller
+	 * expects non-NULL return
+	 */
+	if (!err && !list.list)
+		err = hint_list_add(&list, NULL, NULL);
+	if (err < 0)
       		snd_device_name_free_hint((void **)list.list);
-      		if (list.cardname)
-	      		free(list.cardname);
-      	} else {
-      		err = hint_list_add(&list, NULL, NULL);
-      		if (err < 0)
-      			goto __error;
+	else
       		*hints = (void **)list.list;
-      		if (list.cardname)
-	      		free(list.cardname);
-	}
+	free(list.cardname);
 	if (local_config_rw)
 		snd_config_delete(local_config_rw);
 	if (local_config)
