@@ -299,9 +299,7 @@ int _snd_timer_hw_open(snd_timer_t **timer, char *name,
 		const char *id;
 		if (snd_config_get_id(n, &id) < 0)
 			continue;
-		if (strcmp(id, "comment") == 0)
-			continue;
-		if (strcmp(id, "type") == 0)
+		if (_snd_conf_generic_id(id))
 			continue;
 		if (strcmp(id, "class") == 0) {
 			err = snd_config_get_integer(n, &dev_class);

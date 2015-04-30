@@ -134,9 +134,7 @@ int _snd_timer_query_hw_open(snd_timer_query_t **timer, char *name,
 		const char *id;
 		if (snd_config_get_id(n, &id) < 0)
 			continue;
-		if (strcmp(id, "comment") == 0)
-			continue;
-		if (strcmp(id, "type") == 0)
+		if (_snd_conf_generic_id(id))
 			continue;
 		SNDERR("Unexpected field %s", id);
 		return -EINVAL;

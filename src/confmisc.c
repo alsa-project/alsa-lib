@@ -1302,3 +1302,16 @@ int snd_func_refer(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 #ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(snd_func_refer, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 #endif
+
+#ifndef DOC_HIDDEN
+int _snd_conf_generic_id(const char *id)
+{
+	static const char ids[3][8] = { "comment", "type", "hint" };
+	unsigned int k;
+	for (k = 0; k < sizeof(ids) / sizeof(ids[0]); ++k) {
+		if (strcmp(id, ids[k]) == 0)
+			return 1;
+	}
+	return 0;
+}
+#endif

@@ -7059,18 +7059,6 @@ int snd_pcm_slave_conf(snd_config_t *root, snd_config_t *conf,
 	return err;
 }
 		
-
-int snd_pcm_conf_generic_id(const char *id)
-{
-	static const char ids[3][8] = { "comment", "type", "hint" };
-	unsigned int k;
-	for (k = 0; k < sizeof(ids) / sizeof(ids[0]); ++k) {
-		if (strcmp(id, ids[k]) == 0)
-			return 1;
-	}
-	return 0;
-}
-
 static void snd_pcm_set_ptr(snd_pcm_t *pcm, snd_pcm_rbptr_t *rbptr,
 			    volatile snd_pcm_uframes_t *hw_ptr, int fd, off_t offset)
 {

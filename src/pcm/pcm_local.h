@@ -262,8 +262,6 @@ struct _snd_pcm {
 	snd1_pcm_areas_from_bufs
 #define snd_pcm_open_named_slave \
 	snd1_pcm_open_named_slave
-#define snd_pcm_conf_generic_id \
-	snd1_pcm_conf_generic_id
 #define snd_pcm_hw_open_fd \
 	snd1_pcm_hw_open_fd
 #define snd_pcm_wait_nocheck \
@@ -882,7 +880,8 @@ snd_pcm_open_slave(snd_pcm_t **pcmp, snd_config_t *root,
 	return snd_pcm_open_named_slave(pcmp, NULL, root, conf, stream,
 					mode, parent_conf);
 }
-int snd_pcm_conf_generic_id(const char *id);
+
+#define snd_pcm_conf_generic_id(id) _snd_conf_generic_id(id)
 
 int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name, int fd, int mmap_emulation, int sync_ptr_ioctl);
 int __snd_pcm_mmap_emul_open(snd_pcm_t **pcmp, const char *name,

@@ -348,4 +348,6 @@ int snd_config_search_alias_hooks(snd_config_t *config,
                                   const char *base, const char *key,
 				  snd_config_t **result);
 
+int _snd_conf_generic_id(const char *id);
+
 #endif

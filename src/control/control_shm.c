@@ -551,10 +551,7 @@ int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *root, snd_c
 		const char *id;
 		if (snd_config_get_id(n, &id) < 0)
 			continue;
-		if (strcmp(id, "comment") == 0)
-			continue;
-		if (strcmp(id, "type") == 0)
-			continue;
+		if (_snd_conf_generic_id(id))
 		if (strcmp(id, "server") == 0) {
 			err = snd_config_get_string(n, &server);
 			if (err < 0) {
@@ -597,7 +594,7 @@ int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *root, snd_c
 		const char *id;
 		if (snd_config_get_id(n, &id) < 0)
 			continue;
-		if (strcmp(id, "comment") == 0)
+		if (_snd_conf_generic_id(id))
 			continue;
 		if (strcmp(id, "host") == 0)
 			continue;

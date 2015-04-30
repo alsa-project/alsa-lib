@@ -990,21 +990,3 @@ ssize_t snd_rawmidi_read(snd_rawmidi_t *rawmidi, void *buffer, size_t size)
 	assert(buffer || size == 0);
 	return (rawmidi->ops->read)(rawmidi, buffer, size);
 }
-
-#ifndef DOC_HIDDEN
-int snd_rawmidi_conf_generic_id(const char *id)
-{
-	static const char ids[][8] = {
-		"comment",
-		"type",
-		"hint",
-	};
-	unsigned int k;
-
-	for (k = 0; k < sizeof ids / sizeof *ids; ++k) {
-		if (strcmp(id, ids[k]) == 0)
-			return 1;
-	}
-	return 0;
-}
-#endif
