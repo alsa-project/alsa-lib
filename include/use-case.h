@@ -311,14 +311,15 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
  *        applications are likely to support only one or the other.
  *
  *        If **JackHWMute** is set, it indicates that when the jack is plugged
- *        in, the hardware automatically mutes some other device. The
- *        JackHWMute value is the name of the muted device. Note that
- *        JackHWMute should be used only when the hardware enforces the
- *        automatic muting. If the hardware doesn't enforce any muting, it may
- *        still be tempting to set JackHWMute to trick upper software layers to
- *        e.g. automatically mute speakers when headphones are plugged in, but
- *        that's application policy configuration that doesn't belong to UCM
- *        configuration files.
+ *        in, the hardware automatically mutes some other device(s). The
+ *        JackHWMute value is a space-separated list of device names (this
+ *        isn't compatible with device names with spaces in them, so don't use
+ *        such device names!). Note that JackHWMute should be used only when
+ *        the hardware enforces the automatic muting. If the hardware doesn't
+ *        enforce any muting, it may still be tempting to set JackHWMute to
+ *        trick upper software layers to e.g. automatically mute speakers when
+ *        headphones are plugged in, but that's application policy
+ *        configuration that doesn't belong to UCM configuration files.
  */
 int snd_use_case_get(snd_use_case_mgr_t *uc_mgr,
                      const char *identifier,
