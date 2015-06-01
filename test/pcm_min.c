@@ -39,7 +39,7 @@ int main(void)
                 if (frames < 0)
                         frames = snd_pcm_recover(handle, frames, 0);
                 if (frames < 0) {
-                        printf("snd_pcm_writei failed: %s\n", snd_strerror(err));
+                        printf("snd_pcm_writei failed: %s\n", snd_strerror(frames));
                         break;
                 }
                 if (frames > 0 && frames < (long)sizeof(buffer))
