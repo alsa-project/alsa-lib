@@ -68,7 +68,7 @@ static void generate_sine(const snd_pcm_channel_area_t *areas,
 		} fval;
 		int res, i;
 		if (is_float) {
-			fval.f = sin(phase) * maxval;
+			fval.f = sin(phase);
 			res = fval.i;
 		} else
 			res = sin(phase) * maxval;
