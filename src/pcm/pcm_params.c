@@ -2361,7 +2361,8 @@ int _snd_pcm_hw_params_internal(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	memset(&sw, 0, sizeof(sw));
 	snd_pcm_sw_params_default(pcm, &sw);
 	err = snd_pcm_sw_params(pcm, &sw);
-	assert(err >= 0);
+	if (err < 0)
+		return err;
 
 	if (pcm->mmap_rw || 
 	    pcm->access == SND_PCM_ACCESS_MMAP_INTERLEAVED ||
