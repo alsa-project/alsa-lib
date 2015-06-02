@@ -224,12 +224,13 @@ static int snd_pcm_dshare_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 		break;
 	}
 	memset(status, 0, sizeof(*status));
+	snd_pcm_status(dshare->spcm, status);
 	status->state = snd_pcm_state(dshare->spcm);
 	status->trigger_tstamp = dshare->trigger_tstamp;
-	gettimestamp(&status->tstamp, pcm->tstamp_type);
 	status->avail = snd_pcm_mmap_playback_avail(pcm);
 	status->avail_max = status->avail > dshare->avail_max ? status->avail : dshare->avail_max;
 	dshare->avail_max = 0;
+	status->delay = snd_pcm_mmap_playback_delay(pcm);
 	return 0;
 }
 
