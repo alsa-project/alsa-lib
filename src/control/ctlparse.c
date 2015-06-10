@@ -325,6 +325,8 @@ int snd_ctl_ascii_value_parse(snd_ctl_t *handle,
 	snd_ctl_elem_value_set_id(dst, myid);
 	
 	for (idx = 0; idx < count && idx < 128 && ptr && *ptr; idx++) {
+		if (*ptr == ',')
+			goto skip;
 		switch (type) {
 		case SND_CTL_ELEM_TYPE_BOOLEAN:
 			tmp = 0;
@@ -375,6 +377,7 @@ int snd_ctl_ascii_value_parse(snd_ctl_t *handle,
 		default:
 			break;
 		}
+	skip:
 		if (!strchr(value, ','))
 			ptr = value;
 		else if (*ptr == ',')
