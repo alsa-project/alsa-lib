@@ -617,6 +617,13 @@ static int snd_pcm_dmix_drain(snd_pcm_t *pcm)
 	snd_pcm_uframes_t stop_threshold;
 	int err;
 
+	switch (snd_pcm_state(dmix->spcm)) {
+	case SND_PCM_STATE_SUSPENDED:
+		return -ESTRPIPE;
+	default:
+		break;
+	}
+
 	if (dmix->state == SND_PCM_STATE_OPEN)
 		return -EBADFD;
 	if (pcm->mode & SND_PCM_NONBLOCK)
@@ -649,6 +656,13 @@ static int snd_pcm_dmix_drain(snd_pcm_t *pcm)
 			snd_pcm_dmix_sync_area(pcm);
 			snd_pcm_wait_nocheck(pcm, -1);
 			snd_pcm_direct_clear_timer_queue(dmix); /* force poll to wait */
+
+			switch (snd_pcm_state(dmix->spcm)) {
+			case SND_PCM_STATE_SUSPENDED:
+				return -ESTRPIPE;
+			default:
+				break;
+			}
 		}
 	} while (dmix->state == SND_PCM_STATE_DRAINING);
 	pcm->stop_threshold = stop_threshold;
