@@ -94,7 +94,7 @@ EXCLUDE		 = @top_srcdir@/src/control/control_local.h \
 		   @top_srcdir@/src/mixer/mixer_local.h \
 		   @top_srcdir@/src/rawmidi/rawmidi_local.h \
 		   @top_srcdir@/src/seq/seq_local.h \
-		   @top_srcdir@/src/seq/ucm_local.h
+		   @top_srcdir@/src/ucm/ucm_local.h
 RECURSIVE	 = YES
 FILE_PATTERNS    = *.c *.h
 EXAMPLE_PATH     = @top_srcdir@/test
