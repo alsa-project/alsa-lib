@@ -40,6 +40,7 @@ may be placed in the library code instead of the kernel driver.</P>
   <LI>Page \ref rawmidi explains the design of the RawMidi API.
   <LI>Page \ref timer explains the design of the Timer API.
   <LI>Page \ref seq explains the design of the Sequencer API.
+  <LI>Page \ref ucm explains the use case API.
 </UL>
 
 <H2>Configuration</H2>
