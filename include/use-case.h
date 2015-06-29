@@ -43,15 +43,13 @@ extern "C" {
 #endif
 
 /**
- *  \defgroup Use Case Interface
+ *  \defgroup ucm Use Case Interface
  *  The ALSA Use Case manager interface.
  *  See \ref Usecase page for more details.
  *  \{
  */
 
 /*! \page Usecase ALSA Use Case Interface
- * 
- * ALSA Use Case Interface
  *
  * The use case manager works by configuring the sound card ALSA kcontrols to
  * change the hardware digital and analog audio routing to match the requested
@@ -69,9 +67,9 @@ extern "C" {
  *
  * However there are times when a use case has to be modified at runtime. e.g.
  *
- *  o Incoming phone call when the device is playing music
- *  o Recording sections of a phone call
- *  o Playing tones during a call.
+ *  + Incoming phone call when the device is playing music
+ *  + Recording sections of a phone call
+ *  + Playing tones during a call.
  *
  * In order to allow asynchronous runtime use case adaptations, we have a third
  * optional modifier parameter that can be used to further configure
@@ -79,13 +77,13 @@ extern "C" {
  *
  * This interface allows clients to :-
  *
- *  o Query the supported use case verbs, devices and modifiers for the machine.
- *  o Set and Get use case verbs, devices and modifiers for the machine.
- *  o Get the ALSA PCM playback and capture device PCMs for use case verb,
+ *  + Query the supported use case verbs, devices and modifiers for the machine.
+ *  + Set and Get use case verbs, devices and modifiers for the machine.
+ *  + Get the ALSA PCM playback and capture device PCMs for use case verb,
  *     use case device and modifier.
- *  o Get the TQ parameter for each use case verb, use case device and
+ *  + Get the TQ parameter for each use case verb, use case device and
  *     modifier.
- *  o Get the ALSA master playback and capture volume/switch kcontrols
+ *  + Get the ALSA master playback and capture volume/switch kcontrols
  *     for each use case.
  */
 
