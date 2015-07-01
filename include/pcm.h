@@ -330,6 +330,26 @@ typedef enum _snd_pcm_tstamp_type {
 	SND_PCM_TSTAMP_TYPE_LAST = SND_PCM_TSTAMP_TYPE_MONOTONIC_RAW,
 } snd_pcm_tstamp_type_t;
 
+typedef struct _snd_pcm_audio_tstamp_config {
+	/* 5 of max 16 bits used */
+	unsigned int type_requested:4;
+	unsigned int report_delay:1; /* add total delay to A/D or D/A */
+} snd_pcm_audio_tstamp_config_t;
+
+typedef struct _snd_pcm_audio_tstamp_report {
+	/* 6 of max 16 bits used for bit-fields */
+
+	/* for backwards compatibility */
+	unsigned int valid:1;
+
+	/* actual type if hardware could not support requested timestamp */
+	unsigned int actual_type:4;
+
+	/* accuracy represented in ns units */
+	unsigned int accuracy_report:1; /* 0 if accuracy unknown, 1 if accuracy field is valid */
+	unsigned int accuracy; /* up to 4.29s, will be packed in separate field  */
+} snd_pcm_audio_tstamp_report_t;
+
 /** Unsigned frames quantity */
 typedef unsigned long snd_pcm_uframes_t;
 /** Signed frames quantity */
@@ -981,6 +1001,30 @@ void snd_pcm_status_get_trigger_htstamp(const snd_pcm_status_t *obj, snd_htimest
 void snd_pcm_status_get_tstamp(const snd_pcm_status_t *obj, snd_timestamp_t *ptr);
 void snd_pcm_status_get_htstamp(const snd_pcm_status_t *obj, snd_htimestamp_t *ptr);
 void snd_pcm_status_get_audio_htstamp(const snd_pcm_status_t *obj, snd_htimestamp_t *ptr);
+void snd_pcm_status_get_driver_htstamp(const snd_pcm_status_t *obj, snd_htimestamp_t *ptr);
+void snd_pcm_status_get_audio_htstamp_report(const snd_pcm_status_t *obj,
+					     snd_pcm_audio_tstamp_report_t *audio_tstamp_report);
+void snd_pcm_status_set_audio_htstamp_config(snd_pcm_status_t *obj,
+					     snd_pcm_audio_tstamp_config_t *audio_tstamp_config);
+
+static inline void snd_pcm_pack_audio_tstamp_config(unsigned int *data,
+						snd_pcm_audio_tstamp_config_t *config)
+{
+	*data = config->report_delay;
+	*data <<= 4;
+	*data |= config->type_requested;
+}
+
+static inline void snd_pcm_unpack_audio_tstamp_report(unsigned int data, unsigned int accuracy,
+						snd_pcm_audio_tstamp_report_t *report)
+{
+	data >>= 16;
+	report->valid = data & 1;
+	report->actual_type = (data >> 1) & 0xF;
+	report->accuracy_report = (data >> 5) & 1;
+	report->accuracy = accuracy;
+}
+
 snd_pcm_sframes_t snd_pcm_status_get_delay(const snd_pcm_status_t *obj);
 snd_pcm_uframes_t snd_pcm_status_get_avail(const snd_pcm_status_t *obj);
 snd_pcm_uframes_t snd_pcm_status_get_avail_max(const snd_pcm_status_t *obj);
