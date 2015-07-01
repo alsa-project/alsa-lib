@@ -510,10 +510,18 @@ static int snd_pcm_hw_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd, err;
-	if (ioctl(fd, SNDRV_PCM_IOCTL_STATUS, status) < 0) {
-		err = -errno;
-		SYSMSG("SNDRV_PCM_IOCTL_STATUS failed (%i)", err);
-		return err;
+	if (SNDRV_PROTOCOL_VERSION(2, 0, 13) > hw->version) {
+		if (ioctl(fd, SNDRV_PCM_IOCTL_STATUS, status) < 0) {
+			err = -errno;
+			SYSMSG("SNDRV_PCM_IOCTL_STATUS failed (%i)", err);
+			return err;
+		}
+	} else {
+		if (ioctl(fd, SNDRV_PCM_IOCTL_STATUS_EXT, status) < 0) {
+			err = -errno;
+			SYSMSG("SNDRV_PCM_IOCTL_STATUS_EXT failed (%i)", err);
+			return err;
+		}
 	}
 	if (SNDRV_PROTOCOL_VERSION(2, 0, 5) > hw->version) {
 		status->tstamp.tv_nsec *= 1000L;
