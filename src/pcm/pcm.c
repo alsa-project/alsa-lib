@@ -3190,12 +3190,45 @@ int snd_pcm_hw_params_can_disable_period_wakeup(const snd_pcm_hw_params_t *param
  */
 int snd_pcm_hw_params_supports_audio_wallclock_ts(const snd_pcm_hw_params_t *params)
 {
+	/* deprecated */
+	return snd_pcm_hw_params_supports_audio_ts_type(params,
+							SNDRV_PCM_AUDIO_TSTAMP_TYPE_COMPAT);
+}
+
+/**
+ * \brief Check if hardware supports type of audio timestamps
+ * \param params Configuration space
+ * \param type   Audio timestamp type
+ * \retval 0 Hardware doesn't support type of audio timestamps
+ * \retval 1 Hardware supports type of audio timestamps
+ *
+ * This function should only be called when the configuration space
+ * contains a single configuration. Call #snd_pcm_hw_params to choose
+ * a single configuration from the configuration space.
+ */
+int snd_pcm_hw_params_supports_audio_ts_type(const snd_pcm_hw_params_t *params, int type)
+{
 	assert(params);
 	if (CHECK_SANITY(params->info == ~0U)) {
 		SNDMSG("invalid PCM info field");
 		return 0; /* FIXME: should be a negative error? */
 	}
-	return !!(params->info & SNDRV_PCM_INFO_HAS_WALL_CLOCK);
+	switch (type) {
+	case SNDRV_PCM_AUDIO_TSTAMP_TYPE_COMPAT:
+		return !!(params->info & SNDRV_PCM_INFO_HAS_WALL_CLOCK); /* deprecated */
+	case SNDRV_PCM_AUDIO_TSTAMP_TYPE_DEFAULT:
+		return 1; /* always supported, based on hw_ptr */
+	case SNDRV_PCM_AUDIO_TSTAMP_TYPE_LINK:
+		return !!(params->info & SNDRV_PCM_INFO_HAS_LINK_ATIME);
+	case SNDRV_PCM_AUDIO_TSTAMP_TYPE_LINK_ABSOLUTE:
+		return !!(params->info & SNDRV_PCM_INFO_HAS_LINK_ABSOLUTE_ATIME);
+	case SNDRV_PCM_AUDIO_TSTAMP_TYPE_LINK_ESTIMATED:
+		return !!(params->info & SNDRV_PCM_INFO_HAS_LINK_ESTIMATED_ATIME);
+	case SNDRV_PCM_AUDIO_TSTAMP_TYPE_LINK_SYNCHRONIZED:
+		return !!(params->info & SNDRV_PCM_INFO_HAS_LINK_SYNCHRONIZED_ATIME);
+	default:
+		return 0;
+	}
 }
 
 /**
