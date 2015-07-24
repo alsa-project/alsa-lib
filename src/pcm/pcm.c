@@ -8004,7 +8004,7 @@ int snd_pcm_set_params(snd_pcm_t *pcm,
                        int soft_resample,
                        unsigned int latency)
 {
-        snd_pcm_hw_params_t *params;
+        snd_pcm_hw_params_t *params, params_saved;
         snd_pcm_sw_params_t *swparams;
         const char *s = snd_pcm_stream_name(snd_pcm_stream(pcm));
         snd_pcm_uframes_t buffer_size, period_size;
@@ -8057,9 +8057,11 @@ int snd_pcm_set_params(snd_pcm_t *pcm,
 		return -EINVAL;
 	}
 	/* set the buffer time */
+	params_saved = *params;
 	err = INTERNAL(snd_pcm_hw_params_set_buffer_time_near)(pcm, params, &latency, NULL);
 	if (err < 0) {
 	        /* error path -> set period size as first */
+		*params = params_saved;
         	/* set the period time */
         	period_time = latency / 4;
         	err = INTERNAL(snd_pcm_hw_params_set_period_time_near)(pcm, params, &period_time, NULL);
