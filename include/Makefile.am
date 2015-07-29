@@ -50,6 +50,10 @@ if BUILD_UCM
 alsainclude_HEADERS += use-case.h
 endif
 
+if BUILD_TOPOLOGY
+alsainclude_HEADERS += topology.h
+endif
+
 if BUILD_ALISP
 alsainclude_HEADERS += alisp.h
 endif

@@ -380,6 +380,9 @@ AC_ARG_ENABLE(seq,
 AC_ARG_ENABLE(ucm,
   AS_HELP_STRING([--disable-ucm], [disable the use-case-manager component]),
   [build_ucm="$enableval"], [build_ucm="yes"])
+AC_ARG_ENABLE(topology,
+  AS_HELP_STRING([--disable-topology], [disable the DSP topology component]),
+  [build_topology="$enableval"], [build_topology="yes"])
 AC_ARG_ENABLE(alisp,
   AS_HELP_STRING([--disable-alisp], [disable the alisp component]),
   [build_alisp="$enableval"], [build_alisp="yes"])
@@ -422,6 +425,7 @@ AM_CONDITIONAL([BUILD_RAWMIDI], [test x$build_rawmidi = xyes])
 AM_CONDITIONAL([BUILD_HWDEP], [test x$build_hwdep = xyes])
 AM_CONDITIONAL([BUILD_SEQ], [test x$build_seq = xyes])
 AM_CONDITIONAL([BUILD_UCM], [test x$build_ucm = xyes])
+AM_CONDITIONAL([BUILD_TOPOLOGY], [test x$build_topology = xyes])
 AM_CONDITIONAL([BUILD_ALISP], [test x$build_alisp = xyes])
 AM_CONDITIONAL([BUILD_PYTHON], [test x$build_python = xyes])
 
@@ -442,6 +446,9 @@ if test "$build_seq" = "yes"; then
 fi
 if test "$build_ucm" = "yes"; then
   AC_DEFINE([BUILD_UCM], "1", [Build UCM component])
+fi
+if test "$build_topology" = "yes"; then
+  AC_DEFINE([BUILD_TOPOLOGY], "1", [Build DSP Topology component])
 fi
 
 dnl PCM Plugins
@@ -643,7 +650,7 @@ AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile doc/doxygen.cfg \
 	  src/pcm/Makefile src/pcm/scopes/Makefile \
 	  src/rawmidi/Makefile src/timer/Makefile \
           src/hwdep/Makefile src/seq/Makefile src/ucm/Makefile \
-          src/alisp/Makefile \
+          src/alisp/Makefile src/topology/Makefile \
 	  src/conf/Makefile src/conf/alsa.conf.d/Makefile \
 	  src/conf/cards/Makefile \
 	  src/conf/pcm/Makefile \

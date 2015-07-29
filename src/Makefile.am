@@ -42,6 +42,10 @@ if BUILD_UCM
 SUBDIRS += ucm
 libasound_la_LIBADD += ucm/libucm.la
 endif
+if BUILD_TOPOLOGY
+SUBDIRS += topology
+libasound_la_LIBADD += topology/libtopology.la
+endif
 if BUILD_ALISP
 SUBDIRS += alisp
 libasound_la_LIBADD += alisp/libalisp.la
@@ -80,6 +84,9 @@ seq/libseq.la:
 
 ucm/libucm.la:
 	$(MAKE) -C ucm libucm.la
+
+topology/libtopology.la:
+	$(MAKE) -C topology libtopology.la
 
 instr/libinstr.la:
 	$(MAKE) -C instr libinstr.la
