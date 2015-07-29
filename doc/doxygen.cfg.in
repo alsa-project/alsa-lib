@@ -29,6 +29,7 @@ INPUT            = @top_srcdir@/doc/index.doxygen \
 		   @top_srcdir@/include/control_external.h \
 		   @top_srcdir@/include/mixer.h \
 		   @top_srcdir@/include/use-case.h \
+		   @top_srcdir@/include/topology.h \
 		   @top_srcdir@/src/error.c \
 		   @top_srcdir@/src/dlmisc.c \
 		   @top_srcdir@/src/async.c \
@@ -78,7 +79,8 @@ INPUT            = @top_srcdir@/doc/index.doxygen \
 		   @top_srcdir@/src/timer \
 		   @top_srcdir@/src/hwdep \
 		   @top_srcdir@/src/seq \
-		   @top_srcdir@/src/ucm
+		   @top_srcdir@/src/ucm \
+		   @top_srcdir@/src/topology
 EXCLUDE		 = @top_srcdir@/src/control/control_local.h \
 		   @top_srcdir@/src/pcm/atomic.h \
 		   @top_srcdir@/src/pcm/interval.h \
@@ -94,7 +96,8 @@ EXCLUDE		 = @top_srcdir@/src/control/control_local.h \
 		   @top_srcdir@/src/mixer/mixer_local.h \
 		   @top_srcdir@/src/rawmidi/rawmidi_local.h \
 		   @top_srcdir@/src/seq/seq_local.h \
-		   @top_srcdir@/src/ucm/ucm_local.h
+		   @top_srcdir@/src/ucm/ucm_local.h \
+		   @top_srcdir@/src/topology/tplg_local.h
 RECURSIVE	 = YES
 FILE_PATTERNS    = *.c *.h
 EXAMPLE_PATH     = @top_srcdir@/test

@@ -41,6 +41,7 @@ may be placed in the library code instead of the kernel driver.</P>
   <LI>Page \ref timer explains the design of the Timer API.
   <LI>Page \ref seq explains the design of the Sequencer API.
   <LI>Page \ref ucm explains the use case API.
+  <LI>Page \ref topology explains the DSP topology API.
 </UL>
 
 <H2>Configuration</H2>
