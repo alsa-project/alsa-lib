@@ -18,6 +18,7 @@
 
 #include "list.h"
 #include "tplg_local.h"
+#include <ctype.h>
 
 /* Get Private data from a file. */
 static int tplg_parse_data_file(snd_config_t *cfg, struct tplg_elem *elem)
