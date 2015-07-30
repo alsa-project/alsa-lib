@@ -48,7 +48,7 @@ extern "C" {
  *
  * The topology text format uses the standard ALSA configuration file format to
  * describe each topology object type. This allows topology objects to include
- * other topology objects as part of thier definition. i.e. a TLV data object
+ * other topology objects as part of their definition. i.e. a TLV data object
  * can be shared amongst many control objects that use the same TLV data.
  *
  *
@@ -174,7 +174,7 @@ extern "C" {
  *	words "0xaabbccdd,0x11223344,0x66aa77bb,0xefef1234"
  * };
  * </pre>
- * The file, bytes, shorts and words keywords are all mutulally exclusive as
+ * The file, bytes, shorts and words keywords are all mutually exclusive as
  * the private data should only be taken from one source.  The private data can
  * either be read from a separate file or defined in the topology file using
  * the bytes, shorts or words keywords.
@@ -247,7 +247,7 @@ extern "C" {
  * can include channel mapping, callback operations, private data and
  * text strings to represent the enumerated control options.<br>
  *
- * The text strings for the enumerated controls are defined in a seperate
+ * The text strings for the enumerated controls are defined in a separate
  * section as follows :-
  *
  * <pre>
@@ -306,7 +306,7 @@ extern "C" {
  * graph with other graphs, it's not used by the kernel atm.
  *
  * <h4>DAPM Widgets</h4>
- * DAPM wigets are similar to controls in that they can include many other
+ * DAPM widgets are similar to controls in that they can include many other
  * objects. Widgets can contain private data, mixer controls and enum controls.
  *
  * The following widget types are supported and match the driver types :-
@@ -367,13 +367,13 @@ extern "C" {
  *
  *	formats "S24_LE,S16_LE"		# Supported formats
  *	rate_min "48000"		# Max supported sample rate
- *	rate_max "48000"		# Min suppoprted sample rate
+ *	rate_max "48000"		# Min supported sample rate
  *	channels_min "2"		# Min number of channels
  *	channels_max "2"		# max number of channels
  * }
  * </pre>
  * The supported formats use the same naming convention as the driver macros.
- * The PCM capabilities name can be reffered to and included by BE, PCM and
+ * The PCM capabilities name can be referred to and included by BE, PCM and
  * Codec <-> codec topology sections.
  *
  * <h4>PCM Configurations</h4>
@@ -400,7 +400,7 @@ extern "C" {
  * </pre>
  *
  * The supported formats use the same naming convention as the driver macros.
- * The PCM configuration name can be reffered to and included by BE, PCM and
+ * The PCM configuration name can be referred to and included by BE, PCM and
  * Codec <-> codec topology sections.
  *
  * <h4>PCM Configurations</h4>
@@ -434,7 +434,7 @@ extern "C" {
  *	id "0"				# used for binding to the PCM
  *
  *	pcm."playback" {
- *		capabilities "capabilities1"	# capbilities for playback
+ *		capabilities "capabilities1"	# capabilities for playback
  *
  *		configs [		# supported configs for playback
  *			"config1"
@@ -476,7 +476,7 @@ void snd_tplg_free(snd_tplg_t *tplg);
  * \param tplg Topology instance.
  * \param infile Topology text input file to be parsed
  * \param outfile Binary topology output file.
- * \return Zero on sucess, otherwise a negative error code
+ * \return Zero on success, otherwise a negative error code
  */
 int snd_tplg_build_file(snd_tplg_t *tplg, const char *infile,
 	const char *outfile);
