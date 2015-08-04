@@ -137,7 +137,7 @@ struct tplg_elem* tplg_elem_new_common(snd_tplg_t *tplg,
 		list_add_tail(&elem->list, &tplg->enum_list);
 		obj_size = sizeof(struct snd_soc_tplg_enum_control);
 		break;
-	case SND_SOC_TPLG_TYPE_MIXER:
+	case OBJECT_TYPE_MIXER:
 		list_add_tail(&elem->list, &tplg->mixer_list);
 		obj_size = sizeof(struct snd_soc_tplg_mixer_control);
 		break;
