@@ -216,7 +216,7 @@ struct tplg_elem *tplg_elem_lookup(struct list_head *base,
 				const char* id,
 				unsigned int type);
 struct tplg_elem* tplg_elem_new_common(snd_tplg_t *tplg,
-	snd_config_t *cfg, enum object_type type);
+	snd_config_t *cfg, const char *name, enum object_type type);
 
 static inline void elem_copy_text(char *dest, const char *src, int len)
 {

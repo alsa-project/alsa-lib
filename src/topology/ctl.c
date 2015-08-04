@@ -264,7 +264,7 @@ int tplg_parse_tlv(snd_tplg_t *tplg, snd_config_t *cfg,
 	int err = 0;
 	struct tplg_elem *elem;
 
-	elem = tplg_elem_new_common(tplg, cfg, OBJECT_TYPE_TLV);
+	elem = tplg_elem_new_common(tplg, cfg, NULL, OBJECT_TYPE_TLV);
 	if (!elem)
 		return -ENOMEM;
 
@@ -298,7 +298,7 @@ int tplg_parse_control_bytes(snd_tplg_t *tplg,
 	const char *id, *val = NULL;
 	int err;
 
-	elem = tplg_elem_new_common(tplg, cfg, OBJECT_TYPE_BYTES);
+	elem = tplg_elem_new_common(tplg, cfg, NULL, OBJECT_TYPE_BYTES);
 	if (!elem)
 		return -ENOMEM;
 
@@ -403,11 +403,10 @@ int tplg_parse_control_enum(snd_tplg_t *tplg, snd_config_t *cfg,
 	const char *id, *val = NULL;
 	int err, j;
 
-	elem = tplg_elem_new_common(tplg, cfg, OBJECT_TYPE_ENUM);
+	elem = tplg_elem_new_common(tplg, cfg, NULL, OBJECT_TYPE_ENUM);
 	if (!elem)
 		return -ENOMEM;
 
-	/* init new mixer */
 	ec = elem->enum_ctrl;
 	elem_copy_text(ec->hdr.name, elem->id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 	ec->hdr.type = SND_SOC_TPLG_TYPE_ENUM;
@@ -501,7 +500,7 @@ int tplg_parse_control_mixer(snd_tplg_t *tplg,
 	const char *id, *val = NULL;
 	int err, j;
 
-	elem = tplg_elem_new_common(tplg, cfg, OBJECT_TYPE_MIXER);
+	elem = tplg_elem_new_common(tplg, cfg, NULL, OBJECT_TYPE_MIXER);
 	if (!elem)
 		return -ENOMEM;
 

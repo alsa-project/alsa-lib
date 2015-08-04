@@ -228,7 +228,7 @@ int tplg_parse_pcm_config(snd_tplg_t *tplg,
 	const char *id;
 	int err;
 
-	elem = tplg_elem_new_common(tplg, cfg, OBJECT_TYPE_STREAM_CONFIG);
+	elem = tplg_elem_new_common(tplg, cfg, NULL, OBJECT_TYPE_STREAM_CONFIG);
 	if (!elem)
 		return -ENOMEM;
 
@@ -294,7 +294,7 @@ int tplg_parse_pcm_caps(snd_tplg_t *tplg,
 	char *s;
 	int err;
 
-	elem = tplg_elem_new_common(tplg, cfg, OBJECT_TYPE_STREAM_CAPS);
+	elem = tplg_elem_new_common(tplg, cfg, NULL, OBJECT_TYPE_STREAM_CAPS);
 	if (!elem)
 		return -ENOMEM;
 
@@ -461,7 +461,7 @@ int tplg_parse_pcm(snd_tplg_t *tplg,
 	const char *id, *val = NULL;
 	int err;
 
-	elem = tplg_elem_new_common(tplg, cfg, OBJECT_TYPE_PCM);
+	elem = tplg_elem_new_common(tplg, cfg, NULL, OBJECT_TYPE_PCM);
 	if (!elem)
 		return -ENOMEM;
 
@@ -524,7 +524,7 @@ int tplg_parse_be(snd_tplg_t *tplg,
 	const char *id, *val = NULL;
 	int err;
 
-	elem = tplg_elem_new_common(tplg, cfg, OBJECT_TYPE_BE);
+	elem = tplg_elem_new_common(tplg, cfg, NULL, OBJECT_TYPE_BE);
 	if (!elem)
 		return -ENOMEM;
 
@@ -587,7 +587,7 @@ int tplg_parse_cc(snd_tplg_t *tplg,
 	const char *id, *val = NULL;
 	int err;
 
-	elem = tplg_elem_new_common(tplg, cfg, OBJECT_TYPE_CC);
+	elem = tplg_elem_new_common(tplg, cfg, NULL, OBJECT_TYPE_CC);
 	if (!elem)
 		return -ENOMEM;
 

@@ -103,20 +103,27 @@ struct tplg_elem *tplg_elem_lookup(struct list_head *base, const char* id,
 
 /* create a new common element and object */
 struct tplg_elem* tplg_elem_new_common(snd_tplg_t *tplg,
-	snd_config_t *cfg, enum object_type type)
+	snd_config_t *cfg, const char *name, enum object_type type)
 {
 	struct tplg_elem *elem;
 	const char *id;
 	int obj_size = 0;
 	void *obj;
 
+	if (!cfg && !name)
+		return NULL;
+
 	elem = tplg_elem_new();
 	if (!elem)
 		return NULL;
 
-	snd_config_get_id(cfg, &id);
-	strncpy(elem->id, id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
-	elem->id[SNDRV_CTL_ELEM_ID_NAME_MAXLEN - 1] = 0;
+	/* do we get name from cfg */
+	if (cfg) {
+		snd_config_get_id(cfg, &id);
+		elem_copy_text(elem->id, id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+		elem->id[SNDRV_CTL_ELEM_ID_NAME_MAXLEN - 1] = 0;
+	} else if (name != NULL)
+		elem_copy_text(elem->id, name, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 
 	switch (type) {
 	case OBJECT_TYPE_DATA:

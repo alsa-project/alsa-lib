@@ -420,7 +420,7 @@ int tplg_parse_dapm_widget(snd_tplg_t *tplg,
 	const char *id, *val = NULL;
 	int widget_type, err;
 
-	elem = tplg_elem_new_common(tplg, cfg, OBJECT_TYPE_DAPM_WIDGET);
+	elem = tplg_elem_new_common(tplg, cfg, NULL, OBJECT_TYPE_DAPM_WIDGET);
 	if (!elem)
 		return -ENOMEM;
 

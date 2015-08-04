@@ -268,7 +268,7 @@ int tplg_parse_data(snd_tplg_t *tplg, snd_config_t *cfg,
 	int err = 0;
 	struct tplg_elem *elem;
 
-	elem = tplg_elem_new_common(tplg, cfg, OBJECT_TYPE_DATA);
+	elem = tplg_elem_new_common(tplg, cfg, NULL, OBJECT_TYPE_DATA);
 	if (!elem)
 		return -ENOMEM;
 
