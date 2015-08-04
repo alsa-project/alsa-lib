@@ -77,6 +77,7 @@ struct snd_tplg {
 
 	/* manifest */
 	struct snd_soc_tplg_manifest manifest;
+	const void *manifest_pdata;	/* copied by builder at file write */
 
 	/* list of each element type */
 	struct list_head tlv_list;
