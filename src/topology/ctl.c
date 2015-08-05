@@ -28,10 +28,7 @@ static int copy_tlv(struct tplg_elem *elem, struct tplg_elem *ref)
 	tplg_dbg("TLV '%s' used by '%s\n", ref->id, elem->id);
 
 	/* TLV has a fixed size */
-	mixer_ctrl->tlv = *tlv;
-
-	/* set size of TLV data */
-	mixer_ctrl->hdr.tlv_size = tlv->count * sizeof(uint32_t);
+	mixer_ctrl->hdr.tlv = *tlv;
 	return 0;
 }
 
@@ -209,20 +206,19 @@ static int tplg_parse_tlv_dbscale(snd_config_t *cfg, struct tplg_elem *elem)
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
 	struct snd_soc_tplg_ctl_tlv *tplg_tlv;
+	struct snd_soc_tplg_tlv_dbscale *scale;
 	const char *id = NULL, *value = NULL;
-	int *data;
 
 	tplg_dbg(" scale: %s\n", elem->id);
 
 	tplg_tlv = calloc(1, sizeof(*tplg_tlv));
 	if (!tplg_tlv)
 		return -ENOMEM;
-	data = (int*)(tplg_tlv->data);
 
 	elem->tlv = tplg_tlv;
-	tplg_tlv->numid = SNDRV_CTL_TLVT_DB_SCALE;
-	tplg_tlv->count = 8;
-	tplg_tlv->size = sizeof(*tplg_tlv);
+	tplg_tlv->size = sizeof(struct snd_soc_tplg_ctl_tlv);
+	tplg_tlv->type = SNDRV_CTL_TLVT_DB_SCALE;
+	scale = &tplg_tlv->scale;
 
 	snd_config_for_each(i, next, cfg) {
 
@@ -242,11 +238,11 @@ static int tplg_parse_tlv_dbscale(snd_config_t *cfg, struct tplg_elem *elem)
 
 		/* get TLV data */
 		if (strcmp(id, "min") == 0)
-			data[0] = atoi(value);
+			scale->min = atoi(value);
 		else if (strcmp(id, "step") == 0)
-			data[1] = atoi(value);
+			scale->step = atoi(value);
 		else if (strcmp(id, "mute") == 0)
-			data[2] = atoi(value);
+			scale->mute = atoi(value);
 		else
 			SNDERR("error: unknown key %s\n", id);
 	}
