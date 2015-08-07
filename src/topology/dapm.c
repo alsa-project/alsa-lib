@@ -107,8 +107,6 @@ static int tplg_parse_dapm_enums(snd_config_t *cfg, struct tplg_elem *elem)
 static int copy_dapm_control(struct tplg_elem *elem, struct tplg_elem *ref)
 {
 	struct snd_soc_tplg_dapm_widget *widget = elem->widget;
-	struct snd_soc_tplg_mixer_control *mixer_ctrl = ref->mixer_ctrl;
-	struct snd_soc_tplg_enum_control *enum_ctrl = ref->enum_ctrl;
 
 	tplg_dbg("Control '%s' used by '%s'\n", ref->id, elem->id);
 	tplg_dbg("\tparent size: %d + %d -> %d, priv size -> %d\n",
@@ -121,13 +119,10 @@ static int copy_dapm_control(struct tplg_elem *elem, struct tplg_elem *ref)
 
 	elem->widget = widget;
 
-	/* copy new widget at the end */
-	if (ref->type == OBJECT_TYPE_MIXER)
-		memcpy((void*)widget + elem->size, mixer_ctrl, ref->size);
-	else if (ref->type == OBJECT_TYPE_ENUM)
-		memcpy((void*)widget + elem->size, enum_ctrl, ref->size);
-
+	/* append the control to the end of the widget */
+	memcpy((void*)widget + elem->size, ref->obj, ref->size);
 	elem->size += ref->size;
+
 	widget->num_kcontrols++;
 	ref->compound_elem = 1;
 	return 0;
