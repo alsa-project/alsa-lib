@@ -384,7 +384,7 @@ int tplg_copy_data(struct tplg_elem *elem, struct tplg_elem *ref)
 		break;
 
 	default:
-		SNDERR("elem '%s': type %d private data not supported \n",
+		SNDERR("error: elem '%s': type %d private data not supported \n",
 			elem->id, elem->type);
 		return -EINVAL;
 	}
