@@ -49,15 +49,15 @@ static int tplg_build_mixer_control(snd_tplg_t *tplg,
 		if (ref->id == NULL || ref->elem)
 			continue;
 
-		if (ref->type == OBJECT_TYPE_TLV) {
+		if (ref->type == SND_TPLG_TYPE_TLV) {
 			ref->elem = tplg_elem_lookup(&tplg->tlv_list,
-						ref->id, OBJECT_TYPE_TLV);
+						ref->id, SND_TPLG_TYPE_TLV);
 			if (ref->elem)
 				 err = copy_tlv(elem, ref->elem);
 
-		} else if (ref->type == OBJECT_TYPE_DATA) {
+		} else if (ref->type == SND_TPLG_TYPE_DATA) {
 			ref->elem = tplg_elem_lookup(&tplg->pdata_list,
-						ref->id, OBJECT_TYPE_DATA);
+						ref->id, SND_TPLG_TYPE_DATA);
 			 err = tplg_copy_data(elem, ref->elem);
 		}
 
@@ -97,15 +97,15 @@ static int tplg_build_enum_control(snd_tplg_t *tplg,
 		if (ref->id == NULL || ref->elem)
 			continue;
 
-		if (ref->type == OBJECT_TYPE_TEXT) {
+		if (ref->type == SND_TPLG_TYPE_TEXT) {
 			ref->elem = tplg_elem_lookup(&tplg->text_list,
-						ref->id, OBJECT_TYPE_TEXT);
+						ref->id, SND_TPLG_TYPE_TEXT);
 			if (ref->elem)
 				copy_enum_texts(elem, ref->elem);
 
-		} else if (ref->type == OBJECT_TYPE_DATA) {
+		} else if (ref->type == SND_TPLG_TYPE_DATA) {
 			ref->elem = tplg_elem_lookup(&tplg->pdata_list,
-						ref->id, OBJECT_TYPE_DATA);
+						ref->id, SND_TPLG_TYPE_DATA);
 			err = tplg_copy_data(elem, ref->elem);
 		}
 		if (!ref->elem) {
@@ -135,7 +135,7 @@ static int tplg_build_bytes_control(snd_tplg_t *tplg, struct tplg_elem *elem)
 
 		/* bytes control only reference one private data section */
 		ref->elem = tplg_elem_lookup(&tplg->pdata_list,
-			ref->id, OBJECT_TYPE_DATA);
+			ref->id, SND_TPLG_TYPE_DATA);
 		if (!ref->elem) {
 			SNDERR("error: cannot find data '%s'"
 				" referenced by control '%s'\n",
@@ -260,7 +260,7 @@ int tplg_parse_tlv(snd_tplg_t *tplg, snd_config_t *cfg,
 	int err = 0;
 	struct tplg_elem *elem;
 
-	elem = tplg_elem_new_common(tplg, cfg, NULL, OBJECT_TYPE_TLV);
+	elem = tplg_elem_new_common(tplg, cfg, NULL, SND_TPLG_TYPE_TLV);
 	if (!elem)
 		return -ENOMEM;
 
@@ -294,7 +294,7 @@ int tplg_parse_control_bytes(snd_tplg_t *tplg,
 	const char *id, *val = NULL;
 	int err;
 
-	elem = tplg_elem_new_common(tplg, cfg, NULL, OBJECT_TYPE_BYTES);
+	elem = tplg_elem_new_common(tplg, cfg, NULL, SND_TPLG_TYPE_BYTES);
 	if (!elem)
 		return -ENOMEM;
 
@@ -365,7 +365,7 @@ int tplg_parse_control_bytes(snd_tplg_t *tplg,
 			if (snd_config_get_string(n, &val) < 0)
 				return -EINVAL;
 
-			tplg_ref_add(elem, OBJECT_TYPE_DATA, val);
+			tplg_ref_add(elem, SND_TPLG_TYPE_DATA, val);
 			tplg_dbg("\t%s: %s\n", id, val);
 			continue;
 		}
@@ -374,7 +374,7 @@ int tplg_parse_control_bytes(snd_tplg_t *tplg,
 			if (snd_config_get_string(n, &val) < 0)
 				return -EINVAL;
 
-			err = tplg_ref_add(elem, OBJECT_TYPE_TLV, val);
+			err = tplg_ref_add(elem, SND_TPLG_TYPE_TLV, val);
 			if (err < 0)
 				return err;
 
@@ -399,7 +399,7 @@ int tplg_parse_control_enum(snd_tplg_t *tplg, snd_config_t *cfg,
 	const char *id, *val = NULL;
 	int err, j;
 
-	elem = tplg_elem_new_common(tplg, cfg, NULL, OBJECT_TYPE_ENUM);
+	elem = tplg_elem_new_common(tplg, cfg, NULL, SND_TPLG_TYPE_ENUM);
 	if (!elem)
 		return -ENOMEM;
 
@@ -440,7 +440,7 @@ int tplg_parse_control_enum(snd_tplg_t *tplg, snd_config_t *cfg,
 			if (snd_config_get_string(n, &val) < 0)
 				return -EINVAL;
 
-			tplg_ref_add(elem, OBJECT_TYPE_TEXT, val);
+			tplg_ref_add(elem, SND_TPLG_TYPE_TEXT, val);
 			tplg_dbg("\t%s: %s\n", id, val);
 			continue;
 		}
@@ -473,7 +473,7 @@ int tplg_parse_control_enum(snd_tplg_t *tplg, snd_config_t *cfg,
 			if (snd_config_get_string(n, &val) < 0)
 				return -EINVAL;
 
-			tplg_ref_add(elem, OBJECT_TYPE_DATA, val);
+			tplg_ref_add(elem, SND_TPLG_TYPE_DATA, val);
 			tplg_dbg("\t%s: %s\n", id, val);
 			continue;
 		}
@@ -496,7 +496,7 @@ int tplg_parse_control_mixer(snd_tplg_t *tplg,
 	const char *id, *val = NULL;
 	int err, j;
 
-	elem = tplg_elem_new_common(tplg, cfg, NULL, OBJECT_TYPE_MIXER);
+	elem = tplg_elem_new_common(tplg, cfg, NULL, SND_TPLG_TYPE_MIXER);
 	if (!elem)
 		return -ENOMEM;
 
@@ -584,7 +584,7 @@ int tplg_parse_control_mixer(snd_tplg_t *tplg,
 			if (snd_config_get_string(n, &val) < 0)
 				return -EINVAL;
 
-			err = tplg_ref_add(elem, OBJECT_TYPE_TLV, val);
+			err = tplg_ref_add(elem, SND_TPLG_TYPE_TLV, val);
 			if (err < 0)
 				return err;
 
@@ -598,7 +598,7 @@ int tplg_parse_control_mixer(snd_tplg_t *tplg,
 			if (snd_config_get_string(n, &val) < 0)
 				return -EINVAL;
 
-			tplg_ref_add(elem, OBJECT_TYPE_DATA, val);
+			tplg_ref_add(elem, SND_TPLG_TYPE_DATA, val);
 			tplg_dbg("\t%s: %s\n", id, val);
 			continue;
 		}

@@ -28,7 +28,7 @@ struct tplg_elem *lookup_pcm_dai_stream(struct list_head *base, const char* id)
 	list_for_each(pos, base) {
 
 		elem = list_entry(pos, struct tplg_elem, list);
-		if (elem->type != OBJECT_TYPE_PCM)
+		if (elem->type != SND_TPLG_TYPE_PCM)
 			return NULL;
 
 		pcm_dai = elem->pcm;
@@ -74,13 +74,13 @@ static int tplg_build_pcm_cfg_caps(snd_tplg_t *tplg, struct tplg_elem *elem)
 	unsigned int i, j;
 
 	switch (elem->type) {
-	case OBJECT_TYPE_PCM:
+	case SND_TPLG_TYPE_PCM:
 		pcm_dai = elem->pcm;
 		break;
-	case OBJECT_TYPE_BE:
+	case SND_TPLG_TYPE_BE:
 		pcm_dai = elem->be;
 		break;
-	case OBJECT_TYPE_CC:
+	case SND_TPLG_TYPE_CC:
 		pcm_dai = elem->cc;
 		break;
 	default:
@@ -91,7 +91,7 @@ static int tplg_build_pcm_cfg_caps(snd_tplg_t *tplg, struct tplg_elem *elem)
 		capconf = &pcm_dai->capconf[i];
 
 		ref_elem = tplg_elem_lookup(&tplg->pcm_caps_list,
-			capconf->caps.name, OBJECT_TYPE_STREAM_CAPS);
+			capconf->caps.name, SND_TPLG_TYPE_STREAM_CAPS);
 
 		if (ref_elem != NULL)
 			copy_pcm_caps(elem->id, &capconf->caps, ref_elem);
@@ -99,7 +99,7 @@ static int tplg_build_pcm_cfg_caps(snd_tplg_t *tplg, struct tplg_elem *elem)
 		for (j = 0; j < capconf->num_configs; j++) {
 			ref_elem = tplg_elem_lookup(&tplg->pcm_config_list,
 				capconf->configs[j].name,
-				OBJECT_TYPE_STREAM_CONFIG);
+				SND_TPLG_TYPE_STREAM_CONFIG);
 
 			if (ref_elem != NULL)
 				copy_pcm_config(elem->id,
@@ -118,13 +118,13 @@ int tplg_build_pcm_dai(snd_tplg_t *tplg, unsigned int type)
 	int err = 0;
 
 	switch (type) {
-	case OBJECT_TYPE_PCM:
+	case SND_TPLG_TYPE_PCM:
 		base = &tplg->pcm_list;
 		break;
-	case OBJECT_TYPE_BE:
+	case SND_TPLG_TYPE_BE:
 		base = &tplg->be_list;
 		break;
-	case OBJECT_TYPE_CC:
+	case SND_TPLG_TYPE_CC:
 		base = &tplg->cc_list;
 		break;
 	default:
@@ -228,7 +228,7 @@ int tplg_parse_pcm_config(snd_tplg_t *tplg,
 	const char *id;
 	int err;
 
-	elem = tplg_elem_new_common(tplg, cfg, NULL, OBJECT_TYPE_STREAM_CONFIG);
+	elem = tplg_elem_new_common(tplg, cfg, NULL, SND_TPLG_TYPE_STREAM_CONFIG);
 	if (!elem)
 		return -ENOMEM;
 
@@ -294,7 +294,7 @@ int tplg_parse_pcm_caps(snd_tplg_t *tplg,
 	char *s;
 	int err;
 
-	elem = tplg_elem_new_common(tplg, cfg, NULL, OBJECT_TYPE_STREAM_CAPS);
+	elem = tplg_elem_new_common(tplg, cfg, NULL, SND_TPLG_TYPE_STREAM_CAPS);
 	if (!elem)
 		return -ENOMEM;
 
@@ -396,11 +396,11 @@ int tplg_parse_pcm_cap_cfg(snd_tplg_t *tplg, snd_config_t *cfg,
 	const char *id, *value;
 	int err, stream;
 
-	if (elem->type == OBJECT_TYPE_PCM)
+	if (elem->type == SND_TPLG_TYPE_PCM)
 		pcm_dai = elem->pcm;
-	else if (elem->type == OBJECT_TYPE_BE)
+	else if (elem->type == SND_TPLG_TYPE_BE)
 		pcm_dai = elem->be;
-	else if (elem->type == OBJECT_TYPE_CC)
+	else if (elem->type == SND_TPLG_TYPE_CC)
 		pcm_dai = elem->cc;
 	else
 		return -EINVAL;
@@ -461,7 +461,7 @@ int tplg_parse_pcm(snd_tplg_t *tplg,
 	const char *id, *val = NULL;
 	int err;
 
-	elem = tplg_elem_new_common(tplg, cfg, NULL, OBJECT_TYPE_PCM);
+	elem = tplg_elem_new_common(tplg, cfg, NULL, SND_TPLG_TYPE_PCM);
 	if (!elem)
 		return -ENOMEM;
 
@@ -524,7 +524,7 @@ int tplg_parse_be(snd_tplg_t *tplg,
 	const char *id, *val = NULL;
 	int err;
 
-	elem = tplg_elem_new_common(tplg, cfg, NULL, OBJECT_TYPE_BE);
+	elem = tplg_elem_new_common(tplg, cfg, NULL, SND_TPLG_TYPE_BE);
 	if (!elem)
 		return -ENOMEM;
 
@@ -587,7 +587,7 @@ int tplg_parse_cc(snd_tplg_t *tplg,
 	const char *id, *val = NULL;
 	int err;
 
-	elem = tplg_elem_new_common(tplg, cfg, NULL, OBJECT_TYPE_CC);
+	elem = tplg_elem_new_common(tplg, cfg, NULL, SND_TPLG_TYPE_CC);
 	if (!elem)
 		return -ENOMEM;
 

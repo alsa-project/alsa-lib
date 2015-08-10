@@ -268,7 +268,7 @@ int tplg_parse_data(snd_tplg_t *tplg, snd_config_t *cfg,
 	int err = 0;
 	struct tplg_elem *elem;
 
-	elem = tplg_elem_new_common(tplg, cfg, NULL, OBJECT_TYPE_DATA);
+	elem = tplg_elem_new_common(tplg, cfg, NULL, SND_TPLG_TYPE_DATA);
 	if (!elem)
 		return -ENOMEM;
 
@@ -350,7 +350,7 @@ int tplg_copy_data(struct tplg_elem *elem, struct tplg_elem *ref)
 	priv_data_size = ref->data->size;
 
 	switch (elem->type) {
-	case OBJECT_TYPE_MIXER:
+	case SND_TPLG_TYPE_MIXER:
 		elem->mixer_ctrl = realloc(elem->mixer_ctrl,
 			elem->size + priv_data_size);
 		if (!elem->mixer_ctrl)
@@ -358,7 +358,7 @@ int tplg_copy_data(struct tplg_elem *elem, struct tplg_elem *ref)
 		priv = &elem->mixer_ctrl->priv;
 		break;
 
-	case OBJECT_TYPE_ENUM:
+	case SND_TPLG_TYPE_ENUM:
 		elem->enum_ctrl = realloc(elem->enum_ctrl,
 			elem->size + priv_data_size);
 		if (!elem->enum_ctrl)
@@ -366,7 +366,7 @@ int tplg_copy_data(struct tplg_elem *elem, struct tplg_elem *ref)
 		priv = &elem->enum_ctrl->priv;
 		break;
 
-	case OBJECT_TYPE_BYTES:
+	case SND_TPLG_TYPE_BYTES:
 		elem->bytes_ext = realloc(elem->bytes_ext,
 			elem->size + priv_data_size);
 		if (!elem->bytes_ext)
@@ -375,7 +375,7 @@ int tplg_copy_data(struct tplg_elem *elem, struct tplg_elem *ref)
 		break;
 
 
-	case OBJECT_TYPE_DAPM_WIDGET:
+	case SND_TPLG_TYPE_DAPM_WIDGET:
 		elem->widget = realloc(elem->widget,
 			elem->size + priv_data_size);
 		if (!elem->widget)
