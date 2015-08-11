@@ -39,24 +39,6 @@
 struct tplg_ref;
 struct tplg_elem;
 
-/** Topology object types */
-enum snd_tplg_type {
-	SND_TPLG_TYPE_TLV = 0,		/*!< TLV Data */
-	SND_TPLG_TYPE_MIXER,		/*!< Mixer control*/
-	SND_TPLG_TYPE_ENUM,		/*!< Enumerated control */
-	SND_TPLG_TYPE_TEXT,		/*!< Text data */
-	SND_TPLG_TYPE_DATA,		/*!< Private data */
-	SND_TPLG_TYPE_BYTES,		/*!< Byte control */
-	SND_TPLG_TYPE_STREAM_CONFIG,	/*!< PCM Stream configuration */
-	SND_TPLG_TYPE_STREAM_CAPS,	/*!< PCM Stream capabilities */
-	SND_TPLG_TYPE_PCM,		/*!< PCM stream device */
-	SND_TPLG_TYPE_DAPM_WIDGET,	/*!< DAPM widget */
-	SND_TPLG_TYPE_DAPM_GRAPH,	/*!< DAPM graph elements */
-	SND_TPLG_TYPE_BE,		/*!< BE DAI link */
-	SND_TPLG_TYPE_CC,		/*!< Hostless codec <-> codec link */
-	SND_TPLG_TYPE_MANIFEST,		/*!< Topology manifest */
-};
-
 struct snd_tplg {
 
 	/* opaque vendor data */
