@@ -35,6 +35,23 @@ int tplg_ref_add(struct tplg_elem *elem, int type, const char* id)
 	return 0;
 }
 
+/* directly add a reference elem */
+int tplg_ref_add_elem(struct tplg_elem *elem, struct tplg_elem *elem_ref)
+{
+	struct tplg_ref *ref;
+
+	ref = calloc(1, sizeof(*ref));
+	if (!ref)
+		return -ENOMEM;
+
+	ref->type = elem_ref->type;
+	ref->elem = elem_ref;
+	elem_copy_text(ref->id,  elem_ref->id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+
+	list_add_tail(&ref->list, &elem->ref_list);
+	return 0;
+}
+
 void tplg_ref_free_list(struct list_head *base)
 {
 	struct list_head *pos, *npos;

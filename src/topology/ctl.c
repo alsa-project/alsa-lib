@@ -19,6 +19,8 @@
 #include "list.h"
 #include "tplg_local.h"
 
+#define ENUM_VAL_SIZE 	(SNDRV_CTL_ELEM_ID_NAME_MAXLEN >> 2)
+
 /* copy referenced TLV to the mixer control */
 static int copy_tlv(struct tplg_elem *elem, struct tplg_elem *ref)
 {
@@ -605,4 +607,294 @@ int tplg_parse_control_mixer(snd_tplg_t *tplg,
 	}
 
 	return 0;
+}
+
+static int init_ctl_hdr(struct snd_soc_tplg_ctl_hdr *hdr,
+		struct snd_tplg_ctl_template *t)
+{
+	hdr->size = sizeof(struct snd_soc_tplg_ctl_hdr);
+	hdr->type = t->type;
+
+	elem_copy_text(hdr->name, t->name,
+		SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+
+	/* clean up access flag */
+	if (t->access == 0)
+		t->access = SNDRV_CTL_ELEM_ACCESS_READWRITE;
+	t->access &= (SNDRV_CTL_ELEM_ACCESS_READWRITE |
+		SNDRV_CTL_ELEM_ACCESS_VOLATILE |
+		SNDRV_CTL_ELEM_ACCESS_INACTIVE |
+		SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE |
+		SNDRV_CTL_ELEM_ACCESS_TLV_COMMAND |
+		SNDRV_CTL_ELEM_ACCESS_TLV_CALLBACK);
+
+	hdr->access = t->access;
+	hdr->ops.get = t->ops.get;
+	hdr->ops.put = t->ops.put;
+	hdr->ops.info = t->ops.info;
+
+	/* TLV */
+	if (hdr->access & SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE
+		&& !(hdr->access & SNDRV_CTL_ELEM_ACCESS_TLV_CALLBACK)) {
+
+		struct snd_tplg_tlv_template *tlvt = t->tlv;
+		struct snd_soc_tplg_ctl_tlv *tlv = &hdr->tlv;
+		struct snd_tplg_tlv_dbscale_template *scalet;
+		struct snd_soc_tplg_tlv_dbscale *scale;
+
+		if (!tlvt) {
+			SNDERR("error: missing TLV data\n");
+			return -EINVAL;
+		}
+
+		tlv->size = sizeof(struct snd_soc_tplg_ctl_tlv);
+		tlv->type = tlvt->type;
+
+		switch (tlvt->type) {
+		case SNDRV_CTL_TLVT_DB_SCALE:
+			scalet = container_of(tlvt,
+				struct snd_tplg_tlv_dbscale_template, hdr);
+			scale = &tlv->scale;
+			scale->min = scalet->min;
+			scale->step = scalet->step;
+			scale->mute = scalet->mute;
+			break;
+
+		/* TODO: add support for other TLV types */
+		default:
+			SNDERR("error: unsupported TLV type %d\n", tlv->type);
+			break;
+		}
+	}
+
+	return 0;
+}
+
+int tplg_add_mixer(snd_tplg_t *tplg, struct snd_tplg_mixer_template *mixer,
+	struct tplg_elem **e)
+{
+	struct snd_soc_tplg_private *priv = mixer->priv;
+	struct snd_soc_tplg_mixer_control *mc;
+	struct tplg_elem *elem;
+	int ret, i;
+
+	tplg_dbg(" Control Mixer: %s\n", mixer->hdr.name);
+
+	if (mixer->hdr.type != SND_SOC_TPLG_TYPE_MIXER) {
+		SNDERR("error: invalid mixer type %d\n", mixer->hdr.type);
+		return -EINVAL;
+	}
+
+	elem = tplg_elem_new_common(tplg, NULL, mixer->hdr.name,
+		SND_TPLG_TYPE_MIXER);
+	if (!elem)
+		return -ENOMEM;
+
+	/* init new mixer */
+	mc = elem->mixer_ctrl;
+	mc->size = elem->size;
+	ret =  init_ctl_hdr(&mc->hdr, &mixer->hdr);
+	if (ret < 0) {
+		tplg_elem_free(elem);
+		return ret;
+	}
+
+	mc->min = mixer->min;
+	mc->max = mixer->max;
+	mc->platform_max = mixer->platform_max;
+	mc->invert = mixer->invert;
+
+	/* set channel reg to default state */
+	for (i = 0; i < SND_SOC_TPLG_MAX_CHAN; i++)
+		mc->channel[i].reg = -1;
+
+	if (mixer->map)
+		mc->num_channels = mixer->map->num_channels;
+	for (i = 0; i < mc->num_channels; i++) {
+		struct snd_tplg_channel_elem *channel = &mixer->map->channel[i];
+
+		mc->channel[i].size = channel->size;
+		mc->channel[i].reg = channel->reg;
+		mc->channel[i].shift = channel->shift;
+		mc->channel[i].id = channel->id;
+	}
+
+	/* priv data */
+	if (priv) {
+		mc = realloc(mc, elem->size + priv->size);
+		if (!mc) {
+			tplg_elem_free(elem);
+			return -ENOMEM;
+		}
+
+		elem->mixer_ctrl = mc;
+		elem->size += priv->size;
+		mc->priv.size = priv->size;
+		memcpy(mc->priv.data, priv->data,  priv->size);
+        }
+
+	if (e)
+		*e = elem;
+	return 0;
+}
+
+int tplg_add_enum(snd_tplg_t *tplg, struct snd_tplg_enum_template *enum_ctl,
+	struct tplg_elem **e)
+{
+	struct snd_soc_tplg_enum_control *ec;
+	struct tplg_elem *elem;
+	int ret, i;
+
+	tplg_dbg(" Control Enum: %s\n", enum_ctl->hdr.name);
+
+	if (enum_ctl->hdr.type != SND_SOC_TPLG_TYPE_ENUM) {
+		SNDERR("error: invalid enum type %d\n", enum_ctl->hdr.type);
+		return -EINVAL;
+	}
+
+	elem = tplg_elem_new_common(tplg, NULL, enum_ctl->hdr.name,
+		SND_TPLG_TYPE_ENUM);
+	if (!elem)
+		return -ENOMEM;
+
+	ec = elem->enum_ctrl;
+	ec->size = elem->size;
+	ret = init_ctl_hdr(&ec->hdr, &enum_ctl->hdr);
+	if (ret < 0) {
+		tplg_elem_free(elem);
+		return ret;
+	}
+
+	ec->items = enum_ctl->items;
+	if (ec->items > SND_SOC_TPLG_NUM_TEXTS)
+		ec->items = SND_SOC_TPLG_NUM_TEXTS;
+
+	ec->mask = enum_ctl->mask;
+	ec->count = enum_ctl->items;
+
+	if (enum_ctl->texts != NULL) {
+		for (i = 0; i < ec->items; i++) {
+			if (enum_ctl->texts[i] != NULL)
+				strncpy(ec->texts[i], enum_ctl->texts[i],
+					SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+		}
+	}
+
+	if (enum_ctl->values != NULL) {
+		for (i = 0; i < ec->items; i++) {
+			if (enum_ctl->values[i])
+				continue;
+
+			memcpy(&ec->values[i * sizeof(int) * ENUM_VAL_SIZE],
+				enum_ctl->values[i],
+				sizeof(int) * ENUM_VAL_SIZE);
+		}
+	}
+
+	if (enum_ctl->priv != NULL) {
+		ec = realloc(ec,
+			elem->size + enum_ctl->priv->size);
+		if (!ec) {
+			tplg_elem_free(elem);
+			return -ENOMEM;
+		}
+
+		elem->enum_ctrl = ec;
+		elem->size += enum_ctl->priv->size;
+
+		memcpy(ec->priv.data, enum_ctl->priv->data,
+			enum_ctl->priv->size);
+
+		ec->priv.size = enum_ctl->priv->size;
+	}
+
+	if (e)
+		*e = elem;
+	return 0;
+}
+
+int tplg_add_bytes(snd_tplg_t *tplg, struct snd_tplg_bytes_template *bytes_ctl,
+	struct tplg_elem **e)
+{
+	struct snd_soc_tplg_bytes_control *be;
+	struct tplg_elem *elem;
+	int ret;
+
+	tplg_dbg(" Control Bytes: %s\n", bytes_ctl->hdr.name);
+
+	if (bytes_ctl->hdr.type != SND_SOC_TPLG_TYPE_BYTES) {
+		SNDERR("error: invalid bytes type %d\n", bytes_ctl->hdr.type);
+		return -EINVAL;
+	}
+
+	elem = tplg_elem_new_common(tplg, NULL, bytes_ctl->hdr.name,
+		SND_TPLG_TYPE_BYTES);
+	if (!elem)
+		return -ENOMEM;
+
+	be = elem->bytes_ext;
+	be->size = elem->size;
+	ret = init_ctl_hdr(&be->hdr, &bytes_ctl->hdr);
+	if (ret < 0) {
+		tplg_elem_free(elem);
+		return ret;
+	}
+
+	be->max = bytes_ctl->max;
+	be->mask = bytes_ctl->mask;
+	be->base = bytes_ctl->base;
+	be->num_regs = bytes_ctl->num_regs;
+	be->ext_ops.put = bytes_ctl->ext_ops.put;
+	be->ext_ops.get = bytes_ctl->ext_ops.get;
+
+	if (bytes_ctl->priv != NULL) {
+		be = realloc(be,
+			elem->size + bytes_ctl->priv->size);
+		if (!be) {
+			tplg_elem_free(elem);
+			return -ENOMEM;
+		}
+		elem->bytes_ext = be;
+		elem->size += bytes_ctl->priv->size;
+
+		memcpy(be->priv.data, bytes_ctl->priv->data,
+			bytes_ctl->priv->size);
+
+		be->priv.size = bytes_ctl->priv->size;
+	}
+
+	/* check on TLV bytes control */
+	if (be->hdr.access & SNDRV_CTL_ELEM_ACCESS_TLV_CALLBACK) {
+		if (be->hdr.access & SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE
+			!= SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE) {
+			SNDERR("error: Invalid TLV bytes control access 0x%x\n",
+				be->hdr.access);
+			tplg_elem_free(elem);
+			return -EINVAL;
+		}
+
+		if (!be->max) {
+			tplg_elem_free(elem);
+			return -EINVAL;
+		}
+	}
+
+	if (e)
+		*e = elem;
+	return 0;
+}
+
+int tplg_add_mixer_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
+{
+	return tplg_add_mixer(tplg, t->mixer, NULL);
+}
+
+int tplg_add_enum_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
+{
+	return tplg_add_enum(tplg, t->enum_ctl, NULL);
+}
+
+int tplg_add_bytes_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
+{
+	return tplg_add_bytes(tplg, t->bytes_ctl, NULL);
 }

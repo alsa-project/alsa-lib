@@ -664,6 +664,32 @@ typedef struct snd_tplg_obj_template {
 		struct snd_tplg_graph_template *graph;		/*!< Graph elements */
 	};
 } snd_tplg_obj_template_t;
+
+/**
+ * \brief Register topology template object.
+ * \param tplg Topology instance.
+ * \param t Template object.
+ * \return Zero on success, otherwise a negative error code
+ */
+int snd_tplg_add_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t);
+
+/**
+ * \brief Build all registered topology data into binary file.
+ * \param tplg Topology instance.
+ * \param outfile Binary topology output file.
+ * \return Zero on success, otherwise a negative error code
+ */
+int snd_tplg_build(snd_tplg_t *tplg, const char *outfile);
+
+/**
+ * \brief Attach private data to topology manifest.
+ * \param tplg Topology instance.
+ * \param data Private data.
+ * \param len Length of data in bytes.
+ * \return Zero on success, otherwise a negative error code
+ */
+int snd_tplg_set_manifest_data(snd_tplg_t *tplg, const void *data, int len);
+
 /* \} */
 
 #ifdef __cplusplus
