@@ -324,9 +324,9 @@ typedef enum _snd_pcm_tstamp {
 } snd_pcm_tstamp_t;
 
 typedef enum _snd_pcm_tstamp_type {
-	SND_PCM_TSTAMP_TYPE_GETTIMEOFDAY = 0,	/** gettimeofday equivalent */
-	SND_PCM_TSTAMP_TYPE_MONOTONIC,	/** posix_clock_monotonic equivalent */
-	SND_PCM_TSTAMP_TYPE_MONOTONIC_RAW,	/** monotonic_raw (no NTP) */
+	SND_PCM_TSTAMP_TYPE_GETTIMEOFDAY = 0,	/**< gettimeofday equivalent */
+	SND_PCM_TSTAMP_TYPE_MONOTONIC,	/**< posix_clock_monotonic equivalent */
+	SND_PCM_TSTAMP_TYPE_MONOTONIC_RAW,	/**< monotonic_raw (no NTP) */
 	SND_PCM_TSTAMP_TYPE_LAST = SND_PCM_TSTAMP_TYPE_MONOTONIC_RAW,
 } snd_pcm_tstamp_type_t;
 
@@ -527,11 +527,11 @@ int snd_pcm_unlink(snd_pcm_t *pcm);
 
 /** channel map list type */
 enum snd_pcm_chmap_type {
-	SND_CHMAP_TYPE_NONE = 0,/** unspecified channel position */
-	SND_CHMAP_TYPE_FIXED,	/** fixed channel position */
-	SND_CHMAP_TYPE_VAR,	/** freely swappable channel position */
-	SND_CHMAP_TYPE_PAIRED,	/** pair-wise swappable channel position */
-	SND_CHMAP_TYPE_LAST = SND_CHMAP_TYPE_PAIRED, /** last entry */
+	SND_CHMAP_TYPE_NONE = 0,/**< unspecified channel position */
+	SND_CHMAP_TYPE_FIXED,	/**< fixed channel position */
+	SND_CHMAP_TYPE_VAR,	/**< freely swappable channel position */
+	SND_CHMAP_TYPE_PAIRED,	/**< pair-wise swappable channel position */
+	SND_CHMAP_TYPE_LAST = SND_CHMAP_TYPE_PAIRED, /**< last entry */
 };
 
 /** channel positions */
