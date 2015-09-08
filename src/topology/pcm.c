@@ -157,7 +157,6 @@ static int tplg_parse_stream_cfg(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 	struct snd_soc_tplg_stream *stream;
 	const char *id, *val;
 	snd_pcm_format_t format;
-	int ret;
 
 	snd_config_get_id(cfg, &id);
 
@@ -264,7 +263,7 @@ static int split_format(struct snd_soc_tplg_stream_caps *caps, char *str)
 {
 	char *s = NULL;
 	snd_pcm_format_t format;
-	int i = 0, ret;
+	int i = 0;
 
 	s = strtok(str, ",");
 	while ((s != NULL) && (i < SND_SOC_TPLG_MAX_FORMATS)) {
