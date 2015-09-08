@@ -865,7 +865,7 @@ int tplg_add_bytes(snd_tplg_t *tplg, struct snd_tplg_bytes_template *bytes_ctl,
 
 	/* check on TLV bytes control */
 	if (be->hdr.access & SNDRV_CTL_ELEM_ACCESS_TLV_CALLBACK) {
-		if (be->hdr.access & SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE
+		if ((be->hdr.access & SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE)
 			!= SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE) {
 			SNDERR("error: Invalid TLV bytes control access 0x%x\n",
 				be->hdr.access);
