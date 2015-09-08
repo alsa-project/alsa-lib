@@ -770,7 +770,7 @@ static int determine_chmap(snd_config_t *tt, snd_pcm_chmap_t **tt_chmap)
 		snd_config_iterator_t j, jnext;
 		snd_config_t *in = snd_config_iterator_entry(i);
 
-		if (!snd_config_get_id(in, &id) < 0)
+		if (snd_config_get_id(in, &id) < 0)
 			continue;
 		if (snd_config_get_type(in) != SND_CONFIG_TYPE_COMPOUND)
 			goto err;
@@ -1070,7 +1070,7 @@ static int _snd_pcm_route_determine_ttable(snd_config_t *tt,
 		snd_config_iterator_t j, jnext;
 		long cchannel;
 		const char *id;
-		if (!snd_config_get_id(in, &id) < 0)
+		if (snd_config_get_id(in, &id) < 0)
 			continue;
 		err = safe_strtol(id, &cchannel);
 		if (err < 0) {
