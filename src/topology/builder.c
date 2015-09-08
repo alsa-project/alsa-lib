@@ -116,13 +116,12 @@ static int write_elem_block(snd_tplg_t *tplg,
 	/* count number of elements */
 	list_for_each(pos, base)
 		count++;
+	if (!count)
+		return 0;
 
 	/* write the header for this block */
-	list_for_each(pos, base) {
-		elem = list_entry(pos, struct tplg_elem, list);
-		vendor_type = elem->vendor_type;
-		break;
-	}
+	elem = list_entry(base->next, struct tplg_elem, list);
+	vendor_type = elem->vendor_type;
 
 	ret = write_block_header(tplg, tplg_type, vendor_type,
 		SND_SOC_TPLG_ABI_VERSION, 0, size, count);
