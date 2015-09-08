@@ -1019,7 +1019,7 @@ void snd_pcm_ioplug_params_reset(snd_pcm_ioplug_t *ioplug)
 int snd_pcm_ioplug_set_param_list(snd_pcm_ioplug_t *ioplug, int type, unsigned int num_list, const unsigned int *list)
 {
 	ioplug_priv_t *io = ioplug->pcm->private_data;
-	if (type < 0 && type >= SND_PCM_IOPLUG_HW_PARAMS) {
+	if (type < 0 || type >= SND_PCM_IOPLUG_HW_PARAMS) {
 		SNDERR("IOPLUG: invalid parameter type %d", type);
 		return -EINVAL;
 	}
@@ -1043,7 +1043,7 @@ int snd_pcm_ioplug_set_param_list(snd_pcm_ioplug_t *ioplug, int type, unsigned i
 int snd_pcm_ioplug_set_param_minmax(snd_pcm_ioplug_t *ioplug, int type, unsigned int min, unsigned int max)
 {
 	ioplug_priv_t *io = ioplug->pcm->private_data;
-	if (type < 0 && type >= SND_PCM_IOPLUG_HW_PARAMS) {
+	if (type < 0 || type >= SND_PCM_IOPLUG_HW_PARAMS) {
 		SNDERR("IOPLUG: invalid parameter type %d", type);
 		return -EINVAL;
 	}

@@ -766,7 +766,7 @@ void snd_pcm_extplug_params_reset(snd_pcm_extplug_t *extplug)
 int snd_pcm_extplug_set_slave_param_list(snd_pcm_extplug_t *extplug, int type, unsigned int num_list, const unsigned int *list)
 {
 	extplug_priv_t *ext = extplug->pcm->private_data;
-	if (type < 0 && type >= SND_PCM_EXTPLUG_HW_PARAMS) {
+	if (type < 0 || type >= SND_PCM_EXTPLUG_HW_PARAMS) {
 		SNDERR("EXTPLUG: invalid parameter type %d", type);
 		return -EINVAL;
 	}
@@ -788,7 +788,7 @@ int snd_pcm_extplug_set_slave_param_list(snd_pcm_extplug_t *extplug, int type, u
 int snd_pcm_extplug_set_slave_param_minmax(snd_pcm_extplug_t *extplug, int type, unsigned int min, unsigned int max)
 {
 	extplug_priv_t *ext = extplug->pcm->private_data;
-	if (type < 0 && type >= SND_PCM_EXTPLUG_HW_PARAMS) {
+	if (type < 0 || type >= SND_PCM_EXTPLUG_HW_PARAMS) {
 		SNDERR("EXTPLUG: invalid parameter type %d", type);
 		return -EINVAL;
 	}
@@ -814,7 +814,7 @@ int snd_pcm_extplug_set_slave_param_minmax(snd_pcm_extplug_t *extplug, int type,
 int snd_pcm_extplug_set_param_list(snd_pcm_extplug_t *extplug, int type, unsigned int num_list, const unsigned int *list)
 {
 	extplug_priv_t *ext = extplug->pcm->private_data;
-	if (type < 0 && type >= SND_PCM_EXTPLUG_HW_PARAMS) {
+	if (type < 0 || type >= SND_PCM_EXTPLUG_HW_PARAMS) {
 		SNDERR("EXTPLUG: invalid parameter type %d", type);
 		return -EINVAL;
 	}
@@ -836,7 +836,7 @@ int snd_pcm_extplug_set_param_list(snd_pcm_extplug_t *extplug, int type, unsigne
 int snd_pcm_extplug_set_param_minmax(snd_pcm_extplug_t *extplug, int type, unsigned int min, unsigned int max)
 {
 	extplug_priv_t *ext = extplug->pcm->private_data;
-	if (type < 0 && type >= SND_PCM_EXTPLUG_HW_PARAMS) {
+	if (type < 0 || type >= SND_PCM_EXTPLUG_HW_PARAMS) {
 		SNDERR("EXTPLUG: invalid parameter type %d", type);
 		return -EINVAL;
 	}
