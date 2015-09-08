@@ -358,6 +358,7 @@ int snd_tplg_set_manifest_data(snd_tplg_t *tplg, const void *data, int len)
 {
 	tplg->manifest.priv.size = len;
 	tplg->manifest_pdata = data;
+	return 0;
 }
 
 void snd_tplg_verbose(snd_tplg_t *tplg, int verbose)
