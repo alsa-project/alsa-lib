@@ -225,8 +225,8 @@ static int tplg_parse_data_hex(snd_config_t *cfg, struct tplg_elem *elem,
 	size = num * width;
 	priv = elem->data;
 
-	if (esize > TPLG_MAX_PRIV_SIZE) {
-		SNDERR("error: data too big %d\n", esize);
+	if (size > TPLG_MAX_PRIV_SIZE) {
+		SNDERR("error: data too big %d\n", size);
 		return -EINVAL;
 	}
 
