@@ -89,7 +89,7 @@ static int write_data_block(snd_tplg_t *tplg, int size, int tplg_type,
 
 	/* write the header for this block */
 	ret = write_block_header(tplg, tplg_type, 0,
-		SND_SOC_TPLG_ABI_VERSION, 0, size, 1);
+		tplg->version, 0, size, 1);
 	if (ret < 0) {
 		SNDERR("error: failed to write %s block %d\n", obj_name, ret);
 		return ret;
@@ -124,7 +124,7 @@ static int write_elem_block(snd_tplg_t *tplg,
 	vendor_type = elem->vendor_type;
 
 	ret = write_block_header(tplg, tplg_type, vendor_type,
-		SND_SOC_TPLG_ABI_VERSION, 0, size, count);
+		tplg->version, 0, size, count);
 	if (ret < 0) {
 		SNDERR("error: failed to write %s block %d\n",
 			obj_name, ret);
@@ -242,7 +242,7 @@ static int write_manifest_data(snd_tplg_t *tplg)
 
 	/* write the header for this block */
 	ret = write_block_header(tplg, SND_SOC_TPLG_TYPE_MANIFEST, 0,
-		SND_SOC_TPLG_ABI_VERSION, 0,
+		tplg->version, 0,
 		sizeof(tplg->manifest) + tplg->manifest.priv.size, 1);
 	if (ret < 0) {
 		SNDERR("error: failed to write manifest block %d\n", ret);

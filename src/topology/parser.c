@@ -361,6 +361,13 @@ int snd_tplg_set_manifest_data(snd_tplg_t *tplg, const void *data, int len)
 	return 0;
 }
 
+int snd_tplg_set_version(snd_tplg_t *tplg, unsigned int version)
+{
+	tplg->version = version;
+
+	return 0;
+}
+
 void snd_tplg_verbose(snd_tplg_t *tplg, int verbose)
 {
 	tplg->verbose = verbose;

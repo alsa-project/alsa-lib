@@ -690,6 +690,14 @@ int snd_tplg_build(snd_tplg_t *tplg, const char *outfile);
  */
 int snd_tplg_set_manifest_data(snd_tplg_t *tplg, const void *data, int len);
 
+/**
+ * \brief Set an optional vendor specific version number.
+ * \param tplg Topology instance.
+ * \param version Vendor specific version number.
+ * \return Zero on success, otherwise a negative error code
+ */
+int snd_tplg_set_version(snd_tplg_t *tplg, unsigned int version);
+
 /* \} */
 
 #ifdef __cplusplus
