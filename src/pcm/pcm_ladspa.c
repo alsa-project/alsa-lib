@@ -749,7 +749,7 @@ static int snd_pcm_ladspa_allocate_memory(snd_pcm_t *pcm, snd_pcm_ladspa_t *lads
                                 return -ENOMEM;
                         }
 			for (idx = 0; idx < instance->input.channels.size; idx++) {
-			        chn = instance->output.channels.array[idx];
+			        chn = instance->input.channels.array[idx];
 			        if (pchannels[chn] == NULL && chn < ichannels) {
 			                instance->input.data[idx] = NULL;
 			                continue;
