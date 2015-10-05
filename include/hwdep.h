@@ -74,8 +74,10 @@ typedef enum _snd_hwdep_iface {
 	SND_HWDEP_IFACE_FW_FIREWORKS,	/**< Echo Audio Fireworks based device */
 	SND_HWDEP_IFACE_FW_BEBOB,	/**< BridgeCo BeBoB based device */
 	SND_HWDEP_IFACE_FW_OXFW,	/**< Oxford OXFW970/971 based device */
+	SND_HWDEP_IFACE_FW_DIGI00X,	/* Digidesign Digi 002/003 family */
+	SND_HWDEP_IFACE_FW_TASCAM,	/* TASCAM FireWire series */
 
-	SND_HWDEP_IFACE_LAST = SND_HWDEP_IFACE_FW_OXFW	/**< last known hwdep interface */
+	SND_HWDEP_IFACE_LAST = SND_HWDEP_IFACE_FW_TASCAM	/**< last known hwdep interface */
 } snd_hwdep_iface_t;
 
 /** open for reading */
