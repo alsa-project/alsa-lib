@@ -26,12 +26,6 @@
  *
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
 #include "timer_local.h"
 
 static int snd_timer_query_open_conf(snd_timer_query_t **timer,

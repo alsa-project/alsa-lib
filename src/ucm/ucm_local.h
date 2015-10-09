@@ -36,8 +36,8 @@
 #define UC_MGR_DEBUG
 #endif
 
-#include <pthread.h>
 #include "local.h"
+#include <pthread.h>
 #include "use-case.h"
 
 #define MAX_FILE		256

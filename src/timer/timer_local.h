@@ -19,10 +19,9 @@
  *
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <limits.h>
 #include "local.h"
+#include <limits.h>
+#include <sys/ioctl.h>
 
 #ifndef DOC_HIDDEN
 typedef struct {

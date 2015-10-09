@@ -67,14 +67,9 @@ This example shows opening a timer device and reading of timer events.
  * \anchor example_test_timer
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <fcntl.h>
-#include <signal.h>
-#include <sys/ioctl.h>
 #include "timer_local.h"
+
+#include <signal.h>
 
 static int snd_timer_open_conf(snd_timer_t **timer,
 			       const char *name, snd_config_t *timer_root,
