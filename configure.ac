@@ -295,7 +295,7 @@ fi
 AC_SUBST(ALSA_DEPLIBS)
 
 dnl Check for headers
-AC_CHECK_HEADERS([wordexp.h endian.h sys/endian.h])
+AC_CHECK_HEADERS([wordexp.h endian.h sys/endian.h sys/shm.h])
 
 dnl Check for resmgr support...
 AC_MSG_CHECKING(for resmgr support)
@@ -508,6 +508,13 @@ if test "$gcc_have_atomics" != "yes"; then
   build_pcm_meter="no"
 fi
 
+if test "$ac_cv_header_sys_shm_h" != "yes"; then
+  build_pcm_dmix="no"
+  build_pcm_dshare="no"
+  build_pcm_dsnoop="no"
+  build_pcm_shm="no"
+fi
+
 AM_CONDITIONAL([BUILD_PCM_PLUGIN], [test x$build_pcm_plugin = xyes])
 AM_CONDITIONAL([BUILD_PCM_PLUGIN_COPY], [test x$build_pcm_copy = xyes])
 AM_CONDITIONAL([BUILD_PCM_PLUGIN_LINEAR], [test x$build_pcm_linear = xyes])
@@ -593,6 +600,10 @@ for p in $ctl_plugins; do
     fi
   done
 done
+
+if test "$ac_cv_header_sys_shm_h" != "yes"; then
+  build_ctl_shm="no"
+fi
 
 AM_CONDITIONAL([BUILD_CTL_PLUGIN], [test x$build_ctl_plugin = xyes])
 AM_CONDITIONAL([BUILD_CTL_PLUGIN_SHM], [test x$build_ctl_shm = xyes])

@@ -17,13 +17,16 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  *
  */
-  
+
+#include "config.h"
 #include <stdio.h>
 #include <malloc.h>
 #include <string.h>
 #include <sys/poll.h>
 #include <sys/mman.h>
+#ifdef HAVE_SYS_SHM_H
 #include <sys/shm.h>
+#endif
 #include "pcm_local.h"
 
 void snd_pcm_mmap_appl_backward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
@@ -341,6 +344,7 @@ int snd_pcm_mmap(snd_pcm_t *pcm)
 			i->addr = ptr;
 			break;
 		case SND_PCM_AREA_SHM:
+#ifdef HAVE_SYS_SHM_H
 			if (i->u.shm.shmid < 0) {
 				int id;
 				/* FIXME: safer permission? */
@@ -385,6 +389,10 @@ int snd_pcm_mmap(snd_pcm_t *pcm)
 			}
 			i->addr = ptr;
 			break;
+#else
+			SYSERR("shm support not available");
+			return -ENOSYS;
+#endif
 		case SND_PCM_AREA_LOCAL:
 			ptr = malloc(size);
 			if (ptr == NULL) {
@@ -466,6 +474,7 @@ int snd_pcm_munmap(snd_pcm_t *pcm)
 			errno = 0;
 			break;
 		case SND_PCM_AREA_SHM:
+#ifdef HAVE_SYS_SHM_H
 			if (i->u.shm.area) {
 				snd_shm_area_destroy(i->u.shm.area);
 				i->u.shm.area = NULL;
@@ -482,6 +491,10 @@ int snd_pcm_munmap(snd_pcm_t *pcm)
 				}
 			}
 			break;
+#else
+			SYSERR("shm support not available");
+			return -ENOSYS;
+#endif
 		case SND_PCM_AREA_LOCAL:
 			free(i->addr);
 			break;

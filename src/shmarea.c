@@ -17,7 +17,12 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  *
  */
-  
+
+#include "config.h"
+
+/* These funcs are only used by pcm_mmap when sys/shm.h is available. */
+#ifdef HAVE_SYS_SHM_H
+
 #include <stdio.h>
 #include <malloc.h>
 #include <string.h>
@@ -106,3 +111,5 @@ void snd_shm_area_destructor(void)
 		shmdt(area->ptr);
 	}
 }
+
+#endif
