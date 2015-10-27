@@ -26,42 +26,6 @@
 #include <sys/shm.h>
 #include "pcm_local.h"
 
-size_t page_size(void)
-{
-	long s = sysconf(_SC_PAGE_SIZE);
-	assert(s > 0);
-	return s;
-}
-
-size_t page_align(size_t size)
-{
-	size_t r;
-	long psz = page_size();
-	r = size % psz;
-	if (r)
-		return size + psz - r;
-	return size;
-}
-
-size_t page_ptr(size_t object_offset, size_t object_size, size_t *offset, size_t *mmap_offset)
-{
-	size_t r;
-	long psz = page_size();
-	assert(offset);
-	assert(mmap_offset);
-	*mmap_offset = object_offset;
-	object_offset %= psz;
-	*mmap_offset -= object_offset;
-	object_size += object_offset;
-	r = object_size % psz;
-	if (r)
-		r = object_size + psz - r;
-	else
-		r = object_size;
-	*offset = object_offset;
-	return r;
-}
-
 void snd_pcm_mmap_appl_backward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_sframes_t appl_ptr = *pcm->appl.ptr;
