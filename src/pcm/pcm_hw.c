@@ -36,7 +36,6 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
-#include <sys/shm.h>
 #include "pcm_local.h"
 #include "../control/control_local.h"
 #include "../timer/timer_local.h"

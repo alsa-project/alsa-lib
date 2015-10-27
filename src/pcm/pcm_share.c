@@ -35,7 +35,6 @@
 #include <math.h>
 #include <sys/socket.h>
 #include <sys/poll.h>
-#include <sys/shm.h>
 #include <pthread.h>
 #include "pcm_local.h"
 
