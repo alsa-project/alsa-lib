@@ -450,9 +450,10 @@ static snd_pcm_state_t snd_pcm_dmix_state(snd_pcm_t *pcm)
 	snd_pcm_state_t state;
 	state = snd_pcm_state(dmix->spcm);
 	switch (state) {
+	case SND_PCM_STATE_XRUN:
 	case SND_PCM_STATE_SUSPENDED:
-		return state;
 	case SND_PCM_STATE_DISCONNECTED:
+		dmix->state = state;
 		return state;
 	default:
 		break;
@@ -531,17 +532,6 @@ static int snd_pcm_dmix_hwsync(snd_pcm_t *pcm)
 	default:
 		return -EBADFD;
 	}
-}
-
-static int snd_pcm_dmix_prepare(snd_pcm_t *pcm)
-{
-	snd_pcm_direct_t *dmix = pcm->private_data;
-
-	snd_pcm_direct_check_interleave(dmix, pcm);
-	dmix->state = SND_PCM_STATE_PREPARED;
-	dmix->appl_ptr = dmix->last_appl_ptr = 0;
-	dmix->hw_ptr = 0;
-	return snd_pcm_direct_set_timer_params(dmix);
 }
 
 static void reset_slave_ptr(snd_pcm_t *pcm, snd_pcm_direct_t *dmix)
@@ -920,7 +910,7 @@ static const snd_pcm_fast_ops_t snd_pcm_dmix_fast_ops = {
 	.state = snd_pcm_dmix_state,
 	.hwsync = snd_pcm_dmix_hwsync,
 	.delay = snd_pcm_dmix_delay,
-	.prepare = snd_pcm_dmix_prepare,
+	.prepare = snd_pcm_direct_prepare,
 	.reset = snd_pcm_dmix_reset,
 	.start = snd_pcm_dmix_start,
 	.drop = snd_pcm_dmix_drop,

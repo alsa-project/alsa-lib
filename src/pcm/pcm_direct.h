@@ -224,6 +224,8 @@ struct snd_pcm_direct {
 	snd1_pcm_direct_mmap
 #define snd_pcm_direct_munmap \
 	snd1_pcm_direct_munmap
+#define snd_pcm_direct_prepare \
+	snd1_pcm_direct_prepare
 #define snd_pcm_direct_resume \
 	snd1_pcm_direct_resume
 #define snd_pcm_direct_timer_stop \
@@ -304,6 +306,7 @@ int snd_pcm_direct_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params);
 int snd_pcm_direct_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info);
 int snd_pcm_direct_mmap(snd_pcm_t *pcm);
 int snd_pcm_direct_munmap(snd_pcm_t *pcm);
+int snd_pcm_direct_prepare(snd_pcm_t *pcm);
 int snd_pcm_direct_resume(snd_pcm_t *pcm);
 int snd_pcm_direct_timer_stop(snd_pcm_direct_t *dmix);
 void snd_pcm_direct_clear_timer_queue(snd_pcm_direct_t *dmix);

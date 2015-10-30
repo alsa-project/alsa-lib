@@ -201,12 +201,14 @@ static int snd_pcm_dsnoop_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 static snd_pcm_state_t snd_pcm_dsnoop_state(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dsnoop = pcm->private_data;
-	switch (snd_pcm_state(dsnoop->spcm)) {
+	snd_pcm_state_t state;
+	state = snd_pcm_state(dsnoop->spcm);
+	switch (state) {
+	case SND_PCM_STATE_XRUN:
 	case SND_PCM_STATE_SUSPENDED:
-		return SND_PCM_STATE_SUSPENDED;
 	case SND_PCM_STATE_DISCONNECTED:
-		dsnoop->state = SNDRV_PCM_STATE_DISCONNECTED;
-		return -ENODEV;
+		dsnoop->state = state;
+		return state;
 	default:
 		break;
 	}
@@ -256,17 +258,6 @@ static int snd_pcm_dsnoop_hwsync(snd_pcm_t *pcm)
 	default:
 		return -EBADFD;
 	}
-}
-
-static int snd_pcm_dsnoop_prepare(snd_pcm_t *pcm)
-{
-	snd_pcm_direct_t *dsnoop = pcm->private_data;
-
-	snd_pcm_direct_check_interleave(dsnoop, pcm);
-	dsnoop->state = SND_PCM_STATE_PREPARED;
-	dsnoop->appl_ptr = 0;
-	dsnoop->hw_ptr = 0;
-	return snd_pcm_direct_set_timer_params(dsnoop);
 }
 
 static int snd_pcm_dsnoop_reset(snd_pcm_t *pcm)
@@ -497,7 +488,7 @@ static const snd_pcm_fast_ops_t snd_pcm_dsnoop_fast_ops = {
 	.state = snd_pcm_dsnoop_state,
 	.hwsync = snd_pcm_dsnoop_hwsync,
 	.delay = snd_pcm_dsnoop_delay,
-	.prepare = snd_pcm_dsnoop_prepare,
+	.prepare = snd_pcm_direct_prepare,
 	.reset = snd_pcm_dsnoop_reset,
 	.start = snd_pcm_dsnoop_start,
 	.drop = snd_pcm_dsnoop_drop,

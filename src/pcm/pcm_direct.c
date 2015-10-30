@@ -807,6 +807,28 @@ int snd_pcm_direct_set_chmap(snd_pcm_t *pcm, const snd_pcm_chmap_t *map)
 	return snd_pcm_set_chmap(dmix->spcm, map);
 }
 
+int snd_pcm_direct_prepare(snd_pcm_t *pcm)
+{
+	snd_pcm_direct_t *dmix = pcm->private_data;
+	int err;
+
+	switch (snd_pcm_state(dmix->spcm)) {
+	case SND_PCM_STATE_XRUN:
+	case SND_PCM_STATE_SUSPENDED:
+	case SND_PCM_STATE_DISCONNECTED:
+		err = snd_pcm_prepare(dmix->spcm);
+		if (err < 0)
+			return err;
+		snd_pcm_start(dmix->spcm);
+		break;
+	}
+	snd_pcm_direct_check_interleave(dmix, pcm);
+	dmix->state = SND_PCM_STATE_PREPARED;
+	dmix->appl_ptr = dmix->last_appl_ptr = 0;
+	dmix->hw_ptr = 0;
+	return snd_pcm_direct_set_timer_params(dmix);
+}
+
 int snd_pcm_direct_resume(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dmix = pcm->private_data;
