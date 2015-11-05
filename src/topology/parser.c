@@ -311,6 +311,8 @@ int snd_tplg_add_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 		return tplg_add_widget_object(tplg, t);
 	case SND_TPLG_TYPE_DAPM_GRAPH:
 		return tplg_add_graph_object(tplg, t);
+	case SND_TPLG_TYPE_PCM:
+		return tplg_add_pcm_object(tplg, t);
 	case SND_TPLG_TYPE_BE:
 	case SND_TPLG_TYPE_CC:
 		return tplg_add_link_object(tplg, t);

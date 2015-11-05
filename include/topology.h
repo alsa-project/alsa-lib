@@ -660,6 +660,41 @@ struct snd_tplg_stream_template {
 	int channels;		/*!< number of channels */
 };
 
+/** \struct snd_tplg_stream_caps_template
+ * \brief Stream Capabilities.
+ */
+struct snd_tplg_stream_caps_template {
+	const char *name;	/*!< name of the stream caps */
+	__le64 formats;	/*!< supported formats SNDRV_PCM_FMTBIT_* */
+	unsigned int rates;	/*!< supported rates SNDRV_PCM_RATE_* */
+	unsigned int rate_min;	/*!< min rate */
+	unsigned int rate_max;	/*!< max rate */
+	unsigned int channels_min;	/*!< min channels */
+	unsigned int channels_max;	/*!< max channels */
+	unsigned int periods_min;	/*!< min number of periods */
+	unsigned int periods_max;	/*!< max number of periods */
+	unsigned int period_size_min;	/*!< min period size bytes */
+	unsigned int period_size_max;	/*!< max period size bytes */
+	unsigned int buffer_size_min;	/*!< min buffer size bytes */
+	unsigned int buffer_size_max;	/*!< max buffer size bytes */
+};
+
+/** \struct snd_tplg_pcm_template
+ * \brief Template type for PCM (FE DAI & DAI links).
+ */
+struct snd_tplg_pcm_template {
+	const char *pcm_name;	/*!< PCM stream name */
+	const char *dai_name;	/*!< DAI name */
+	unsigned int pcm_id;	/*!< unique ID - used to match */
+	unsigned int dai_id;	/*!< unique ID - used to match */
+	unsigned int playback;	/*!< supports playback mode */
+	unsigned int capture;	/*!< supports capture mode */
+	unsigned int compress;	/*!< 1 = compressed; 0 = PCM */
+	struct snd_tplg_stream_caps_template *caps[2]; /*!< playback & capture for DAI */
+	int num_streams;	/*!< number of supported configs */
+	struct snd_tplg_stream_template stream[0]; /*!< supported configs */
+};
+
 /** \struct snd_tplg_link_template
  * \brief Template type for BE and CC DAI Links.
  */
@@ -684,6 +719,7 @@ typedef struct snd_tplg_obj_template {
 		struct snd_tplg_bytes_template *bytes_ctl;	/*!< Bytes control */
 		struct snd_tplg_enum_template *enum_ctl;	/*!< Enum control */
 		struct snd_tplg_graph_template *graph;		/*!< Graph elements */
+		struct snd_tplg_pcm_template *pcm;		/*!< PCM elements */
 		struct snd_tplg_link_template *link;		/*!< BE and CC Links */
 	};
 } snd_tplg_obj_template_t;

@@ -95,6 +95,9 @@ int tplg_build_pcm(snd_tplg_t *tplg, unsigned int type)
 		err = tplg_build_pcm_caps(tplg, elem);
 		if (err < 0)
 			return err;
+
+		/* add PCM to manifest */
+		tplg->manifest.pcm_elems++;
 	}
 
 	return 0;
@@ -492,6 +495,68 @@ static void tplg_add_stream_object(struct snd_soc_tplg_stream *strm,
 	strm->period_bytes = strm_tpl->period_bytes;
 	strm->buffer_bytes = strm_tpl->buffer_bytes;
 	strm->channels = strm_tpl->channels;
+}
+
+static void tplg_add_stream_caps(struct snd_soc_tplg_stream_caps *caps,
+	struct snd_tplg_stream_caps_template *caps_tpl)
+{
+	elem_copy_text(caps->name, caps_tpl->name,
+		SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+
+	caps->formats = caps_tpl->formats;
+	caps->rates = caps_tpl->rates;
+	caps->rate_min = caps_tpl->rate_min;
+	caps->rate_max = caps_tpl->rate_max;
+	caps->channels_min = caps_tpl->channels_min;
+	caps->channels_max = caps_tpl->channels_max;
+	caps->periods_min = caps_tpl->periods_min;
+	caps->periods_max = caps_tpl->periods_max;
+	caps->period_size_min = caps_tpl->period_size_min;
+	caps->period_size_max = caps_tpl->period_size_max;
+	caps->buffer_size_min = caps_tpl->buffer_size_min;
+	caps->buffer_size_max = caps_tpl->buffer_size_max;
+}
+
+int tplg_add_pcm_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
+{
+	struct snd_tplg_pcm_template *pcm_tpl = t->pcm;
+	struct snd_soc_tplg_pcm *pcm;
+	struct tplg_elem *elem;
+	int i;
+
+	tplg_dbg("PCM: %s, DAI %s\n", pcm_tpl->pcm_name, pcm_tpl->dai_name);
+
+	if (pcm_tpl->num_streams > SND_SOC_TPLG_STREAM_CONFIG_MAX)
+		return -EINVAL;
+
+	elem = tplg_elem_new_common(tplg, NULL, pcm_tpl->pcm_name,
+		SND_TPLG_TYPE_PCM);
+	if (!elem)
+		return -ENOMEM;
+
+	pcm = elem->pcm;
+	pcm->size = elem->size;
+
+	elem_copy_text(pcm->pcm_name, pcm_tpl->pcm_name,
+		SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+	elem_copy_text(pcm->dai_name, pcm_tpl->dai_name,
+		SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+	pcm->pcm_id = pcm_tpl->pcm_id;
+	pcm->dai_id = pcm_tpl->dai_id;
+	pcm->playback = pcm_tpl->playback;
+	pcm->capture = pcm_tpl->capture;
+	pcm->compress = pcm_tpl->compress;
+
+	for (i = 0; i < 2; i++) {
+		if (pcm_tpl->caps[i])
+			tplg_add_stream_caps(&pcm->caps[i], pcm_tpl->caps[i]);
+	}
+
+	pcm->num_streams = pcm_tpl->num_streams;
+	for (i = 0; i < pcm->num_streams; i++)
+		tplg_add_stream_object(&pcm->stream[i], &pcm_tpl->stream[i]);
+
+	return 0;
 }
 
 int tplg_add_link_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
