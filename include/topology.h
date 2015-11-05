@@ -648,6 +648,28 @@ struct snd_tplg_widget_template {
 	struct snd_tplg_ctl_template *ctl[0];	/*!< array of widget controls */
 };
 
+/** \struct snd_tplg_stream_template
+ * \brief Stream configurations.
+ */
+struct snd_tplg_stream_template {
+	const char *name;	/*!< name of the stream config */
+	int format;		/*!< SNDRV_PCM_FMTBIT_* */
+	int rate;		/*!< SNDRV_PCM_RATE_* */
+	int period_bytes;	/*!< size of period in bytes */
+	int buffer_bytes;	/*!< size of buffer in bytes. */
+	int channels;		/*!< number of channels */
+};
+
+/** \struct snd_tplg_link_template
+ * \brief Template type for BE and CC DAI Links.
+ */
+struct snd_tplg_link_template {
+	const char *name;	/*!< link name */
+	int id;	/*!< unique ID - used to match with existing BE and CC links */
+	int num_streams;	/*!< number of configs */
+	struct snd_tplg_stream_template stream[0]; /*!< supported configs */
+};
+
 /** \struct snd_tplg_obj_template
  * \brief Generic Template Object
  */
@@ -662,6 +684,7 @@ typedef struct snd_tplg_obj_template {
 		struct snd_tplg_bytes_template *bytes_ctl;	/*!< Bytes control */
 		struct snd_tplg_enum_template *enum_ctl;	/*!< Enum control */
 		struct snd_tplg_graph_template *graph;		/*!< Graph elements */
+		struct snd_tplg_link_template *link;		/*!< BE and CC Links */
 	};
 } snd_tplg_obj_template_t;
 

@@ -221,10 +221,10 @@ static int write_block(snd_tplg_t *tplg, struct list_head *base,
 			SND_SOC_TPLG_TYPE_PCM, "pcm");
 	case SND_TPLG_TYPE_BE:
 		return write_elem_block(tplg, base, size,
-			SND_SOC_TPLG_TYPE_DAI_LINK, "be");
+			SND_SOC_TPLG_TYPE_BACKEND_LINK, "be");
 	case SND_TPLG_TYPE_CC:
 		return write_elem_block(tplg, base, size,
-			SND_SOC_TPLG_TYPE_DAI_LINK, "cc");
+			SND_SOC_TPLG_TYPE_CODEC_LINK, "cc");
 	case SND_TPLG_TYPE_DATA:
 		return write_elem_block(tplg, base, size,
 			SND_SOC_TPLG_TYPE_PDATA, "data");
