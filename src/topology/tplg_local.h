@@ -108,11 +108,11 @@ struct tplg_elem {
 		struct snd_soc_tplg_enum_control *enum_ctrl;
 		struct snd_soc_tplg_bytes_control *bytes_ext;
 		struct snd_soc_tplg_dapm_widget *widget;
-		struct snd_soc_tplg_pcm_dai *pcm;
-		struct snd_soc_tplg_pcm_dai *be;
-		struct snd_soc_tplg_pcm_dai *cc;
+		struct snd_soc_tplg_pcm *pcm;
+		struct snd_soc_tplg_link_config *be;
+		struct snd_soc_tplg_link_config *cc;
 		struct snd_soc_tplg_dapm_graph_elem *route;
-		struct snd_soc_tplg_stream_config *stream_cfg;
+		struct snd_soc_tplg_stream *stream_cfg;
 		struct snd_soc_tplg_stream_caps *stream_caps;
 
 		/* these do not map to UAPI structs but are internal only */
@@ -164,14 +164,8 @@ int tplg_parse_dapm_graph(snd_tplg_t *tplg, snd_config_t *cfg,
 int tplg_parse_dapm_widget(snd_tplg_t *tplg,
 	snd_config_t *cfg, void *private ATTRIBUTE_UNUSED);
 
-int tplg_parse_pcm_config(snd_tplg_t *tplg,
-	snd_config_t *cfg, void *private ATTRIBUTE_UNUSED);
-
 int tplg_parse_pcm_caps(snd_tplg_t *tplg,
 	snd_config_t *cfg, void *private ATTRIBUTE_UNUSED);
-
-int tplg_parse_pcm_cap_cfg(snd_tplg_t *tplg, snd_config_t *cfg,
-	void *private);
 
 int tplg_parse_pcm(snd_tplg_t *tplg,
 	snd_config_t *cfg, void *private ATTRIBUTE_UNUSED);
