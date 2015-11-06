@@ -21,6 +21,8 @@
 #ifndef __ALSA_TOPOLOGY_H
 #define __ALSA_TOPOLOGY_H
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -665,7 +667,7 @@ struct snd_tplg_stream_template {
  */
 struct snd_tplg_stream_caps_template {
 	const char *name;	/*!< name of the stream caps */
-	__le64 formats;	/*!< supported formats SNDRV_PCM_FMTBIT_* */
+	uint64_t formats;	/*!< supported formats SNDRV_PCM_FMTBIT_* */
 	unsigned int rates;	/*!< supported rates SNDRV_PCM_RATE_* */
 	unsigned int rate_min;	/*!< min rate */
 	unsigned int rate_max;	/*!< max rate */
