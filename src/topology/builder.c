@@ -82,30 +82,6 @@ static int write_block_header(snd_tplg_t *tplg, unsigned int type,
 	return bytes;
 }
 
-static int write_data_block(snd_tplg_t *tplg, int size, int tplg_type,
-	const char *obj_name, void *data)
-{
-	int ret;
-
-	/* write the header for this block */
-	ret = write_block_header(tplg, tplg_type, 0,
-		tplg->version, 0, size, 1);
-	if (ret < 0) {
-		SNDERR("error: failed to write %s block %d\n", obj_name, ret);
-		return ret;
-	}
-
-	verbose(tplg, " %s : write %d bytes\n", obj_name, size);
-
-	ret = write(tplg->out_fd, data, size);
-	if (ret < 0) {
-		SNDERR("error: failed to write %s %d\n", obj_name, ret);
-		return ret;
-	}
-
-	return 0;
-}
-
 static int write_elem_block(snd_tplg_t *tplg,
 	struct list_head *base, int size, int tplg_type, const char *obj_name)
 {
