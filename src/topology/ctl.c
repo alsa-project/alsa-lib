@@ -676,7 +676,7 @@ int tplg_add_mixer(snd_tplg_t *tplg, struct snd_tplg_mixer_template *mixer,
 	struct snd_soc_tplg_private *priv = mixer->priv;
 	struct snd_soc_tplg_mixer_control *mc;
 	struct tplg_elem *elem;
-	int ret, i;
+	int ret, i, num_channels;
 
 	tplg_dbg(" Control Mixer: %s\n", mixer->hdr.name);
 
@@ -708,9 +708,10 @@ int tplg_add_mixer(snd_tplg_t *tplg, struct snd_tplg_mixer_template *mixer,
 	for (i = 0; i < SND_SOC_TPLG_MAX_CHAN; i++)
 		mc->channel[i].reg = -1;
 
-	if (mixer->map)
-		mc->num_channels = mixer->map->num_channels;
-	for (i = 0; i < mc->num_channels; i++) {
+	num_channels = mixer->map ? mixer->map->num_channels : 0;
+	mc->num_channels = num_channels;
+
+	for (i = 0; i < num_channels; i++) {
 		struct snd_tplg_channel_elem *channel = &mixer->map->channel[i];
 
 		mc->channel[i].size = channel->size;
@@ -743,7 +744,7 @@ int tplg_add_enum(snd_tplg_t *tplg, struct snd_tplg_enum_template *enum_ctl,
 {
 	struct snd_soc_tplg_enum_control *ec;
 	struct tplg_elem *elem;
-	int ret, i;
+	int ret, i, num_items;
 
 	tplg_dbg(" Control Enum: %s\n", enum_ctl->hdr.name);
 
@@ -765,15 +766,14 @@ int tplg_add_enum(snd_tplg_t *tplg, struct snd_tplg_enum_template *enum_ctl,
 		return ret;
 	}
 
-	ec->items = enum_ctl->items;
-	if (ec->items > SND_SOC_TPLG_NUM_TEXTS)
-		ec->items = SND_SOC_TPLG_NUM_TEXTS;
-
+	num_items =  enum_ctl->items < SND_SOC_TPLG_NUM_TEXTS ?
+		enum_ctl->items : SND_SOC_TPLG_NUM_TEXTS;
+	ec->items = num_items;
 	ec->mask = enum_ctl->mask;
 	ec->count = enum_ctl->items;
 
 	if (enum_ctl->texts != NULL) {
-		for (i = 0; i < ec->items; i++) {
+		for (i = 0; i < num_items; i++) {
 			if (enum_ctl->texts[i] != NULL)
 				strncpy(ec->texts[i], enum_ctl->texts[i],
 					SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
@@ -781,7 +781,7 @@ int tplg_add_enum(snd_tplg_t *tplg, struct snd_tplg_enum_template *enum_ctl,
 	}
 
 	if (enum_ctl->values != NULL) {
-		for (i = 0; i < ec->items; i++) {
+		for (i = 0; i < num_items; i++) {
 			if (enum_ctl->values[i])
 				continue;
 
