@@ -12,6 +12,8 @@
 
 #include <limits.h>
 #include <stdint.h>
+#include <stdbool.h>
+#include <endian.h>
 #include <linux/types.h>
 
 #include "local.h"

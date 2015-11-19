@@ -371,9 +371,24 @@ void snd_tplg_verbose(snd_tplg_t *tplg, int verbose)
 	tplg->verbose = verbose;
 }
 
+static bool is_little_endian(void)
+{
+#ifdef __BYTE_ORDER
+	#if __BYTE_ORDER == __LITTLE_ENDIAN
+		return true;
+	#endif
+#endif
+	return false;
+}
+
 snd_tplg_t *snd_tplg_new(void)
 {
 	snd_tplg_t *tplg;
+
+	if (!is_little_endian()) {
+		SNDERR("error: cannot support big-endian machines\n");
+		return NULL;
+	}
 
 	tplg = calloc(1, sizeof(snd_tplg_t));
 	if (!tplg)
