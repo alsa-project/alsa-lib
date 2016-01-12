@@ -1693,12 +1693,14 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 				err = snd_config_get_string(n, &str);
 				if (err < 0) {
 					SNDERR("Invalid type for %s", id);
-					return -EINVAL;
+					err = -EINVAL;
+					goto fail;
 				}
 				card = snd_card_get_index(str);
 				if (card < 0) {
 					SNDERR("Invalid value for %s", id);
-					return card;
+					err = card;
+					goto fail;
 				}
 			}
 			continue;
@@ -1707,7 +1709,7 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 			err = snd_config_get_integer(n, &device);
 			if (err < 0) {
 				SNDERR("Invalid type for %s", id);
-				return err;
+				goto fail;
 			}
 			continue;
 		}
@@ -1715,7 +1717,7 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 			err = snd_config_get_integer(n, &subdevice);
 			if (err < 0) {
 				SNDERR("Invalid type for %s", id);
-				return err;
+				goto fail;
 			}
 			continue;
 		}
@@ -1738,7 +1740,7 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 			err = snd_config_get_integer(n, &val);
 			if (err < 0) {
 				SNDERR("Invalid type for %s", id);
-				return err;
+				goto fail;
 			}
 			rate = val;
 			continue;
@@ -1747,7 +1749,7 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 			err = snd_config_get_string(n, &str);
 			if (err < 0) {
 				SNDERR("invalid type for %s", id);
-				return err;
+				goto fail;
 			}
 			format = snd_pcm_format_value(str);
 			continue;
@@ -1757,7 +1759,7 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 			err = snd_config_get_integer(n, &val);
 			if (err < 0) {
 				SNDERR("Invalid type for %s", id);
-				return err;
+				goto fail;
 			}
 			channels = val;
 			continue;
@@ -1767,26 +1769,24 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 			chmap = _snd_pcm_parse_config_chmaps(n);
 			if (!chmap) {
 				SNDERR("Invalid channel map for %s", id);
-				return -EINVAL;
+				goto fail;
 			}
 			continue;
 		}
 		SNDERR("Unknown field %s", id);
-		snd_pcm_free_chmaps(chmap);
-		return -EINVAL;
+		err = -EINVAL;
+		goto fail;
 	}
 	if (card < 0) {
 		SNDERR("card is not defined");
-		snd_pcm_free_chmaps(chmap);
-		return -EINVAL;
+		err = -EINVAL;
+		goto fail;
 	}
 	err = snd_pcm_hw_open(pcmp, name, card, device, subdevice, stream,
 			      mode | (nonblock ? SND_PCM_NONBLOCK : 0),
 			      0, sync_ptr_ioctl);
-	if (err < 0) {
-		snd_pcm_free_chmaps(chmap);
-		return err;
-	}
+	if (err < 0)
+		goto fail;
 	if (nonblock && ! (mode & SND_PCM_NONBLOCK)) {
 		/* revert to blocking mode for read/write access */
 		snd_pcm_hw_nonblock(*pcmp, 0);
@@ -1810,6 +1810,10 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 		hw->chmap_override = chmap;
 
 	return 0;
+
+fail:
+        snd_pcm_free_chmaps(chmap);
+        return err;
 }
 
 #ifndef DOC_HIDDEN
