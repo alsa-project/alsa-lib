@@ -411,7 +411,7 @@ int snd_ctl_elem_add_enumerated(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
 	bytes = 0;
 	for (i = 0; i < items; ++i)
 		bytes += strlen(names[i]) + 1;
-	buf = malloc(bytes);
+	buf = bytes ? malloc(bytes) : NULL;
 	if (!buf)
 		return -ENOMEM;
 	info->value.enumerated.names_ptr = (uintptr_t)buf;

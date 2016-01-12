@@ -559,6 +559,8 @@ int snd_device_name_hint(int card, const char *iface, void ***hints)
 	if (err < 0)
 		return err;
 	err = snd_config_copy(&local_config_rw, local_config);
+	if (err < 0)
+		return err;
 	list.list = NULL;
 	list.count = list.allocated = 0;
 	list.siface = iface;

@@ -62,7 +62,7 @@ static long get_integer(const char **ptr, long min, long max)
 	val = strtol(s, &p, 0);
 	if (*p == '.') {
 		p++;
-		strtol(p, &p, 10);
+		(void)strtol(p, &p, 10);
 	}
 	if (*p == '%') {
 		val = (long)convert_prange1(strtod(s, NULL), min, max);
@@ -90,7 +90,7 @@ static long long get_integer64(const char **ptr, long long min, long long max)
 	val = strtol(s, &p, 0);
 	if (*p == '.') {
 		p++;
-		strtol(p, &p, 10);
+		(void)strtol(p, &p, 10);
 	}
 	if (*p == '%') {
 		val = (long long)convert_prange1(strtod(s, NULL), min, max);

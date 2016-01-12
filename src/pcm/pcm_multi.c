@@ -888,6 +888,8 @@ static int snd_pcm_multi_set_chmap(snd_pcm_t *pcm, const snd_pcm_chmap_t *map)
 		slave_maps[i] = calloc(multi->slaves[i].channels_count + 1,
 				       sizeof(int));
 		if (!slave_maps[i]) {
+			for (i++; i < multi->slaves_count; i++)
+				slave_maps[i] = NULL;
 			err = -ENOMEM;
 			goto error;
 		}
