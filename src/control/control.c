@@ -2497,7 +2497,7 @@ void snd_ctl_elem_value_set_index(snd_ctl_elem_value_t *obj, unsigned int val)
 int snd_ctl_elem_value_get_boolean(const snd_ctl_elem_value_t *obj, unsigned int idx)
 {
 	assert(obj);
-	assert(idx < sizeof(obj->value.integer.value) / sizeof(obj->value.integer.value[0]));
+	assert(idx < ARRAY_SIZE(obj->value.integer.value));
 	return obj->value.integer.value[idx];
 }
 
@@ -2510,7 +2510,7 @@ int snd_ctl_elem_value_get_boolean(const snd_ctl_elem_value_t *obj, unsigned int
 long snd_ctl_elem_value_get_integer(const snd_ctl_elem_value_t *obj, unsigned int idx)
 {
 	assert(obj);
-	assert(idx < sizeof(obj->value.integer.value) / sizeof(obj->value.integer.value[0]));
+	assert(idx < ARRAY_SIZE(obj->value.integer.value));
 	return obj->value.integer.value[idx];
 }
 
@@ -2523,7 +2523,7 @@ long snd_ctl_elem_value_get_integer(const snd_ctl_elem_value_t *obj, unsigned in
 long long snd_ctl_elem_value_get_integer64(const snd_ctl_elem_value_t *obj, unsigned int idx)
 {
 	assert(obj);
-	assert(idx < sizeof(obj->value.integer64.value) / sizeof(obj->value.integer64.value[0]));
+	assert(idx < ARRAY_SIZE(obj->value.integer64.value));
 	return obj->value.integer64.value[idx];
 }
 
@@ -2536,7 +2536,7 @@ long long snd_ctl_elem_value_get_integer64(const snd_ctl_elem_value_t *obj, unsi
 unsigned int snd_ctl_elem_value_get_enumerated(const snd_ctl_elem_value_t *obj, unsigned int idx)
 {
 	assert(obj);
-	assert(idx < sizeof(obj->value.enumerated.item) / sizeof(obj->value.enumerated.item[0]));
+	assert(idx < ARRAY_SIZE(obj->value.enumerated.item));
 	return obj->value.enumerated.item[idx];
 }
 
@@ -2549,7 +2549,7 @@ unsigned int snd_ctl_elem_value_get_enumerated(const snd_ctl_elem_value_t *obj, 
 unsigned char snd_ctl_elem_value_get_byte(const snd_ctl_elem_value_t *obj, unsigned int idx)
 {
 	assert(obj);
-	assert(idx < sizeof(obj->value.bytes.data));
+	assert(idx < ARRAY_SIZE(obj->value.bytes.data));
 	return obj->value.bytes.data[idx];
 }
 
@@ -2562,6 +2562,7 @@ unsigned char snd_ctl_elem_value_get_byte(const snd_ctl_elem_value_t *obj, unsig
 void snd_ctl_elem_value_set_boolean(snd_ctl_elem_value_t *obj, unsigned int idx, long val)
 {
 	assert(obj);
+	assert(idx < ARRAY_SIZE(obj->value.integer.value));
 	obj->value.integer.value[idx] = val;
 }
 
@@ -2574,6 +2575,7 @@ void snd_ctl_elem_value_set_boolean(snd_ctl_elem_value_t *obj, unsigned int idx,
 void snd_ctl_elem_value_set_integer(snd_ctl_elem_value_t *obj, unsigned int idx, long val)
 {
 	assert(obj);
+	assert(idx < ARRAY_SIZE(obj->value.integer.value));
 	obj->value.integer.value[idx] = val;
 }
 
@@ -2586,6 +2588,7 @@ void snd_ctl_elem_value_set_integer(snd_ctl_elem_value_t *obj, unsigned int idx,
 void snd_ctl_elem_value_set_integer64(snd_ctl_elem_value_t *obj, unsigned int idx, long long val)
 {
 	assert(obj);
+	assert(idx < ARRAY_SIZE(obj->value.integer64.value));
 	obj->value.integer64.value[idx] = val;
 }
 
@@ -2598,6 +2601,7 @@ void snd_ctl_elem_value_set_integer64(snd_ctl_elem_value_t *obj, unsigned int id
 void snd_ctl_elem_value_set_enumerated(snd_ctl_elem_value_t *obj, unsigned int idx, unsigned int val)
 {
 	assert(obj);
+	assert(idx < ARRAY_SIZE(obj->value.enumerated.item));
 	obj->value.enumerated.item[idx] = val;
 }
 
@@ -2610,6 +2614,7 @@ void snd_ctl_elem_value_set_enumerated(snd_ctl_elem_value_t *obj, unsigned int i
 void snd_ctl_elem_value_set_byte(snd_ctl_elem_value_t *obj, unsigned int idx, unsigned char val)
 {
 	assert(obj);
+	assert(idx < ARRAY_SIZE(obj->value.bytes.data));
 	obj->value.bytes.data[idx] = val;
 }
 
@@ -2622,7 +2627,7 @@ void snd_ctl_elem_value_set_byte(snd_ctl_elem_value_t *obj, unsigned int idx, un
 void snd_ctl_elem_set_bytes(snd_ctl_elem_value_t *obj, void *data, size_t size)
 {
 	assert(obj);
-	if (size >= sizeof(obj->value.bytes.data)) {
+	if (size >= ARRAY_SIZE(obj->value.bytes.data)) {
 		assert(0);
 		return;
 	}
