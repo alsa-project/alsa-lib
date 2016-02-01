@@ -350,7 +350,7 @@ int tplg_parse_control_bytes(snd_tplg_t *tplg,
 				return -EINVAL;
 
 			be->max = atoi(val);
-			tplg_dbg("\t%s: %d\n", id, be->num_regs);
+			tplg_dbg("\t%s: %d\n", id, be->max);
 			continue;
 		}
 
