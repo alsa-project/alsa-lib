@@ -35,7 +35,7 @@ also interface notifying about control and structure changes.
 
 \section control_general_overview General overview
 
-The primitive controls can be integer, boolean, enumerators, bytes
+The primitive controls can be integer, inter64, boolean, enumerators, bytes
 and IEC958 structure.
 
 */
