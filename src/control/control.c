@@ -292,7 +292,7 @@ int snd_ctl_elem_add_integer(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
 	if (err < 0)
 		return err;
 	snd_ctl_elem_value_alloca(&val);
-	val->id = *id;
+	val->id = info->id;
 	for (i = 0; i < count; i++)
 		val->value.integer.value[i] = min;
 	err = ctl->ops->element_write(ctl, val);
@@ -330,7 +330,7 @@ int snd_ctl_elem_add_integer64(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
 	if (err < 0)
 		return err;
 	snd_ctl_elem_value_alloca(&val);
-	val->id = *id;
+	val->id = info->id;
 	for (i = 0; i < count; i++)
 		val->value.integer64.value[i] = min;
 	err = ctl->ops->element_write(ctl, val);
