@@ -2627,10 +2627,7 @@ void snd_ctl_elem_value_set_byte(snd_ctl_elem_value_t *obj, unsigned int idx, un
 void snd_ctl_elem_set_bytes(snd_ctl_elem_value_t *obj, void *data, size_t size)
 {
 	assert(obj);
-	if (size >= ARRAY_SIZE(obj->value.bytes.data)) {
-		assert(0);
-		return;
-	}
+	assert(size < ARRAY_SIZE(obj->value.bytes.data));
 	memcpy(obj->value.bytes.data, data, size);
 }
 
