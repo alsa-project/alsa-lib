@@ -53,6 +53,10 @@
 #include <linux/types.h>
 #include <linux/ioctl.h>
 
+#ifndef EBADFD
+#define EBADFD EBADF
+#endif
+
 #ifdef SUPPORT_RESMGR
 #include <resmgr.h>
 #endif
