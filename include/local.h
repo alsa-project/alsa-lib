@@ -50,11 +50,11 @@
 #include <sys/poll.h>
 #include <sys/types.h>
 #include <errno.h>
+#if defined(__linux__)
 #include <linux/types.h>
 #include <linux/ioctl.h>
-
-#ifndef EBADFD
-#define EBADFD EBADF
+#else
+#include "type_compat.h"
 #endif
 
 #ifdef SUPPORT_RESMGR
