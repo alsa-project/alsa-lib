@@ -28,7 +28,7 @@
  *
  */
 #include <inttypes.h>
-#include <byteswap.h>
+#include "bswap.h"
 #include "pcm_local.h"
 #include "pcm_plugin.h"
 #include "pcm_rate.h"

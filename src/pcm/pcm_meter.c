@@ -27,7 +27,7 @@
  */
   
 
-#include <byteswap.h>
+#include "bswap.h"
 #include <time.h>
 #include <pthread.h>
 #include <dlfcn.h>

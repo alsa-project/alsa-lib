@@ -26,7 +26,7 @@
  *
  */
   
-#include <byteswap.h>
+#include "bswap.h"
 #include <ctype.h>
 #include <string.h>
 #include "pcm_local.h"

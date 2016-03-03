@@ -125,7 +125,7 @@ static void mix_select_callbacks(snd_pcm_direct_t *dmix)
 	 (1ULL << SND_PCM_FORMAT_S24_LE) | (1ULL << SND_PCM_FORMAT_S24_3LE) | \
 	 (1ULL << SND_PCM_FORMAT_U8))
 
-#include <byteswap.h>
+#include "bswap.h"
 
 static void generic_mix_areas_16_native(unsigned int size,
 					volatile signed short *dst,

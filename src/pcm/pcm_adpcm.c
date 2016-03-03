@@ -56,7 +56,7 @@ IMA compatibility project proceedings, Vol 2, Issue 2, May 1992.
   come across a good description of XA yet.
  */
 
-#include <byteswap.h>
+#include "bswap.h"
 #include "pcm_local.h"
 #include "pcm_plugin.h"
 

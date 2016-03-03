@@ -26,7 +26,7 @@
  *
  */
   
-#include <byteswap.h>
+#include "bswap.h"
 #include <limits.h>
 #include "pcm_local.h"
 #include "pcm_plugin.h"

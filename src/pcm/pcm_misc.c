@@ -23,7 +23,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <byteswap.h>
+#include "bswap.h"
 #include "pcm_local.h"
 
 
