@@ -25,6 +25,9 @@
 #ifndef EBADFD
 #define EBADFD EBADF
 #endif
+#ifndef ESTRPIPE
+#define ESTRPIPE EPIPE
+#endif
 
 #ifndef __u16
 #define __u16	uint16_t
@@ -61,6 +64,10 @@
 #endif
 #ifndef __kernel_off_t
 #define __kernel_off_t	off_t
+#endif
+
+#ifndef __bitwise
+#define __bitwise
 #endif
 
 #endif
