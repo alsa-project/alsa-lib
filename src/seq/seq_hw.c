@@ -32,10 +32,11 @@ const char *_snd_module_seq_hw = "";
 #ifndef DOC_HIDDEN
 #define SNDRV_FILE_SEQ		ALSA_DEVICE_DIRECTORY "seq"
 #define SNDRV_FILE_ALOADSEQ	ALOAD_DEVICE_DIRECTORY "aloadSEQ"
-#define SNDRV_SEQ_VERSION_MAX	SNDRV_PROTOCOL_VERSION(1, 0, 1)
+#define SNDRV_SEQ_VERSION_MAX	SNDRV_PROTOCOL_VERSION(1, 0, 2)
 
 typedef struct {
 	int fd;
+	int version;
 } snd_seq_hw_t;
 #endif /* DOC_HIDDEN */
 
@@ -99,6 +100,10 @@ static int snd_seq_hw_get_client_info(snd_seq_t *seq, snd_seq_client_info_t * in
 	if (ioctl(hw->fd, SNDRV_SEQ_IOCTL_GET_CLIENT_INFO, info) < 0) {
 		/*SYSERR("SNDRV_SEQ_IOCTL_GET_CLIENT_INFO failed");*/
 		return -errno;
+	}
+	if (hw->version < SNDRV_PROTOCOL_VERSION(1, 0, 2)) {
+		info->card = -1;
+		info->pid = -1;
 	}
 	return 0;
 }
@@ -368,6 +373,10 @@ static int snd_seq_hw_query_next_client(snd_seq_t *seq, snd_seq_client_info_t *i
 		/*SYSERR("SNDRV_SEQ_IOCTL_QUERY_NEXT_CLIENT failed");*/
 		return -errno;
 	}
+	if (hw->version < SNDRV_PROTOCOL_VERSION(1, 0, 2)) {
+		info->card = -1;
+		info->pid = -1;
+	}
 	return 0;
 }
 
@@ -480,6 +489,7 @@ int snd_seq_hw_open(snd_seq_t **handle, const char *name, int streams, int mode)
 		return -ENOMEM;
 	}
 	hw->fd = fd;
+	hw->version = ver;
 	if (streams & SND_SEQ_OPEN_OUTPUT) {
 		seq->obuf = (char *) malloc(seq->obufsize = SND_SEQ_OBUF_SIZE);
 		if (!seq->obuf) {

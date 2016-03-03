@@ -1522,6 +1522,32 @@ int snd_seq_client_info_get_error_bounce(const snd_seq_client_info_t *info)
 }
 
 /**
+ * \brief Get the sound card number.
+ * \param info client_info container
+ * \return card number or -1 if value is not available.
+ *
+ * Only available for SND_SEQ_KERNEL_CLIENT clients.
+ */
+int snd_seq_client_info_get_card(const snd_seq_client_info_t *info)
+{
+	assert(info);
+	return info->card;
+}
+
+/**
+ * \brief Get the owning PID.
+ * \param info client_info container
+ * \return pid or -1 if value is not available.
+ *
+ * Only available for SND_SEQ_USER_CLIENT clients.
+ */
+int snd_seq_client_info_get_pid(const snd_seq_client_info_t *info)
+{
+	assert(info);
+	return info->pid;
+}
+
+/**
  * \brief (DEPRECATED) Get the event filter bitmap of a client_info container
  * \param info client_info container
  * \return NULL if no event filter, or pointer to event filter bitmap

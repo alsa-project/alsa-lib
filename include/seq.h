@@ -143,6 +143,8 @@ snd_seq_client_type_t snd_seq_client_info_get_type(const snd_seq_client_info_t *
 const char *snd_seq_client_info_get_name(snd_seq_client_info_t *info);
 int snd_seq_client_info_get_broadcast_filter(const snd_seq_client_info_t *info);
 int snd_seq_client_info_get_error_bounce(const snd_seq_client_info_t *info);
+int snd_seq_client_info_get_card(const snd_seq_client_info_t *info);
+int snd_seq_client_info_get_pid(const snd_seq_client_info_t *info);
 const unsigned char *snd_seq_client_info_get_event_filter(const snd_seq_client_info_t *info);
 int snd_seq_client_info_get_num_ports(const snd_seq_client_info_t *info);
 int snd_seq_client_info_get_event_lost(const snd_seq_client_info_t *info);
