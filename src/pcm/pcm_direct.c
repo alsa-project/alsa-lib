@@ -91,13 +91,19 @@ int snd_pcm_direct_semaphore_create_or_connect(snd_pcm_direct_t *dmix)
 int snd_pcm_direct_shm_create_or_connect(snd_pcm_direct_t *dmix)
 {
 	struct shmid_ds buf;
-	int tmpid, err;
+	int tmpid, err, first_instance = 0;
 	
 retryget:
 	dmix->shmid = shmget(dmix->ipc_key, sizeof(snd_pcm_direct_share_t),
-			     IPC_CREAT | dmix->ipc_perm);
+			     dmix->ipc_perm);
+	if (dmix->shmid < 0) {
+		if (errno == ENOENT)
+		if ((dmix->shmid = shmget(dmix->ipc_key, sizeof(snd_pcm_direct_share_t),
+					     IPC_CREAT | IPC_EXCL | dmix->ipc_perm)) != -1)
+			first_instance = 1;
+	}
 	err = -errno;
-	if (dmix->shmid < 0){
+	if (dmix->shmid < 0) {
 		if (errno == EINVAL)
 		if ((tmpid = shmget(dmix->ipc_key, 0, dmix->ipc_perm)) != -1)
 		if (!shmctl(tmpid, IPC_STAT, &buf))
@@ -119,7 +125,7 @@ retryget:
 		snd_pcm_direct_shm_discard(dmix);
 		return err;
 	}
-	if (buf.shm_nattch == 1) {	/* we're the first user, clear the segment */
+	if (first_instance) {	/* we're the first user, clear the segment */
 		memset(dmix->shmptr, 0, sizeof(snd_pcm_direct_share_t));
 		if (dmix->ipc_gid >= 0) {
 			buf.shm_perm.gid = dmix->ipc_gid;
