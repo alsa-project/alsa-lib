@@ -93,6 +93,35 @@ extern "C" {
  *  * range
  *  * strobe
  *
+* <h5>Control Access</h5>
+ * Controls access can be specified using the "access" section. If no "access"
+ * section is defined then default RW access flags are set for normal and TLV
+ * controls.
+ *
+ * <pre>
+ *	access [
+ *		read
+ *		write
+ *		tlv_command
+ *	]
+ * </pre>
+ *
+ * The standard access flags are as follows :-
+ *  * read
+ *  * write
+ *  * read_write
+ *  * volatile
+ *  * timestamp
+ *  * tlv_read
+ *  * tlv_write
+ *  * tlv_read_write
+ *  * tlv_command
+ *  * inactive
+ *  * lock
+ *  * owner
+ *  * tlv_callback
+ *  * user
+ *
  * <h5>Control TLV Data</h5>
  * Controls can also use TLV data to represent dB information. This can be done
  * by defining a TLV section and using the TLV section within the control.

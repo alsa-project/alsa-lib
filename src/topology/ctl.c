@@ -21,6 +21,88 @@
 
 #define ENUM_VAL_SIZE 	(SNDRV_CTL_ELEM_ID_NAME_MAXLEN >> 2)
 
+struct ctl_access_elem {
+	const char *name;
+	unsigned int value;
+};
+
+/* CTL access strings and codes */
+static const struct ctl_access_elem ctl_access[] = {
+	{"read", SNDRV_CTL_ELEM_ACCESS_READ},
+	{"write", SNDRV_CTL_ELEM_ACCESS_WRITE},
+	{"read_write", SNDRV_CTL_ELEM_ACCESS_READWRITE},
+	{"volatile", SNDRV_CTL_ELEM_ACCESS_VOLATILE},
+	{"timestamp", SNDRV_CTL_ELEM_ACCESS_TIMESTAMP},
+	{"tlv_read", SNDRV_CTL_ELEM_ACCESS_TLV_READ},
+	{"tlv_write", SNDRV_CTL_ELEM_ACCESS_TLV_WRITE},
+	{"tlv_read_write", SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE},
+	{"tlv_command", SNDRV_CTL_ELEM_ACCESS_TLV_COMMAND},
+	{"inactive", SNDRV_CTL_ELEM_ACCESS_INACTIVE},
+	{"lock", SNDRV_CTL_ELEM_ACCESS_LOCK},
+	{"owner", SNDRV_CTL_ELEM_ACCESS_OWNER},
+	{"tlv_callback", SNDRV_CTL_ELEM_ACCESS_TLV_CALLBACK},
+	{"user", SNDRV_CTL_ELEM_ACCESS_USER},
+};
+
+/* find CTL access strings and conver to values */
+static int parse_access_values(snd_config_t *cfg,
+	struct snd_soc_tplg_ctl_hdr *hdr)
+{
+	snd_config_iterator_t i, next;
+	snd_config_t *n;
+	const char *value = NULL;
+	unsigned int j;
+
+	tplg_dbg(" Access:\n");
+
+	snd_config_for_each(i, next, cfg) {
+		n = snd_config_iterator_entry(i);
+
+		/* get value */
+		if (snd_config_get_string(n, &value) < 0)
+			continue;
+
+		/* match access value and set flags */
+		for (j = 0; j < ARRAY_SIZE(ctl_access); j++) {
+			if (strcmp(value, ctl_access[j].name) == 0) {
+				hdr->access |= ctl_access[j].value;
+				tplg_dbg("\t%s\n", value);
+				break;
+			}
+		}
+	}
+
+	return 0;
+}
+
+/* Parse Access */
+int parse_access(snd_config_t *cfg,
+	struct snd_soc_tplg_ctl_hdr *hdr)
+{
+	snd_config_iterator_t i, next;
+	snd_config_t *n;
+	const char *id;
+	int err = 0;
+
+	snd_config_for_each(i, next, cfg) {
+
+		n = snd_config_iterator_entry(i);
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
+
+		if (strcmp(id, "access") == 0) {
+			err = parse_access_values(n, hdr);
+			if (err < 0) {
+				SNDERR("error: failed to parse access");
+				return err;
+			}
+			continue;
+		}
+	}
+
+	return err;
+}
+
 /* copy referenced TLV to the mixer control */
 static int copy_tlv(struct tplg_elem *elem, struct tplg_elem *ref)
 {
@@ -295,6 +377,7 @@ int tplg_parse_control_bytes(snd_tplg_t *tplg,
 	snd_config_t *n;
 	const char *id, *val = NULL;
 	int err;
+	bool access_set = false, tlv_set = false;
 
 	elem = tplg_elem_new_common(tplg, cfg, NULL, SND_TPLG_TYPE_BYTES);
 	if (!elem)
@@ -380,8 +463,7 @@ int tplg_parse_control_bytes(snd_tplg_t *tplg,
 			if (err < 0)
 				return err;
 
-			be->hdr.access = SNDRV_CTL_ELEM_ACCESS_TLV_READ |
-				SNDRV_CTL_ELEM_ACCESS_READWRITE;
+			tlv_set = true;
 			tplg_dbg("\t%s: %s\n", id, val);
 			continue;
 		}
@@ -401,6 +483,22 @@ int tplg_parse_control_bytes(snd_tplg_t *tplg,
 				return err;
 			continue;
 		}
+
+		if (strcmp(id, "access") == 0) {
+			err = parse_access(cfg, &be->hdr);
+			if (err < 0)
+				return err;
+			access_set = true;
+			continue;
+		}
+	}
+
+	/* set CTL access to default values if none are provided */
+	if (!access_set) {
+
+		be->hdr.access = SNDRV_CTL_ELEM_ACCESS_READWRITE;
+		if (tlv_set)
+			be->hdr.access |= SNDRV_CTL_ELEM_ACCESS_TLV_READ;
 	}
 
 	return 0;
@@ -416,6 +514,7 @@ int tplg_parse_control_enum(snd_tplg_t *tplg, snd_config_t *cfg,
 	snd_config_t *n;
 	const char *id, *val = NULL;
 	int err, j;
+	bool access_set = false;
 
 	elem = tplg_elem_new_common(tplg, cfg, NULL, SND_TPLG_TYPE_ENUM);
 	if (!elem)
@@ -495,6 +594,19 @@ int tplg_parse_control_enum(snd_tplg_t *tplg, snd_config_t *cfg,
 			tplg_dbg("\t%s: %s\n", id, val);
 			continue;
 		}
+
+		if (strcmp(id, "access") == 0) {
+			err = parse_access(cfg, &ec->hdr);
+			if (err < 0)
+				return err;
+			access_set = true;
+			continue;
+		}
+	}
+
+	/* set CTL access to default values if none are provided */
+	if (!access_set) {
+		ec->hdr.access = SNDRV_CTL_ELEM_ACCESS_READWRITE;
 	}
 
 	return 0;
@@ -513,6 +625,7 @@ int tplg_parse_control_mixer(snd_tplg_t *tplg,
 	snd_config_t *n;
 	const char *id, *val = NULL;
 	int err, j;
+	bool access_set = false, tlv_set = false;
 
 	elem = tplg_elem_new_common(tplg, cfg, NULL, SND_TPLG_TYPE_MIXER);
 	if (!elem)
@@ -606,8 +719,7 @@ int tplg_parse_control_mixer(snd_tplg_t *tplg,
 			if (err < 0)
 				return err;
 
-			mc->hdr.access = SNDRV_CTL_ELEM_ACCESS_TLV_READ |
-				SNDRV_CTL_ELEM_ACCESS_READWRITE;
+			tlv_set = true;
 			tplg_dbg("\t%s: %s\n", id, val);
 			continue;
 		}
@@ -620,6 +732,22 @@ int tplg_parse_control_mixer(snd_tplg_t *tplg,
 			tplg_dbg("\t%s: %s\n", id, val);
 			continue;
 		}
+
+		if (strcmp(id, "access") == 0) {
+			err = parse_access(cfg, &mc->hdr);
+			if (err < 0)
+				return err;
+			access_set = true;
+			continue;
+		}
+	}
+
+	/* set CTL access to default values if none are provided */
+	if (!access_set) {
+
+		mc->hdr.access = SNDRV_CTL_ELEM_ACCESS_READWRITE;
+		if (tlv_set)
+			mc->hdr.access |= SNDRV_CTL_ELEM_ACCESS_TLV_READ;
 	}
 
 	return 0;
