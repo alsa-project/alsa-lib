@@ -103,6 +103,28 @@ static int tplg_parse_dapm_enums(snd_config_t *cfg, struct tplg_elem *elem)
 	return 0;
 }
 
+static int tplg_parse_dapm_bytes(snd_config_t *cfg, struct tplg_elem *elem)
+{
+	snd_config_iterator_t i, next;
+	snd_config_t *n;
+	const char *value = NULL;
+
+	tplg_dbg(" DAPM Bytes Controls: %s\n", elem->id);
+
+	snd_config_for_each(i, next, cfg) {
+		n = snd_config_iterator_entry(i);
+
+		/* get value */
+		if (snd_config_get_string(n, &value) < 0)
+			continue;
+
+		tplg_ref_add(elem, SND_TPLG_TYPE_BYTES, value);
+		tplg_dbg("\t\t %s\n", value);
+	}
+
+	return 0;
+}
+
 /* move referenced controls to the widget */
 static int copy_dapm_control(struct tplg_elem *elem, struct tplg_elem *ref)
 {
@@ -561,6 +583,14 @@ int tplg_parse_dapm_widget(snd_tplg_t *tplg,
 
 		if (strcmp(id, "mixer") == 0) {
 			err = tplg_parse_dapm_mixers(n, elem);
+			if (err < 0)
+				return err;
+
+			continue;
+		}
+
+		if (strcmp(id, "bytes") == 0) {
+			err = tplg_parse_dapm_bytes(n, elem);
 			if (err < 0)
 				return err;
 
