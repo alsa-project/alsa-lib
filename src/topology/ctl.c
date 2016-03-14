@@ -385,6 +385,14 @@ int tplg_parse_control_bytes(snd_tplg_t *tplg,
 			tplg_dbg("\t%s: %s\n", id, val);
 			continue;
 		}
+
+		if (strcmp(id, "ops") == 0) {
+			err = tplg_parse_compound(tplg, n, tplg_parse_ops,
+				&be->hdr);
+			if (err < 0)
+				return err;
+			continue;
+		}
 	}
 
 	return 0;
