@@ -82,3 +82,41 @@ int tplg_parse_ops(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 
 	return 0;
 }
+
+/* Parse External Control operations. Ops can come from standard names above or
+ * bespoke driver controls with numbers >= 256
+ */
+int tplg_parse_ext_ops(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
+	snd_config_t *cfg, void *private)
+{
+	snd_config_iterator_t i, next;
+	snd_config_t *n;
+	struct snd_soc_tplg_bytes_control *be = private;
+	const char *id, *value;
+
+	tplg_dbg("\tExt Ops\n");
+
+	snd_config_for_each(i, next, cfg) {
+
+		n = snd_config_iterator_entry(i);
+
+		/* get id */
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
+
+		/* get value - try strings then ints */
+		if (snd_config_get_string(n, &value) < 0)
+			continue;
+
+		if (strcmp(id, "info") == 0)
+			be->ext_ops.info = lookup_ops(value);
+		else if (strcmp(id, "put") == 0)
+			be->ext_ops.put = lookup_ops(value);
+		else if (strcmp(id, "get") == 0)
+			be->ext_ops.get = lookup_ops(value);
+
+		tplg_dbg("\t\t%s = %s\n", id, value);
+	}
+
+	return 0;
+}

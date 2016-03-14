@@ -206,6 +206,8 @@ int tplg_parse_channel(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 
 int tplg_parse_ops(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 	snd_config_t *cfg, void *private);
+int tplg_parse_ext_ops(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
+	snd_config_t *cfg, void *private);
 
 struct tplg_elem *lookup_pcm_dai_stream(struct list_head *base,
 	const char* id);

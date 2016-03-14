@@ -393,6 +393,14 @@ int tplg_parse_control_bytes(snd_tplg_t *tplg,
 				return err;
 			continue;
 		}
+
+		if (strcmp(id, "extops") == 0) {
+			err = tplg_parse_compound(tplg, n, tplg_parse_ext_ops,
+				be);
+			if (err < 0)
+				return err;
+			continue;
+		}
 	}
 
 	return 0;
