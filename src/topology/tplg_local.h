@@ -127,6 +127,8 @@ struct tplg_elem {
 	 */
 	struct list_head ref_list;
 	struct list_head list; /* list of all elements with same type */
+
+	void (*free)(void *obj);
 };
 
 struct map_elem {
