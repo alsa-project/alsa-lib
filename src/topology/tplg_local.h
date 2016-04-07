@@ -70,6 +70,7 @@ struct snd_tplg {
 	struct list_head text_list;
 	struct list_head pdata_list;
 	struct list_head token_list;
+	struct list_head tuple_list;
 	struct list_head pcm_config_list;
 	struct list_head pcm_caps_list;
 
@@ -97,6 +98,28 @@ struct tplg_vendor_tokens {
 	unsigned int num_tokens;
 	struct tplg_token token[0];
 };
+
+/* element for vendor tuples */
+struct tplg_tuple {
+	char token[SNDRV_CTL_ELEM_ID_NAME_MAXLEN];
+	union {
+		char string[SNDRV_CTL_ELEM_ID_NAME_MAXLEN];
+		char uuid[16];
+		unsigned int value;
+	};
+};
+
+struct tplg_tuple_set {
+	unsigned int  type; /* uuid, bool, byte, short, word, string*/
+	unsigned int  num_tuples;
+	struct tplg_tuple tuple[0];
+};
+
+struct tplg_vendor_tuples {
+	unsigned int  num_sets;
+	struct tplg_tuple_set **set;
+};
+
 /* topology element */
 struct tplg_elem {
 
@@ -130,6 +153,7 @@ struct tplg_elem {
 		struct snd_soc_tplg_ctl_tlv *tlv;
 		struct snd_soc_tplg_private *data;
 		struct tplg_vendor_tokens *tokens;
+		struct tplg_vendor_tuples *tuples;
 	};
 
 	/* an element may refer to other elements:
@@ -165,6 +189,11 @@ int tplg_parse_data(snd_tplg_t *tplg, snd_config_t *cfg,
 
 int tplg_parse_tokens(snd_tplg_t *tplg, snd_config_t *cfg,
 	void *private ATTRIBUTE_UNUSED);
+
+int tplg_parse_tuples(snd_tplg_t *tplg, snd_config_t *cfg,
+	void *private ATTRIBUTE_UNUSED);
+
+void tplg_free_tuples(void *obj);
 
 int tplg_parse_control_bytes(snd_tplg_t *tplg,
 	snd_config_t *cfg, void *private ATTRIBUTE_UNUSED);

@@ -181,6 +181,14 @@ static int tplg_parse_config(snd_tplg_t *tplg, snd_config_t *cfg)
 			continue;
 		}
 
+		if (strcmp(id, "SectionVendorTuples") == 0) {
+			err = tplg_parse_compound(tplg, n, tplg_parse_tuples,
+				NULL);
+			if (err < 0)
+				return err;
+			continue;
+		}
+
 		SNDERR("error: unknown section %s\n", id);
 	}
 	return 0;
@@ -416,6 +424,7 @@ snd_tplg_t *snd_tplg_new(void)
 	INIT_LIST_HEAD(&tplg->enum_list);
 	INIT_LIST_HEAD(&tplg->bytes_ext_list);
 	INIT_LIST_HEAD(&tplg->token_list);
+	INIT_LIST_HEAD(&tplg->tuple_list);
 
 	return tplg;
 }
@@ -436,6 +445,7 @@ void snd_tplg_free(snd_tplg_t *tplg)
 	tplg_elem_free_list(&tplg->enum_list);
 	tplg_elem_free_list(&tplg->bytes_ext_list);
 	tplg_elem_free_list(&tplg->token_list);
+	tplg_elem_free_list(&tplg->tuple_list);
 
 	free(tplg);
 }

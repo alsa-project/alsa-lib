@@ -253,6 +253,175 @@ static int tplg_parse_data_hex(snd_config_t *cfg, struct tplg_elem *elem,
 	return ret;
 }
 
+static int parse_tuple_set(snd_tplg_t *tplg, snd_config_t *cfg,
+	struct tplg_tuple_set **s)
+{
+	snd_config_iterator_t i, next;
+	snd_config_t *n;
+	const char *id, *value;
+	struct tplg_tuple_set *set;
+	unsigned int type, num_tuples = 0;
+	struct tplg_tuple *tuple;
+	unsigned long int tuple_val;
+	int len;
+
+	snd_config_get_id(cfg, &id);
+
+	if (strcmp(id, "uuid") == 0)
+		type = SND_SOC_TPLG_TUPLE_TYPE_UUID;
+	else if (strcmp(id, "string") == 0)
+		type = SND_SOC_TPLG_TUPLE_TYPE_STRING;
+	else if (strcmp(id, "bool") == 0)
+		type = SND_SOC_TPLG_TUPLE_TYPE_BOOL;
+	else if (strcmp(id, "byte") == 0)
+		type = SND_SOC_TPLG_TUPLE_TYPE_BYTE;
+	else if (strcmp(id, "short") == 0)
+		type = SND_SOC_TPLG_TUPLE_TYPE_SHORT;
+	else if (strcmp(id, "word") == 0)
+		type = SND_SOC_TPLG_TUPLE_TYPE_WORD;
+	else {
+		SNDERR("error: invalid tuple type '%s'\n", id);
+		return -EINVAL;
+	}
+
+	snd_config_for_each(i, next, cfg)
+		num_tuples++;
+	if (!num_tuples)
+		return 0;
+
+	tplg_dbg("\t %d %s tuples:\n", num_tuples, id);
+	set = calloc(1, sizeof(*set) + num_tuples * sizeof(struct tplg_tuple));
+	if (!set)
+		return -ENOMEM;
+
+	set->type = type;
+
+	snd_config_for_each(i, next, cfg) {
+
+		n = snd_config_iterator_entry(i);
+
+		/* get id */
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
+
+		/* get value */
+		if (snd_config_get_string(n, &value) < 0)
+			continue;
+
+		tuple = &set->tuple[set->num_tuples];
+		elem_copy_text(tuple->token, id,
+				SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+
+		switch (type) {
+		case SND_SOC_TPLG_TUPLE_TYPE_UUID:
+			len = strlen(value);
+			if (len > 16 || len == 0) {
+				SNDERR("error: tuple %s: invalid uuid\n", id);
+				goto err;
+			}
+
+			memcpy(tuple->uuid, value, len);
+			tplg_dbg("\t\t%s = %s\n", tuple->token, tuple->uuid);
+			break;
+
+		case SND_SOC_TPLG_TUPLE_TYPE_STRING:
+			elem_copy_text(tuple->string, value,
+				SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+			tplg_dbg("\t\t%s = %s\n", tuple->token, tuple->string);
+			break;
+
+		case SND_SOC_TPLG_TUPLE_TYPE_BOOL:
+			if (strcmp(value, "true") == 0)
+				tuple->value = 1;
+			tplg_dbg("\t\t%s = %d\n", tuple->token, tuple->value);
+			break;
+
+		case SND_SOC_TPLG_TUPLE_TYPE_BYTE:
+		case SND_SOC_TPLG_TUPLE_TYPE_SHORT:
+		case SND_SOC_TPLG_TUPLE_TYPE_WORD:
+			errno = 0;
+			/* no support for negative value */
+			tuple_val = strtoul(value, NULL, 0);
+			if ((errno == ERANGE && tuple_val == ULONG_MAX)
+				|| (errno != 0 && tuple_val == 0)) {
+				SNDERR("error: tuple %s:strtoul fail\n", id);
+				goto err;
+			}
+
+			if ((type == SND_SOC_TPLG_TUPLE_TYPE_WORD
+					&& tuple_val > UINT_MAX)
+				|| (type == SND_SOC_TPLG_TUPLE_TYPE_SHORT
+					&& tuple_val > USHRT_MAX)
+				|| (type == SND_SOC_TPLG_TUPLE_TYPE_BYTE
+					&& tuple_val > UCHAR_MAX)) {
+				SNDERR("error: tuple %s: invalid value\n", id);
+				goto err;
+			}
+
+			tuple->value = (unsigned int) tuple_val;
+			tplg_dbg("\t\t%s = 0x%x\n", tuple->token, tuple->value);
+			break;
+
+		default:
+			break;
+		}
+
+		set->num_tuples++;
+	}
+
+	*s = set;
+	return 0;
+
+err:
+	free(set);
+	return -EINVAL;
+}
+
+static int parse_tuple_sets(snd_tplg_t *tplg, snd_config_t *cfg,
+	struct tplg_vendor_tuples *tuples)
+{
+	snd_config_iterator_t i, next;
+	snd_config_t *n;
+	const char *id;
+	unsigned int num_tuple_sets = 0;
+	int err;
+
+	if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
+		SNDERR("error: compound type expected for %s", id);
+		return -EINVAL;
+	}
+
+	snd_config_for_each(i, next, cfg) {
+		num_tuple_sets++;
+	}
+
+	if (!num_tuple_sets)
+		return 0;
+
+	tuples->set = calloc(1, num_tuple_sets * sizeof(void *));
+	if (!tuples->set)
+		return -ENOMEM;
+
+	snd_config_for_each(i, next, cfg) {
+		n = snd_config_iterator_entry(i);
+		if (snd_config_get_type(n) != SND_CONFIG_TYPE_COMPOUND) {
+			SNDERR("error: compound type expected for %s, is %d",
+			id, snd_config_get_type(n));
+			return -EINVAL;
+		}
+
+		err = parse_tuple_set(tplg, n, &tuples->set[tuples->num_sets]);
+		if (err < 0)
+			return err;
+
+		/* overlook empty tuple sets */
+		if (tuples->set[tuples->num_sets])
+			tuples->num_sets++;
+	}
+
+	return 0;
+}
+
 /* Parse vendor tokens
  */
 int tplg_parse_tokens(snd_tplg_t *tplg, snd_config_t *cfg,
@@ -304,10 +473,71 @@ int tplg_parse_tokens(snd_tplg_t *tplg, snd_config_t *cfg,
 	return 0;
 }
 
+/* Parse vendor tuples.
+ */
+int tplg_parse_tuples(snd_tplg_t *tplg, snd_config_t *cfg,
+	void *private ATTRIBUTE_UNUSED)
+{
+	snd_config_iterator_t i, next;
+	snd_config_t *n;
+	const char *id, *value;
+	struct tplg_elem *elem;
+	struct tplg_vendor_tuples *tuples;
+	int err;
+
+	elem = tplg_elem_new_common(tplg, cfg, NULL, SND_TPLG_TYPE_TUPLE);
+	if (!elem)
+		return -ENOMEM;
+
+	tplg_dbg(" Vendor Tuples: %s\n", elem->id);
+
+	tuples = calloc(1, sizeof(*tuples));
+	if (!tuples)
+		return -ENOMEM;
+	elem->tuples = tuples;
+
+	snd_config_for_each(i, next, cfg) {
+
+		n = snd_config_iterator_entry(i);
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
+
+		if (strcmp(id, "tokens") == 0) {
+			if (snd_config_get_string(n, &value) < 0)
+				return -EINVAL;
+			tplg_ref_add(elem, SND_TPLG_TYPE_TOKEN, value);
+			tplg_dbg("\t refer to vendor tokens: %s\n", value);
+		}
+
+		if (strcmp(id, "tuples") == 0) {
+			err = parse_tuple_sets(tplg, n, tuples);
+			if (err < 0)
+				return err;
+		}
+	}
+
+	return 0;
+}
+
+/* Free handler of tuples */
+void tplg_free_tuples(void *obj)
+{
+	struct tplg_vendor_tuples *tuples = (struct tplg_vendor_tuples *)obj;
+	int i;
+
+	if (!tuples || !tuples->set)
+		return;
+
+	for (i = 0; i < tuples->num_sets; i++)
+		free(tuples->set[i]);
+
+	free(tuples->set);
+}
+
 /* Parse Private data.
  *
  * Object private data can either be from file or defined as bytes, shorts,
- * words.
+ * words, tuples.
  */
 int tplg_parse_data(snd_tplg_t *tplg, snd_config_t *cfg,
 	void *private ATTRIBUTE_UNUSED)
@@ -362,6 +592,14 @@ int tplg_parse_data(snd_tplg_t *tplg, snd_config_t *cfg,
 				SNDERR("error: failed to parse data words\n");
 				return err;
 			}
+			continue;
+		}
+
+		if (strcmp(id, "tuples") == 0) {
+			if (snd_config_get_string(n, &val) < 0)
+				return -EINVAL;
+			tplg_dbg(" Data: %s\n", val);
+			tplg_ref_add(elem, SND_TPLG_TYPE_TUPLE, val);
 			continue;
 		}
 
