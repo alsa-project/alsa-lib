@@ -253,6 +253,56 @@ static int tplg_parse_data_hex(snd_config_t *cfg, struct tplg_elem *elem,
 	return ret;
 }
 
+/* Parse vendor tokens
+ */
+int tplg_parse_tokens(snd_tplg_t *tplg, snd_config_t *cfg,
+	void *private ATTRIBUTE_UNUSED)
+{
+	snd_config_iterator_t i, next;
+	snd_config_t *n;
+	const char *id, *value;
+	struct tplg_elem *elem;
+	struct tplg_vendor_tokens *tokens;
+	int num_tokens = 0;
+
+	elem = tplg_elem_new_common(tplg, cfg, NULL, SND_TPLG_TYPE_TOKEN);
+	if (!elem)
+		return -ENOMEM;
+
+	snd_config_for_each(i, next, cfg) {
+		num_tokens++;
+	}
+
+	if (!num_tokens)
+		return 0;
+
+	tplg_dbg(" Vendor tokens: %s, %d tokens\n", elem->id, num_tokens);
+
+	tokens = calloc(1, sizeof(*tokens)
+			+ num_tokens * sizeof(struct tplg_token));
+	if (!tokens)
+		return -ENOMEM;
+	elem->tokens = tokens;
+
+	snd_config_for_each(i, next, cfg) {
+
+		n = snd_config_iterator_entry(i);
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
+
+		if (snd_config_get_string(n, &value) < 0)
+			continue;
+
+		elem_copy_text(tokens->token[tokens->num_tokens].id, id,
+				SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+		tokens->token[tokens->num_tokens].value = atoi(value);
+		tplg_dbg("\t\t %s : %d\n", tokens->token[tokens->num_tokens].id,
+			tokens->token[tokens->num_tokens].value);
+		tokens->num_tokens++;
+	}
+
+	return 0;
+}
 
 /* Parse Private data.
  *

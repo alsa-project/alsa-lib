@@ -578,6 +578,7 @@ enum snd_tplg_type {
 	SND_TPLG_TYPE_BE,		/*!< BE DAI link */
 	SND_TPLG_TYPE_CC,		/*!< Hostless codec <-> codec link */
 	SND_TPLG_TYPE_MANIFEST,		/*!< Topology manifest */
+	SND_TPLG_TYPE_TOKEN,		/*!< Vendor tokens */
 };
 
 /**

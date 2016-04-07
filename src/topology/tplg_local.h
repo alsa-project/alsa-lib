@@ -69,6 +69,7 @@ struct snd_tplg {
 	struct list_head route_list;
 	struct list_head text_list;
 	struct list_head pdata_list;
+	struct list_head token_list;
 	struct list_head pcm_config_list;
 	struct list_head pcm_caps_list;
 
@@ -86,6 +87,16 @@ struct tplg_ref {
 	struct list_head list;
 };
 
+/* element for vendor tokens */
+struct tplg_token {
+	char id[SNDRV_CTL_ELEM_ID_NAME_MAXLEN];
+	unsigned int value;
+};
+
+struct tplg_vendor_tokens {
+	unsigned int num_tokens;
+	struct tplg_token token[0];
+};
 /* topology element */
 struct tplg_elem {
 
@@ -118,6 +129,7 @@ struct tplg_elem {
 		/* these do not map to UAPI structs but are internal only */
 		struct snd_soc_tplg_ctl_tlv *tlv;
 		struct snd_soc_tplg_private *data;
+		struct tplg_vendor_tokens *tokens;
 	};
 
 	/* an element may refer to other elements:
@@ -149,6 +161,9 @@ int tplg_parse_text(snd_tplg_t *tplg, snd_config_t *cfg,
 	void *private ATTRIBUTE_UNUSED);
 
 int tplg_parse_data(snd_tplg_t *tplg, snd_config_t *cfg,
+	void *private ATTRIBUTE_UNUSED);
+
+int tplg_parse_tokens(snd_tplg_t *tplg, snd_config_t *cfg,
 	void *private ATTRIBUTE_UNUSED);
 
 int tplg_parse_control_bytes(snd_tplg_t *tplg,

@@ -193,6 +193,9 @@ struct tplg_elem* tplg_elem_new_common(snd_tplg_t *tplg,
 		list_add_tail(&elem->list, &tplg->cc_list);
 		obj_size = sizeof(struct snd_soc_tplg_link_config);
 		break;
+	case SND_TPLG_TYPE_TOKEN:
+		list_add_tail(&elem->list, &tplg->token_list);
+		break;
 	default:
 		free(elem);
 		return NULL;
