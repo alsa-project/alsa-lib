@@ -242,6 +242,10 @@ static int tplg_build_integ(snd_tplg_t *tplg)
 {
 	int err;
 
+	err = tplg_build_data(tplg);
+	if (err <  0)
+		return err;
+
 	err = tplg_build_controls(tplg);
 	if (err <  0)
 		return err;

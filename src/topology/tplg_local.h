@@ -222,6 +222,7 @@ int tplg_parse_be(snd_tplg_t *tplg,
 int tplg_parse_cc(snd_tplg_t *tplg,
 	snd_config_t *cfg, void *private ATTRIBUTE_UNUSED);
 
+int tplg_build_data(snd_tplg_t *tplg);
 int tplg_build_controls(snd_tplg_t *tplg);
 int tplg_build_widgets(snd_tplg_t *tplg);
 int tplg_build_routes(snd_tplg_t *tplg);
