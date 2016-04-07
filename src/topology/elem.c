@@ -83,8 +83,8 @@ void tplg_elem_free(struct tplg_elem *elem)
 	/* free struct snd_tplg_ object,
 	 * the union pointers share the same address
 	 */
-	if (elem->mixer_ctrl)
-		free(elem->mixer_ctrl);
+	if (elem->obj)
+		free(elem->obj);
 
 	free(elem);
 }
