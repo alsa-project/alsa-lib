@@ -120,11 +120,14 @@ typedef struct snd_pcm_rate_ops {
 typedef int (*snd_pcm_rate_open_func_t)(unsigned int version, void **objp,
 					snd_pcm_rate_ops_t *opsp);
 
+typedef int (*snd_pcm_rate_open_conf_func_t)(unsigned int version, void **objp,
+					snd_pcm_rate_ops_t *opsp, const snd_config_t *conf);
+
 /**
  * Define the object entry for external PCM rate-converter plugins
  */
 #define SND_PCM_RATE_PLUGIN_ENTRY(name) _snd_pcm_rate_##name##_open
-
+#define SND_PCM_RATE_PLUGIN_CONF_ENTRY(name) _snd_pcm_rate_##name##_open_conf
 
 #ifndef DOC_HIDDEN
 /* old rate_ops for protocol version 0x010001 */

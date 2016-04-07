@@ -1258,26 +1258,48 @@ static const char *const default_rate_plugins[] = {
 	"speexrate", "linear", NULL
 };
 
-static int rate_open_func(snd_pcm_rate_t *rate, const char *type, int verbose)
+static int rate_open_func(snd_pcm_rate_t *rate, const char *type, const snd_config_t *converter_conf, int verbose)
 {
-	char open_name[64], lib_name[128], *lib = NULL;
+	char open_name[64], open_conf_name[64], lib_name[128], *lib = NULL;
 	snd_pcm_rate_open_func_t open_func;
+	snd_pcm_rate_open_conf_func_t open_conf_func;
 	int err;
 
 	snprintf(open_name, sizeof(open_name), "_snd_pcm_rate_%s_open", type);
+	snprintf(open_conf_name, sizeof(open_conf_name), "_snd_pcm_rate_%s_open_conf", type);
 	if (!is_builtin_plugin(type)) {
 		snprintf(lib_name, sizeof(lib_name),
 				 "%s/libasound_module_rate_%s.so", ALSA_PLUGIN_DIR, type);
 		lib = lib_name;
 	}
+
+	rate->rate_min = SND_PCM_PLUGIN_RATE_MIN;
+	rate->rate_max = SND_PCM_PLUGIN_RATE_MAX;
+	rate->plugin_version = SND_PCM_RATE_PLUGIN_VERSION;
+
+	open_conf_func = snd_dlobj_cache_get(lib, open_conf_name, NULL, verbose && converter_conf != NULL);
+	if (open_conf_func) {
+		err = open_conf_func(SND_PCM_RATE_PLUGIN_VERSION,
+				     &rate->obj, &rate->ops, converter_conf);
+		if (!err) {
+			rate->plugin_version = rate->ops.version;
+			if (rate->ops.get_supported_rates)
+				rate->ops.get_supported_rates(rate->obj,
+							      &rate->rate_min,
+							      &rate->rate_max);
+			rate->open_func = open_conf_func;
+			return 0;
+		} else {
+			snd_dlobj_cache_put(open_conf_func);
+			return err;
+		}
+	}
+
 	open_func = snd_dlobj_cache_get(lib, open_name, NULL, verbose);
 	if (!open_func)
 		return -ENOENT;
 
 	rate->open_func = open_func;
-	rate->rate_min = SND_PCM_PLUGIN_RATE_MIN;
-	rate->rate_max = SND_PCM_PLUGIN_RATE_MAX;
-	rate->plugin_version = SND_PCM_RATE_PLUGIN_VERSION;
 
 	err = open_func(SND_PCM_RATE_PLUGIN_VERSION, &rate->obj, &rate->ops);
 	if (!err) {
@@ -1300,6 +1322,30 @@ static int rate_open_func(snd_pcm_rate_t *rate, const char *type, int verbose)
 	return err;
 }
 #endif
+
+/*
+ * If the conf is an array of alternatives then the id of
+ * the first element will be "0" (or maybe NULL). Otherwise assume it is
+ * a structure.
+ */
+static int is_string_array(const snd_config_t *conf)
+{
+	snd_config_iterator_t i;
+
+	if (snd_config_get_type(conf) != SND_CONFIG_TYPE_COMPOUND)
+		return 0;
+
+	i = snd_config_iterator_first(conf);
+	if (i && i != snd_config_iterator_end(conf)) {
+		snd_config_t *n = snd_config_iterator_entry(i);
+		const char *id;
+		snd_config_get_id(n, &id);
+		if (id && strcmp(id, "0") != 0)
+			return 0;
+	}
+
+	return 1;
+}
 
 /**
  * \brief Creates a new rate PCM
@@ -1353,24 +1399,42 @@ int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name,
 	if (!converter) {
 		const char *const *types;
 		for (types = default_rate_plugins; *types; types++) {
-			err = rate_open_func(rate, *types, 0);
+			err = rate_open_func(rate, *types, NULL, 0);
 			if (!err) {
 				type = *types;
 				break;
 			}
 		}
 	} else if (!snd_config_get_string(converter, &type))
-		err = rate_open_func(rate, type, 1);
-	else if (snd_config_get_type(converter) == SND_CONFIG_TYPE_COMPOUND) {
+		err = rate_open_func(rate, type, NULL, 1);
+	else if (is_string_array(converter)) {
 		snd_config_iterator_t i, next;
 		snd_config_for_each(i, next, converter) {
 			snd_config_t *n = snd_config_iterator_entry(i);
 			if (snd_config_get_string(n, &type) < 0)
 				break;
-			err = rate_open_func(rate, type, 0);
+			err = rate_open_func(rate, type, NULL, 0);
 			if (!err)
 				break;
 		}
+	} else if (snd_config_get_type(converter) == SND_CONFIG_TYPE_COMPOUND) {
+		snd_config_iterator_t i, next;
+		snd_config_for_each(i, next, converter) {
+			snd_config_t *n = snd_config_iterator_entry(i);
+			const char *id;
+			snd_config_get_id(n, &id);
+			if (strcmp(id, "name") != 0)
+				continue;
+			snd_config_get_string(n, &type);
+			break;
+		}
+		if (!type) {
+			SNDERR("No name given for rate converter");
+			snd_pcm_free(pcm);
+			free(rate);
+			return -EINVAL;
+		}
+		err = rate_open_func(rate, type, converter, 1);
 	} else {
 		SNDERR("Invalid type for rate converter");
 		snd_pcm_free(pcm);
@@ -1439,6 +1503,11 @@ pcm.name {
 	converter [ STR1 STR2 ... ]	# optional
 				# Converter type, default is taken from
 				# defaults.pcm.rate_converter
+	# or
+	converter {		# optional
+		name STR	# Convertor type
+		xxx yyy		# optional convertor-specific configuration
+	}
 }
 \endcode
 
