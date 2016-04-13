@@ -161,6 +161,57 @@ static int open_ctl(snd_use_case_mgr_t *uc_mgr,
 	return 0;
 }
 
+static int read_tlv_file(unsigned int **res,
+			 const char *filepath)
+{
+	int err = 0;
+	int fd;
+	struct stat st;
+	size_t sz;
+	ssize_t sz_read;
+	struct snd_ctl_tlv *tlv;
+
+	fd = open(filepath, O_RDONLY);
+	if (fd < 0) {
+		err = -errno;
+		return err;
+	}
+	if (fstat(fd, &st) == -1) {
+		err = -errno;
+		goto __fail;
+	}
+	sz = st.st_size;
+	if (sz > 16 * 1024 * 1024 || sz < 8 || sz % 4) {
+		uc_error("File size should be less than 16 MB "
+			 "and multiple of 4");
+		err = -EINVAL;
+		goto __fail;
+	}
+	*res = malloc(sz);
+	if (res == NULL) {
+		err = -ENOMEM;
+		goto __fail;
+	}
+	sz_read = read(fd, *res, sz);
+	if (sz_read < 0 || (size_t)sz_read != sz) {
+		err = -EIO;
+		free(*res);
+		*res = NULL;
+	}
+	/* Check if the tlv file specifies valid size. */
+	tlv = (struct snd_ctl_tlv *)(*res);
+	if (tlv->length + 2 * sizeof(unsigned int) != sz) {
+		uc_error("Invalid tlv size: %d", tlv->length);
+		err = -EINVAL;
+		free(*res);
+		*res = NULL;
+	}
+
+__fail:
+	close(fd);
+	return err;
+}
+
 static int binary_file_parse(snd_ctl_elem_value_t *dst,
 			      snd_ctl_elem_info_t *info,
 			      const char *filepath)
@@ -226,6 +277,7 @@ static int execute_cset(snd_ctl_t *ctl, const char *cset, unsigned int type)
 	snd_ctl_elem_id_t *id;
 	snd_ctl_elem_value_t *value;
 	snd_ctl_elem_info_t *info;
+	unsigned int *res = NULL;
 
 	snd_ctl_elem_id_malloc(&id);
 	snd_ctl_elem_value_malloc(&value);
@@ -241,23 +293,36 @@ static int execute_cset(snd_ctl_t *ctl, const char *cset, unsigned int type)
 		err = -EINVAL;
 		goto __fail;
 	}
-	snd_ctl_elem_value_set_id(value, id);
 	snd_ctl_elem_info_set_id(info, id);
-	err = snd_ctl_elem_read(ctl, value);
-	if (err < 0)
-		goto __fail;
 	err = snd_ctl_elem_info(ctl, info);
 	if (err < 0)
 		goto __fail;
-	if (type == SEQUENCE_ELEMENT_TYPE_CSET_BIN_FILE)
-		err = binary_file_parse(value, info, pos);
-	else
-		err = snd_ctl_ascii_value_parse(ctl, value, info, pos);
-	if (err < 0)
-		goto __fail;
-	err = snd_ctl_elem_write(ctl, value);
-	if (err < 0)
-		goto __fail;
+	if (type == SEQUENCE_ELEMENT_TYPE_CSET_TLV) {
+		if (!snd_ctl_elem_info_is_tlv_writable(info)) {
+			err = -EINVAL;
+			goto __fail;
+		}
+		err = read_tlv_file(&res, pos);
+		if (err < 0)
+			goto __fail;
+		err = snd_ctl_elem_tlv_write(ctl, id, res);
+		if (err < 0)
+			goto __fail;
+	} else {
+		snd_ctl_elem_value_set_id(value, id);
+		err = snd_ctl_elem_read(ctl, value);
+		if (err < 0)
+			goto __fail;
+		if (type == SEQUENCE_ELEMENT_TYPE_CSET_BIN_FILE)
+			err = binary_file_parse(value, info, pos);
+		else
+			err = snd_ctl_ascii_value_parse(ctl, value, info, pos);
+		if (err < 0)
+			goto __fail;
+		err = snd_ctl_elem_write(ctl, value);
+		if (err < 0)
+			goto __fail;
+	}
 	err = 0;
       __fail:
 	if (id != NULL)
@@ -266,6 +331,8 @@ static int execute_cset(snd_ctl_t *ctl, const char *cset, unsigned int type)
 		free(value);
 	if (info != NULL)
 		free(info);
+	if (res != NULL)
+		free(res);
 
 	return err;
 }
@@ -298,6 +365,7 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 			break;
 		case SEQUENCE_ELEMENT_TYPE_CSET:
 		case SEQUENCE_ELEMENT_TYPE_CSET_BIN_FILE:
+		case SEQUENCE_ELEMENT_TYPE_CSET_TLV:
 			if (cdev == NULL) {
 				char *playback_ctl = NULL;
 				char *capture_ctl = NULL;

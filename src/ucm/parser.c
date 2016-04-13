@@ -316,6 +316,16 @@ static int parse_sequence(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
 			continue;
 		}
 
+		if (strcmp(cmd, "cset-tlv") == 0) {
+			curr->type = SEQUENCE_ELEMENT_TYPE_CSET_TLV;
+			err = parse_string(n, &curr->data.cset);
+			if (err < 0) {
+				uc_error("error: cset-tlv requires a string!");
+				return err;
+			}
+			continue;
+		}
+
 		if (strcmp(cmd, "usleep") == 0) {
 			curr->type = SEQUENCE_ELEMENT_TYPE_SLEEP;
 			err = snd_config_get_integer(n, &curr->data.sleep);

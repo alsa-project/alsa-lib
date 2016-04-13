@@ -48,6 +48,7 @@
 #define SEQUENCE_ELEMENT_TYPE_SLEEP	3
 #define SEQUENCE_ELEMENT_TYPE_EXEC	4
 #define SEQUENCE_ELEMENT_TYPE_CSET_BIN_FILE	5
+#define SEQUENCE_ELEMENT_TYPE_CSET_TLV	6
 
 struct ucm_value {
         struct list_head list;
