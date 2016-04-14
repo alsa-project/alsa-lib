@@ -1020,6 +1020,7 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 	dmix->max_periods = opts->max_periods;
 	dmix->sync_ptr = snd_pcm_dmix_sync_ptr;
 
+ retry:
 	if (first_instance) {
 		/* recursion is already checked in
 		   snd_pcm_direct_get_slave_ipc_offset() */
@@ -1076,6 +1077,13 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 						 SND_PCM_APPEND,
 						 NULL);
 			if (ret < 0) {
+				/* all other streams have been closed;
+				 * retry as the first instance
+				 */
+				if (ret == -EBADFD) {
+					first_instance = 1;
+					goto retry;
+				}
 				SNDERR("unable to open slave");
 				goto _err;
 			}

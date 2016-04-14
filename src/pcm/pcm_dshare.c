@@ -690,6 +690,7 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 		break;
 	}
 
+ retry:
 	first_instance = ret = snd_pcm_direct_shm_create_or_connect(dshare);
 	if (ret < 0) {
 		SNDERR("unable to create IPC shm instance");
@@ -758,6 +759,13 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 						 SND_PCM_APPEND,
 						 NULL);
 			if (ret < 0) {
+				/* all other streams have been closed;
+				 * retry as the first instance
+				 */
+				if (ret == -EBADFD) {
+					first_instance = 1;
+					goto retry;
+				}
 				SNDERR("unable to open slave");
 				goto _err;
 			}
