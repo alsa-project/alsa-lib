@@ -32,9 +32,11 @@ typedef int32_t __s32;
 #define __le64 __u64
 #define __le32 __u32
 #define __le16 __u16
+#define __le8  __u8
 #define __be64 __u64
 #define __be32 __u32
 #define __be16 __u16
+#define __be8  __u8
 #endif /* DOC_HIDDEN */
 
 #endif /* __TYPE_COMPAT_H */
