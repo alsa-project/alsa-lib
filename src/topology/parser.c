@@ -119,7 +119,7 @@ static int tplg_parse_config(snd_tplg_t *tplg, snd_config_t *cfg)
 
 		if (strcmp(id, "SectionPCMCapabilities") == 0) {
 			err = tplg_parse_compound(tplg, n,
-				tplg_parse_pcm_caps, NULL);
+				tplg_parse_stream_caps, NULL);
 			if (err < 0)
 				return err;
 			continue;
