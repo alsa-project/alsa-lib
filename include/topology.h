@@ -533,6 +533,10 @@ extern "C" {
  *
  *	id "0"				# used for binding to the PCM
  *
+ *	dai."name of front-end DAI" {
+ *		id "0"		# used for binding to the front-end DAI
+ *	}
+ *
  *	pcm."playback" {
  *		capabilities "capabilities1"	# capabilities for playback
  *

@@ -320,6 +320,51 @@ static int tplg_parse_streams(snd_tplg_t *tplg, snd_config_t *cfg,
 	return 0;
 }
 
+/* Parse name and id of a front-end DAI (ie. cpu dai of a FE DAI link) */
+static int tplg_parse_fe_dai(snd_tplg_t *tplg, snd_config_t *cfg,
+	void *private)
+{
+	struct tplg_elem *elem = private;
+	struct snd_soc_tplg_pcm *pcm = elem->pcm;
+	snd_config_iterator_t i, next;
+	snd_config_t *n;
+	const char *id, *value = NULL;
+	unsigned long int id_val;
+	int err;
+
+	snd_config_get_id(cfg, &id);
+	tplg_dbg("\t\tFE DAI %s:\n", id);
+	elem_copy_text(pcm->dai_name, id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+
+	snd_config_for_each(i, next, cfg) {
+
+		n = snd_config_iterator_entry(i);
+
+		/* get id */
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
+
+		if (strcmp(id, "id") == 0) {
+			if (snd_config_get_string(n, &value) < 0)
+				continue;
+			errno = 0;
+			/* no support for negative value */
+			id_val = strtoul(value, NULL, 0);
+			if ((errno == ERANGE && id_val == ULONG_MAX)
+				|| (errno != 0 && id_val == 0)
+				|| id_val > UINT_MAX) {
+				SNDERR("error: invalid fe dai ID\n");
+				return -EINVAL;
+			}
+
+			pcm->dai_id = (int) id_val;
+			tplg_dbg("\t\t\tindex: %d\n", pcm->dai_id);
+		}
+	}
+
+	return 0;
+}
+
 /* Parse pcm (for front end DAI & DAI link) */
 int tplg_parse_pcm(snd_tplg_t *tplg,
 	snd_config_t *cfg, void *private ATTRIBUTE_UNUSED)
@@ -374,6 +419,14 @@ int tplg_parse_pcm(snd_tplg_t *tplg,
 		if (strcmp(id, "pcm") == 0) {
 			err = tplg_parse_compound(tplg, n,
 				tplg_parse_streams, elem);
+			if (err < 0)
+				return err;
+			continue;
+		}
+
+		if (strcmp(id, "dai") == 0) {
+			err = tplg_parse_compound(tplg, n,
+				tplg_parse_fe_dai, elem);
 			if (err < 0)
 				return err;
 			continue;
