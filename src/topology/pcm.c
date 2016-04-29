@@ -337,7 +337,7 @@ int tplg_parse_pcm(snd_tplg_t *tplg,
 
 	pcm = elem->pcm;
 	pcm->size = elem->size;
-	elem_copy_text(pcm->dai_name, elem->id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+	elem_copy_text(pcm->pcm_name, elem->id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 
 	tplg_dbg(" PCM: %s\n", elem->id);
 
@@ -366,8 +366,8 @@ int tplg_parse_pcm(snd_tplg_t *tplg,
 			if (snd_config_get_string(n, &val) < 0)
 				return -EINVAL;
 
-			pcm->dai_id = atoi(val);
-			tplg_dbg("\t%s: %d\n", id, pcm->dai_id);
+			pcm->pcm_id = atoi(val);
+			tplg_dbg("\t%s: %d\n", id, pcm->pcm_id);
 			continue;
 		}
 
