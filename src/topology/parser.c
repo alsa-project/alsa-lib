@@ -414,6 +414,8 @@ snd_tplg_t *snd_tplg_new(void)
 	if (!tplg)
 		return NULL;
 
+	tplg->manifest.size = sizeof(struct snd_soc_tplg_manifest);
+
 	INIT_LIST_HEAD(&tplg->tlv_list);
 	INIT_LIST_HEAD(&tplg->widget_list);
 	INIT_LIST_HEAD(&tplg->pcm_list);
