@@ -658,8 +658,8 @@ static int add_tlv_info(snd_pcm_softvol_t *svol, snd_ctl_elem_info_t *cinfo)
 	unsigned int tlv[4];
 	tlv[0] = SND_CTL_TLVT_DB_SCALE;
 	tlv[1] = 2 * sizeof(int);
-	tlv[2] = svol->min_dB * 100;
-	tlv[3] = (svol->max_dB - svol->min_dB) * 100 / svol->max_val;
+	tlv[2] = (int)(svol->min_dB * 100);
+	tlv[3] = (int)((svol->max_dB - svol->min_dB) * 100 / svol->max_val);
 	return snd_ctl_elem_tlv_write(svol->ctl, &cinfo->id, tlv);
 }
 
