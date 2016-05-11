@@ -848,6 +848,7 @@ int snd_pcm_direct_resume(snd_pcm_t *pcm)
 		snd_pcm_start(dmix->spcm);
 		err = 0;
 	}
+	dmix->state = snd_pcm_state(dmix->spcm);
 	snd_pcm_direct_semaphore_up(dmix, DIRECT_IPC_SEM_CLIENT);
 	return err;
 }
