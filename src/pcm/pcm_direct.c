@@ -841,6 +841,12 @@ int snd_pcm_direct_resume(snd_pcm_t *pcm)
 	int err;
 	
 	snd_pcm_direct_semaphore_down(dmix, DIRECT_IPC_SEM_CLIENT);
+	/* resume only when the slave PCM is still in suspended state */
+	if (snd_pcm_state(dmix->spcm) != SND_PCM_STATE_SUSPENDED) {
+		err = 0;
+		goto out;
+	}
+
 	err = snd_pcm_resume(dmix->spcm);
 	if (err == -ENOSYS) {
 		/* FIXME: error handling? */
@@ -848,6 +854,7 @@ int snd_pcm_direct_resume(snd_pcm_t *pcm)
 		snd_pcm_start(dmix->spcm);
 		err = 0;
 	}
+ out:
 	dmix->state = snd_pcm_state(dmix->spcm);
 	snd_pcm_direct_semaphore_up(dmix, DIRECT_IPC_SEM_CLIENT);
 	return err;
