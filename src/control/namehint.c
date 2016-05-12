@@ -28,6 +28,7 @@
 #include "local.h"
 
 #ifndef DOC_HIDDEN
+#define DEV_SKIP	9999 /* some non-existing device number */
 struct hint_list {
 	char **list;
 	unsigned int count;
@@ -90,7 +91,7 @@ static int get_dev_name1(struct hint_list *list, char **res, int device,
 			 int stream)
 {
 	*res = NULL;
-	if (device < 0)
+	if (device < 0 || device == DEV_SKIP)
 		return 0;
 	switch (list->iface) {
 #ifdef BUILD_HWDEP
@@ -317,7 +318,9 @@ static int try_config(snd_config_t *config,
 				err = -EINVAL;
 				goto __cleanup;
 			}
-			list->device_output = -1;
+			/* skip the counterpart if only a single direction is defined */
+			if (list->device_output < 0)
+				list->device_output = DEV_SKIP;
 		}
 		if (snd_config_search(cfg, "device_output", &n) >= 0) {
 			if (snd_config_get_integer(n, &list->device_output) < 0) {
@@ -325,6 +328,9 @@ static int try_config(snd_config_t *config,
 				err = -EINVAL;
 				goto __cleanup;
 			}
+			/* skip the counterpart if only a single direction is defined */
+			if (list->device_input < 0)
+				list->device_input = DEV_SKIP;
 		}
 	} else if (level == 1 && !list->show_all)
 		goto __skip_add;
