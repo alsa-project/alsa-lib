@@ -2288,12 +2288,16 @@ static int snd_pcm_open_noupdate(snd_pcm_t **pcmp, snd_config_t *root,
 int snd_pcm_open(snd_pcm_t **pcmp, const char *name, 
 		 snd_pcm_stream_t stream, int mode)
 {
+	snd_config_t *top;
 	int err;
+
 	assert(pcmp && name);
-	err = snd_config_update();
+	err = snd_config_update_ref(&top);
 	if (err < 0)
 		return err;
-	return snd_pcm_open_noupdate(pcmp, snd_config, name, stream, mode, 0);
+	err = snd_pcm_open_noupdate(pcmp, top, name, stream, mode, 0);
+	snd_config_unref(top);
+	return err;
 }
 
 /**

@@ -968,12 +968,16 @@ static int snd_ctl_open_noupdate(snd_ctl_t **ctlp, snd_config_t *root, const cha
  */
 int snd_ctl_open(snd_ctl_t **ctlp, const char *name, int mode)
 {
+	snd_config_t *top;
 	int err;
+
 	assert(ctlp && name);
-	err = snd_config_update();
+	err = snd_config_update_ref(&top);
 	if (err < 0)
 		return err;
-	return snd_ctl_open_noupdate(ctlp, snd_config, name, mode);
+	err = snd_ctl_open_noupdate(ctlp, top, name, mode);
+	snd_config_unref(top);
+	return err;
 }
 
 /**

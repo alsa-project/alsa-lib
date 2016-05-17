@@ -974,12 +974,16 @@ static int snd_seq_open_noupdate(snd_seq_t **seqp, snd_config_t *root,
 int snd_seq_open(snd_seq_t **seqp, const char *name, 
 		 int streams, int mode)
 {
+	snd_config_t *top;
 	int err;
+
 	assert(seqp && name);
-	err = snd_config_update();
+	err = snd_config_update_ref(&top);
 	if (err < 0)
 		return err;
-	return snd_seq_open_noupdate(seqp, snd_config, name, streams, mode, 0);
+	err = snd_seq_open_noupdate(seqp, top, name, streams, mode, 0);
+	snd_config_unref(top);
+	return err;
 }
 
 /**

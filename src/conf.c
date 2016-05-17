@@ -434,6 +434,7 @@ static pthread_once_t snd_config_update_mutex_once = PTHREAD_ONCE_INIT;
 struct _snd_config {
 	char *id;
 	snd_config_type_t type;
+	int refcount; /* default = 0 */
 	union {
 		long integer;
 		long long integer64;
@@ -1825,6 +1826,10 @@ int snd_config_remove(snd_config_t *config)
  * If the node is a compound node, its descendants (the whole subtree)
  * are deleted recursively.
  *
+ * The function is supposed to be called only for locally copied config
+ * trees.  For the global tree, take the reference via #snd_config_update_ref
+ * and free it via #snd_config_unref.
+ *
  * \par Conforming to:
  * LSB 3.2
  *
@@ -1833,6 +1838,10 @@ int snd_config_remove(snd_config_t *config)
 int snd_config_delete(snd_config_t *config)
 {
 	assert(config);
+	if (config->refcount > 0) {
+		config->refcount--;
+		return 0;
+	}
 	switch (config->type) {
 	case SND_CONFIG_TYPE_COMPOUND:
 	{
@@ -3833,6 +3842,8 @@ int snd_config_update_r(snd_config_t **_top, snd_config_update_t **_update, cons
  * \warning Whenever #snd_config is updated, all string pointers and
  * configuration node handles previously obtained from it may become
  * invalid.
+ * For safer operations, use #snd_config_update_ref and release the config
+ * via #snd_config_unref.
  *
  * \par Errors:
  * Any errors encountered when parsing the input or returned by hooks or
@@ -3849,6 +3860,74 @@ int snd_config_update(void)
 	err = snd_config_update_r(&snd_config, &snd_config_global_update, NULL);
 	snd_config_unlock();
 	return err;
+}
+
+/**
+ * \brief Updates #snd_config and takes its reference.
+ * \return 0 if #snd_config was up to date, 1 if #snd_config was
+ *         updated, otherwise a negative error code.
+ *
+ * Unlike #snd_config_update, this function increases a reference counter
+ * so that the obtained tree won't be deleted until unreferenced by
+ * #snd_config_unref.
+ *
+ * This function is supposed to be thread-safe.
+ */
+int snd_config_update_ref(snd_config_t **top)
+{
+	int err;
+
+	if (top)
+		*top = NULL;
+	snd_config_lock();
+	err = snd_config_update_r(&snd_config, &snd_config_global_update, NULL);
+	if (err >= 0) {
+		if (snd_config) {
+			if (top) {
+				snd_config->refcount++;
+				*top = snd_config;
+			}
+		} else {
+			err = -ENODEV;
+		}
+	}
+	snd_config_unlock();
+	return err;
+}
+
+/**
+ * \brief Take the reference of the config tree.
+ *
+ * Increases a reference counter of the given config tree.
+ *
+ * This function is supposed to be thread-safe.
+ */
+void snd_config_ref(snd_config_t *cfg)
+{
+	snd_config_lock();
+	if (cfg)
+		cfg->refcount++;
+	snd_config_unlock();
+}
+
+/**
+ * \brief Unreference the config tree.
+ *
+ * Decreases a reference counter of the given config tree, and eventually
+ * deletes the tree if all references are gone.  This is the counterpart of
+ * #snd_config_unref.
+ *
+ * Also, the config taken via #snd_config_update_ref must be unreferenced
+ * by this function, too.
+ *
+ * This function is supposed to be thread-safe.
+ */
+void snd_config_unref(snd_config_t *cfg)
+{
+	snd_config_lock();
+	if (cfg)
+		snd_config_delete(cfg);
+	snd_config_unlock();
 }
 
 /** 

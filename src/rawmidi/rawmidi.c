@@ -305,12 +305,16 @@ static int snd_rawmidi_open_noupdate(snd_rawmidi_t **inputp, snd_rawmidi_t **out
 int snd_rawmidi_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 		     const char *name, int mode)
 {
+	snd_config_t *top;
 	int err;
+
 	assert((inputp || outputp) && name);
-	err = snd_config_update();
+	err = snd_config_update_ref(&top);
 	if (err < 0)
 		return err;
-	return snd_rawmidi_open_noupdate(inputp, outputp, snd_config, name, mode);
+	err = snd_rawmidi_open_noupdate(inputp, outputp, top, name, mode);
+	snd_config_unref(top);
+	return err;
 }
 
 /**

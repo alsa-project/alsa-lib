@@ -159,12 +159,16 @@ static int snd_timer_query_open_noupdate(snd_timer_query_t **timer, snd_config_t
  */
 int snd_timer_query_open(snd_timer_query_t **timer, const char *name, int mode)
 {
+	snd_config_t *top;
 	int err;
+
 	assert(timer && name);
-	err = snd_config_update();
+	err = snd_config_update_ref(&top);
 	if (err < 0)
 		return err;
-	return snd_timer_query_open_noupdate(timer, snd_config, name, mode);
+	err = snd_timer_query_open_noupdate(timer, top, name, mode);
+	snd_config_unref(top);
+	return err;
 }
 
 /**

@@ -94,6 +94,10 @@ int snd_config_update_r(snd_config_t **top, snd_config_update_t **update, const 
 int snd_config_update_free(snd_config_update_t *update);
 int snd_config_update_free_global(void);
 
+int snd_config_update_ref(snd_config_t **top);
+void snd_config_ref(snd_config_t *top);
+void snd_config_unref(snd_config_t *top);
+
 int snd_config_search(snd_config_t *config, const char *key,
 		      snd_config_t **result);
 int snd_config_searchv(snd_config_t *config, 
