@@ -837,27 +837,7 @@ int snd_pcm_direct_prepare(snd_pcm_t *pcm)
 
 int snd_pcm_direct_resume(snd_pcm_t *pcm)
 {
-	snd_pcm_direct_t *dmix = pcm->private_data;
-	int err;
-	
-	snd_pcm_direct_semaphore_down(dmix, DIRECT_IPC_SEM_CLIENT);
-	/* resume only when the slave PCM is still in suspended state */
-	if (snd_pcm_state(dmix->spcm) != SND_PCM_STATE_SUSPENDED) {
-		err = 0;
-		goto out;
-	}
-
-	err = snd_pcm_resume(dmix->spcm);
-	if (err == -ENOSYS) {
-		/* FIXME: error handling? */
-		snd_pcm_prepare(dmix->spcm);
-		snd_pcm_start(dmix->spcm);
-		err = 0;
-	}
- out:
-	dmix->state = snd_pcm_state(dmix->spcm);
-	snd_pcm_direct_semaphore_up(dmix, DIRECT_IPC_SEM_CLIENT);
-	return err;
+	return -ENOSYS;
 }
 
 #define COPY_SLAVE(field) (dmix->shmptr->s.field = spcm->field)
@@ -865,7 +845,7 @@ int snd_pcm_direct_resume(snd_pcm_t *pcm)
 /* copy the slave setting */
 static void save_slave_setting(snd_pcm_direct_t *dmix, snd_pcm_t *spcm)
 {
-	spcm->info &= ~SND_PCM_INFO_PAUSE;
+	spcm->info &= ~(SND_PCM_INFO_PAUSE | SND_PCM_INFO_RESUME);
 
 	COPY_SLAVE(access);
 	COPY_SLAVE(format);
