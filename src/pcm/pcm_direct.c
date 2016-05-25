@@ -837,6 +837,27 @@ int snd_pcm_direct_prepare(snd_pcm_t *pcm)
 
 int snd_pcm_direct_resume(snd_pcm_t *pcm)
 {
+	snd_pcm_direct_t *dmix = pcm->private_data;
+	snd_pcm_t *spcm = dmix->spcm;
+
+	snd_pcm_direct_semaphore_down(dmix, DIRECT_IPC_SEM_CLIENT);
+	/* some buggy drivers require the device resumed before prepared;
+	 * when a device has RESUME flag and is in SUSPENDED state, resume
+	 * here but immediately drop to bring it to a sane active state.
+	 */
+	if ((spcm->info & SND_PCM_INFO_RESUME) &&
+	    snd_pcm_state(spcm) == SND_PCM_STATE_SUSPENDED) {
+		snd_pcm_resume(spcm);
+		snd_pcm_drop(spcm);
+		snd_pcm_direct_timer_stop(dmix);
+		snd_pcm_direct_clear_timer_queue(dmix);
+		snd_pcm_areas_silence(snd_pcm_mmap_areas(spcm), 0,
+				      spcm->channels, spcm->buffer_size,
+				      spcm->format);
+		snd_pcm_prepare(spcm);
+		snd_pcm_start(spcm);
+	}
+	snd_pcm_direct_semaphore_up(dmix, DIRECT_IPC_SEM_CLIENT);
 	return -ENOSYS;
 }
 
@@ -845,7 +866,7 @@ int snd_pcm_direct_resume(snd_pcm_t *pcm)
 /* copy the slave setting */
 static void save_slave_setting(snd_pcm_direct_t *dmix, snd_pcm_t *spcm)
 {
-	spcm->info &= ~(SND_PCM_INFO_PAUSE | SND_PCM_INFO_RESUME);
+	spcm->info &= ~SND_PCM_INFO_PAUSE;
 
 	COPY_SLAVE(access);
 	COPY_SLAVE(format);
@@ -874,6 +895,8 @@ static void save_slave_setting(snd_pcm_direct_t *dmix, snd_pcm_t *spcm)
 	COPY_SLAVE(buffer_time);
 	COPY_SLAVE(sample_bits);
 	COPY_SLAVE(frame_bits);
+
+	dmix->shmptr->s.info &= ~SND_PCM_INFO_RESUME;
 }
 
 #undef COPY_SLAVE
