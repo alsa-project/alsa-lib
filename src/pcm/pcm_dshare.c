@@ -690,7 +690,6 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 		break;
 	}
 
- retry:
 	first_instance = ret = snd_pcm_direct_shm_create_or_connect(dshare);
 	if (ret < 0) {
 		SNDERR("unable to create IPC shm instance");
@@ -705,6 +704,7 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 	dshare->max_periods = opts->max_periods;
 	dshare->sync_ptr = snd_pcm_dshare_sync_ptr;
 
+ retry:
 	if (first_instance) {
 		/* recursion is already checked in
 		   snd_pcm_direct_get_slave_ipc_offset() */
