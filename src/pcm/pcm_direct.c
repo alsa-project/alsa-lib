@@ -822,12 +822,14 @@ int snd_pcm_direct_prepare(snd_pcm_t *pcm)
 	case SND_PCM_STATE_SETUP:
 	case SND_PCM_STATE_XRUN:
 	case SND_PCM_STATE_SUSPENDED:
-	case SND_PCM_STATE_DISCONNECTED:
 		err = snd_pcm_prepare(dmix->spcm);
 		if (err < 0)
 			return err;
 		snd_pcm_start(dmix->spcm);
 		break;
+	case SND_PCM_STATE_OPEN:
+	case SND_PCM_STATE_DISCONNECTED:
+		return -EBADFD;
 	}
 	snd_pcm_direct_check_interleave(dmix, pcm);
 	dmix->state = SND_PCM_STATE_PREPARED;
