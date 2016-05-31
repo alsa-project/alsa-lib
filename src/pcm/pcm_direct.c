@@ -819,6 +819,7 @@ int snd_pcm_direct_prepare(snd_pcm_t *pcm)
 	int err;
 
 	switch (snd_pcm_state(dmix->spcm)) {
+	case SND_PCM_STATE_SETUP:
 	case SND_PCM_STATE_XRUN:
 	case SND_PCM_STATE_SUSPENDED:
 	case SND_PCM_STATE_DISCONNECTED:
