@@ -28,6 +28,9 @@
 #include "control/control_local.h"
 #include <signal.h>
 
+static struct sigaction previous_action;
+#define MAX_SIG_FUNCTION_CODE 10 /* i.e. SIG_DFL SIG_IGN SIG_HOLD et al */
+
 #ifdef SND_ASYNC_RT_SIGNAL
 /** async signal number */
 static int snd_async_signo;
@@ -54,6 +57,9 @@ static void snd_async_handler(int signo ATTRIBUTE_UNUSED, siginfo_t *siginfo, vo
 	int fd;
 	struct list_head *i;
 	//assert(siginfo->si_code == SI_SIGIO);
+	if (signo == SIGIO
+	 && (unsigned long)(previous_action.sa_sigaction) > MAX_SIG_FUNCTION_CODE)
+		previous_action.sa_sigaction(signo, siginfo, context);
 	fd = siginfo->si_fd;
 	list_for_each(i, &snd_async_handlers) {
 		snd_async_handler_t *h = list_entry(i, snd_async_handler_t, glist);
@@ -114,7 +120,8 @@ int snd_async_add_handler(snd_async_handler_t **handler, int fd,
 		act.sa_flags = SA_RESTART | SA_SIGINFO;
 		act.sa_sigaction = snd_async_handler;
 		sigemptyset(&act.sa_mask);
-		err = sigaction(snd_async_signo, &act, NULL);
+		assert(!previous_action.sa_sigaction);
+		err = sigaction(snd_async_signo, &act, &previous_action);
 		if (err < 0) {
 			SYSERR("sigaction");
 			return -errno;
@@ -131,18 +138,17 @@ int snd_async_add_handler(snd_async_handler_t **handler, int fd,
 int snd_async_del_handler(snd_async_handler_t *handler)
 {
 	int err = 0;
+	int was_empty = list_empty(&snd_async_handlers);
 	assert(handler);
 	list_del(&handler->glist);
-	if (list_empty(&snd_async_handlers)) {
-		struct sigaction act;
-		memset(&act, 0, sizeof(act));
-		act.sa_flags = 0;
-		act.sa_handler = SIG_DFL;
-		err = sigaction(snd_async_signo, &act, NULL);
+	if (!was_empty
+	 && list_empty(&snd_async_handlers)) {
+		err = sigaction(snd_async_signo, &previous_action, NULL);
 		if (err < 0) {
 			SYSERR("sigaction");
 			return -errno;
 		}
+		memset(&previous_action, 0, sizeof(previous_action));
 	}
 	if (handler->type == SND_ASYNC_HANDLER_GENERIC)
 		goto _end;
