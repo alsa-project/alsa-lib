@@ -58,6 +58,28 @@ elements included in the element set.
 
 When the value of member is changed, corresponding events are transferred to
 userspace applications. The applications should subscribe any events in advance.
+
+\section tlv_blob Thredshold level and arbitrary data
+
+TLV feature is designed to transfer data about threshold level between a driver
+and any userspace applications. The data is for an element set.
+
+At first, this feature was implemented to add pre-defined data readable to
+userspace applications. Soon, it was extended to handle several operations;
+read, write and command. The original implementation remains as the read
+operation. The command operation allows drivers to have own implementations
+against requests from userspace applications. As of 2016, simple write operation
+is not supported yet.
+
+This feature was introduced to ALSA control feature in 2006, at commit
+c7a0708a2362, corresponding to a series of work for Linux kernel (42750b04c5ba
+and 8aa9b586e420).
+
+This feature can transfer arbitrary data in a shape of an array with members of
+unsigned int type, therefore it can be used to deliver quite large arbitrary
+data from userspace to in-kernel drivers via ALSA control character device.
+Focusing on this nature, some in-kernel implementations utilize this feature for
+I/O operations.
 */
 
 #include <stdio.h>
