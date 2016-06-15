@@ -35,9 +35,29 @@ also interface notifying about control and structure changes.
 
 \section control_general_overview General overview
 
-The primitive controls can be integer, inter64, boolean, enumerators, bytes
-and IEC958 structure.
+In ALSA control feature, each sound card can have control elements. The elements
+are managed according to below model.
 
+ - element set
+   - A set of elements with the same attribute (i.e. name, get/put operations).
+     Some element sets can be added to a sound card by drivers in kernel and
+     userspace applications.
+ - element
+   - An element can be identified by userspace applications. Each element has
+     own identical information.
+ - member
+   - An element includes some members to have a value. The value of each member
+     can be changed by both of userspace applications and drivers in kernel.
+
+Each element can be identified by two ways; a combination of name and index, or
+numerical number (numid).
+
+The type of element set is one of integer, integerr64, boolean, enumerators,
+bytes and IEC958 structure. This indicates the type of value for each member in
+elements included in the element set.
+
+When the value of member is changed, corresponding events are transferred to
+userspace applications. The applications should subscribe any events in advance.
 */
 
 #include <stdio.h>
