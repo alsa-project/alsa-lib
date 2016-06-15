@@ -882,14 +882,12 @@ static int snd_ctl_tlv_do(snd_ctl_t *ctl, int op_flag,
 	return err;
 }
 
-
-
 /**
- * \brief Get CTL element TLV value
- * \param ctl CTL handle
- * \param id CTL element id pointer
- * \param tlv TLV array pointer to store 
- * \param tlv_size TLV array size in bytes
+ * \brief Set given data to an element as threshold level.
+ * \param ctl A handle of backend module for control interface.
+ * \param id ID of an element.
+ * \param tlv An array with members of unsigned int type.
+ * \param tlv_size The length of the array.
  * \return 0 on success otherwise a negative error code
  */
 int snd_ctl_elem_tlv_read(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
@@ -913,10 +911,11 @@ int snd_ctl_elem_tlv_read(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
 }
 
 /**
- * \brief Set CTL element TLV value
- * \param ctl CTL handle
- * \param id CTL element id pointer
- * \param tlv TLV array pointer to store 
+ * \brief Set given data to an element as threshold level.
+ * \param ctl A handle of backend module for control interface.
+ * \param id ID of an element.
+ * \param tlv An array with members of unsigned int type. The second member
+ *	      must represent total bytes of the rest of array.
  * \retval 0 on success
  * \retval >0 on success when value was changed
  * \retval <0 a negative error code
@@ -929,10 +928,11 @@ int snd_ctl_elem_tlv_write(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
 }
 
 /**
- * \brief Process CTL element TLV command
- * \param ctl CTL handle
- * \param id CTL element id pointer
- * \param tlv TLV array pointer to process
+ * \brief Set given data to an element as threshold level.
+ * \param ctl A handle of backend module for control interface.
+ * \param id ID of an element.
+ * \param tlv An array with members of unsigned int type. The second member
+ *	      must represent total bytes of the rest of array.
  * \retval 0 on success
  * \retval >0 on success when value was changed
  * \retval <0 a negative error code
