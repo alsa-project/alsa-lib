@@ -11,13 +11,19 @@ For installation you can use these commands:
 	make install
 
 
-Compilation from HG sources
+Compilation from Git-sources
 ---------------------------
 
-You need also GNU packages automake and libtool installed in your system
-to compile HG (Mercurial) sources of alsa-lib package.
+Requirements:
+	* automake
+	* libtool
 
-For compilation you can use these commands:
+To compile alsa-lib from source:
+
+	./gitcompile
+
+If you do not want to use the supplied gitcompile-script, you can
+compile alsa-lib manually by using these steps:
 
 	libtoolize --force --copy --automake
 	aclocal
@@ -27,7 +33,6 @@ For compilation you can use these commands:
 	./configure
 	make
 
-The included hgcompile script does this job for you.
 
 Note: Some automake packages have missing aclocal program. Use newer version
       in the case.
