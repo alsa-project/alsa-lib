@@ -124,3 +124,5 @@ TYPEDEF_HIDES_STRUCT = YES	# needed in doxygen >= 1.5.4
 
 #INPUT_FILTER	 = inputfilter
 #FILTER_SOURCE_FILES = YES
+
+HTML_TIMESTAMP = NO
