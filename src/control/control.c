@@ -347,8 +347,8 @@ int snd_ctl_elem_add_integer_set(snd_ctl_t *ctl, snd_ctl_elem_id_t *id,
 				 unsigned int member_count,
 				 long min, long max, long step)
 {
-	snd_ctl_elem_info_t *info;
-	snd_ctl_elem_value_t *data;
+	snd_ctl_elem_info_t info = {0};
+	snd_ctl_elem_value_t data = {0};
 	unsigned int i;
 	unsigned int j;
 	unsigned int numid;
@@ -356,38 +356,36 @@ int snd_ctl_elem_add_integer_set(snd_ctl_t *ctl, snd_ctl_elem_id_t *id,
 
 	assert(ctl && id && id->name[0]);
 
-	snd_ctl_elem_info_alloca(&info);
-	info->id = *id;
-	info->type = SND_CTL_ELEM_TYPE_INTEGER;
-	info->access = SNDRV_CTL_ELEM_ACCESS_READWRITE |
-		       SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE |
-		       SNDRV_CTL_ELEM_ACCESS_USER;
-	info->owner = element_count;
-	info->count = member_count;
-	info->value.integer.min = min;
-	info->value.integer.max = max;
-	info->value.integer.step = step;
+	info.id = *id;
+	info.type = SND_CTL_ELEM_TYPE_INTEGER;
+	info.access = SNDRV_CTL_ELEM_ACCESS_READWRITE |
+	              SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE |
+	              SNDRV_CTL_ELEM_ACCESS_USER;
+	info.owner = element_count;
+	info.count = member_count;
+	info.value.integer.min = min;
+	info.value.integer.max = max;
+	info.value.integer.step = step;
 
-	err = ctl->ops->element_add(ctl, info);
+	err = ctl->ops->element_add(ctl, &info);
 	if (err < 0)
 		return err;
-	numid = snd_ctl_elem_id_get_numid(&info->id);
+	numid = snd_ctl_elem_id_get_numid(&info.id);
 
 	/* Set initial value to all of members in all of added elements. */
-	snd_ctl_elem_value_alloca(&data);
-	data->id = info->id;
+	data.id = info.id;
 	for (i = 0; i < element_count; i++) {
-		snd_ctl_elem_id_set_numid(&data->id, numid + i);
+		snd_ctl_elem_id_set_numid(&data.id, numid + i);
 
 		for (j = 0; j < member_count; j++)
-			data->value.integer.value[j] = min;
+			data.value.integer.value[j] = min;
 
-		err = ctl->ops->element_write(ctl, data);
+		err = ctl->ops->element_write(ctl, &data);
 		if (err < 0)
 			return err;
 	}
 
-	*id = info->id;
+	*id = info.id;
 	return 0;
 }
 
@@ -436,8 +434,8 @@ int snd_ctl_elem_add_integer64_set(snd_ctl_t *ctl, snd_ctl_elem_id_t *id,
 				   unsigned int member_count,
 				   long long min, long long max, long long step)
 {
-	snd_ctl_elem_info_t *info;
-	snd_ctl_elem_value_t *data;
+	snd_ctl_elem_info_t info = {0};
+	snd_ctl_elem_value_t data = {0};
 	unsigned int i;
 	unsigned int j;
 	unsigned int numid;
@@ -445,38 +443,36 @@ int snd_ctl_elem_add_integer64_set(snd_ctl_t *ctl, snd_ctl_elem_id_t *id,
 
 	assert(ctl && id && id->name[0]);
 
-	snd_ctl_elem_info_alloca(&info);
-	info->id = *id;
-	info->type = SND_CTL_ELEM_TYPE_INTEGER64;
-	info->access = SNDRV_CTL_ELEM_ACCESS_READWRITE |
-		       SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE |
-		       SNDRV_CTL_ELEM_ACCESS_USER;
-	info->owner = element_count;
-	info->count = member_count;
-	info->value.integer64.min = min;
-	info->value.integer64.max = max;
-	info->value.integer64.step = step;
+	info.id = *id;
+	info.type = SND_CTL_ELEM_TYPE_INTEGER64;
+	info.access = SNDRV_CTL_ELEM_ACCESS_READWRITE |
+		      SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE |
+		      SNDRV_CTL_ELEM_ACCESS_USER;
+	info.owner = element_count;
+	info.count = member_count;
+	info.value.integer64.min = min;
+	info.value.integer64.max = max;
+	info.value.integer64.step = step;
 
-	err = ctl->ops->element_add(ctl, info);
+	err = ctl->ops->element_add(ctl, &info);
 	if (err < 0)
 		return err;
-	numid = snd_ctl_elem_id_get_numid(&info->id);
+	numid = snd_ctl_elem_id_get_numid(&info.id);
 
 	/* Set initial value to all of members in all of added elements. */
-	snd_ctl_elem_value_alloca(&data);
-	data->id = info->id;
+	data.id = info.id;
 	for (i = 0; i < element_count; i++) {
-		snd_ctl_elem_id_set_numid(&data->id, numid + i);
+		snd_ctl_elem_id_set_numid(&data.id, numid + i);
 
 		for (j = 0; j < member_count; j++)
-			data->value.integer64.value[j] = min;
+			data.value.integer64.value[j] = min;
 
-		err = ctl->ops->element_write(ctl, data);
+		err = ctl->ops->element_write(ctl, &data);
 		if (err < 0)
 			return err;
 	}
 
-	*id = info->id;
+	*id = info.id;
 	return 0;
 }
 
@@ -520,25 +516,24 @@ int snd_ctl_elem_add_boolean_set(snd_ctl_t *ctl, snd_ctl_elem_id_t *id,
 				 unsigned int element_count,
 				 unsigned int member_count)
 {
-	snd_ctl_elem_info_t *info;
+	snd_ctl_elem_info_t info = {0};
 	int err;
 
 	assert(ctl && id && id->name[0]);
 
-	snd_ctl_elem_info_alloca(&info);
-	info->id = *id;
-	info->type = SND_CTL_ELEM_TYPE_BOOLEAN;
-	info->access = SNDRV_CTL_ELEM_ACCESS_READWRITE |
-		       SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE |
-		       SNDRV_CTL_ELEM_ACCESS_USER;
-	info->owner = element_count;
-	info->count = member_count;
-	info->value.integer.min = 0;
-	info->value.integer.max = 1;
+	info.id = *id;
+	info.type = SND_CTL_ELEM_TYPE_BOOLEAN;
+	info.access = SNDRV_CTL_ELEM_ACCESS_READWRITE |
+		      SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE |
+		      SNDRV_CTL_ELEM_ACCESS_USER;
+	info.owner = element_count;
+	info.count = member_count;
+	info.value.integer.min = 0;
+	info.value.integer.max = 1;
 
-	err = ctl->ops->element_add(ctl, info);
+	err = ctl->ops->element_add(ctl, &info);
 	if (err >= 0)
-		*id = info->id;
+		*id = info.id;
 
 	return err;
 }
@@ -590,22 +585,21 @@ int snd_ctl_elem_add_enumerated_set(snd_ctl_t *ctl, snd_ctl_elem_id_t *id,
 				    unsigned int items,
 				    const char *const labels[])
 {
-	snd_ctl_elem_info_t *info;
+	snd_ctl_elem_info_t info = {0};
 	unsigned int i, bytes;
 	char *buf, *p;
 	int err;
 
 	assert(ctl && id && id->name[0] && labels);
 
-	snd_ctl_elem_info_alloca(&info);
-	info->id = *id;
-	info->type = SND_CTL_ELEM_TYPE_ENUMERATED;
-	info->access = SNDRV_CTL_ELEM_ACCESS_READWRITE |
-		       SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE |
-		       SNDRV_CTL_ELEM_ACCESS_USER;
-	info->owner = element_count;
-	info->count = member_count;
-	info->value.enumerated.items = items;
+	info.id = *id;
+	info.type = SND_CTL_ELEM_TYPE_ENUMERATED;
+	info.access = SNDRV_CTL_ELEM_ACCESS_READWRITE |
+		      SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE |
+		      SNDRV_CTL_ELEM_ACCESS_USER;
+	info.owner = element_count;
+	info.count = member_count;
+	info.value.enumerated.items = items;
 
 	bytes = 0;
 	for (i = 0; i < items; ++i)
@@ -615,17 +609,17 @@ int snd_ctl_elem_add_enumerated_set(snd_ctl_t *ctl, snd_ctl_elem_id_t *id,
 	buf = malloc(bytes);
 	if (buf == NULL)
 		return -ENOMEM;
-	info->value.enumerated.names_ptr = (uintptr_t)buf;
-	info->value.enumerated.names_length = bytes;
+	info.value.enumerated.names_ptr = (uintptr_t)buf;
+	info.value.enumerated.names_length = bytes;
 	p = buf;
 	for (i = 0; i < items; ++i) {
 		strcpy(p, labels[i]);
 		p += strlen(labels[i]) + 1;
 	}
 
-	err = ctl->ops->element_add(ctl, info);
+	err = ctl->ops->element_add(ctl, &info);
 	if (err >= 0)
-		*id = info->id;
+		*id = info.id;
 
 	free(buf);
 
@@ -673,23 +667,22 @@ int snd_ctl_elem_add_bytes_set(snd_ctl_t *ctl, snd_ctl_elem_id_t *id,
 			       unsigned int element_count,
 			       unsigned int member_count)
 {
-	snd_ctl_elem_info_t *info;
+	snd_ctl_elem_info_t info = {0};
 	int err;
 
 	assert(ctl && id && id->name[0]);
 
-	snd_ctl_elem_info_alloca(&info);
-	info->id = *id;
-	info->type = SND_CTL_ELEM_TYPE_BYTES;
-	info->access = SNDRV_CTL_ELEM_ACCESS_READWRITE |
-		       SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE |
-		       SNDRV_CTL_ELEM_ACCESS_USER;
-	info->owner = element_count;
-	info->count = member_count;
+	info.id = *id;
+	info.type = SND_CTL_ELEM_TYPE_BYTES;
+	info.access = SNDRV_CTL_ELEM_ACCESS_READWRITE |
+		      SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE |
+		      SNDRV_CTL_ELEM_ACCESS_USER;
+	info.owner = element_count;
+	info.count = member_count;
 
-	err = ctl->ops->element_add(ctl, info);
+	err = ctl->ops->element_add(ctl, &info);
 	if (err >= 0)
-		*id = info->id;
+		*id = info.id;
 
 	return err;
 }
@@ -705,12 +698,11 @@ int snd_ctl_elem_add_integer(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
 			     unsigned int member_count,
 			     long min, long max, long step)
 {
-	snd_ctl_elem_id_t *local_id;
+	snd_ctl_elem_id_t local_id = {0};
 
-	snd_ctl_elem_id_alloca(&local_id);
-	*local_id = *id;
+	local_id = *id;
 
-	return snd_ctl_elem_add_integer_set(ctl, local_id, 1, member_count,
+	return snd_ctl_elem_add_integer_set(ctl, &local_id, 1, member_count,
 					    min, max, step);
 }
 
@@ -725,12 +717,11 @@ int snd_ctl_elem_add_integer64(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
 			       unsigned int member_count,
 			       long long min, long long max, long long step)
 {
-	snd_ctl_elem_id_t *local_id;
+	snd_ctl_elem_id_t local_id = {0};
 
-	snd_ctl_elem_id_alloca(&local_id);
-	*local_id = *id;
+	local_id = *id;
 
-	return snd_ctl_elem_add_integer64_set(ctl, local_id, 1, member_count,
+	return snd_ctl_elem_add_integer64_set(ctl, &local_id, 1, member_count,
 					      min, max, step);
 }
 
@@ -744,12 +735,11 @@ int snd_ctl_elem_add_integer64(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
 int snd_ctl_elem_add_boolean(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
 			     unsigned int member_count)
 {
-	snd_ctl_elem_id_t *local_id;
+	snd_ctl_elem_id_t local_id = {0};
 
-	snd_ctl_elem_id_alloca(&local_id);
-	*local_id = *id;
+	local_id = *id;
 
-	return snd_ctl_elem_add_boolean_set(ctl, local_id, 1, member_count);
+	return snd_ctl_elem_add_boolean_set(ctl, &local_id, 1, member_count);
 }
 
 /**
@@ -765,12 +755,11 @@ int snd_ctl_elem_add_enumerated(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
 				unsigned int member_count, unsigned int items,
 				const char *const labels[])
 {
-	snd_ctl_elem_id_t *local_id;
+	snd_ctl_elem_id_t local_id = {0};
 
-	snd_ctl_elem_id_alloca(&local_id);
-	*local_id = *id;
+	local_id = *id;
 
-	return snd_ctl_elem_add_enumerated_set(ctl, local_id, 1, member_count,
+	return snd_ctl_elem_add_enumerated_set(ctl, &local_id, 1, member_count,
 					       items, labels);
 }
 
@@ -805,15 +794,15 @@ int snd_ctl_elem_add_enumerated(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
  */
 int snd_ctl_elem_add_iec958(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id)
 {
-	snd_ctl_elem_info_t *info;
+	snd_ctl_elem_info_t info = {0};
 
 	assert(ctl && id && id->name[0]);
-	snd_ctl_elem_info_alloca(&info);
-	info->id = *id;
-	info->type = SND_CTL_ELEM_TYPE_IEC958;
-	info->owner = 1;
-	info->count = 1;
-	return ctl->ops->element_add(ctl, info);
+
+	info.id = *id;
+	info.type = SND_CTL_ELEM_TYPE_IEC958;
+	info.owner = 1;
+	info.count = 1;
+	return ctl->ops->element_add(ctl, &info);
 }
 
 /**

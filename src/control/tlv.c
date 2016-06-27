@@ -409,20 +409,19 @@ struct tlv_info {
 static int get_tlv_info(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
 			struct tlv_info *rec)
 {
-	snd_ctl_elem_info_t *info;
+	snd_ctl_elem_info_t info = {0};
 	int err;
 
-	snd_ctl_elem_info_alloca(&info);
-	snd_ctl_elem_info_set_id(info, id);
-	err = snd_ctl_elem_info(ctl, info);
+	snd_ctl_elem_info_set_id(&info, id);
+	err = snd_ctl_elem_info(ctl, &info);
 	if (err < 0)
 		return err;
-	if (!snd_ctl_elem_info_is_tlv_readable(info))
+	if (!snd_ctl_elem_info_is_tlv_readable(&info))
 		return -EINVAL;
-	if (snd_ctl_elem_info_get_type(info) != SND_CTL_ELEM_TYPE_INTEGER)
+	if (snd_ctl_elem_info_get_type(&info) != SND_CTL_ELEM_TYPE_INTEGER)
 		return -EINVAL;
-	rec->minval = snd_ctl_elem_info_get_min(info);
-	rec->maxval = snd_ctl_elem_info_get_max(info);
+	rec->minval = snd_ctl_elem_info_get_min(&info);
+	rec->maxval = snd_ctl_elem_info_get_max(&info);
 	err = snd_ctl_elem_tlv_read(ctl, id, rec->buf, sizeof(rec->buf));
 	if (err < 0)
 		return err;

@@ -252,13 +252,12 @@ static int snd_config_get_ctl_elem_value(snd_config_t *conf,
 {
 	int err;
 	snd_config_iterator_t i, next;
-	snd_ctl_elem_id_t *id;
+	snd_ctl_elem_id_t id = {0};
 	snd_ctl_elem_type_t type;
 	unsigned int count;
 	long v;
 	long idx;
-	snd_ctl_elem_id_alloca(&id);
-	snd_ctl_elem_value_get_id(val, id);
+	snd_ctl_elem_value_get_id(val, &id);
 	count = snd_ctl_elem_info_get_count(info);
 	type = snd_ctl_elem_info_get_type(info);
 	if (count == 1) {

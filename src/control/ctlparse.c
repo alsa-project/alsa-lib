@@ -312,17 +312,16 @@ int snd_ctl_ascii_value_parse(snd_ctl_t *handle,
 			      const char *value)
 {
 	const char *ptr = value;
-	snd_ctl_elem_id_t *myid;
+	snd_ctl_elem_id_t myid = {0};
 	snd_ctl_elem_type_t type;
 	unsigned int idx, count;
 	long tmp;
 	long long tmp64;
 
-	snd_ctl_elem_id_alloca(&myid);
-	snd_ctl_elem_info_get_id(info, myid);
+	snd_ctl_elem_info_get_id(info, &myid);
 	type = snd_ctl_elem_info_get_type(info);
 	count = snd_ctl_elem_info_get_count(info);
-	snd_ctl_elem_value_set_id(dst, myid);
+	snd_ctl_elem_value_set_id(dst, &myid);
 	
 	for (idx = 0; idx < count && idx < 128 && ptr && *ptr; idx++) {
 		if (*ptr == ',')

@@ -97,45 +97,42 @@ static int get_dev_name1(struct hint_list *list, char **res, int device,
 #ifdef BUILD_HWDEP
 	case SND_CTL_ELEM_IFACE_HWDEP:
 		{
-			snd_hwdep_info_t *info;
-			snd_hwdep_info_alloca(&info);
-			snd_hwdep_info_set_device(info, device);
-			if (snd_ctl_hwdep_info(list->ctl, info) < 0)
+			snd_hwdep_info_t info = {0};
+			snd_hwdep_info_set_device(&info, device);
+			if (snd_ctl_hwdep_info(list->ctl, &info) < 0)
 				return 0;
-			*res = strdup(snd_hwdep_info_get_name(info));
+			*res = strdup(snd_hwdep_info_get_name(&info));
 			return 0;
 		}
 #endif
 #ifdef BUILD_PCM
 	case SND_CTL_ELEM_IFACE_PCM:
 		{
-			snd_pcm_info_t *info;
-			snd_pcm_info_alloca(&info);
-			snd_pcm_info_set_device(info, device);
-			snd_pcm_info_set_stream(info, stream ? SND_PCM_STREAM_CAPTURE : SND_PCM_STREAM_PLAYBACK);
-			if (snd_ctl_pcm_info(list->ctl, info) < 0)
+			snd_pcm_info_t info = {0};
+			snd_pcm_info_set_device(&info, device);
+			snd_pcm_info_set_stream(&info, stream ? SND_PCM_STREAM_CAPTURE : SND_PCM_STREAM_PLAYBACK);
+			if (snd_ctl_pcm_info(list->ctl, &info) < 0)
 				return 0;
-			switch (snd_pcm_info_get_class(info)) {
+			switch (snd_pcm_info_get_class(&info)) {
 			case SND_PCM_CLASS_MODEM:
 			case SND_PCM_CLASS_DIGITIZER:
 				return -ENODEV;
 			default:
 				break;
 			}
-			*res = strdup(snd_pcm_info_get_name(info));
+			*res = strdup(snd_pcm_info_get_name(&info));
 			return 0;
 		}
 #endif
 #ifdef BUILD_RAWMIDI
 	case SND_CTL_ELEM_IFACE_RAWMIDI:
 		{
-			snd_rawmidi_info_t *info;
-			snd_rawmidi_info_alloca(&info);
-			snd_rawmidi_info_set_device(info, device);
-			snd_rawmidi_info_set_stream(info, stream ? SND_RAWMIDI_STREAM_INPUT : SND_RAWMIDI_STREAM_OUTPUT);
-			if (snd_ctl_rawmidi_info(list->ctl, info) < 0)
+			snd_rawmidi_info_t info = {0};
+			snd_rawmidi_info_set_device(&info, device);
+			snd_rawmidi_info_set_stream(&info, stream ? SND_RAWMIDI_STREAM_INPUT : SND_RAWMIDI_STREAM_OUTPUT);
+			if (snd_ctl_rawmidi_info(list->ctl, &info) < 0)
 				return 0;
-			*res = strdup(snd_rawmidi_info_get_name(info));
+			*res = strdup(snd_rawmidi_info_get_name(&info));
 			return 0;
 		}
 #endif
@@ -419,11 +416,10 @@ static int add_card(snd_config_t *config, snd_config_t *rw_config, struct hint_l
 	snd_config_iterator_t i, next;
 	const char *str;
 	char ctl_name[16];
-	snd_ctl_card_info_t *info;
+	snd_ctl_card_info_t info = {0};
 	int device, max_device = 0;
 	
-	snd_ctl_card_info_alloca(&info);
-	list->info = info;
+	list->info = &info;
 	err = snd_config_search(config, list->siface, &conf);
 	if (err < 0)
 		return err;
@@ -431,7 +427,7 @@ static int add_card(snd_config_t *config, snd_config_t *rw_config, struct hint_l
 	err = snd_ctl_open(&list->ctl, ctl_name, 0);
 	if (err < 0)
 		return err;
-	err = snd_ctl_card_info(list->ctl, info);
+	err = snd_ctl_card_info(list->ctl, &info);
 	if (err < 0)
 		goto __error;
 	snd_config_for_each(i, next, conf) {
