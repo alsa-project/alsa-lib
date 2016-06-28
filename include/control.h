@@ -245,8 +245,8 @@ int snd_ctl_subscribe_events(snd_ctl_t *ctl, int subscribe);
 int snd_ctl_card_info(snd_ctl_t *ctl, snd_ctl_card_info_t *info);
 int snd_ctl_elem_list(snd_ctl_t *ctl, snd_ctl_elem_list_t *list);
 int snd_ctl_elem_info(snd_ctl_t *ctl, snd_ctl_elem_info_t *info);
-int snd_ctl_elem_read(snd_ctl_t *ctl, snd_ctl_elem_value_t *value);
-int snd_ctl_elem_write(snd_ctl_t *ctl, snd_ctl_elem_value_t *value);
+int snd_ctl_elem_read(snd_ctl_t *ctl, snd_ctl_elem_value_t *data);
+int snd_ctl_elem_write(snd_ctl_t *ctl, snd_ctl_elem_value_t *data);
 int snd_ctl_elem_lock(snd_ctl_t *ctl, snd_ctl_elem_id_t *id);
 int snd_ctl_elem_unlock(snd_ctl_t *ctl, snd_ctl_elem_id_t *id);
 int snd_ctl_elem_tlv_read(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,

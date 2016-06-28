@@ -820,27 +820,27 @@ int snd_ctl_elem_remove(snd_ctl_t *ctl, snd_ctl_elem_id_t *id)
 /**
  * \brief Get CTL element value
  * \param ctl CTL handle
- * \param obj Data of an element.
+ * \param data Data of an element.
  * \return 0 on success otherwise a negative error code
  */
-int snd_ctl_elem_read(snd_ctl_t *ctl, snd_ctl_elem_value_t *control)
+int snd_ctl_elem_read(snd_ctl_t *ctl, snd_ctl_elem_value_t *data)
 {
-	assert(ctl && control && (control->id.name[0] || control->id.numid));
-	return ctl->ops->element_read(ctl, control);
+	assert(ctl && data && (data->id.name[0] || data->id.numid));
+	return ctl->ops->element_read(ctl, data);
 }
 
 /**
  * \brief Set CTL element value
  * \param ctl CTL handle
- * \param obj Data of an element.
+ * \param data Data of an element.
  * \retval 0 on success
  * \retval >0 on success when value was changed
  * \retval <0 a negative error code
  */
-int snd_ctl_elem_write(snd_ctl_t *ctl, snd_ctl_elem_value_t *control)
+int snd_ctl_elem_write(snd_ctl_t *ctl, snd_ctl_elem_value_t *data)
 {
-	assert(ctl && control && (control->id.name[0] || control->id.numid));
-	return ctl->ops->element_write(ctl, control);
+	assert(ctl && data && (data->id.name[0] || data->id.numid));
+	return ctl->ops->element_write(ctl, data);
 }
 
 static int snd_ctl_tlv_do(snd_ctl_t *ctl, int op_flag,
