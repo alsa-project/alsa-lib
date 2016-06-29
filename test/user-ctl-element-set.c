@@ -279,6 +279,7 @@ static int check_elem_set_props(struct elem_set_trial *trial)
 	snd_ctl_elem_id_t *id;
 	snd_ctl_elem_info_t *info;
 	unsigned int numid;
+	unsigned int index;
 	unsigned int i;
 	int err;
 
@@ -286,10 +287,18 @@ static int check_elem_set_props(struct elem_set_trial *trial)
 	snd_ctl_elem_info_alloca(&info);
 
 	snd_ctl_elem_info_set_id(info, trial->id);
-	numid = snd_ctl_elem_info_get_numid(info);
+	numid = snd_ctl_elem_id_get_numid(trial->id);
+	index = snd_ctl_elem_id_get_index(trial->id);
 
 	for (i = 0; i < trial->element_count; ++i) {
-		snd_ctl_elem_info_set_numid(info, numid + i);
+		snd_ctl_elem_info_set_index(info, index + i);
+
+		/*
+		 * In Linux 4.0 or former, ioctl(SNDRV_CTL_IOCTL_ELEM_ADD)
+		 * doesn't fill all of fields for identification.
+		 */
+		if (numid > 0)
+			snd_ctl_elem_info_set_numid(info, numid + i);
 
 		err = snd_ctl_elem_info(trial->handle, info);
 		if (err < 0)
@@ -335,25 +344,25 @@ static int check_elems(struct elem_set_trial *trial)
 {
 	snd_ctl_elem_value_t *data;
 	unsigned int numid;
+	unsigned int index;
 	unsigned int i;
 	int err;
 
 	snd_ctl_elem_value_alloca(&data);
 
 	snd_ctl_elem_value_set_id(data, trial->id);
-
-	/*
-	 * Get the value of numid field in identical information for the first
-	 * element of this element set.
-	 */
-	numid = snd_ctl_elem_value_get_numid(data);
+	numid = snd_ctl_elem_id_get_numid(trial->id);
+	index = snd_ctl_elem_id_get_index(trial->id);
 
 	for (i = 0; i < trial->element_count; ++i) {
+		snd_ctl_elem_value_set_index(data, index + i);
+
 		/*
-		 * Here, I increment numid, while we can also increment offset
-		 * to enumerate each element in this element set.
+		 * In Linux 4.0 or former, ioctl(SNDRV_CTL_IOCTL_ELEM_ADD)
+		 * doesn't fill all of fields for identification.
 		 */
-		snd_ctl_elem_value_set_numid(data, numid + i);
+		if (numid > 0)
+			snd_ctl_elem_value_set_numid(data, numid + i);
 
 		err = snd_ctl_elem_read(trial->handle, data);
 		if (err < 0)
