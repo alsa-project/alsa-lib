@@ -18,7 +18,8 @@ struct elem_set_trial {
 
 	snd_ctl_elem_id_t *id;
 
-	int (*add_elem_set)(struct elem_set_trial *trial);
+	int (*add_elem_set)(struct elem_set_trial *trial,
+			    snd_ctl_elem_info_t *info);
 	int (*check_elem_props)(struct elem_set_trial *trial,
 				snd_ctl_elem_info_t *info);
 	void (*change_elem_members)(struct elem_set_trial *trial,
@@ -26,9 +27,10 @@ struct elem_set_trial {
 };
 
 /* Operations for elements in an element set with boolean type. */
-static int add_bool_elem_set(struct elem_set_trial *trial)
+static int add_bool_elem_set(struct elem_set_trial *trial,
+			     snd_ctl_elem_info_t *info)
 {
-	return snd_ctl_elem_add_boolean_set(trial->handle, trial->id,
+	return snd_ctl_elem_add_boolean_set(trial->handle, info,
 				trial->element_count, trial->member_count);
 }
 
@@ -45,9 +47,10 @@ static void change_bool_elem_members(struct elem_set_trial *trial,
 }
 
 /* Operations for elements in an element set with integer type. */
-static int add_int_elem_set(struct elem_set_trial *trial)
+static int add_int_elem_set(struct elem_set_trial *trial,
+			    snd_ctl_elem_info_t *info)
 {
-	return snd_ctl_elem_add_integer_set(trial->handle, trial->id,
+	return snd_ctl_elem_add_integer_set(trial->handle, info,
 				trial->element_count, trial->member_count,
 				0, 99, 1);
 }
@@ -86,9 +89,10 @@ static const char *const labels[] = {
 	"xenial",
 };
 
-static int add_enum_elem_set(struct elem_set_trial *trial)
+static int add_enum_elem_set(struct elem_set_trial *trial,
+			     snd_ctl_elem_info_t *info)
 {
-	return snd_ctl_elem_add_enumerated_set(trial->handle, trial->id,
+	return snd_ctl_elem_add_enumerated_set(trial->handle, info,
 				trial->element_count, trial->member_count,
 				sizeof(labels) / sizeof(labels[0]),
 				labels);
@@ -134,9 +138,10 @@ static void change_enum_elem_members(struct elem_set_trial *trial,
 }
 
 /* Operations for elements in an element set with bytes type. */
-static int add_bytes_elem_set(struct elem_set_trial *trial)
+static int add_bytes_elem_set(struct elem_set_trial *trial,
+			      snd_ctl_elem_info_t *info)
 {
-	return snd_ctl_elem_add_bytes_set(trial->handle, trial->id,
+	return snd_ctl_elem_add_bytes_set(trial->handle, info,
 				trial->element_count, trial->member_count);
 }
 
@@ -153,9 +158,22 @@ static void change_bytes_elem_members(struct elem_set_trial *trial,
 }
 
 /* Operations for elements in an element set with iec958 type. */
-static int add_iec958_elem_set(struct elem_set_trial *trial)
+static int add_iec958_elem_set(struct elem_set_trial *trial,
+			       snd_ctl_elem_info_t *info)
 {
-	return snd_ctl_elem_add_iec958(trial->handle, trial->id);
+	int err;
+
+	snd_ctl_elem_info_get_id(info, trial->id);
+
+	err = snd_ctl_elem_add_iec958(trial->handle, trial->id);
+	if (err < 0)
+	        return err;
+
+	/*
+	 * In historical reason, the above API is not allowed to fill all of
+	 * fields in identification data.
+	 */
+	return snd_ctl_elem_info(trial->handle, info);
 }
 
 static void change_iec958_elem_members(struct elem_set_trial *trial,
@@ -173,9 +191,10 @@ static void change_iec958_elem_members(struct elem_set_trial *trial,
 }
 
 /* Operations for elements in an element set with integer64 type. */
-static int add_int64_elem_set(struct elem_set_trial *trial)
+static int add_int64_elem_set(struct elem_set_trial *trial,
+			      snd_ctl_elem_info_t *info)
 {
-	return snd_ctl_elem_add_integer64_set(trial->handle, trial->id,
+	return snd_ctl_elem_add_integer64_set(trial->handle, info,
 				trial->element_count, trial->member_count,
 				100, 10000, 30);
 }
@@ -208,16 +227,17 @@ static void change_int64_elem_members(struct elem_set_trial *trial,
 /* Common operations. */
 static int add_elem_set(struct elem_set_trial *trial)
 {
+	snd_ctl_elem_info_t *info;
 	char name[64] = {0};
 
 	snprintf(name, 64, "userspace-control-element-%s",
 		 snd_ctl_elem_type_name(trial->type));
 
-	memset(trial->id, 0, snd_ctl_elem_id_sizeof());
-	snd_ctl_elem_id_set_interface(trial->id, SND_CTL_ELEM_IFACE_MIXER);
-	snd_ctl_elem_id_set_name(trial->id, name);
+	snd_ctl_elem_info_alloca(&info);
+	snd_ctl_elem_info_set_interface(info, SND_CTL_ELEM_IFACE_MIXER);
+	snd_ctl_elem_info_set_name(info, name);
 
-	return trial->add_elem_set(trial);
+	return trial->add_elem_set(trial, info);
 }
 
 static int check_event(struct elem_set_trial *trial, unsigned int mask,
