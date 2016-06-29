@@ -408,6 +408,8 @@ void snd_ctl_elem_info_set_item(snd_ctl_elem_info_t *obj, unsigned int val);
 const char *snd_ctl_elem_info_get_item_name(const snd_ctl_elem_info_t *obj);
 int snd_ctl_elem_info_get_dimensions(const snd_ctl_elem_info_t *obj);
 int snd_ctl_elem_info_get_dimension(const snd_ctl_elem_info_t *obj, unsigned int idx);
+int snd_ctl_elem_info_set_dimension(snd_ctl_elem_info_t *info,
+				    const int dimension[4]);
 void snd_ctl_elem_info_get_id(const snd_ctl_elem_info_t *obj, snd_ctl_elem_id_t *ptr);
 unsigned int snd_ctl_elem_info_get_numid(const snd_ctl_elem_info_t *obj);
 snd_ctl_elem_iface_t snd_ctl_elem_info_get_interface(const snd_ctl_elem_info_t *obj);

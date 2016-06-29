@@ -2458,6 +2458,36 @@ int snd_ctl_elem_info_get_dimension(const snd_ctl_elem_info_t *obj, unsigned int
 use_default_symbol_version(__snd_ctl_elem_info_get_dimension, snd_ctl_elem_info_get_dimension, ALSA_0.9.3);
 
 /**
+ * \brief Set width to a specified dimension level of given element information.
+ * \param info Information of an element.
+ * \param dimension Dimension width for each level by member unit.
+ * \return Zero on success, otherwise a negative error code.
+ *
+ * \par Errors:
+ * <dl>
+ * <dt>-EINVAL
+ * <dd>Invalid arguments are given as parameters.
+ * </dl>
+ */
+int snd_ctl_elem_info_set_dimension(snd_ctl_elem_info_t *info,
+				    const int dimension[4])
+{
+	unsigned int i;
+
+	if (info == NULL)
+		return -EINVAL;
+
+	for (i = 0; i < ARRAY_SIZE(info->dimen.d); i++) {
+		if (dimension[i] < 0)
+			return -EINVAL;
+
+		info->dimen.d[i] = dimension[i];
+	}
+
+	return 0;
+}
+
+/**
  * \brief Get CTL element identifier of a CTL element id/info
  * \param obj CTL element id/info
  * \param ptr Pointer to returned CTL element identifier
