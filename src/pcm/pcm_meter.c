@@ -136,7 +136,6 @@ static int snd_pcm_meter_update_scope(snd_pcm_t *pcm)
  _again:
 	rptr = *pcm->hw.ptr;
 	old_rptr = meter->rptr;
-	rmb();
 	if (atomic_read(&meter->reset)) {
 		reset = 1;
 		atomic_dec(&meter->reset);
