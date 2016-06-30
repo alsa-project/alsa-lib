@@ -133,7 +133,6 @@ void snd_pcm_plugin_init(snd_pcm_plugin_t *plugin)
 	memset(plugin, 0, sizeof(snd_pcm_plugin_t));
 	plugin->undo_read = snd_pcm_plugin_undo_read;
 	plugin->undo_write = snd_pcm_plugin_undo_write;
-	snd_atomic_write_init(&plugin->watom);
 }
 
 static int snd_pcm_plugin_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
@@ -157,15 +156,11 @@ static int snd_pcm_plugin_prepare(snd_pcm_t *pcm)
 {
 	snd_pcm_plugin_t *plugin = pcm->private_data;
 	int err;
-	snd_atomic_write_begin(&plugin->watom);
 	err = snd_pcm_prepare(plugin->gen.slave);
-	if (err < 0) {
-		snd_atomic_write_end(&plugin->watom);
+	if (err < 0)
 		return err;
-	}
 	*pcm->hw.ptr = 0;
 	*pcm->appl.ptr = 0;
-	snd_atomic_write_end(&plugin->watom);
 	if (plugin->init) {
 		err = plugin->init(pcm);
 		if (err < 0)
@@ -178,15 +173,11 @@ static int snd_pcm_plugin_reset(snd_pcm_t *pcm)
 {
 	snd_pcm_plugin_t *plugin = pcm->private_data;
 	int err;
-	snd_atomic_write_begin(&plugin->watom);
 	err = snd_pcm_reset(plugin->gen.slave);
-	if (err < 0) {
-		snd_atomic_write_end(&plugin->watom);
+	if (err < 0)
 		return err;
-	}
 	*pcm->hw.ptr = 0;
 	*pcm->appl.ptr = 0;
-	snd_atomic_write_end(&plugin->watom);
 	if (plugin->init) {
 		err = plugin->init(pcm);
 		if (err < 0)
@@ -212,14 +203,10 @@ snd_pcm_sframes_t snd_pcm_plugin_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames
 		return 0;
 	
         sframes = frames;
-	snd_atomic_write_begin(&plugin->watom);
 	sframes = snd_pcm_rewind(plugin->gen.slave, sframes);
-	if (sframes < 0) {
-		snd_atomic_write_end(&plugin->watom);
+	if (sframes < 0)
 		return sframes;
-	}
 	snd_pcm_mmap_appl_backward(pcm, (snd_pcm_uframes_t) sframes);
-	snd_atomic_write_end(&plugin->watom);
 	return (snd_pcm_sframes_t) sframes;
 }
 
@@ -240,14 +227,10 @@ snd_pcm_sframes_t snd_pcm_plugin_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frame
 		return 0;
 	
         sframes = frames;
-	snd_atomic_write_begin(&plugin->watom);
 	sframes = INTERNAL(snd_pcm_forward)(plugin->gen.slave, sframes);
-	if (sframes < 0) {
-		snd_atomic_write_end(&plugin->watom);
+	if (sframes < 0)
 		return sframes;
-	}
 	snd_pcm_mmap_appl_forward(pcm, (snd_pcm_uframes_t) frames);
-	snd_atomic_write_end(&plugin->watom);
 	return (snd_pcm_sframes_t) frames;
 }
 
@@ -279,31 +262,27 @@ static snd_pcm_sframes_t snd_pcm_plugin_write_areas(snd_pcm_t *pcm,
 			err = -EPIPE;
 			goto error;
 		}
-		snd_atomic_write_begin(&plugin->watom);
 		result = snd_pcm_mmap_commit(slave, slave_offset, slave_frames);
 		if (result > 0 && (snd_pcm_uframes_t)result != slave_frames) {
 			snd_pcm_sframes_t res;
 			res = plugin->undo_write(pcm, slave_areas, slave_offset + result, slave_frames, slave_frames - result);
 			if (res < 0) {
 				err = res;
-				goto error_atomic;
+				goto error;
 			}
 			frames -= res;
 		}
 		if (result <= 0) {
 			err = result;
-			goto error_atomic;
+			goto error;
 		}
 		snd_pcm_mmap_appl_forward(pcm, frames);
-		snd_atomic_write_end(&plugin->watom);
 		offset += frames;
 		xfer += frames;
 		size -= frames;
 	}
 	return (snd_pcm_sframes_t)xfer;
 
- error_atomic:
-	snd_atomic_write_end(&plugin->watom);
  error:
 	return xfer > 0 ? (snd_pcm_sframes_t)xfer : err;
 }
@@ -336,7 +315,6 @@ static snd_pcm_sframes_t snd_pcm_plugin_read_areas(snd_pcm_t *pcm,
 			err = -EPIPE;
 			goto error;
 		}
-		snd_atomic_write_begin(&plugin->watom);
 		result = snd_pcm_mmap_commit(slave, slave_offset, slave_frames);
 		if (result > 0 && (snd_pcm_uframes_t)result != slave_frames) {
 			snd_pcm_sframes_t res;
@@ -344,24 +322,21 @@ static snd_pcm_sframes_t snd_pcm_plugin_read_areas(snd_pcm_t *pcm,
 			res = plugin->undo_read(slave, areas, offset, frames, slave_frames - result);
 			if (res < 0) {
 				err = res;
-				goto error_atomic;
+				goto error;
 			}
 			frames -= res;
 		}
 		if (result <= 0) {
 			err = result;
-			goto error_atomic;
+			goto error;
 		}
 		snd_pcm_mmap_appl_forward(pcm, frames);
-		snd_atomic_write_end(&plugin->watom);
 		offset += frames;
 		xfer += frames;
 		size -= frames;
 	}
 	return (snd_pcm_sframes_t)xfer;
 
- error_atomic:
-	snd_atomic_write_end(&plugin->watom);
  error:
 	return xfer > 0 ? (snd_pcm_sframes_t)xfer : err;
 }
@@ -417,9 +392,7 @@ snd_pcm_plugin_mmap_commit(snd_pcm_t *pcm,
 	int err;
 
 	if (pcm->stream == SND_PCM_STREAM_CAPTURE) {
-		snd_atomic_write_begin(&plugin->watom);
 		snd_pcm_mmap_appl_forward(pcm, size);
-		snd_atomic_write_end(&plugin->watom);
 		return size;
 	}
 	slave_size = snd_pcm_avail_update(slave);
@@ -443,7 +416,6 @@ snd_pcm_plugin_mmap_commit(snd_pcm_t *pcm,
 			frames = cont;
 		frames = plugin->write(pcm, areas, appl_offset, frames,
 				       slave_areas, slave_offset, &slave_frames);
-		snd_atomic_write_begin(&plugin->watom);
 		result = snd_pcm_mmap_commit(slave, slave_offset, slave_frames);
 		if (result > 0 && (snd_pcm_uframes_t)result != slave_frames) {
 			snd_pcm_sframes_t res;
@@ -451,16 +423,15 @@ snd_pcm_plugin_mmap_commit(snd_pcm_t *pcm,
 			res = plugin->undo_write(pcm, slave_areas, slave_offset + result, slave_frames, slave_frames - result);
 			if (res < 0) {
 				err = res;
-				goto error_atomic;
+				goto error;
 			}
 			frames -= res;
 		}
 		if (result <= 0) {
 			err = result;
-			goto error_atomic;
+			goto error;
 		}
 		snd_pcm_mmap_appl_forward(pcm, frames);
-		snd_atomic_write_end(&plugin->watom);
 		if (frames == cont)
 			appl_offset = 0;
 		else
@@ -475,8 +446,6 @@ snd_pcm_plugin_mmap_commit(snd_pcm_t *pcm,
 	}
 	return xfer;
 
- error_atomic:
-	snd_atomic_write_end(&plugin->watom);
  error:
 	return xfer > 0 ? xfer : err;
 }
@@ -519,7 +488,6 @@ static snd_pcm_sframes_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm)
 				frames = cont;
 			frames = (plugin->read)(pcm, areas, hw_offset, frames,
 					      slave_areas, slave_offset, &slave_frames);
-			snd_atomic_write_begin(&plugin->watom);
 			result = snd_pcm_mmap_commit(slave, slave_offset, slave_frames);
 			if (result > 0 && (snd_pcm_uframes_t)result != slave_frames) {
 				snd_pcm_sframes_t res;
@@ -527,16 +495,15 @@ static snd_pcm_sframes_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm)
 				res = plugin->undo_read(slave, areas, hw_offset, frames, slave_frames - result);
 				if (res < 0) {
 					err = res;
-					goto error_atomic;
+					goto error;
 				}
 				frames -= res;
 			}
 			if (result <= 0) {
 				err = result;
-				goto error_atomic;
+				goto error;
 			}
 			snd_pcm_mmap_hw_forward(pcm, frames);
-			snd_atomic_write_end(&plugin->watom);
 			if (frames == cont)
 				hw_offset = 0;
 			else
@@ -547,8 +514,6 @@ static snd_pcm_sframes_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm)
 		}
 		return (snd_pcm_sframes_t)xfer;
 
-	error_atomic:
-		snd_atomic_write_end(&plugin->watom);
 	error:
 		return xfer > 0 ? (snd_pcm_sframes_t)xfer : err;
 	}
@@ -558,24 +523,15 @@ static int snd_pcm_plugin_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 {
 	snd_pcm_plugin_t *plugin = pcm->private_data;
 	snd_pcm_sframes_t err;
-	snd_atomic_read_t ratom;
-	snd_atomic_read_init(&ratom, &plugin->watom);
- _again:
-	snd_atomic_read_begin(&ratom);
+
 	/* sync with the latest hw and appl ptrs */
 	snd_pcm_plugin_avail_update(pcm);
 
 	err = snd_pcm_status(plugin->gen.slave, status);
-	if (err < 0) {
-		snd_atomic_read_ok(&ratom);
+	if (err < 0)
 		return err;
-	}
 	status->appl_ptr = *pcm->appl.ptr;
 	status->hw_ptr = *pcm->hw.ptr;
-	if (!snd_atomic_read_ok(&ratom)) {
-		snd_atomic_read_wait(&ratom);
-		goto _again;
-	}
 	return 0;
 }
 

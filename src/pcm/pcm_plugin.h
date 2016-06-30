@@ -19,7 +19,6 @@
  *
  */
   
-#include "iatomic.h"
 #include "pcm_generic.h"
 
 typedef snd_pcm_uframes_t (*snd_pcm_slave_xfer_areas_func_t)
@@ -46,7 +45,6 @@ typedef struct {
 	snd_pcm_slave_xfer_areas_undo_func_t undo_write;
 	int (*init)(snd_pcm_t *pcm);
 	snd_pcm_uframes_t appl_ptr, hw_ptr;
-	snd_atomic_write_t watom;
 } snd_pcm_plugin_t;	
 
 /* make local functions really local */
