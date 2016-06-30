@@ -48,6 +48,7 @@ typedef struct snd_pcm_ioplug_priv {
 } ioplug_priv_t;
 
 /* update the hw pointer */
+/* called in lock */
 static void snd_pcm_ioplug_hw_ptr_update(snd_pcm_t *pcm)
 {
 	ioplug_priv_t *io = pcm->private_data;
@@ -138,12 +139,16 @@ static int snd_pcm_ioplug_reset(snd_pcm_t *pcm)
 static int snd_pcm_ioplug_prepare(snd_pcm_t *pcm)
 {
 	ioplug_priv_t *io = pcm->private_data;
+	int err = 0;
 
 	io->data->state = SND_PCM_STATE_PREPARED;
 	snd_pcm_ioplug_reset(pcm);
-	if (io->data->callback->prepare)
-		return io->data->callback->prepare(io->data);
-	return 0;
+	if (io->data->callback->prepare) {
+		snd_pcm_unlock(pcm); /* to avoid deadlock */
+		err = io->data->callback->prepare(io->data);
+		snd_pcm_lock(pcm);
+	}
+	return err;
 }
 
 static const int hw_params_type[SND_PCM_IOPLUG_HW_PARAMS] = {
@@ -429,9 +434,13 @@ static int snd_pcm_ioplug_hw_free(snd_pcm_t *pcm)
 static int snd_pcm_ioplug_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 {
 	ioplug_priv_t *io = pcm->private_data;
+	int err = 0;
 
-	if (io->data->callback->sw_params)
-		return io->data->callback->sw_params(io->data, params);
+	if (io->data->callback->sw_params) {
+		snd_pcm_unlock(pcm); /* to avoid deadlock */
+		err = io->data->callback->sw_params(io->data, params);
+		snd_pcm_lock(pcm);
+	}
 	return 0;
 }
 
@@ -469,15 +478,20 @@ static int snd_pcm_ioplug_drop(snd_pcm_t *pcm)
 	return 0;
 }
 
+/* need own locking */
 static int snd_pcm_ioplug_drain(snd_pcm_t *pcm)
 {
 	ioplug_priv_t *io = pcm->private_data;
+	int err;
 
 	if (io->data->state == SND_PCM_STATE_OPEN)
 		return -EBADFD;
 	if (io->data->callback->drain)
 		io->data->callback->drain(io->data);
-	return snd_pcm_ioplug_drop(pcm);
+	snd_pcm_lock(pcm);
+	err = snd_pcm_ioplug_drop(pcm);
+	snd_pcm_unlock(pcm);
+	return err;
 }
 
 static int snd_pcm_ioplug_pause(snd_pcm_t *pcm, int enable)
@@ -523,6 +537,7 @@ static snd_pcm_sframes_t snd_pcm_ioplug_forward(snd_pcm_t *pcm, snd_pcm_uframes_
 	return frames;
 }
 
+/* need own locking */
 static int snd_pcm_ioplug_resume(snd_pcm_t *pcm)
 {
 	ioplug_priv_t *io = pcm->private_data;
@@ -532,6 +547,7 @@ static int snd_pcm_ioplug_resume(snd_pcm_t *pcm)
 	return 0;
 }
 
+/* called in lock */
 static snd_pcm_sframes_t ioplug_priv_transfer_areas(snd_pcm_t *pcm,
 						       const snd_pcm_channel_area_t *areas,
 						       snd_pcm_uframes_t offset,
@@ -609,7 +625,7 @@ static snd_pcm_sframes_t snd_pcm_ioplug_mmap_commit(snd_pcm_t *pcm,
 		const snd_pcm_channel_area_t *areas;
 		snd_pcm_uframes_t ofs, frames = size;
 
-		snd_pcm_mmap_begin(pcm, &areas, &ofs, &frames);
+		__snd_pcm_mmap_begin(pcm, &areas, &ofs, &frames);
 		if (ofs != offset)
 			return -EIO;
 		return ioplug_priv_transfer_areas(pcm, areas, offset, frames);
@@ -635,7 +651,7 @@ static snd_pcm_sframes_t snd_pcm_ioplug_avail_update(snd_pcm_t *pcm)
 			snd_pcm_uframes_t offset, size = UINT_MAX;
 			snd_pcm_sframes_t result;
 
-			snd_pcm_mmap_begin(pcm, &areas, &offset, &size);
+			__snd_pcm_mmap_begin(pcm, &areas, &offset, &size);
 			result = io->data->callback->transfer(io->data, areas, offset, size);
 			if (result < 0)
 				return result;
@@ -658,19 +674,27 @@ static int snd_pcm_ioplug_nonblock(snd_pcm_t *pcm, int nonblock)
 static int snd_pcm_ioplug_poll_descriptors_count(snd_pcm_t *pcm)
 {
 	ioplug_priv_t *io = pcm->private_data;
+	int err = 1;
 
-	if (io->data->callback->poll_descriptors_count)
-		return io->data->callback->poll_descriptors_count(io->data);
-	else
-		return 1;
+	if (io->data->callback->poll_descriptors_count) {
+		snd_pcm_unlock(pcm); /* to avoid deadlock */
+		err = io->data->callback->poll_descriptors_count(io->data);
+		snd_pcm_lock(pcm);
+	}
+	return err;
 }
 
 static int snd_pcm_ioplug_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int space)
 {
 	ioplug_priv_t *io = pcm->private_data;
+	int err;
 
-	if (io->data->callback->poll_descriptors)
-		return io->data->callback->poll_descriptors(io->data, pfds, space);
+	if (io->data->callback->poll_descriptors) {
+		snd_pcm_unlock(pcm); /* to avoid deadlock */
+		err = io->data->callback->poll_descriptors(io->data, pfds, space);
+		snd_pcm_lock(pcm);
+		return err;
+	}
 	if (pcm->poll_fd < 0)
 		return -EIO;
 	if (space >= 1 && pfds) {
@@ -685,12 +709,17 @@ static int snd_pcm_ioplug_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, 
 static int snd_pcm_ioplug_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
 {
 	ioplug_priv_t *io = pcm->private_data;
+	int err;
 
-	if (io->data->callback->poll_revents)
-		return io->data->callback->poll_revents(io->data, pfds, nfds, revents);
-	else
+	if (io->data->callback->poll_revents) {
+		snd_pcm_unlock(pcm); /* to avoid deadlock */
+		err = io->data->callback->poll_revents(io->data, pfds, nfds, revents);
+		snd_pcm_lock(pcm);
+	} else {
 		*revents = pfds->revents;
-	return 0;
+		err = 0;
+	}
+	return err;
 }
 
 static int snd_pcm_ioplug_mmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
@@ -908,6 +937,11 @@ poll events to proper poll events for PCM, you can do it in this
 callback.
 
 Finally, the dump callback is used to print the status of the plugin.
+
+Note that some callbacks (start, stop, pointer, transfer and pause)
+may be called inside the internal pthread mutex, and they shouldn't
+call the PCM functions again unnecessarily from the callback itself;
+otherwise it may lead to a deadlock.
 
 The hw_params constraints can be defined via either
 #snd_pcm_ioplug_set_param_minmax() and #snd_pcm_ioplug_set_param_list()

@@ -440,13 +440,16 @@ static int snd_pcm_file_drop(snd_pcm_t *pcm)
 	return err;
 }
 
+/* locking */
 static int snd_pcm_file_drain(snd_pcm_t *pcm)
 {
 	snd_pcm_file_t *file = pcm->private_data;
 	int err = snd_pcm_drain(file->gen.slave);
 	if (err >= 0) {
+		__snd_pcm_lock(pcm);
 		snd_pcm_file_write_bytes(pcm, file->wbuf_used_bytes);
 		assert(file->wbuf_used_bytes == 0);
+		__snd_pcm_unlock(pcm);
 	}
 	return err;
 }
@@ -507,40 +510,49 @@ static snd_pcm_sframes_t snd_pcm_file_forward(snd_pcm_t *pcm, snd_pcm_uframes_t 
 	return err;
 }
 
+/* locking */
 static snd_pcm_sframes_t snd_pcm_file_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size)
 {
 	snd_pcm_file_t *file = pcm->private_data;
 	snd_pcm_channel_area_t areas[pcm->channels];
-	snd_pcm_sframes_t n = snd_pcm_writei(file->gen.slave, buffer, size);
+	snd_pcm_sframes_t n = _snd_pcm_writei(file->gen.slave, buffer, size);
 	if (n > 0) {
 		snd_pcm_areas_from_buf(pcm, areas, (void*) buffer);
+		__snd_pcm_lock(pcm);
 		snd_pcm_file_add_frames(pcm, areas, 0, n);
+		__snd_pcm_unlock(pcm);
 	}
 	return n;
 }
 
+/* locking */
 static snd_pcm_sframes_t snd_pcm_file_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
 	snd_pcm_file_t *file = pcm->private_data;
 	snd_pcm_channel_area_t areas[pcm->channels];
-	snd_pcm_sframes_t n = snd_pcm_writen(file->gen.slave, bufs, size);
+	snd_pcm_sframes_t n = _snd_pcm_writen(file->gen.slave, bufs, size);
 	if (n > 0) {
 		snd_pcm_areas_from_bufs(pcm, areas, bufs);
+		__snd_pcm_lock(pcm);
 		snd_pcm_file_add_frames(pcm, areas, 0, n);
+		__snd_pcm_unlock(pcm);
 	}
 	return n;
 }
 
+/* locking */
 static snd_pcm_sframes_t snd_pcm_file_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t size)
 {
 	snd_pcm_file_t *file = pcm->private_data;
 	snd_pcm_sframes_t n;
 
-	n = snd_pcm_readi(file->gen.slave, buffer, size);
+	n = _snd_pcm_readi(file->gen.slave, buffer, size);
 	if (n <= 0)
 		return n;
 	if (file->ifd >= 0) {
+		__snd_pcm_lock(pcm);
 		n = read(file->ifd, buffer, n * pcm->frame_bits / 8);
+		__snd_pcm_unlock(pcm);
 		if (n < 0)
 			return n;
 		return n * 8 / pcm->frame_bits;
@@ -548,6 +560,7 @@ static snd_pcm_sframes_t snd_pcm_file_readi(snd_pcm_t *pcm, void *buffer, snd_pc
 	return n;
 }
 
+/* locking */
 static snd_pcm_sframes_t snd_pcm_file_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
 	snd_pcm_file_t *file = pcm->private_data;
@@ -558,7 +571,7 @@ static snd_pcm_sframes_t snd_pcm_file_readn(snd_pcm_t *pcm, void **bufs, snd_pcm
 		return 0;	/* TODO: Noninterleaved read */
 	}
 
-	n = snd_pcm_readn(file->gen.slave, bufs, size);
+	n = _snd_pcm_readn(file->gen.slave, bufs, size);
 	return n;
 }
 

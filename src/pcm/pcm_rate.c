@@ -1004,6 +1004,7 @@ static int snd_pcm_rate_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsign
 	return snd_pcm_poll_descriptors_revents(rate->gen.slave, pfds, nfds, revents);
 }
 
+/* locking */
 static int snd_pcm_rate_drain(snd_pcm_t *pcm)
 {
 	snd_pcm_rate_t *rate = pcm->private_data;
@@ -1013,6 +1014,7 @@ static int snd_pcm_rate_drain(snd_pcm_t *pcm)
 		snd_pcm_uframes_t size, ofs, saved_avail_min;
 		snd_pcm_sw_params_t sw_params;
 
+		__snd_pcm_lock(pcm);
 		/* temporarily set avail_min to one */
 		sw_params = rate->sw_params;
 		saved_avail_min = sw_params.avail_min;
@@ -1023,8 +1025,10 @@ static int snd_pcm_rate_drain(snd_pcm_t *pcm)
 		ofs = rate->last_commit_ptr % pcm->buffer_size;
 		while (size > 0) {
 			snd_pcm_uframes_t psize, spsize;
+			int err;
 
-			if (snd_pcm_wait(rate->gen.slave, -1) < 0)
+			err = __snd_pcm_wait_in_lock(rate->gen.slave, -1);
+			if (err < 0)
 				break;
 			if (size > pcm->period_size) {
 				psize = pcm->period_size;
@@ -1042,6 +1046,7 @@ static int snd_pcm_rate_drain(snd_pcm_t *pcm)
 		}
 		sw_params.avail_min = saved_avail_min;
 		snd_pcm_sw_params(rate->gen.slave, &sw_params);
+		__snd_pcm_unlock(pcm);
 	}
 	return snd_pcm_drain(rate->gen.slave);
 }

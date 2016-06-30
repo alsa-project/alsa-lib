@@ -485,6 +485,15 @@ for hardware synchronized streams. When the #snd_pcm_link()
 function is called, all operations managing the stream state for these two
 streams are joined. The opposite function is #snd_pcm_unlink().
 
+\section pcm_thread_safety Thread-safety
+
+When the library is configured with the proper option, some PCM functions
+(e.g. #snd_pcm_avail_update()) are thread-safe and can be called concurrently
+from multiple threads.  Meanwhile, some functions (e.g. #snd_pcm_hw_params())
+aren't thread-safe, and application needs to call them carefully when they
+are called from multiple threads.  In general, all the functions that are
+often called during streaming are covered as thread-safe.
+
 \section pcm_dev_names PCM naming conventions
 
 The ALSA library uses a generic string representation for names of devices.
@@ -717,25 +726,32 @@ int snd_pcm_close(snd_pcm_t *pcm)
  * \param pcm PCM handle
  * \param nonblock 0 = block, 1 = nonblock mode, 2 = abort
  * \return 0 on success otherwise a negative error code
+ *
+ * The function is thread-safe when built with the proper option.
  */
 int snd_pcm_nonblock(snd_pcm_t *pcm, int nonblock)
 {
-	int err;
+	int err = 0;
+
 	assert(pcm);
+	__snd_pcm_lock(pcm); /* forced lock due to pcm field change */
 	if ((err = pcm->ops->nonblock(pcm->op_arg, nonblock)) < 0)
-		return err;
+		goto unlock;
 	if (nonblock == 2) {
 		pcm->mode |= SND_PCM_ABORT;
-		return 0;
+		goto unlock;
 	}
 	if (nonblock)
 		pcm->mode |= SND_PCM_NONBLOCK;
 	else {
 		if (pcm->hw_flags & SND_PCM_HW_PARAMS_NO_PERIOD_WAKEUP)
-			return -EINVAL;
-		pcm->mode &= ~SND_PCM_NONBLOCK;
+			err = -EINVAL;
+		else
+			pcm->mode &= ~SND_PCM_NONBLOCK;
 	}
-	return 0;
+ unlock:
+	__snd_pcm_unlock(pcm);
+	return err;
 }
 
 #ifndef DOC_HIDDEN
@@ -869,6 +885,8 @@ int snd_pcm_hw_free(snd_pcm_t *pcm)
  * The software parameters can be changed at any time.
  * The hardware parameters cannot be changed when the stream is
  * running (active).
+ *
+ * The function is thread-safe when built with the proper option.
  */
 int snd_pcm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 {
@@ -892,9 +910,12 @@ int snd_pcm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 		return -EINVAL;
 	}
 #endif
+	__snd_pcm_lock(pcm); /* forced lock due to pcm field change */
 	err = pcm->ops->sw_params(pcm->op_arg, params);
-	if (err < 0)
+	if (err < 0) {
+		__snd_pcm_unlock(pcm);
 		return err;
+	}
 	pcm->tstamp_mode = params->tstamp_mode;
 	pcm->tstamp_type = params->tstamp_type;
 	pcm->period_step = params->period_step;
@@ -905,6 +926,7 @@ int snd_pcm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 	pcm->silence_threshold = params->silence_threshold;
 	pcm->silence_size = params->silence_size;
 	pcm->boundary = params->boundary;
+	__snd_pcm_unlock(pcm);
 	return 0;
 }
 
@@ -913,11 +935,17 @@ int snd_pcm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
  * \param pcm PCM handle
  * \param status Status container
  * \return 0 on success otherwise a negative error code
+ *
+ * The function is thread-safe when built with the proper option.
  */
 int snd_pcm_status(snd_pcm_t *pcm, snd_pcm_status_t *status)
 {
+	int err;
+
 	assert(pcm && status);
-	return pcm->fast_ops->status(pcm->fast_op_arg, status);
+	snd_pcm_lock(pcm);
+	err = pcm->fast_ops->status(pcm->fast_op_arg, status);
+	snd_pcm_unlock(pcm);
 }
 
 /**
@@ -927,11 +955,18 @@ int snd_pcm_status(snd_pcm_t *pcm, snd_pcm_status_t *status)
  *
  * This is a faster way to obtain only the PCM state without calling
  * \link ::snd_pcm_status() \endlink.
+ *
+ * The function is thread-safe when built with the proper option.
  */
 snd_pcm_state_t snd_pcm_state(snd_pcm_t *pcm)
 {
+	snd_pcm_state_t state;
+
 	assert(pcm);
-	return pcm->fast_ops->state(pcm->fast_op_arg);
+	snd_pcm_lock(pcm);
+	state = __snd_pcm_state(pcm);
+	snd_pcm_unlock(pcm);
+	return state;
 }
 
 /**
@@ -942,15 +977,22 @@ snd_pcm_state_t snd_pcm_state(snd_pcm_t *pcm)
  * Note this function does not update the actual r/w pointer
  * for applications. The function #snd_pcm_avail_update()
  * have to be called before any mmap begin+commit operation.
+ *
+ * The function is thread-safe when built with the proper option.
  */
 int snd_pcm_hwsync(snd_pcm_t *pcm)
 {
+	int err;
+
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
 		SNDMSG("PCM not set up");
 		return -EIO;
 	}
-	return pcm->fast_ops->hwsync(pcm->fast_op_arg);
+	snd_pcm_lock(pcm);
+	err = __snd_pcm_hwsync(pcm);
+	snd_pcm_unlock(pcm);
+	return err;
 }
 #ifndef DOC_HIDDEN
 link_warning(snd_pcm_hwsync, "Warning: snd_pcm_hwsync() is deprecated, consider to use snd_pcm_avail()");
@@ -983,15 +1025,22 @@ link_warning(snd_pcm_hwsync, "Warning: snd_pcm_hwsync() is deprecated, consider 
  * Note this function does not update the actual r/w pointer
  * for applications. The function #snd_pcm_avail_update()
  * have to be called before any begin+commit operation.
+ *
+ * The function is thread-safe when built with the proper option.
  */
 int snd_pcm_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
+	int err;
+
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
 		SNDMSG("PCM not set up");
 		return -EIO;
 	}
-	return pcm->fast_ops->delay(pcm->fast_op_arg, delayp);
+	snd_pcm_lock(pcm);
+	err = __snd_pcm_delay(pcm, delayp);
+	snd_pcm_unlock(pcm);
+	return err;
 }
 
 /**
@@ -1005,6 +1054,8 @@ int snd_pcm_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
  * to do the fine resume from this state. Not all hardware supports
  * this feature, when an -ENOSYS error is returned, use the \link ::snd_pcm_prepare() \endlink
  * function to recovery.
+ *
+ * The function is thread-safe when built with the proper option.
  */
 int snd_pcm_resume(snd_pcm_t *pcm)
 {
@@ -1013,6 +1064,7 @@ int snd_pcm_resume(snd_pcm_t *pcm)
 		SNDMSG("PCM not set up");
 		return -EIO;
 	}
+	/* lock handled in the callback */
 	return pcm->fast_ops->resume(pcm->fast_op_arg);
 }
 
@@ -1025,30 +1077,44 @@ int snd_pcm_resume(snd_pcm_t *pcm)
  *
  * Note this function does not update the actual r/w pointer
  * for applications.
+ *
+ * The function is thread-safe when built with the proper option.
  */
 int snd_pcm_htimestamp(snd_pcm_t *pcm, snd_pcm_uframes_t *avail, snd_htimestamp_t *tstamp)
 {
+	int err;
+
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
 		SNDMSG("PCM not set up");
 		return -EIO;
 	}
-	return pcm->fast_ops->htimestamp(pcm->fast_op_arg, avail, tstamp);
+	snd_pcm_lock(pcm);
+	err = pcm->fast_ops->htimestamp(pcm->fast_op_arg, avail, tstamp);
+	snd_pcm_unlock(pcm);
+	return err;
 }
 
 /**
  * \brief Prepare PCM for use
  * \param pcm PCM handle
  * \return 0 on success otherwise a negative error code
+ *
+ * The function is thread-safe when built with the proper option.
  */
 int snd_pcm_prepare(snd_pcm_t *pcm)
 {
+	int err;
+
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
 		SNDMSG("PCM not set up");
 		return -EIO;
 	}
-	return pcm->fast_ops->prepare(pcm->fast_op_arg);
+	snd_pcm_lock(pcm);
+	err = pcm->fast_ops->prepare(pcm->fast_op_arg);
+	snd_pcm_unlock(pcm);
+	return err;
 }
 
 /**
@@ -1057,30 +1123,44 @@ int snd_pcm_prepare(snd_pcm_t *pcm)
  * \return 0 on success otherwise a negative error code
  *
  * Reduce PCM delay to 0.
+ *
+ * The function is thread-safe when built with the proper option.
  */
 int snd_pcm_reset(snd_pcm_t *pcm)
 {
+	int err;
+
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
 		SNDMSG("PCM not set up");
 		return -EIO;
 	}
-	return pcm->fast_ops->reset(pcm->fast_op_arg);
+	snd_pcm_lock(pcm);
+	err = pcm->fast_ops->reset(pcm->fast_op_arg);
+	snd_pcm_unlock(pcm);
+	return err;
 }
 
 /**
  * \brief Start a PCM
  * \param pcm PCM handle
  * \return 0 on success otherwise a negative error code
+ *
+ * The function is thread-safe when built with the proper option.
  */
 int snd_pcm_start(snd_pcm_t *pcm)
 {
+	int err;
+
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
 		SNDMSG("PCM not set up");
 		return -EIO;
 	}
-	return pcm->fast_ops->start(pcm->fast_op_arg);
+	snd_pcm_lock(pcm);
+	err = __snd_pcm_start(pcm);
+	snd_pcm_unlock(pcm);
+	return err;
 }
 
 /**
@@ -1093,15 +1173,22 @@ int snd_pcm_start(snd_pcm_t *pcm)
  *
  * For processing all pending samples, use \link ::snd_pcm_drain() \endlink
  * instead.
+ *
+ * The function is thread-safe when built with the proper option.
  */
 int snd_pcm_drop(snd_pcm_t *pcm)
 {
+	int err;
+
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
 		SNDMSG("PCM not set up");
 		return -EIO;
 	}
-	return pcm->fast_ops->drop(pcm->fast_op_arg);
+	snd_pcm_lock(pcm);
+	err = pcm->fast_ops->drop(pcm->fast_op_arg);
+	snd_pcm_unlock(pcm);
+	return err;
 }
 
 /**
@@ -1116,6 +1203,8 @@ int snd_pcm_drop(snd_pcm_t *pcm)
  *
  * For stopping the PCM stream immediately, use \link ::snd_pcm_drop() \endlink
  * instead.
+ *
+ * The function is thread-safe when built with the proper option.
  */
 int snd_pcm_drain(snd_pcm_t *pcm)
 {
@@ -1124,6 +1213,7 @@ int snd_pcm_drain(snd_pcm_t *pcm)
 		SNDMSG("PCM not set up");
 		return -EIO;
 	}
+	/* lock handled in the callback */
 	return pcm->fast_ops->drain(pcm->fast_op_arg);
 }
 
@@ -1136,15 +1226,22 @@ int snd_pcm_drain(snd_pcm_t *pcm)
  * Note that this function works only on the hardware which supports
  * pause feature.  You can check it via \link ::snd_pcm_hw_params_can_pause() \endlink
  * function.
+ *
+ * The function is thread-safe when built with the proper option.
  */
 int snd_pcm_pause(snd_pcm_t *pcm, int enable)
 {
+	int err;
+
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
 		SNDMSG("PCM not set up");
 		return -EIO;
 	}
-	return pcm->fast_ops->pause(pcm->fast_op_arg, enable);
+	snd_pcm_lock(pcm);
+	err = pcm->fast_ops->pause(pcm->fast_op_arg, enable);
+	snd_pcm_unlock(pcm);
+	return err;
 }
 
 /**
@@ -1155,15 +1252,22 @@ int snd_pcm_pause(snd_pcm_t *pcm, int enable)
  * Note: The snd_pcm_rewind() can accept bigger value than returned
  * by this function. But it is not guaranteed that output stream
  * will be consistent with bigger value.
+ *
+ * The function is thread-safe when built with the proper option.
  */
 snd_pcm_sframes_t snd_pcm_rewindable(snd_pcm_t *pcm)
 {
+	snd_pcm_sframes_t result;
+
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
 		SNDMSG("PCM not set up");
 		return -EIO;
 	}
-	return pcm->fast_ops->rewindable(pcm->fast_op_arg);
+	snd_pcm_lock(pcm);
+	result = pcm->fast_ops->rewindable(pcm->fast_op_arg);
+	snd_pcm_unlock(pcm);
+	return result;
 }
 
 /**
@@ -1172,9 +1276,13 @@ snd_pcm_sframes_t snd_pcm_rewindable(snd_pcm_t *pcm)
  * \param frames wanted displacement in frames
  * \return a positive number for actual displacement otherwise a
  * negative error code
+ *
+ * The function is thread-safe when built with the proper option.
  */
 snd_pcm_sframes_t snd_pcm_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
+	snd_pcm_sframes_t result;
+
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
 		SNDMSG("PCM not set up");
@@ -1182,7 +1290,10 @@ snd_pcm_sframes_t snd_pcm_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 	}
 	if (frames == 0)
 		return 0;
-	return pcm->fast_ops->rewind(pcm->fast_op_arg, frames);
+	snd_pcm_lock(pcm);
+	result = pcm->fast_ops->rewind(pcm->fast_op_arg, frames);
+	snd_pcm_unlock(pcm);
+	return result;
 }
 
 /**
@@ -1193,15 +1304,22 @@ snd_pcm_sframes_t snd_pcm_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
  * Note: The snd_pcm_forward() can accept bigger value than returned
  * by this function. But it is not guaranteed that output stream
  * will be consistent with bigger value.
+ *
+ * The function is thread-safe when built with the proper option.
  */
 snd_pcm_sframes_t snd_pcm_forwardable(snd_pcm_t *pcm)
 {
+	snd_pcm_sframes_t result;
+
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
 		SNDMSG("PCM not set up");
 		return -EIO;
 	}
-	return pcm->fast_ops->forwardable(pcm->fast_op_arg);
+	snd_pcm_lock(pcm);
+	result = pcm->fast_ops->forwardable(pcm->fast_op_arg);
+	snd_pcm_unlock(pcm);
+	return result;
 }
 
 /**
@@ -1210,6 +1328,8 @@ snd_pcm_sframes_t snd_pcm_forwardable(snd_pcm_t *pcm)
  * \param frames wanted skip in frames
  * \return a positive number for actual skip otherwise a negative error code
  * \retval 0 means no action
+ *
+ * The function is thread-safe when built with the proper option.
  */
 #ifndef DOXYGEN
 snd_pcm_sframes_t INTERNAL(snd_pcm_forward)(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
@@ -1217,6 +1337,8 @@ snd_pcm_sframes_t INTERNAL(snd_pcm_forward)(snd_pcm_t *pcm, snd_pcm_uframes_t fr
 snd_pcm_sframes_t snd_pcm_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 #endif
 {
+	snd_pcm_sframes_t result;
+
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
 		SNDMSG("PCM not set up");
@@ -1224,7 +1346,10 @@ snd_pcm_sframes_t snd_pcm_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 	}
 	if (frames == 0)
 		return 0;
-	return pcm->fast_ops->forward(pcm->fast_op_arg, frames);
+	snd_pcm_lock(pcm);
+	result = pcm->fast_ops->forward(pcm->fast_op_arg, frames);
+	snd_pcm_unlock(pcm);
+	return result;
 }
 use_default_symbol_version(__snd_pcm_forward, snd_pcm_forward, ALSA_0.9.0rc8);
 
@@ -1244,6 +1369,8 @@ use_default_symbol_version(__snd_pcm_forward, snd_pcm_forward, ALSA_0.9.0rc8);
  * The returned number of frames can be less only if a signal or underrun occurred.
  *
  * If the non-blocking behaviour is selected, then routine doesn't wait at all.
+ *
+ * The function is thread-safe when built with the proper option.
  */ 
 snd_pcm_sframes_t snd_pcm_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size)
 {
@@ -1276,6 +1403,8 @@ snd_pcm_sframes_t snd_pcm_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_ufr
  * The returned number of frames can be less only if a signal or underrun occurred.
  *
  * If the non-blocking behaviour is selected, then routine doesn't wait at all.
+ *
+ * The function is thread-safe when built with the proper option.
  */ 
 snd_pcm_sframes_t snd_pcm_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
@@ -1308,6 +1437,8 @@ snd_pcm_sframes_t snd_pcm_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t 
  * if a signal or underrun occurred.
  *
  * If the non-blocking behaviour is selected, then routine doesn't wait at all.
+ *
+ * The function is thread-safe when built with the proper option.
  */ 
 snd_pcm_sframes_t snd_pcm_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t size)
 {
@@ -1340,6 +1471,8 @@ snd_pcm_sframes_t snd_pcm_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t 
  * if a signal or underrun occurred.
  *
  * If the non-blocking behaviour is selected, then routine doesn't wait at all.
+ *
+ * The function is thread-safe when built with the proper option.
  */ 
 snd_pcm_sframes_t snd_pcm_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
@@ -1386,19 +1519,50 @@ int snd_pcm_unlink(snd_pcm_t *pcm)
 	return -ENOSYS;
 }
 
-/**
- * \brief get count of poll descriptors for PCM handle
- * \param pcm PCM handle
- * \return count of poll descriptors
- */
-int snd_pcm_poll_descriptors_count(snd_pcm_t *pcm)
+/* locked version */
+static int __snd_pcm_poll_descriptors_count(snd_pcm_t *pcm)
 {
-	assert(pcm);
 	if (pcm->fast_ops->poll_descriptors_count)
 		return pcm->fast_ops->poll_descriptors_count(pcm->fast_op_arg);
 	return pcm->poll_fd_count;
 }
 
+/**
+ * \brief get count of poll descriptors for PCM handle
+ * \param pcm PCM handle
+ * \return count of poll descriptors
+ *
+ * The function is thread-safe when built with the proper option.
+ */
+int snd_pcm_poll_descriptors_count(snd_pcm_t *pcm)
+{
+	int count;
+
+	assert(pcm);
+	snd_pcm_lock(pcm);
+	count = __snd_pcm_poll_descriptors_count(pcm);
+	snd_pcm_unlock(pcm);
+	return count;
+}
+
+/* locked version */
+static int __snd_pcm_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds,
+				      unsigned int space)
+{
+	if (pcm->fast_ops->poll_descriptors)
+		return pcm->fast_ops->poll_descriptors(pcm->fast_op_arg, pfds, space);
+	if (pcm->poll_fd < 0) {
+		SNDMSG("poll_fd < 0");
+		return -EIO;
+	}
+	if (space >= 1 && pfds) {
+		pfds->fd = pcm->poll_fd;
+		pfds->events = pcm->poll_events | POLLERR | POLLNVAL;
+	} else {
+		return 0;
+	}
+	return 1;
+}
 
 /**
  * \brief get poll descriptors
@@ -1425,24 +1589,22 @@ int snd_pcm_poll_descriptors_count(snd_pcm_t *pcm)
  * syscall, too. Do not forget to translate POLLIN and POLLOUT events to
  * corresponding FD_SET arrays and demangle events using
  * \link ::snd_pcm_poll_descriptors_revents() \endlink .
+ *
+ * The function is thread-safe when built with the proper option.
  */
 int snd_pcm_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int space)
 {
+	int err;
+
 	assert(pcm && pfds);
-	if (pcm->fast_ops->poll_descriptors)
-		return pcm->fast_ops->poll_descriptors(pcm->fast_op_arg, pfds, space);
-	if (pcm->poll_fd < 0) {
-		SNDMSG("poll_fd < 0");
-		return -EIO;
-	}
-	if (space >= 1 && pfds) {
-		pfds->fd = pcm->poll_fd;
-		pfds->events = pcm->poll_events | POLLERR | POLLNVAL;
-	} else {
-		return 0;
-	}
-	return 1;
+	snd_pcm_lock(pcm);
+	err = __snd_pcm_poll_descriptors(pcm, pfds, space);
+	snd_pcm_unlock(pcm);
+	return err;
 }
+
+static int __snd_pcm_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds,
+				  unsigned int nfds, unsigned short *revents);
 
 /**
  * \brief get returned events from poll descriptors
@@ -1462,10 +1624,23 @@ int snd_pcm_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int s
  *
  * Note: Even if multiple poll descriptors are used (i.e. pfds > 1),
  * this function returns only a single event.
+ *
+ * The function is thread-safe when built with the proper option.
  */
 int snd_pcm_poll_descriptors_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
 {
+	int err;
+
 	assert(pcm && pfds && revents);
+	snd_pcm_lock(pcm);
+	err = __snd_pcm_poll_revents(pcm, pfds, nfds, revents);
+	snd_pcm_unlock(pcm);
+	return err;
+}
+
+static int __snd_pcm_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds,
+				  unsigned int nfds, unsigned short *revents)
+{
 	if (pcm->fast_ops->poll_revents)
 		return pcm->fast_ops->poll_revents(pcm->fast_op_arg, pfds, nfds, revents);
 	if (nfds == 1) {
@@ -2359,6 +2534,9 @@ int snd_pcm_new(snd_pcm_t **pcmp, snd_pcm_type_t type, const char *name,
 	pcm->op_arg = pcm;
 	pcm->fast_op_arg = pcm;
 	INIT_LIST_HEAD(&pcm->async_handlers);
+#ifdef THREAD_SAFE_API
+	pthread_mutex_init(&pcm->lock, NULL);
+#endif
 	*pcmp = pcm;
 	return 0;
 }
@@ -2370,6 +2548,9 @@ int snd_pcm_free(snd_pcm_t *pcm)
 	free(pcm->hw.link_dst);
 	free(pcm->appl.link_dst);
 	snd_dlobj_cache_put(pcm->open_func);
+#ifdef THREAD_SAFE_API
+	pthread_mutex_destroy(&pcm->lock);
+#endif
 	free(pcm);
 	return 0;
 }
@@ -2401,12 +2582,26 @@ int snd_pcm_open_named_slave(snd_pcm_t **pcmp, const char *name,
  *          others for general errors) 
  * \retval 0 timeout occurred
  * \retval 1 PCM stream is ready for I/O
+ *
+ * The function is thread-safe when built with the proper option.
  */
 int snd_pcm_wait(snd_pcm_t *pcm, int timeout)
 {
+	int err;
+
+	__snd_pcm_lock(pcm); /* forced lock */
+	err = __snd_pcm_wait_in_lock(pcm, timeout);
+	__snd_pcm_unlock(pcm);
+	return err;
+}
+
+#ifndef DOC_HIDDEN
+/* locked version */
+int __snd_pcm_wait_in_lock(snd_pcm_t *pcm, int timeout)
+{
 	if (!snd_pcm_may_wait_for_avail_min(pcm, snd_pcm_mmap_avail(pcm))) {
 		/* check more precisely */
-		switch (snd_pcm_state(pcm)) {
+		switch (__snd_pcm_state(pcm)) {
 		case SND_PCM_STATE_XRUN:
 			return -EPIPE;
 		case SND_PCM_STATE_SUSPENDED:
@@ -2420,11 +2615,12 @@ int snd_pcm_wait(snd_pcm_t *pcm, int timeout)
 	return snd_pcm_wait_nocheck(pcm, timeout);
 }
 
-#ifndef DOC_HIDDEN
 /* 
  * like snd_pcm_wait() but doesn't check mmap_avail before calling poll()
  *
  * used in drain code in some plugins
+ *
+ * This function is called inside pcm lock.
  */
 int snd_pcm_wait_nocheck(snd_pcm_t *pcm, int timeout)
 {
@@ -2432,13 +2628,13 @@ int snd_pcm_wait_nocheck(snd_pcm_t *pcm, int timeout)
 	unsigned short revents = 0;
 	int npfds, err, err_poll;
 	
-	npfds = snd_pcm_poll_descriptors_count(pcm);
+	npfds = __snd_pcm_poll_descriptors_count(pcm);
 	if (npfds <= 0 || npfds >= 16) {
 		SNDERR("Invalid poll_fds %d\n", npfds);
 		return -EIO;
 	}
 	pfd = alloca(sizeof(*pfd) * npfds);
-	err = snd_pcm_poll_descriptors(pcm, pfd, npfds);
+	err = __snd_pcm_poll_descriptors(pcm, pfd, npfds);
 	if (err < 0)
 		return err;
 	if (err != npfds) {
@@ -2446,7 +2642,9 @@ int snd_pcm_wait_nocheck(snd_pcm_t *pcm, int timeout)
 		return -EIO;
 	}
 	do {
+		__snd_pcm_unlock(pcm);
 		err_poll = poll(pfd, npfds, timeout);
+		__snd_pcm_lock(pcm);
 		if (err_poll < 0) {
 		        if (errno == EINTR && !PCMINABORT(pcm))
 		                continue;
@@ -2454,12 +2652,12 @@ int snd_pcm_wait_nocheck(snd_pcm_t *pcm, int timeout)
                 }
 		if (! err_poll)
 			break;
-		err = snd_pcm_poll_descriptors_revents(pcm, pfd, npfds, &revents);
+		err = __snd_pcm_poll_revents(pcm, pfd, npfds, &revents);
 		if (err < 0)
 			return err;
 		if (revents & (POLLERR | POLLNVAL)) {
 			/* check more precisely */
-			switch (snd_pcm_state(pcm)) {
+			switch (__snd_pcm_state(pcm)) {
 			case SND_PCM_STATE_XRUN:
 				return -EPIPE;
 			case SND_PCM_STATE_SUSPENDED:
@@ -2474,8 +2672,8 @@ int snd_pcm_wait_nocheck(snd_pcm_t *pcm, int timeout)
 #if 0 /* very useful code to test poll related problems */
 	{
 		snd_pcm_sframes_t avail_update;
-		snd_pcm_hwsync(pcm);
-		avail_update = snd_pcm_avail_update(pcm);
+		__snd_pcm_hwsync(pcm);
+		avail_update = __snd_pcm_avail_update(pcm);
 		if (avail_update < (snd_pcm_sframes_t)pcm->avail_min) {
 			printf("*** snd_pcm_wait() FATAL ERROR!!!\n");
 			printf("avail_min = %li, avail_update = %li\n", pcm->avail_min, avail_update);
@@ -2506,10 +2704,17 @@ int snd_pcm_wait_nocheck(snd_pcm_t *pcm, int timeout)
  * Also this function might be called after #snd_pcm_delay() or
  * #snd_pcm_hwsync() functions to move private ring buffer pointers
  * in alsa-lib (the internal plugin chain).
+ *
+ * The function is thread-safe when built with the proper option.
  */
 snd_pcm_sframes_t snd_pcm_avail_update(snd_pcm_t *pcm)
 {
-	return pcm->fast_ops->avail_update(pcm->fast_op_arg);
+	snd_pcm_sframes_t result;
+
+	snd_pcm_lock(pcm);
+	result = __snd_pcm_avail_update(pcm);
+	snd_pcm_unlock(pcm);
+	return result;
 }
 
 /**
@@ -2523,20 +2728,27 @@ snd_pcm_sframes_t snd_pcm_avail_update(snd_pcm_t *pcm)
  *
  * The position is synced with hardware (driver) position in the sound
  * ring buffer in this functions.
+ *
+ * The function is thread-safe when built with the proper option.
  */
 snd_pcm_sframes_t snd_pcm_avail(snd_pcm_t *pcm)
 {
 	int err;
+	snd_pcm_sframes_t result;
 
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
 		SNDMSG("PCM not set up");
 		return -EIO;
 	}
-	err = pcm->fast_ops->hwsync(pcm->fast_op_arg);
+	snd_pcm_lock(pcm);
+	err = __snd_pcm_hwsync(pcm);
 	if (err < 0)
-		return err;
-	return pcm->fast_ops->avail_update(pcm->fast_op_arg);
+		result = err;
+	else
+		result = __snd_pcm_avail_update(pcm);
+	snd_pcm_unlock(pcm);
+	return result;
 }
 
 /**
@@ -2547,6 +2759,8 @@ snd_pcm_sframes_t snd_pcm_avail(snd_pcm_t *pcm)
  * \return zero on success otherwise a negative error code
  *
  * The avail and delay values retuned are in sync.
+ *
+ * The function is thread-safe when built with the proper option.
  */
 int snd_pcm_avail_delay(snd_pcm_t *pcm,
 			snd_pcm_sframes_t *availp,
@@ -2560,17 +2774,23 @@ int snd_pcm_avail_delay(snd_pcm_t *pcm,
 		SNDMSG("PCM not set up");
 		return -EIO;
 	}
-	err = pcm->fast_ops->hwsync(pcm->fast_op_arg);
+	snd_pcm_lock(pcm);
+	err = __snd_pcm_hwsync(pcm);
 	if (err < 0)
-		return err;
-	sf = pcm->fast_ops->avail_update(pcm->fast_op_arg);
-	if (sf < 0)
-		return (int)sf;
-	err = pcm->fast_ops->delay(pcm->fast_op_arg, delayp);
+		goto unlock;
+	sf = __snd_pcm_avail_update(pcm);
+	if (sf < 0) {
+		err = (int)sf;
+		goto unlock;
+	}
+	err = __snd_pcm_delay(pcm, delayp);
 	if (err < 0)
-		return err;
+		goto unlock;
 	*availp = sf;
-	return 0;
+	err = 0;
+ unlock:
+	snd_pcm_unlock(pcm);
+	return err;
 }
 
 /**
@@ -5646,6 +5866,8 @@ int snd_pcm_hw_params_get_min_align(const snd_pcm_hw_params_t *params, snd_pcm_u
  * \param pcm PCM handle
  * \param params Software configuration container
  * \return 0 on success otherwise a negative error code
+ *
+ * The function is thread-safe when built with the proper option.
  */
 int snd_pcm_sw_params_current(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 {
@@ -5654,6 +5876,7 @@ int snd_pcm_sw_params_current(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 		SNDMSG("PCM not set up");
 		return -EIO;
 	}
+	__snd_pcm_lock(pcm); /* forced lock due to pcm field changes */
 	params->proto = SNDRV_PCM_VERSION;
 	params->tstamp_mode = pcm->tstamp_mode;
 	params->tstamp_type = pcm->tstamp_type;
@@ -5667,6 +5890,7 @@ int snd_pcm_sw_params_current(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 	params->silence_threshold = pcm->silence_threshold;
 	params->silence_size = pcm->silence_size;
 	params->boundary = pcm->boundary;
+	__snd_pcm_unlock(pcm);
 	return 0;
 }
 
@@ -6680,11 +6904,26 @@ void snd_pcm_info_set_stream(snd_pcm_info_t *obj, snd_pcm_stream_t val)
  *
  * See the snd_pcm_mmap_commit() function to finish the frame processing in
  * the direct areas.
+ *
+ * The function is thread-safe when built with the proper option.
  */
 int snd_pcm_mmap_begin(snd_pcm_t *pcm,
 		       const snd_pcm_channel_area_t **areas,
 		       snd_pcm_uframes_t *offset,
 		       snd_pcm_uframes_t *frames)
+{
+	int err;
+
+	snd_pcm_lock(pcm);
+	err = __snd_pcm_mmap_begin(pcm, areas, offset, frames);
+	snd_pcm_unlock(pcm);
+	return err;
+}
+
+#ifndef DOC_HIDDEN
+/* locked version */
+int __snd_pcm_mmap_begin(snd_pcm_t *pcm, const snd_pcm_channel_area_t **areas,
+		       snd_pcm_uframes_t *offset, snd_pcm_uframes_t *frames)
 {
 	snd_pcm_uframes_t cont;
 	snd_pcm_uframes_t f;
@@ -6708,6 +6947,7 @@ int snd_pcm_mmap_begin(snd_pcm_t *pcm,
 	*frames = f;
 	return 0;
 }
+#endif
 
 /**
  * \brief Application has completed the access to area requested with #snd_pcm_mmap_begin
@@ -6760,10 +7000,26 @@ int snd_pcm_mmap_begin(snd_pcm_t *pcm,
  *
  * Look to the \ref example_test_pcm "Sine-wave generator" example
  * for more details about the generate_sine function.
+ *
+ * The function is thread-safe when built with the proper option.
  */
 snd_pcm_sframes_t snd_pcm_mmap_commit(snd_pcm_t *pcm,
 				      snd_pcm_uframes_t offset,
 				      snd_pcm_uframes_t frames)
+{
+	snd_pcm_sframes_t result;
+
+	snd_pcm_lock(pcm);
+	result = __snd_pcm_mmap_commit(pcm, offset, frames);
+	snd_pcm_unlock(pcm);
+	return result;
+}
+
+#ifndef DOC_HIDDEN
+/* locked version*/
+snd_pcm_sframes_t __snd_pcm_mmap_commit(snd_pcm_t *pcm,
+					snd_pcm_uframes_t offset,
+					snd_pcm_uframes_t frames)
 {
 	assert(pcm);
 	if (CHECK_SANITY(offset != *pcm->appl.ptr % pcm->buffer_size)) {
@@ -6779,8 +7035,6 @@ snd_pcm_sframes_t snd_pcm_mmap_commit(snd_pcm_t *pcm,
 	return pcm->fast_ops->mmap_commit(pcm->fast_op_arg, offset, frames);
 }
 
-#ifndef DOC_HIDDEN
-
 int _snd_pcm_poll_descriptor(snd_pcm_t *pcm)
 {
 	assert(pcm);
@@ -6791,24 +7045,32 @@ void snd_pcm_areas_from_buf(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas,
 			    void *buf)
 {
 	unsigned int channel;
-	unsigned int channels = pcm->channels;
+	unsigned int channels;
+
+	snd_pcm_lock(pcm);
+	channels = pcm->channels;
 	for (channel = 0; channel < channels; ++channel, ++areas) {
 		areas->addr = buf;
 		areas->first = channel * pcm->sample_bits;
 		areas->step = pcm->frame_bits;
 	}
+	snd_pcm_unlock(pcm);
 }
 
 void snd_pcm_areas_from_bufs(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas, 
 			     void **bufs)
 {
 	unsigned int channel;
-	unsigned int channels = pcm->channels;
+	unsigned int channels;
+
+	snd_pcm_lock(pcm);
+	channels = pcm->channels;
 	for (channel = 0; channel < channels; ++channel, ++areas, ++bufs) {
 		areas->addr = *bufs;
 		areas->first = 0;
 		areas->step = pcm->sample_bits;
 	}
+	snd_pcm_unlock(pcm);
 }
 
 snd_pcm_sframes_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_t *areas,
@@ -6822,19 +7084,20 @@ snd_pcm_sframes_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_
 	if (size == 0)
 		return 0;
 
+	__snd_pcm_lock(pcm); /* forced lock */
 	while (size > 0) {
 		snd_pcm_uframes_t frames;
 		snd_pcm_sframes_t avail;
 	_again:
-		state = snd_pcm_state(pcm);
+		state = __snd_pcm_state(pcm);
 		switch (state) {
 		case SND_PCM_STATE_PREPARED:
-			err = snd_pcm_start(pcm);
+			err = __snd_pcm_start(pcm);
 			if (err < 0)
 				goto _end;
 			break;
 		case SND_PCM_STATE_RUNNING:
-			err = snd_pcm_hwsync(pcm);
+			err = __snd_pcm_hwsync(pcm);
 			if (err < 0)
 				goto _end;
 			break;
@@ -6854,7 +7117,7 @@ snd_pcm_sframes_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_
 			err = -EBADFD;
 			goto _end;
 		}
-		avail = snd_pcm_avail_update(pcm);
+		avail = __snd_pcm_avail_update(pcm);
 		if (avail < 0) {
 			err = avail;
 			goto _end;
@@ -6867,7 +7130,7 @@ snd_pcm_sframes_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_
 				goto _end;
 			}
 
-			err = snd_pcm_wait(pcm, -1);
+			err = __snd_pcm_wait_in_lock(pcm, -1);
 			if (err < 0)
 				break;
 			goto _again;
@@ -6887,6 +7150,7 @@ snd_pcm_sframes_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_
 		xfer += frames;
 	}
  _end:
+	__snd_pcm_unlock(pcm);
 	return xfer > 0 ? (snd_pcm_sframes_t) xfer : snd_pcm_check_error(pcm, err);
 }
 
@@ -6901,17 +7165,18 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 	if (size == 0)
 		return 0;
 
+	__snd_pcm_lock(pcm); /* forced lock */
 	while (size > 0) {
 		snd_pcm_uframes_t frames;
 		snd_pcm_sframes_t avail;
 	_again:
-		state = snd_pcm_state(pcm);
+		state = __snd_pcm_state(pcm);
 		switch (state) {
 		case SND_PCM_STATE_PREPARED:
 		case SND_PCM_STATE_PAUSED:
 			break;
 		case SND_PCM_STATE_RUNNING:
-			err = snd_pcm_hwsync(pcm);
+			err = __snd_pcm_hwsync(pcm);
 			if (err < 0)
 				goto _end;
 			break;
@@ -6928,7 +7193,7 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 			err = -EBADFD;
 			goto _end;
 		}
-		avail = snd_pcm_avail_update(pcm);
+		avail = __snd_pcm_avail_update(pcm);
 		if (avail < 0) {
 			err = avail;
 			goto _end;
@@ -6959,10 +7224,10 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 			snd_pcm_sframes_t hw_avail = pcm->buffer_size - avail;
 			hw_avail += frames;
 			/* some plugins might automatically start the stream */
-			state = snd_pcm_state(pcm);
+			state = __snd_pcm_state(pcm);
 			if (state == SND_PCM_STATE_PREPARED &&
 			    hw_avail >= (snd_pcm_sframes_t) pcm->start_threshold) {
-				err = snd_pcm_start(pcm);
+				err = __snd_pcm_start(pcm);
 				if (err < 0)
 					goto _end;
 			}
@@ -6972,6 +7237,7 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 		xfer += frames;
 	}
  _end:
+	__snd_pcm_unlock(pcm);
 	return xfer > 0 ? (snd_pcm_sframes_t) xfer : snd_pcm_check_error(pcm, err);
 }
 

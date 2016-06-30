@@ -124,19 +124,19 @@ struct snd_pcm_ioplug {
 /** Callback table of ioplug */
 struct snd_pcm_ioplug_callback {
 	/**
-	 * start the PCM; required
+	 * start the PCM; required, called inside mutex lock
 	 */
 	int (*start)(snd_pcm_ioplug_t *io);
 	/**
-	 * stop the PCM; required
+	 * stop the PCM; required, called inside mutex lock
 	 */
 	int (*stop)(snd_pcm_ioplug_t *io);
 	/**
-	 * get the current DMA position; required
+	 * get the current DMA position; required, called inside mutex lock
 	 */
 	snd_pcm_sframes_t (*pointer)(snd_pcm_ioplug_t *io);
 	/**
-	 * transfer the data; optional
+	 * transfer the data; optional, called inside mutex lock
 	 */
 	snd_pcm_sframes_t (*transfer)(snd_pcm_ioplug_t *io,
 				      const snd_pcm_channel_area_t *areas,
@@ -167,7 +167,7 @@ struct snd_pcm_ioplug_callback {
 	 */
 	int (*drain)(snd_pcm_ioplug_t *io);
 	/**
-	 * toggle pause; optional
+	 * toggle pause; optional, called inside mutex lock
 	 */
 	int (*pause)(snd_pcm_ioplug_t *io, int enable);
 	/**

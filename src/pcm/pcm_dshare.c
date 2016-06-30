@@ -354,7 +354,8 @@ static int snd_pcm_dshare_drop(snd_pcm_t *pcm)
 	return 0;
 }
 
-static int snd_pcm_dshare_drain(snd_pcm_t *pcm)
+/* locked version */
+static int __snd_pcm_dshare_drain(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dshare = pcm->private_data;
 	snd_pcm_uframes_t stop_threshold;
@@ -410,6 +411,16 @@ static int snd_pcm_dshare_drain(snd_pcm_t *pcm)
 	} while (dshare->state == SND_PCM_STATE_DRAINING);
 	pcm->stop_threshold = stop_threshold;
 	return 0;
+}
+
+static int snd_pcm_dshare_drain(snd_pcm_t *pcm)
+{
+	int err;
+
+	snd_pcm_lock(pcm);
+	err = __snd_pcm_dshare_drain(pcm);
+	snd_pcm_unlock(pcm);
+	return err;
 }
 
 static int snd_pcm_dshare_pause(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int enable ATTRIBUTE_UNUSED)

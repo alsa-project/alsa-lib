@@ -104,6 +104,15 @@ option. This option disables usage of float numbers in PCM route plugin.
 ALSA could then leave much more CPU cycles for your applications, but you 
 could still need some floating point emulator.
 
+Thread-safety option
+--------------------
+
+As default, major PCM functions of alsa-lib are built to be
+thread-safe with pthread mutex (while this wasn't present in the
+versions earlier than 1.1.2).  If you want to build without this
+thread-safety support but reduce the overhead, pass
+--disable-thread-safety configure option.
+
 Jack plugin
 -----------
 

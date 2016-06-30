@@ -632,6 +632,21 @@ elif test "$max_cards" -gt 256; then
 fi
 AC_DEFINE_UNQUOTED(SND_MAX_CARDS, $max_cards, [Max number of cards])
 
+dnl Check for thread-safe API functions
+if test "$HAVE_LIBPTHREAD" = "yes"; then
+AC_MSG_CHECKING(for thread-safe API functions)
+AC_ARG_ENABLE(thread-safety,
+  AS_HELP_STRING([--disable-thread-safety],
+    [disable thread-safe API functions]),
+  threadsafe="$enableval", threadsafe="yes")
+if test "$threadsafe" = "yes"; then
+  AC_MSG_RESULT(yes)
+  AC_DEFINE([THREAD_SAFE_API], "1", [Disable thread-safe API functions])
+else
+  AC_MSG_RESULT(no)
+fi
+fi
+
 dnl Make a symlink for inclusion of alsa/xxx.h
 if test ! -L "$srcdir"/include/alsa ; then
   echo "Making a symlink include/alsa"

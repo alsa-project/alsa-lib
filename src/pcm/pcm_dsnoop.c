@@ -297,7 +297,8 @@ static int snd_pcm_dsnoop_drop(snd_pcm_t *pcm)
 	return 0;
 }
 
-static int snd_pcm_dsnoop_drain(snd_pcm_t *pcm)
+/* locked version */
+static int __snd_pcm_dsnoop_drain(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dsnoop = pcm->private_data;
 	snd_pcm_uframes_t stop_threshold;
@@ -314,10 +315,20 @@ static int snd_pcm_dsnoop_drain(snd_pcm_t *pcm)
 			break;
 		if (pcm->mode & SND_PCM_NONBLOCK)
 			return -EAGAIN;
-		snd_pcm_wait(pcm, -1);
+		__snd_pcm_wait_in_lock(pcm, -1);
 	}
 	pcm->stop_threshold = stop_threshold;
 	return snd_pcm_dsnoop_drop(pcm);
+}
+
+static int snd_pcm_dsnoop_drain(snd_pcm_t *pcm)
+{
+	int err;
+
+	snd_pcm_lock(pcm);
+	err = __snd_pcm_dsnoop_drain(pcm);
+	snd_pcm_unlock(pcm);
+	return err;
 }
 
 static int snd_pcm_dsnoop_pause(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int enable ATTRIBUTE_UNUSED)

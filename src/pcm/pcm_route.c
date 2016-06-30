@@ -877,7 +877,7 @@ static int route_chmap_init(snd_pcm_t *pcm)
 	snd_pcm_route_t *route = pcm->private_data;
 	if (!route->chmap)
 		return 0;
-	if (snd_pcm_state(pcm) != SND_PCM_STATE_PREPARED)
+	if (__snd_pcm_state(pcm) != SND_PCM_STATE_PREPARED)
 		return 0;
 
 	/* Check if we really need to set the chmap or not.

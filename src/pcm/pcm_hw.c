@@ -1505,6 +1505,9 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name,
 	pcm->poll_fd = fd;
 	pcm->poll_events = info.stream == SND_PCM_STREAM_PLAYBACK ? POLLOUT : POLLIN;
 	pcm->tstamp_type = tstamp_type;
+#ifdef THREAD_SAFE_API
+	pcm->thread_safe = 1;
+#endif
 
 	ret = snd_pcm_hw_mmap_status(pcm);
 	if (ret < 0) {

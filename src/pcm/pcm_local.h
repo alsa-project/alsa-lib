@@ -34,6 +34,10 @@
 
 #include "local.h"
 
+#ifdef THREAD_SAFE_API
+#include <pthread.h>
+#endif
+
 #define SND_INTERVAL_INLINE
 #include "interval.h"
 
@@ -133,13 +137,13 @@ typedef struct _snd_pcm_channel_info {
 
 typedef struct {
 	int (*close)(snd_pcm_t *pcm);
-	int (*nonblock)(snd_pcm_t *pcm, int nonblock);
+	int (*nonblock)(snd_pcm_t *pcm, int nonblock); /* always locked */
 	int (*async)(snd_pcm_t *pcm, int sig, pid_t pid);
 	int (*info)(snd_pcm_t *pcm, snd_pcm_info_t *info);
 	int (*hw_refine)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 	int (*hw_params)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 	int (*hw_free)(snd_pcm_t *pcm);
-	int (*sw_params)(snd_pcm_t *pcm, snd_pcm_sw_params_t *params);
+	int (*sw_params)(snd_pcm_t *pcm, snd_pcm_sw_params_t *params); /* always locked */
 	int (*channel_info)(snd_pcm_t *pcm, snd_pcm_channel_info_t *info);
 	void (*dump)(snd_pcm_t *pcm, snd_output_t *out);
 	int (*mmap)(snd_pcm_t *pcm);
@@ -150,34 +154,34 @@ typedef struct {
 } snd_pcm_ops_t;
 
 typedef struct {
-	int (*status)(snd_pcm_t *pcm, snd_pcm_status_t *status);
-	int (*prepare)(snd_pcm_t *pcm);
-	int (*reset)(snd_pcm_t *pcm);
-	int (*start)(snd_pcm_t *pcm);
-	int (*drop)(snd_pcm_t *pcm);
-	int (*drain)(snd_pcm_t *pcm);
-	int (*pause)(snd_pcm_t *pcm, int enable);
-	snd_pcm_state_t (*state)(snd_pcm_t *pcm);
-	int (*hwsync)(snd_pcm_t *pcm);
-	int (*delay)(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp);
-	int (*resume)(snd_pcm_t *pcm);
+	int (*status)(snd_pcm_t *pcm, snd_pcm_status_t *status); /* locked */
+	int (*prepare)(snd_pcm_t *pcm); /* locked */
+	int (*reset)(snd_pcm_t *pcm); /* locked */
+	int (*start)(snd_pcm_t *pcm); /* locked */
+	int (*drop)(snd_pcm_t *pcm); /* locked */
+	int (*drain)(snd_pcm_t *pcm); /* need own locking */
+	int (*pause)(snd_pcm_t *pcm, int enable); /* locked */
+	snd_pcm_state_t (*state)(snd_pcm_t *pcm); /* locked */
+	int (*hwsync)(snd_pcm_t *pcm); /* locked */
+	int (*delay)(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp); /* locked */
+	int (*resume)(snd_pcm_t *pcm); /* need own locking */
 	int (*link)(snd_pcm_t *pcm1, snd_pcm_t *pcm2);
 	int (*link_slaves)(snd_pcm_t *pcm, snd_pcm_t *master);
 	int (*unlink)(snd_pcm_t *pcm);
-	snd_pcm_sframes_t (*rewindable)(snd_pcm_t *pcm);
-	snd_pcm_sframes_t (*rewind)(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
-	snd_pcm_sframes_t (*forwardable)(snd_pcm_t *pcm);
-	snd_pcm_sframes_t (*forward)(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
-	snd_pcm_sframes_t (*writei)(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size);
-	snd_pcm_sframes_t (*writen)(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size);
-	snd_pcm_sframes_t (*readi)(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t size);
-	snd_pcm_sframes_t (*readn)(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size);
-	snd_pcm_sframes_t (*avail_update)(snd_pcm_t *pcm);
-	snd_pcm_sframes_t (*mmap_commit)(snd_pcm_t *pcm, snd_pcm_uframes_t offset, snd_pcm_uframes_t size);
-	int (*htimestamp)(snd_pcm_t *pcm, snd_pcm_uframes_t *avail, snd_htimestamp_t *tstamp);
-	int (*poll_descriptors_count)(snd_pcm_t *pcm);
-	int (*poll_descriptors)(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int space);
-	int (*poll_revents)(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents);
+	snd_pcm_sframes_t (*rewindable)(snd_pcm_t *pcm); /* locked */
+	snd_pcm_sframes_t (*rewind)(snd_pcm_t *pcm, snd_pcm_uframes_t frames); /* locked */
+	snd_pcm_sframes_t (*forwardable)(snd_pcm_t *pcm); /* locked */
+	snd_pcm_sframes_t (*forward)(snd_pcm_t *pcm, snd_pcm_uframes_t frames); /* locked */
+	snd_pcm_sframes_t (*writei)(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size); /* need own locking */
+	snd_pcm_sframes_t (*writen)(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size); /* need own locking */
+	snd_pcm_sframes_t (*readi)(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t size); /* need own locking */
+	snd_pcm_sframes_t (*readn)(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size); /* need own locking */
+	snd_pcm_sframes_t (*avail_update)(snd_pcm_t *pcm); /* locked */
+	snd_pcm_sframes_t (*mmap_commit)(snd_pcm_t *pcm, snd_pcm_uframes_t offset, snd_pcm_uframes_t size); /* locked */
+	int (*htimestamp)(snd_pcm_t *pcm, snd_pcm_uframes_t *avail, snd_htimestamp_t *tstamp); /* locked */
+	int (*poll_descriptors_count)(snd_pcm_t *pcm); /* locked */
+	int (*poll_descriptors)(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int space); /* locked */
+	int (*poll_revents)(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents); /* locked */
 	int (*may_wait_for_avail_min)(snd_pcm_t *pcm, snd_pcm_uframes_t avail);
 } snd_pcm_fast_ops_t;
 
@@ -239,6 +243,10 @@ struct _snd_pcm {
 	snd_pcm_t *fast_op_arg;
 	void *private_data;
 	struct list_head async_handlers;
+#ifdef THREAD_SAFE_API
+	int thread_safe;
+	pthread_mutex_t lock;
+#endif
 };
 
 /* make local functions really local */
@@ -401,11 +409,44 @@ int _snd_pcm_poll_descriptor(snd_pcm_t *pcm);
 #define _snd_pcm_link_descriptor _snd_pcm_poll_descriptor /* FIXME */
 #define _snd_pcm_async_descriptor _snd_pcm_poll_descriptor /* FIXME */
 
+/* locked versions */
+int __snd_pcm_mmap_begin(snd_pcm_t *pcm, const snd_pcm_channel_area_t **areas,
+			 snd_pcm_uframes_t *offset, snd_pcm_uframes_t *frames);
+snd_pcm_sframes_t __snd_pcm_mmap_commit(snd_pcm_t *pcm,
+					snd_pcm_uframes_t offset,
+					snd_pcm_uframes_t frames);
+int __snd_pcm_wait_in_lock(snd_pcm_t *pcm, int timeout);
+
+static inline snd_pcm_sframes_t __snd_pcm_avail_update(snd_pcm_t *pcm)
+{
+	return pcm->fast_ops->avail_update(pcm->fast_op_arg);
+}
+
+static inline int __snd_pcm_start(snd_pcm_t *pcm)
+{
+	return pcm->fast_ops->start(pcm->fast_op_arg);
+}
+
+static inline snd_pcm_state_t __snd_pcm_state(snd_pcm_t *pcm)
+{
+	return pcm->fast_ops->state(pcm->fast_op_arg);
+}
+
+static inline int __snd_pcm_hwsync(snd_pcm_t *pcm)
+{
+	return pcm->fast_ops->hwsync(pcm->fast_op_arg);
+}
+
+static inline int __snd_pcm_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
+{
+	return pcm->fast_ops->delay(pcm->fast_op_arg, delayp);
+}
+
 /* handle special error cases */
 static inline int snd_pcm_check_error(snd_pcm_t *pcm, int err)
 {
 	if (err == -EINTR) {
-		switch (snd_pcm_state(pcm)) {
+		switch (__snd_pcm_state(pcm)) {
 		case SND_PCM_STATE_XRUN:
 			return -EPIPE;
 		case SND_PCM_STATE_SUSPENDED:
@@ -483,7 +524,7 @@ static inline snd_pcm_uframes_t snd_pcm_mmap_hw_rewindable(snd_pcm_t *pcm)
 static inline const snd_pcm_channel_area_t *snd_pcm_mmap_areas(snd_pcm_t *pcm)
 {
 	if (pcm->stopped_areas &&
-	    snd_pcm_state(pcm) != SND_PCM_STATE_RUNNING) 
+	    __snd_pcm_state(pcm) != SND_PCM_STATE_RUNNING)
 		return pcm->stopped_areas;
 	return pcm->running_areas;
 }
@@ -533,21 +574,25 @@ static inline unsigned int snd_pcm_channel_area_step(const snd_pcm_channel_area_
 
 static inline snd_pcm_sframes_t _snd_pcm_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size)
 {
+	/* lock handled in the callback */
 	return pcm->fast_ops->writei(pcm->fast_op_arg, buffer, size);
 }
 
 static inline snd_pcm_sframes_t _snd_pcm_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
+	/* lock handled in the callback */
 	return pcm->fast_ops->writen(pcm->fast_op_arg, bufs, size);
 }
 
 static inline snd_pcm_sframes_t _snd_pcm_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t size)
 {
+	/* lock handled in the callback */
 	return pcm->fast_ops->readi(pcm->fast_op_arg, buffer, size);
 }
 
 static inline snd_pcm_sframes_t _snd_pcm_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
+	/* lock handled in the callback */
 	return pcm->fast_ops->readn(pcm->fast_op_arg, bufs, size);
 }
 
@@ -1038,3 +1083,29 @@ static inline void sw_set_period_event(snd_pcm_sw_params_t *params, int val)
 }
 
 #define PCMINABORT(pcm) (((pcm)->mode & SND_PCM_ABORT) != 0)
+
+#ifdef THREAD_SAFE_API
+static inline void __snd_pcm_lock(snd_pcm_t *pcm)
+{
+	pthread_mutex_lock(&pcm->lock);
+}
+static inline void __snd_pcm_unlock(snd_pcm_t *pcm)
+{
+	pthread_mutex_unlock(&pcm->lock);
+}
+static inline void snd_pcm_lock(snd_pcm_t *pcm)
+{
+	if (!pcm->thread_safe)
+		pthread_mutex_lock(&pcm->lock);
+}
+static inline void snd_pcm_unlock(snd_pcm_t *pcm)
+{
+	if (!pcm->thread_safe)
+		pthread_mutex_unlock(&pcm->lock);
+}
+#else /* THREAD_SAFE_API */
+#define __snd_pcm_lock(pcm)		do {} while (0)
+#define __snd_pcm_unlock(pcm)		do {} while (0)
+#define snd_pcm_lock(pcm)		do {} while (0)
+#define snd_pcm_unlock(pcm)		do {} while (0)
+#endif /* THREAD_SAFE_API */
