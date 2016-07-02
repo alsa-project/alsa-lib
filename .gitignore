@@ -58,6 +58,7 @@ test/oldapi
 test/chmap
 test/pcm
 test/pcm_min
+test/pcm-multi-thread
 test/playmidi1
 test/queue_timer
 test/rawmidi
