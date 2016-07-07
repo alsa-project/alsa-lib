@@ -513,7 +513,7 @@ int main(void)
 			trial.dimension[0] = 8;
 			trial.dimension[1] = 4;
 			trial.dimension[2] = 8;
-			trial.dimension[3] = 4;
+			trial.dimension[3] = 2;
 			trial.add_elem_set = add_bytes_elem_set;
 			trial.check_elem_props = NULL;
 			trial.change_elem_members = change_bytes_elem_members;
