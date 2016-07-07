@@ -494,6 +494,13 @@ aren't thread-safe, and application needs to call them carefully when they
 are called from multiple threads.  In general, all the functions that are
 often called during streaming are covered as thread-safe.
 
+This thread-safe behavior can be disabled also by passing 0 to the environment
+variable LIBASOUND_THREAD_SAFE, e.g.
+\code
+LIBASOUND_THREAD_SAFE=0 aplay foo.wav
+\endcode
+for making the debugging easier.
+
 \section pcm_dev_names PCM naming conventions
 
 The ALSA library uses a generic string representation for names of devices.
@@ -2536,6 +2543,15 @@ int snd_pcm_new(snd_pcm_t **pcmp, snd_pcm_type_t type, const char *name,
 	INIT_LIST_HEAD(&pcm->async_handlers);
 #ifdef THREAD_SAFE_API
 	pthread_mutex_init(&pcm->lock, NULL);
+	{
+		static int default_thread_safe = -1;
+		if (default_thread_safe < 0) {
+			char *p = getenv("LIBASOUND_THREAD_SAFE");
+			default_thread_safe = !p || *p != '0';
+		}
+		if (!default_thread_safe)
+			pcm->thread_safe = -1; /* force to disable */
+	}
 #endif
 	*pcmp = pcm;
 	return 0;

@@ -1087,11 +1087,13 @@ static inline void sw_set_period_event(snd_pcm_sw_params_t *params, int val)
 #ifdef THREAD_SAFE_API
 static inline void __snd_pcm_lock(snd_pcm_t *pcm)
 {
-	pthread_mutex_lock(&pcm->lock);
+	if (pcm->thread_safe >= 0)
+		pthread_mutex_lock(&pcm->lock);
 }
 static inline void __snd_pcm_unlock(snd_pcm_t *pcm)
 {
-	pthread_mutex_unlock(&pcm->lock);
+	if (pcm->thread_safe >= 0)
+		pthread_mutex_unlock(&pcm->lock);
 }
 static inline void snd_pcm_lock(snd_pcm_t *pcm)
 {
