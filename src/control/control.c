@@ -91,6 +91,7 @@ I/O operations.
 #include <fcntl.h>
 #include <signal.h>
 #include <sys/poll.h>
+#include <stdbool.h>
 #include "control_local.h"
 
 /**
@@ -302,6 +303,32 @@ int snd_ctl_elem_info(snd_ctl_t *ctl, snd_ctl_elem_info_t *info)
 	return ctl->ops->element_info(ctl, info);
 }
 
+static bool validate_element_member_dimension(snd_ctl_elem_info_t *info)
+{
+	unsigned int members;
+	unsigned int i;
+
+	if (info->dimen.d[0] == 0)
+		return true;
+
+	members = 1;
+	for (i = 0; i < ARRAY_SIZE(info->dimen.d); ++i) {
+		if (info->dimen.d[i] == 0)
+			break;
+		members *= info->dimen.d[i];
+
+		if (members > info->count)
+			return false;
+	}
+
+	for (++i; i < ARRAY_SIZE(info->dimen.d); ++i) {
+		if (info->dimen.d[i] > 0)
+			return false;
+	}
+
+	return members == info->count;
+}
+
 /**
  * \brief Create and add some user-defined control elements of integer type.
  * \param ctl A handle of backend module for control interface.
@@ -365,6 +392,9 @@ int snd_ctl_elem_add_integer_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
 	info->value.integer.min = min;
 	info->value.integer.max = max;
 	info->value.integer.step = step;
+
+	if (!validate_element_member_dimension(info))
+		return -EINVAL;
 
 	err = ctl->ops->element_add(ctl, info);
 	if (err < 0)
@@ -451,6 +481,9 @@ int snd_ctl_elem_add_integer64_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
 	info->value.integer64.max = max;
 	info->value.integer64.step = step;
 
+	if (!validate_element_member_dimension(info))
+		return -EINVAL;
+
 	err = ctl->ops->element_add(ctl, info);
 	if (err < 0)
 		return err;
@@ -523,6 +556,9 @@ int snd_ctl_elem_add_boolean_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
 	info->count = member_count;
 	info->value.integer.min = 0;
 	info->value.integer.max = 1;
+
+	if (!validate_element_member_dimension(info))
+		return -EINVAL;
 
 	return ctl->ops->element_add(ctl, info);
 }
@@ -605,6 +641,9 @@ int snd_ctl_elem_add_enumerated_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
 		p += strlen(labels[i]) + 1;
 	}
 
+	if (!validate_element_member_dimension(info))
+		return -EINVAL;
+
 	err = ctl->ops->element_add(ctl, info);
 
 	free(buf);
@@ -662,6 +701,9 @@ int snd_ctl_elem_add_bytes_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
 		       SNDRV_CTL_ELEM_ACCESS_USER;
 	info->owner = element_count;
 	info->count = member_count;
+
+	if (!validate_element_member_dimension(info))
+		return -EINVAL;
 
 	return ctl->ops->element_add(ctl, info);
 }
