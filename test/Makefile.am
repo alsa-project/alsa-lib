@@ -24,7 +24,7 @@ code_CFLAGS=-Wall -pipe -g -O2
 chmap_LDADD=../src/libasound.la
 audio_time_LDADD=../src/libasound.la
 pcm_multi_thread_LDADD=../src/libasound.la
-
+pcm_multi_thread_LDFLAGS=-lpthread
 user_ctl_element_set_LDADD=../src/libasound.la
 user_ctl_element_set_CFLAGS=-Wall -g
 
