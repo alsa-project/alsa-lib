@@ -358,7 +358,8 @@ static bool validate_element_member_dimension(snd_ctl_elem_info_t *info)
  * <dt>-EBUSY
  * <dd>A element with ID \a id already exists.
  * <dt>-EINVAL
- * <dd>ID has no name, or the number of members is not between 1 to 127.
+ * <dd>Some arguments include invalid value; i.e. ID field in \a info has no
+ *     name, or the number of members is not between 1 to 127.
  * <dt>-ENOMEM
  * <dd>Out of memory, or there are too many user elements.
  * <dt>-ENXIO
@@ -446,7 +447,8 @@ int snd_ctl_elem_add_integer_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
  * <dt>-EBUSY
  * <dd>A element with ID \a id already exists.
  * <dt>-EINVAL
- * <dd>ID has no name, or the number of members is not between 1 to 127.
+ * <dd>Some arguments include invalid value; i.e. ID has no name, or the number
+ *     of members is not between 1 to 127.
  * <dt>-ENOMEM
  * <dd>Out of memory, or there are too many user elements.
  * <dt>-ENXIO
@@ -530,7 +532,8 @@ int snd_ctl_elem_add_integer64_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
  * <dt>-EBUSY
  * <dd>A element with ID \a id already exists.
  * <dt>-EINVAL
- * <dd>ID has no name, or the number of members is not between 1 to 127.
+ * <dd>Some parameters include invalid value; i.e. ID has no name, or the number
+ *      of members is not between 1 to 127.
  * <dt>-ENOMEM
  * <dd>Out of memory, or there are too many user elements.
  * <dt>-ENXIO
@@ -591,9 +594,10 @@ int snd_ctl_elem_add_boolean_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
  * <dt>-EBUSY
  * <dd>A control element with ID \a id already exists.
  * <dt>-EINVAL
- * <dd>\a element_count is not between 1 to 127, or \a items is not at least
- *     one, or a string in \a labels is empty, or longer than 63 bytes, or total
- *     length of the labels requires more than 64 KiB storage.
+ * <dd>Some arguments include invalid value; i.e. \a element_count is not
+ *     between 1 to 127, or \a items is not at least one, or a string in \a
+ *     labels is empty, or longer than 63 bytes, or total length of the labels
+ *     requires more than 64 KiB storage.
  * <dt>-ENOMEM
  * <dd>Out of memory, or there are too many user control elements.
  * <dt>-ENXIO
@@ -677,7 +681,8 @@ int snd_ctl_elem_add_enumerated_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
  * <dt>-EBUSY
  * <dd>A element with ID \a id already exists.
  * <dt>-EINVAL
- * <dd>ID has no name, or the number of members is not between 1 to 511.
+ * <dd>Some arguments include invalid value; i.e. ID has no name, or the number
+ *     of members is not between 1 to 511.
  * <dt>-ENOMEM
  * <dd>Out of memory, or there are too many user elements.
  * <dt>-ENXIO
