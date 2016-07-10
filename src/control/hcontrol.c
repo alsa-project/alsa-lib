@@ -742,7 +742,6 @@ static int snd_hctl_handle_event(snd_hctl_t *hctl, snd_ctl_event_t *event)
 	if (event->data.elem.mask == SNDRV_CTL_EVENT_MASK_REMOVE) {
 		int dir;
 		res = _snd_hctl_find_elem(hctl, &event->data.elem.id, &dir);
-		assert(res >= 0 && dir == 0);
 		if (res < 0 || dir != 0)
 			return -ENOENT;
 		snd_hctl_elem_remove(hctl, (unsigned int) res);
