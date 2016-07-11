@@ -257,7 +257,7 @@ static int tplg_parse_data_hex(snd_config_t *cfg, struct tplg_elem *elem,
 static int get_token_value(const char *token_id,
 	struct tplg_vendor_tokens *tokens)
 {
-	int i;
+	unsigned int i;
 
 	for (i = 0; i < tokens->num_tokens; i++) {
 		if (strcmp(token_id, tokens->token[i].id) == 0)
@@ -338,7 +338,8 @@ static int copy_tuples(struct tplg_elem *elem,
 	struct snd_soc_tplg_vendor_string_elem *string;
 	struct snd_soc_tplg_vendor_value_elem *value;
 	int set_size, size, off;
-	int i, j, token_val;
+	unsigned int i, j;
+	int token_val;
 
 	if (priv) {
 		SNDERR("error: %s has more data than tuples\n", elem->id);
@@ -713,7 +714,7 @@ int tplg_parse_tuples(snd_tplg_t *tplg, snd_config_t *cfg,
 void tplg_free_tuples(void *obj)
 {
 	struct tplg_vendor_tuples *tuples = (struct tplg_vendor_tuples *)obj;
-	int i;
+	unsigned int i;
 
 	if (!tuples || !tuples->set)
 		return;
