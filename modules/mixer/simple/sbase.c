@@ -324,7 +324,6 @@ static int simple_event_add1(snd_mixer_class_t *class,
 	struct selem_base *simple;
 	struct helem_base *hsimple;
 	snd_ctl_elem_type_t ctype;
-	unsigned long values;
 	long min, max;
 	int err, new = 0;
 	struct list_head *pos;
@@ -349,7 +348,6 @@ static int simple_event_add1(snd_mixer_class_t *class,
 	if (err < 0)
 		return err;
 	ctype = snd_ctl_elem_info_get_type(info);
-	values = snd_ctl_elem_info_get_count(info);
 	switch (ctype) {
 	case SND_CTL_ELEM_TYPE_ENUMERATED:
 		min = 0;
