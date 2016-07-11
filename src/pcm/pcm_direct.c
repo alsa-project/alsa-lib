@@ -830,6 +830,8 @@ int snd_pcm_direct_prepare(snd_pcm_t *pcm)
 	case SND_PCM_STATE_OPEN:
 	case SND_PCM_STATE_DISCONNECTED:
 		return -EBADFD;
+	default:
+		break;
 	}
 	snd_pcm_direct_check_interleave(dmix, pcm);
 	dmix->state = SND_PCM_STATE_PREPARED;
