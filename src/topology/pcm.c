@@ -330,7 +330,6 @@ static int tplg_parse_fe_dai(snd_tplg_t *tplg, snd_config_t *cfg,
 	snd_config_t *n;
 	const char *id, *value = NULL;
 	unsigned long int id_val;
-	int err;
 
 	snd_config_get_id(cfg, &id);
 	tplg_dbg("\t\tFE DAI %s:\n", id);
