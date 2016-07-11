@@ -273,7 +273,6 @@ static struct tplg_elem *get_tokens(snd_tplg_t *tplg, struct tplg_elem *elem)
 {
 	struct tplg_ref *ref;
 	struct list_head *base, *pos;
-	int err = 0;
 
 	base = &elem->ref_list;
 	list_for_each(pos, base) {
@@ -299,7 +298,6 @@ static bool has_tuples(struct tplg_elem *elem)
 {
 	struct tplg_ref *ref;
 	struct list_head *base, *pos;
-	int err = 0;
 
 	base = &elem->ref_list;
 	list_for_each(pos, base) {
