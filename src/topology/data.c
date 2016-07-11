@@ -578,6 +578,7 @@ static int parse_tuple_sets(snd_tplg_t *tplg, snd_config_t *cfg,
 	int err;
 
 	if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
+		snd_config_get_id(cfg, &id);
 		SNDERR("error: compound type expected for %s", id);
 		return -EINVAL;
 	}
