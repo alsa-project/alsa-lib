@@ -1769,6 +1769,7 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 			chmap = _snd_pcm_parse_config_chmaps(n);
 			if (!chmap) {
 				SNDERR("Invalid channel map for %s", id);
+				err = -EINVAL;
 				goto fail;
 			}
 			continue;
