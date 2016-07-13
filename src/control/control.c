@@ -2515,6 +2515,9 @@ use_default_symbol_version(__snd_ctl_elem_info_get_dimension, snd_ctl_elem_info_
  * <dt>-EINVAL
  * <dd>Invalid arguments are given as parameters.
  * </dl>
+ *
+ * \par Compatibility:
+ * This function is added in version 1.1.2.
  */
 int snd_ctl_elem_info_set_dimension(snd_ctl_elem_info_t *info,
 				    const int dimension[4])
