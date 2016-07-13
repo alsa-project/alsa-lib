@@ -953,6 +953,8 @@ int snd_pcm_status(snd_pcm_t *pcm, snd_pcm_status_t *status)
 	snd_pcm_lock(pcm);
 	err = pcm->fast_ops->status(pcm->fast_op_arg, status);
 	snd_pcm_unlock(pcm);
+
+	return err;
 }
 
 /**
