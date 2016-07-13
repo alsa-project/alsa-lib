@@ -434,14 +434,16 @@ static int snd_pcm_ioplug_hw_free(snd_pcm_t *pcm)
 static int snd_pcm_ioplug_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 {
 	ioplug_priv_t *io = pcm->private_data;
-	int err = 0;
+	int err;
 
-	if (io->data->callback->sw_params) {
-		snd_pcm_unlock(pcm); /* to avoid deadlock */
-		err = io->data->callback->sw_params(io->data, params);
-		snd_pcm_lock(pcm);
-	}
-	return 0;
+	if (!io->data->callback->sw_params)
+		return 0;
+
+	snd_pcm_unlock(pcm); /* to avoid deadlock */
+	err = io->data->callback->sw_params(io->data, params);
+	snd_pcm_lock(pcm);
+
+	return err;
 }
 
 
