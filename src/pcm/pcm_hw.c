@@ -1261,8 +1261,8 @@ static int snd_pcm_hw_set_chmap(snd_pcm_t *pcm, const snd_pcm_chmap_t *map)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
 	snd_ctl_t *ctl;
-	snd_ctl_elem_id_t *id;
-	snd_ctl_elem_value_t *val;
+	snd_ctl_elem_id_t id = {0};
+	snd_ctl_elem_value_t val = {0};
 	unsigned int i;
 	int ret;
 
@@ -1287,13 +1287,12 @@ static int snd_pcm_hw_set_chmap(snd_pcm_t *pcm, const snd_pcm_chmap_t *map)
 		chmap_caps_set_error(hw, CHMAP_CTL_SET);
 		return ret;
 	}
-	snd_ctl_elem_id_alloca(&id);
-	snd_ctl_elem_value_alloca(&val);
-	fill_chmap_ctl_id(pcm, id);
-	snd_ctl_elem_value_set_id(val, id);
+
+	fill_chmap_ctl_id(pcm, &id);
+	snd_ctl_elem_value_set_id(&val, &id);
 	for (i = 0; i < map->channels; i++)
-		snd_ctl_elem_value_set_integer(val, i, map->pos[i]);
-	ret = snd_ctl_elem_write(ctl, val);
+		snd_ctl_elem_value_set_integer(&val, i, map->pos[i]);
+	ret = snd_ctl_elem_write(ctl, &val);
 	snd_ctl_close(ctl);
 	if (ret >= 0)
 		chmap_caps_set_ok(hw, CHMAP_CTL_SET);
