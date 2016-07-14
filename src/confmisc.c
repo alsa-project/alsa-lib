@@ -1053,7 +1053,7 @@ int snd_func_pcm_args_by_class(snd_config_t **dst, snd_config_t *root, snd_confi
 {
 	snd_config_t *n;
 	snd_ctl_t *ctl = NULL;
-	snd_pcm_info_t *info;
+	snd_pcm_info_t info = {0};
 	const char *id;
 	int card = -1, dev;
 	long class, index;
@@ -1091,7 +1091,6 @@ int snd_func_pcm_args_by_class(snd_config_t **dst, snd_config_t *root, snd_confi
 		goto __out;
 	}
 
-	snd_pcm_info_alloca(&info);
 	while(1) {
 		err = snd_card_next(&card);
 		if (err < 0) {
@@ -1106,7 +1105,6 @@ int snd_func_pcm_args_by_class(snd_config_t **dst, snd_config_t *root, snd_confi
 			goto __out;
 		}
 		dev = -1;
-		memset(info, 0, snd_pcm_info_sizeof());
 		while(1) {
 			err = snd_ctl_pcm_next_device(ctl, &dev);
 			if (err < 0) {
@@ -1115,11 +1113,11 @@ int snd_func_pcm_args_by_class(snd_config_t **dst, snd_config_t *root, snd_confi
 			}
 			if (dev < 0)
 				break;
-			snd_pcm_info_set_device(info, dev);
-			err = snd_ctl_pcm_info(ctl, info);
+			snd_pcm_info_set_device(&info, dev);
+			err = snd_ctl_pcm_info(ctl, &info);
 			if (err < 0)
 				continue;
-			if (snd_pcm_info_get_class(info) == (snd_pcm_class_t)class &&
+			if (snd_pcm_info_get_class(&info) == (snd_pcm_class_t)class &&
 					index == idx++)
 				goto __out;
 		}
