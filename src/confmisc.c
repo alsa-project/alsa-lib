@@ -664,7 +664,7 @@ SND_DLSYM_BUILD_VERSION(snd_func_private_string, SND_CONFIG_DLSYM_VERSION_EVALUA
 int snd_determine_driver(int card, char **driver)
 {
 	snd_ctl_t *ctl = NULL;
-	snd_ctl_card_info_t *info;
+	snd_ctl_card_info_t info = {0};
 	char *res = NULL;
 	int err;
 
@@ -674,13 +674,12 @@ int snd_determine_driver(int card, char **driver)
 		SNDERR("could not open control for card %i", card);
 		goto __error;
 	}
-	snd_ctl_card_info_alloca(&info);
-	err = snd_ctl_card_info(ctl, info);
+	err = snd_ctl_card_info(ctl, &info);
 	if (err < 0) {
 		SNDERR("snd_ctl_card_info error: %s", snd_strerror(err));
 		goto __error;
 	}
-	res = strdup(snd_ctl_card_info_get_driver(info));
+	res = strdup(snd_ctl_card_info_get_driver(&info));
 	if (res == NULL)
 		err = -ENOMEM;
 	else {
