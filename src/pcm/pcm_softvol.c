@@ -1085,8 +1085,7 @@ int _snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 		    sformat != SND_PCM_FORMAT_S24_3LE && 
 		    sformat != SND_PCM_FORMAT_S32_LE &&
 		    sformat != SND_PCM_FORMAT_S32_BE) {
-			SNDERR("only S16_LE, S16_BE, S24_3LE, S32_LE or S32_BE format "
-			       "is supported");
+			SNDERR("only S16_LE, S16_BE, S24_3LE, S32_LE or S32_BE format is supported");
 			snd_config_delete(sconf);
 			return -EINVAL;
 		}
@@ -1094,12 +1093,15 @@ int _snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 		snd_config_delete(sconf);
 		if (err < 0)
 			return err;
-		if ((err = snd_pcm_parse_control_id(control, ctl_id, &card, &cchannels, NULL)) < 0) {
+		err = snd_pcm_parse_control_id(control, ctl_id, &card,
+					       &cchannels, NULL);
+		if (err < 0) {
 			snd_pcm_close(spcm);
 			return err;
 		}
-		err = snd_pcm_softvol_open(pcmp, name, sformat, card, ctl_id, cchannels,
-					   min_dB, max_dB, resolution, spcm, 1);
+		err = snd_pcm_softvol_open(pcmp, name, sformat, card, ctl_id,
+					   cchannels, min_dB, max_dB,
+					   resolution, spcm, 1);
 		if (err < 0)
 			snd_pcm_close(spcm);
 	}
