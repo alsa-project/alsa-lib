@@ -702,17 +702,16 @@ static int softvol_load_control(snd_pcm_t *pcm, snd_pcm_softvol_t *svol,
 				int resolution)
 {
 	char tmp_name[32];
-	snd_pcm_info_t *info;
-	snd_ctl_elem_info_t *cinfo;
+	snd_pcm_info_t info = {0};
+	snd_ctl_elem_info_t cinfo = {0};
 	int err;
 	unsigned int i;
 
 	if (ctl_card < 0) {
-		snd_pcm_info_alloca(&info);
-		err = snd_pcm_info(pcm, info);
+		err = snd_pcm_info(pcm, &info);
 		if (err < 0)
 			return err;
-		ctl_card = snd_pcm_info_get_card(info);
+		ctl_card = snd_pcm_info_get_card(&info);
 		if (ctl_card < 0) {
 			SNDERR("No card defined for softvol control");
 			return -EINVAL;
@@ -737,46 +736,45 @@ static int softvol_load_control(snd_pcm_t *pcm, snd_pcm_softvol_t *svol,
 		svol->zero_dB_val = (min_dB / (min_dB - max_dB)) *
 								svol->max_val;
 		
-	snd_ctl_elem_info_alloca(&cinfo);
-	snd_ctl_elem_info_set_id(cinfo, ctl_id);
-	if ((err = snd_ctl_elem_info(svol->ctl, cinfo)) < 0) {
+	snd_ctl_elem_info_set_id(&cinfo, ctl_id);
+	if ((err = snd_ctl_elem_info(svol->ctl, &cinfo)) < 0) {
 		if (err != -ENOENT) {
 			SNDERR("Cannot get info for CTL %s", tmp_name);
 			return err;
 		}
-		err = add_user_ctl(svol, cinfo, cchannels);
+		err = add_user_ctl(svol, &cinfo, cchannels);
 		if (err < 0) {
 			SNDERR("Cannot add a control");
 			return err;
 		}
 	} else {
-		if (! (cinfo->access & SNDRV_CTL_ELEM_ACCESS_USER)) {
+		if (! (cinfo.access & SNDRV_CTL_ELEM_ACCESS_USER)) {
 			/* hardware control exists */
 			return 1; /* notify */
 
-		} else if ((cinfo->type != SND_CTL_ELEM_TYPE_INTEGER &&
-			    cinfo->type != SND_CTL_ELEM_TYPE_BOOLEAN) ||
-			   cinfo->count != (unsigned int)cchannels ||
-			   cinfo->value.integer.min != 0 ||
-			   cinfo->value.integer.max != resolution - 1) {
-			err = snd_ctl_elem_remove(svol->ctl, &cinfo->id);
+		} else if ((cinfo.type != SND_CTL_ELEM_TYPE_INTEGER &&
+			    cinfo.type != SND_CTL_ELEM_TYPE_BOOLEAN) ||
+			   cinfo.count != (unsigned int)cchannels ||
+			   cinfo.value.integer.min != 0 ||
+			   cinfo.value.integer.max != resolution - 1) {
+			err = snd_ctl_elem_remove(svol->ctl, &cinfo.id);
 			if (err < 0) {
 				SNDERR("Control %s mismatch", tmp_name);
 				return err;
 			}
 			/* reset numid */
-			snd_ctl_elem_info_set_id(cinfo, ctl_id);
-			if ((err = add_user_ctl(svol, cinfo, cchannels)) < 0) {
+			snd_ctl_elem_info_set_id(&cinfo, ctl_id);
+			if ((err = add_user_ctl(svol, &cinfo, cchannels)) < 0) {
 				SNDERR("Cannot add a control");
 				return err;
 			}
 		} else if (svol->max_val > 1) {
 			/* check TLV availability */
 			unsigned int tlv[4];
-			err = snd_ctl_elem_tlv_read(svol->ctl, &cinfo->id, tlv,
+			err = snd_ctl_elem_tlv_read(svol->ctl, &cinfo.id, tlv,
 						    sizeof(tlv));
 			if (err < 0)
-				add_tlv_info(svol, cinfo);
+				add_tlv_info(svol, &cinfo);
 		}
 	}
 
