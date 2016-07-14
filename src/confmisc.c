@@ -1162,7 +1162,7 @@ SND_DLSYM_BUILD_VERSION(snd_func_pcm_args_by_class, SND_CONFIG_DLSYM_VERSION_EVA
 int snd_func_private_pcm_subdevice(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNUSED,
 				   snd_config_t *src, snd_config_t *private_data)
 {
-	snd_pcm_info_t *info;
+	snd_pcm_info_t info = {0};
 	const char *id;
 	const void *data;
 	snd_pcm_t *pcm;
@@ -1181,15 +1181,15 @@ int snd_func_private_pcm_subdevice(snd_config_t **dst, snd_config_t *root ATTRIB
 		SNDERR("field pcm_handle is not a pointer");
 		return err;
 	}
-	snd_pcm_info_alloca(&info);
-	err = snd_pcm_info(pcm, info);
+	err = snd_pcm_info(pcm, &info);
 	if (err < 0) {
 		SNDERR("snd_ctl_pcm_info error: %s", snd_strerror(err));
 		return err;
 	}
 	err = snd_config_get_id(src, &id);
 	if (err >= 0)
-		err = snd_config_imake_integer(dst, id, snd_pcm_info_get_subdevice(info));
+		err = snd_config_imake_integer(dst, id,
+					snd_pcm_info_get_subdevice(&info));
 	return err;
 }
 #ifndef DOC_HIDDEN
