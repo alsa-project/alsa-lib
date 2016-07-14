@@ -1189,14 +1189,16 @@ int snd_pcm_direct_initialize_poll_fd(snd_pcm_direct_t *dmix)
 		return ret;
 	}
 	sprintf(name, "hw:CLASS=%i,SCLASS=0,CARD=%i,DEV=%i,SUBDEV=%i",
-				(int)SND_TIMER_CLASS_PCM, 
-				snd_pcm_info_get_card(info),
-				snd_pcm_info_get_device(info),
-				snd_pcm_info_get_subdevice(info) * 2 + capture);
-	ret = snd_timer_open(&dmix->timer, name, SND_TIMER_OPEN_NONBLOCK | SND_TIMER_OPEN_TREAD);
+		(int)SND_TIMER_CLASS_PCM,
+		snd_pcm_info_get_card(info),
+		snd_pcm_info_get_device(info),
+		snd_pcm_info_get_subdevice(info) * 2 + capture);
+	ret = snd_timer_open(&dmix->timer, name,
+			     SND_TIMER_OPEN_NONBLOCK | SND_TIMER_OPEN_TREAD);
 	if (ret < 0) {
 		dmix->tread = 0;
-		ret = snd_timer_open(&dmix->timer, name, SND_TIMER_OPEN_NONBLOCK);
+		ret = snd_timer_open(&dmix->timer, name,
+				     SND_TIMER_OPEN_NONBLOCK);
 		if (ret < 0) {
 			SNDERR("unable to open timer '%s'", name);
 			return ret;
