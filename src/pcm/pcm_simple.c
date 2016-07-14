@@ -218,15 +218,12 @@ int snd_spcm_init_duplex(snd_pcm_t *playback_pcm,
 			 snd_spcm_duplex_type_t duplex_type)
 {
 	int err, i;
-	snd_pcm_hw_params_t *hw_params;
-	snd_pcm_sw_params_t *sw_params;
+	snd_pcm_hw_params_t hw_params = {0};
+	snd_pcm_sw_params_t sw_params = {0};
 	unsigned int rrate;
 	unsigned int xbuffer_time, buffer_time[2];
 	unsigned int period_time[2];
 	snd_pcm_t *pcms[2];
-
-	snd_pcm_hw_params_alloca(&hw_params);
-	snd_pcm_sw_params_alloca(&sw_params);
 
 	assert(playback_pcm);
 	assert(capture_pcm);
@@ -247,7 +244,7 @@ int snd_spcm_init_duplex(snd_pcm_t *playback_pcm,
 		buffer_time[i] = xbuffer_time;
 		period_time[i] = i > 0 ? period_time[0] : 0;
 		rrate = rate;
-		err = set_hw_params(pcms[i], hw_params,
+		err = set_hw_params(pcms[i], &hw_params,
 				    &rrate, channels, format, subformat,
 				    &buffer_time[i], &period_time[i], access);
 		if (err < 0)
@@ -266,7 +263,7 @@ int snd_spcm_init_duplex(snd_pcm_t *playback_pcm,
 	 */
       __sw_params:
 	for (i = 0; i < 2; i++) {
-		err = set_sw_params(pcms[i], sw_params, xrun_type);
+		err = set_sw_params(pcms[i], &sw_params, xrun_type);
 		if (err < 0)
 			return err;
 	}
