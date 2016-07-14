@@ -1206,8 +1206,8 @@ static snd_pcm_chmap_t *snd_pcm_hw_get_chmap(snd_pcm_t *pcm)
 	snd_pcm_hw_t *hw = pcm->private_data;
 	snd_pcm_chmap_t *map;
 	snd_ctl_t *ctl;
-	snd_ctl_elem_id_t *id;
-	snd_ctl_elem_value_t *val;
+	snd_ctl_elem_id_t id = {0};
+	snd_ctl_elem_value_t val = {0};
 	unsigned int i;
 	int ret;
 
@@ -1241,11 +1241,9 @@ static snd_pcm_chmap_t *snd_pcm_hw_get_chmap(snd_pcm_t *pcm)
 		chmap_caps_set_error(hw, CHMAP_CTL_GET);
 		return NULL;
 	}
-	snd_ctl_elem_value_alloca(&val);
-	snd_ctl_elem_id_alloca(&id);
-	fill_chmap_ctl_id(pcm, id);
-	snd_ctl_elem_value_set_id(val, id);
-	ret = snd_ctl_elem_read(ctl, val);
+	fill_chmap_ctl_id(pcm, &id);
+	snd_ctl_elem_value_set_id(&val, &id);
+	ret = snd_ctl_elem_read(ctl, &val);
 	snd_ctl_close(ctl);
 	if (ret < 0) {
 		free(map);
@@ -1254,7 +1252,7 @@ static snd_pcm_chmap_t *snd_pcm_hw_get_chmap(snd_pcm_t *pcm)
 		return NULL;
 	}
 	for (i = 0; i < pcm->channels; i++)
-		map->pos[i] = snd_ctl_elem_value_get_integer(val, i);
+		map->pos[i] = snd_ctl_elem_value_get_integer(&val, i);
 	chmap_caps_set_ok(hw, CHMAP_CTL_GET);
 	return map;
 }
