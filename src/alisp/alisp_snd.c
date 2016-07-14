@@ -684,8 +684,8 @@ static struct alisp_object * FA_hctl_elem_write(struct alisp_instance * instance
 {
 	snd_hctl_elem_t *handle;
 	struct alisp_object * p1 = NULL, * obj;
-	snd_ctl_elem_info_t *info;
-	snd_ctl_elem_value_t *value;
+	snd_ctl_elem_info_t info = {0};
+	snd_ctl_elem_value_t value = {0};
 	snd_ctl_elem_type_t type;
 	unsigned int idx, count;
 	int err;
@@ -700,15 +700,13 @@ static struct alisp_object * FA_hctl_elem_write(struct alisp_instance * instance
 		delete_tree(instance, p1);
 		return &alsa_lisp_nil;
 	}
-	snd_ctl_elem_info_alloca(&info);
-	snd_ctl_elem_value_alloca(&value);
-	err = snd_hctl_elem_info(handle, info);
+	err = snd_hctl_elem_info(handle, &info);
 	if (err < 0) {
 		delete_tree(instance, p1);
 		return new_integer(instance, err);
 	}
-	type = snd_ctl_elem_info_get_type(info);
-	count = snd_ctl_elem_info_get_count(info);
+	type = snd_ctl_elem_info_get_type(&info);
+	count = snd_ctl_elem_info_get_count(&info);
 	if (type == SND_CTL_ELEM_TYPE_IEC958) {
 		count = sizeof(snd_aes_iec958_t);
 		type = SND_CTL_ELEM_TYPE_BYTES;
@@ -722,19 +720,19 @@ static struct alisp_object * FA_hctl_elem_write(struct alisp_instance * instance
 		obj = car(p1);
 		switch (type) {
 		case SND_CTL_ELEM_TYPE_BOOLEAN:
-			snd_ctl_elem_value_set_boolean(value, idx, get_integer(obj));
+			snd_ctl_elem_value_set_boolean(&value, idx, get_integer(obj));
 			break;
 		case SND_CTL_ELEM_TYPE_INTEGER:
-			snd_ctl_elem_value_set_integer(value, idx, get_integer(obj));
+			snd_ctl_elem_value_set_integer(&value, idx, get_integer(obj));
 			break;
 		case SND_CTL_ELEM_TYPE_INTEGER64:
-			snd_ctl_elem_value_set_integer64(value, idx, get_integer(obj));
+			snd_ctl_elem_value_set_integer64(&value, idx, get_integer(obj));
 			break;
 		case SND_CTL_ELEM_TYPE_ENUMERATED:
-			snd_ctl_elem_value_set_enumerated(value, idx, get_integer(obj));
+			snd_ctl_elem_value_set_enumerated(&value, idx, get_integer(obj));
 			break;
 		case SND_CTL_ELEM_TYPE_BYTES:
-			snd_ctl_elem_value_set_byte(value, idx, get_integer(obj));
+			snd_ctl_elem_value_set_byte(&value, idx, get_integer(obj));
 			break;
 		default:
 			break;
@@ -743,7 +741,7 @@ static struct alisp_object * FA_hctl_elem_write(struct alisp_instance * instance
 		p1 = cdr(obj = p1);
 		delete_object(instance, obj);
 	} while (p1 != &alsa_lisp_nil);
-	err = snd_hctl_elem_write(handle, value);
+	err = snd_hctl_elem_write(handle, &value);
 	return new_integer(instance, err);
 }
 
