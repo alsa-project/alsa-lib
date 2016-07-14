@@ -8476,17 +8476,16 @@ int snd_pcm_get_params(snd_pcm_t *pcm,
                        snd_pcm_uframes_t *buffer_size,
                        snd_pcm_uframes_t *period_size)
 {
-	snd_pcm_hw_params_t *hw;
+	snd_pcm_hw_params_t params = {0};
 	int err;
 
 	assert(pcm);
-	snd_pcm_hw_params_alloca(&hw);
-	err = snd_pcm_hw_params_current(pcm, hw);
+	err = snd_pcm_hw_params_current(pcm, &params);
 	if (err < 0)
 	        return err;
-	err = INTERNAL(snd_pcm_hw_params_get_buffer_size)(hw, buffer_size);
+	err = INTERNAL(snd_pcm_hw_params_get_buffer_size)(&params, buffer_size);
 	if (err < 0)
 		return err;
-	return INTERNAL(snd_pcm_hw_params_get_period_size)(hw, period_size,
+	return INTERNAL(snd_pcm_hw_params_get_period_size)(&params, period_size,
 							   NULL);
 }
