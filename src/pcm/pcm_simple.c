@@ -164,13 +164,10 @@ int snd_spcm_init(snd_pcm_t *pcm,
 		  snd_spcm_xrun_type_t xrun_type)
 {
 	int err;
-	snd_pcm_hw_params_t *hw_params;
-	snd_pcm_sw_params_t *sw_params;
+	snd_pcm_hw_params_t hw_params = {0};
+	snd_pcm_sw_params_t sw_params = {0};
 	unsigned int rrate;
 	unsigned int buffer_time;
-
-	snd_pcm_hw_params_alloca(&hw_params);
-	snd_pcm_sw_params_alloca(&sw_params);
 
 	assert(pcm);
 	assert(rate >= 5000 && rate <= 192000);
@@ -180,13 +177,13 @@ int snd_spcm_init(snd_pcm_t *pcm,
 	err = set_buffer_time(latency, &buffer_time);
 	if (err < 0)
 		return err;
-	err = set_hw_params(pcm, hw_params,
+	err = set_hw_params(pcm, &hw_params,
 			    &rrate, channels, format, subformat,
 			    &buffer_time, NULL, access);
 	if (err < 0)
 		return err;
 
-	err = set_sw_params(pcm, sw_params, xrun_type);
+	err = set_sw_params(pcm, &sw_params, xrun_type);
 	if (err < 0)
 		return err;
 
