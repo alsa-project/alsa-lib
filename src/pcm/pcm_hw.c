@@ -1094,7 +1094,7 @@ snd_pcm_query_chmaps_from_hw(int card, int dev, int subdev,
 			     snd_pcm_stream_t stream)
 {
 	snd_ctl_t *ctl;
-	snd_ctl_elem_id_t *id;
+	snd_ctl_elem_id_t id = {0};
 	unsigned int tlv[2048], *start;
 	snd_pcm_chmap_query_t **map;
 	int i, ret, nums;
@@ -1105,9 +1105,8 @@ snd_pcm_query_chmaps_from_hw(int card, int dev, int subdev,
 		return NULL;
 	}
 
-	snd_ctl_elem_id_alloca(&id);
-	__fill_chmap_ctl_id(id, dev, subdev, stream);
-	ret = snd_ctl_elem_tlv_read(ctl, id, tlv, sizeof(tlv));
+	__fill_chmap_ctl_id(&id, dev, subdev, stream);
+	ret = snd_ctl_elem_tlv_read(ctl, &id, tlv, sizeof(tlv));
 	snd_ctl_close(ctl);
 	if (ret < 0) {
 		SYSMSG("Cannot read Channel Map TLV\n");
