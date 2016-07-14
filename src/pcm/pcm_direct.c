@@ -1375,7 +1375,7 @@ int snd_pcm_direct_set_timer_params(snd_pcm_direct_t *dmix)
 	ret = snd_timer_params(dmix->timer, params);
 	if (ret < 0) {
 		SNDERR("unable to set timer parameters");
-                return ret;
+		return ret;
 	}
 	return 0;
 }
