@@ -995,7 +995,7 @@ int _snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 	snd_config_t *slave = NULL, *sconf;
 	snd_config_t *control = NULL;
 	snd_pcm_format_t sformat = SND_PCM_FORMAT_UNKNOWN;
-	snd_ctl_elem_id_t *ctl_id;
+	snd_ctl_elem_id_t ctl_id = {0};
 	int resolution = PRESET_RESOLUTION;
 	double min_dB = PRESET_MIN_DB;
 	double max_dB = ZERO_DB;
@@ -1074,7 +1074,6 @@ int _snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 					       mode, conf);
 		snd_config_delete(sconf);
 	} else {
-		snd_ctl_elem_id_alloca(&ctl_id);
 		err = snd_pcm_slave_conf(root, slave, &sconf, 1,
 					 SND_PCM_HW_PARAM_FORMAT, 0, &sformat);
 		if (err < 0)
@@ -1093,13 +1092,13 @@ int _snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 		snd_config_delete(sconf);
 		if (err < 0)
 			return err;
-		err = snd_pcm_parse_control_id(control, ctl_id, &card,
+		err = snd_pcm_parse_control_id(control, &ctl_id, &card,
 					       &cchannels, NULL);
 		if (err < 0) {
 			snd_pcm_close(spcm);
 			return err;
 		}
-		err = snd_pcm_softvol_open(pcmp, name, sformat, card, ctl_id,
+		err = snd_pcm_softvol_open(pcmp, name, sformat, card, &ctl_id,
 					   cchannels, min_dB, max_dB,
 					   resolution, spcm, 1);
 		if (err < 0)
