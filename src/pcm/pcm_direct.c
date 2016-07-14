@@ -1358,21 +1358,20 @@ int snd_pcm_direct_initialize_secondary_slave(snd_pcm_direct_t *dmix,
 
 int snd_pcm_direct_set_timer_params(snd_pcm_direct_t *dmix)
 {
-	snd_timer_params_t *params;
+	snd_timer_params_t params = {0};
 	unsigned int filter;
 	int ret;
 
-	snd_timer_params_alloca(&params);
-	snd_timer_params_set_auto_start(params, 1);
+	snd_timer_params_set_auto_start(&params, 1);
 	if (dmix->type != SND_PCM_TYPE_DSNOOP)
-		snd_timer_params_set_early_event(params, 1);
-	snd_timer_params_set_ticks(params, 1);
+		snd_timer_params_set_early_event(&params, 1);
+	snd_timer_params_set_ticks(&params, 1);
 	if (dmix->tread) {
 		filter = (1<<SND_TIMER_EVENT_TICK) |
 			 dmix->timer_events;
-		snd_timer_params_set_filter(params, filter);
+		snd_timer_params_set_filter(&params, filter);
 	}
-	ret = snd_timer_params(dmix->timer, params);
+	ret = snd_timer_params(dmix->timer, &params);
 	if (ret < 0) {
 		SNDERR("unable to set timer parameters");
 		return ret;
