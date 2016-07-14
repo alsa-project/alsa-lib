@@ -544,8 +544,8 @@ static struct alisp_object * FA_hctl_elem_info(struct alisp_instance * instance,
 {
 	snd_hctl_elem_t *handle;
 	struct alisp_object * lexpr, * p1, * p2;
-	snd_ctl_elem_info_t *info;
-	snd_ctl_elem_id_t *id;
+	snd_ctl_elem_info_t info = {0};
+	snd_ctl_elem_id_t id = {0};
 	snd_ctl_elem_type_t type;
 	int err;
 
@@ -555,60 +555,58 @@ static struct alisp_object * FA_hctl_elem_info(struct alisp_instance * instance,
 	handle = (snd_hctl_elem_t *)get_ptr(instance, p1, item->prefix);
 	if (handle == NULL)
 		return &alsa_lisp_nil;
-	snd_ctl_elem_info_alloca(&info);
-	snd_ctl_elem_id_alloca(&id);
-	err = snd_hctl_elem_info(handle, info);
+	err = snd_hctl_elem_info(handle, &info);
 	lexpr = new_lexpr(instance, err);
 	if (err < 0)
 		return lexpr;
-	type = snd_ctl_elem_info_get_type(info);
+	type = snd_ctl_elem_info_get_type(&info);
 	p1 = add_cons(instance, lexpr->value.c.cdr, 0, "id", p2 = new_object(instance, ALISP_OBJ_CONS));
-	snd_ctl_elem_info_get_id(info, id);
-	if (create_ctl_elem_id(instance, id, p2) == NULL) {
+	snd_ctl_elem_info_get_id(&info, &id);
+	if (create_ctl_elem_id(instance, &id, p2) == NULL) {
 		delete_tree(instance, lexpr);
 		return NULL;
 	}
 	p1 = add_cons(instance, p1, 1, "type", new_string(instance, snd_ctl_elem_type_name(type)));
-	p1 = add_cons(instance, p1, 1, "readable", new_integer(instance, snd_ctl_elem_info_is_readable(info)));
-	p1 = add_cons(instance, p1, 1, "writable", new_integer(instance, snd_ctl_elem_info_is_writable(info)));
-	p1 = add_cons(instance, p1, 1, "volatile", new_integer(instance, snd_ctl_elem_info_is_volatile(info)));
-	p1 = add_cons(instance, p1, 1, "inactive", new_integer(instance, snd_ctl_elem_info_is_inactive(info)));
-	p1 = add_cons(instance, p1, 1, "locked", new_integer(instance, snd_ctl_elem_info_is_locked(info)));
-	p1 = add_cons(instance, p1, 1, "isowner", new_integer(instance, snd_ctl_elem_info_is_owner(info)));
-	p1 = add_cons(instance, p1, 1, "owner", new_integer(instance, snd_ctl_elem_info_get_owner(info)));
-	p1 = add_cons(instance, p1, 1, "count", new_integer(instance, snd_ctl_elem_info_get_count(info)));
-	err = snd_ctl_elem_info_get_dimensions(info);
+	p1 = add_cons(instance, p1, 1, "readable", new_integer(instance, snd_ctl_elem_info_is_readable(&info)));
+	p1 = add_cons(instance, p1, 1, "writable", new_integer(instance, snd_ctl_elem_info_is_writable(&info)));
+	p1 = add_cons(instance, p1, 1, "volatile", new_integer(instance, snd_ctl_elem_info_is_volatile(&info)));
+	p1 = add_cons(instance, p1, 1, "inactive", new_integer(instance, snd_ctl_elem_info_is_inactive(&info)));
+	p1 = add_cons(instance, p1, 1, "locked", new_integer(instance, snd_ctl_elem_info_is_locked(&info)));
+	p1 = add_cons(instance, p1, 1, "isowner", new_integer(instance, snd_ctl_elem_info_is_owner(&info)));
+	p1 = add_cons(instance, p1, 1, "owner", new_integer(instance, snd_ctl_elem_info_get_owner(&info)));
+	p1 = add_cons(instance, p1, 1, "count", new_integer(instance, snd_ctl_elem_info_get_count(&info)));
+	err = snd_ctl_elem_info_get_dimensions(&info);
 	if (err > 0) {
 		int idx;
 		p1 = add_cons(instance, p1, 1, "dimensions", p2 = new_object(instance, ALISP_OBJ_CONS));
 		for (idx = 0; idx < err; idx++)
-			p2 = add_cons2(instance, p2, idx > 0, new_integer(instance, snd_ctl_elem_info_get_dimension(info, idx)));
+			p2 = add_cons2(instance, p2, idx > 0, new_integer(instance, snd_ctl_elem_info_get_dimension(&info, idx)));
 	}
 	switch (type) {
 	case SND_CTL_ELEM_TYPE_ENUMERATED: {
 		unsigned int items, item;
-		items = snd_ctl_elem_info_get_items(info);
+		items = snd_ctl_elem_info_get_items(&info);
 		p1 = add_cons(instance, p1, 1, "items", p2 = new_object(instance, ALISP_OBJ_CONS));
 		for (item = 0; item < items; item++) {
-			snd_ctl_elem_info_set_item(info, item);
-			err = snd_hctl_elem_info(handle, info);
+			snd_ctl_elem_info_set_item(&info, item);
+			err = snd_hctl_elem_info(handle, &info);
 			if (err < 0) {
 				p2 = add_cons2(instance, p2, item, &alsa_lisp_nil);
 			} else {
-				p2 = add_cons2(instance, p2, item, new_string(instance, snd_ctl_elem_info_get_item_name(info)));
+				p2 = add_cons2(instance, p2, item, new_string(instance, snd_ctl_elem_info_get_item_name(&info)));
 			}
 		}
 		break;
 	}
 	case SND_CTL_ELEM_TYPE_INTEGER:
-		p1 = add_cons(instance, p1, 1, "min", new_integer(instance, snd_ctl_elem_info_get_min(info)));
-		p1 = add_cons(instance, p1, 1, "max", new_integer(instance, snd_ctl_elem_info_get_max(info)));
-		p1 = add_cons(instance, p1, 1, "step", new_integer(instance, snd_ctl_elem_info_get_step(info)));
+		p1 = add_cons(instance, p1, 1, "min", new_integer(instance, snd_ctl_elem_info_get_min(&info)));
+		p1 = add_cons(instance, p1, 1, "max", new_integer(instance, snd_ctl_elem_info_get_max(&info)));
+		p1 = add_cons(instance, p1, 1, "step", new_integer(instance, snd_ctl_elem_info_get_step(&info)));
 		break;
 	case SND_CTL_ELEM_TYPE_INTEGER64:
-		p1 = add_cons(instance, p1, 1, "min64", new_float(instance, snd_ctl_elem_info_get_min64(info)));
-		p1 = add_cons(instance, p1, 1, "max64", new_float(instance, snd_ctl_elem_info_get_max64(info)));
-		p1 = add_cons(instance, p1, 1, "step64", new_float(instance, snd_ctl_elem_info_get_step64(info)));
+		p1 = add_cons(instance, p1, 1, "min64", new_float(instance, snd_ctl_elem_info_get_min64(&info)));
+		p1 = add_cons(instance, p1, 1, "max64", new_float(instance, snd_ctl_elem_info_get_max64(&info)));
+		p1 = add_cons(instance, p1, 1, "step64", new_float(instance, snd_ctl_elem_info_get_step64(&info)));
 		break;
 	default:
 		break;
