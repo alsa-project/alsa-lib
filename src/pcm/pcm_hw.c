@@ -357,9 +357,19 @@ static int snd_pcm_hw_change_timer(snd_pcm_t *pcm, int enable)
 	
 	if (enable) {
 		snd_timer_params_alloca(&params);
-		err = snd_timer_hw_open(&hw->period_timer, "hw-pcm-period-event", SND_TIMER_CLASS_PCM, SND_TIMER_SCLASS_NONE, hw->card, hw->device, (hw->subdevice << 1) | (pcm->stream & 1), SND_TIMER_OPEN_NONBLOCK | SND_TIMER_OPEN_TREAD);
+		err = snd_timer_hw_open(&hw->period_timer,
+				"hw-pcm-period-event",
+				SND_TIMER_CLASS_PCM, SND_TIMER_SCLASS_NONE,
+				hw->card, hw->device,
+				(hw->subdevice << 1) | (pcm->stream & 1),
+				SND_TIMER_OPEN_NONBLOCK | SND_TIMER_OPEN_TREAD);
 		if (err < 0) {
-			err = snd_timer_hw_open(&hw->period_timer, "hw-pcm-period-event", SND_TIMER_CLASS_PCM, SND_TIMER_SCLASS_NONE, hw->card, hw->device, (hw->subdevice << 1) | (pcm->stream & 1), SND_TIMER_OPEN_NONBLOCK);
+			err = snd_timer_hw_open(&hw->period_timer,
+				"hw-pcm-period-event",
+				SND_TIMER_CLASS_PCM, SND_TIMER_SCLASS_NONE,
+				hw->card, hw->device,
+				(hw->subdevice << 1) | (pcm->stream & 1),
+				SND_TIMER_OPEN_NONBLOCK);
 			return err;
 		}
 		if (snd_timer_poll_descriptors_count(hw->period_timer) != 1) {
@@ -368,7 +378,8 @@ static int snd_pcm_hw_change_timer(snd_pcm_t *pcm, int enable)
 		}
 		hw->period_timer_pfd.events = POLLIN;
  		hw->period_timer_pfd.revents = 0;
-		snd_timer_poll_descriptors(hw->period_timer, &hw->period_timer_pfd, 1);
+		snd_timer_poll_descriptors(hw->period_timer,
+					   &hw->period_timer_pfd, 1);
 		hw->period_timer_need_poll = 0;
 		suspend = 1<<SND_TIMER_EVENT_MSUSPEND;
 		resume = 1<<SND_TIMER_EVENT_MRESUME;
@@ -377,10 +388,12 @@ static int snd_pcm_hw_change_timer(snd_pcm_t *pcm, int enable)
 		 */
 		{
 			int ver = 0;
-			ioctl(hw->period_timer_pfd.fd, SNDRV_TIMER_IOCTL_PVERSION, &ver);
-			/* In older versions, check via poll before read() is needed
-                         * because of the confliction between TIMER_START and
-                         * FIONBIO ioctls.
+			ioctl(hw->period_timer_pfd.fd,
+			      SNDRV_TIMER_IOCTL_PVERSION, &ver);
+			/*
+			 * In older versions, check via poll before read() is
+			 * needed because of the confliction between
+			 * TIMER_START and FIONBIO ioctls.
                          */
 			if (ver < SNDRV_PROTOCOL_VERSION(2, 0, 4))
 				hw->period_timer_need_poll = 1;
