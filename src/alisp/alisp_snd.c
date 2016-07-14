@@ -622,8 +622,8 @@ static struct alisp_object * FA_hctl_elem_read(struct alisp_instance * instance,
 {
 	snd_hctl_elem_t *handle;
 	struct alisp_object * lexpr, * p1 = NULL, * obj;
-	snd_ctl_elem_info_t *info;
-	snd_ctl_elem_value_t *value;
+	snd_ctl_elem_info_t info = {0};
+	snd_ctl_elem_value_t value = {0};
 	snd_ctl_elem_type_t type;
 	unsigned int idx, count;
 	int err;
@@ -634,16 +634,14 @@ static struct alisp_object * FA_hctl_elem_read(struct alisp_instance * instance,
 	handle = (snd_hctl_elem_t *)get_ptr(instance, p1, item->prefix);
 	if (handle == NULL)
 		return &alsa_lisp_nil;
-	snd_ctl_elem_info_alloca(&info);
-	snd_ctl_elem_value_alloca(&value);
-	err = snd_hctl_elem_info(handle, info);
+	err = snd_hctl_elem_info(handle, &info);
 	if (err >= 0)
-		err = snd_hctl_elem_read(handle, value);
+		err = snd_hctl_elem_read(handle, &value);
 	lexpr = new_lexpr(instance, err);
 	if (err < 0)
 		return lexpr;
-	type = snd_ctl_elem_info_get_type(info);
-	count = snd_ctl_elem_info_get_count(info);
+	type = snd_ctl_elem_info_get_type(&info);
+	count = snd_ctl_elem_info_get_count(&info);
 	if (type == SND_CTL_ELEM_TYPE_IEC958) {
 		count = sizeof(snd_aes_iec958_t);
 		type = SND_CTL_ELEM_TYPE_BYTES;
@@ -651,19 +649,19 @@ static struct alisp_object * FA_hctl_elem_read(struct alisp_instance * instance,
 	for (idx = 0; idx < count; idx++) {
 		switch (type) {
 		case SND_CTL_ELEM_TYPE_BOOLEAN:
-			obj = new_integer(instance, snd_ctl_elem_value_get_boolean(value, idx));
+			obj = new_integer(instance, snd_ctl_elem_value_get_boolean(&value, idx));
 			break;
 		case SND_CTL_ELEM_TYPE_INTEGER:
-			obj = new_integer(instance, snd_ctl_elem_value_get_integer(value, idx));
+			obj = new_integer(instance, snd_ctl_elem_value_get_integer(&value, idx));
 			break;
 		case SND_CTL_ELEM_TYPE_INTEGER64:
-			obj = new_integer(instance, snd_ctl_elem_value_get_integer64(value, idx));
+			obj = new_integer(instance, snd_ctl_elem_value_get_integer64(&value, idx));
 			break;
 		case SND_CTL_ELEM_TYPE_ENUMERATED:
-			obj = new_integer(instance, snd_ctl_elem_value_get_enumerated(value, idx));
+			obj = new_integer(instance, snd_ctl_elem_value_get_enumerated(&value, idx));
 			break;
 		case SND_CTL_ELEM_TYPE_BYTES:
-			obj = new_integer(instance, snd_ctl_elem_value_get_byte(value, idx));
+			obj = new_integer(instance, snd_ctl_elem_value_get_byte(&value, idx));
 			break;
 		default:
 			obj = NULL;
