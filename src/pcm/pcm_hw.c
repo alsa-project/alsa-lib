@@ -351,12 +351,11 @@ static void snd_pcm_hw_close_timer(snd_pcm_hw_t *hw)
 static int snd_pcm_hw_change_timer(snd_pcm_t *pcm, int enable)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
-	snd_timer_params_t *params;
+	snd_timer_params_t params = {0};
 	unsigned int suspend, resume;
 	int err;
 	
 	if (enable) {
-		snd_timer_params_alloca(&params);
 		err = snd_timer_hw_open(&hw->period_timer,
 				"hw-pcm-period-event",
 				SND_TIMER_CLASS_PCM, SND_TIMER_SCLASS_NONE,
@@ -406,11 +405,11 @@ static int snd_pcm_hw_change_timer(snd_pcm_t *pcm, int enable)
 				resume = 1<<SND_TIMER_EVENT_MCONTINUE;
 			}
 		}
-		snd_timer_params_set_auto_start(params, 1);
-		snd_timer_params_set_ticks(params, 1);
-		snd_timer_params_set_filter(params, (1<<SND_TIMER_EVENT_TICK) |
+		snd_timer_params_set_auto_start(&params, 1);
+		snd_timer_params_set_ticks(&params, 1);
+		snd_timer_params_set_filter(&params, (1<<SND_TIMER_EVENT_TICK) |
 					    suspend | resume);
-		err = snd_timer_params(hw->period_timer, params);
+		err = snd_timer_params(hw->period_timer, &params);
 		if (err < 0) {
 			snd_pcm_hw_close_timer(hw);
 			return err;
