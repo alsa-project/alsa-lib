@@ -444,7 +444,7 @@ static struct alisp_object * FA_card_info(struct alisp_instance * instance, stru
 {
 	snd_ctl_t *handle;
 	struct alisp_object * lexpr, * p1;
-	snd_ctl_card_info_t * info;
+	snd_ctl_card_info_t info = {0};
 	int err;
 
 	p1 = eval(instance, car(args));
@@ -453,17 +453,16 @@ static struct alisp_object * FA_card_info(struct alisp_instance * instance, stru
 	handle = (snd_ctl_t *)get_ptr(instance, p1, item->prefix);
 	if (handle == NULL)
 		return &alsa_lisp_nil;
-	snd_ctl_card_info_alloca(&info);
-	err = snd_ctl_card_info(handle, info);
+	err = snd_ctl_card_info(handle, &info);
 	lexpr = new_lexpr(instance, err);
 	if (err < 0)
 		return lexpr;
-	p1 = add_cons(instance, lexpr->value.c.cdr, 0, "id", new_string(instance, snd_ctl_card_info_get_id(info)));
-	p1 = add_cons(instance, p1, 1, "driver", new_string(instance, snd_ctl_card_info_get_driver(info)));
-	p1 = add_cons(instance, p1, 1, "name", new_string(instance, snd_ctl_card_info_get_name(info)));
-	p1 = add_cons(instance, p1, 1, "longname", new_string(instance, snd_ctl_card_info_get_longname(info)));
-	p1 = add_cons(instance, p1, 1, "mixername", new_string(instance, snd_ctl_card_info_get_mixername(info)));
-	p1 = add_cons(instance, p1, 1, "components", new_string(instance, snd_ctl_card_info_get_components(info)));
+	p1 = add_cons(instance, lexpr->value.c.cdr, 0, "id", new_string(instance, snd_ctl_card_info_get_id(&info)));
+	p1 = add_cons(instance, p1, 1, "driver", new_string(instance, snd_ctl_card_info_get_driver(&info)));
+	p1 = add_cons(instance, p1, 1, "name", new_string(instance, snd_ctl_card_info_get_name(&info)));
+	p1 = add_cons(instance, p1, 1, "longname", new_string(instance, snd_ctl_card_info_get_longname(&info)));
+	p1 = add_cons(instance, p1, 1, "mixername", new_string(instance, snd_ctl_card_info_get_mixername(&info)));
+	p1 = add_cons(instance, p1, 1, "components", new_string(instance, snd_ctl_card_info_get_components(&info)));
 	if (p1 == NULL) {
 		delete_tree(instance, lexpr);
 		return NULL;
