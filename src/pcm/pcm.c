@@ -8484,11 +8484,9 @@ int snd_pcm_get_params(snd_pcm_t *pcm,
 	err = snd_pcm_hw_params_current(pcm, hw);
 	if (err < 0)
 	        return err;
-        err = INTERNAL(snd_pcm_hw_params_get_buffer_size)(hw, buffer_size);
-        if (err < 0)
-                return err;
-        err = INTERNAL(snd_pcm_hw_params_get_period_size)(hw, period_size, NULL);
-        if (err < 0)
-                return err;
-	return 0;
+	err = INTERNAL(snd_pcm_hw_params_get_buffer_size)(hw, buffer_size);
+	if (err < 0)
+		return err;
+	return INTERNAL(snd_pcm_hw_params_get_period_size)(hw, period_size,
+							   NULL);
 }
