@@ -913,7 +913,7 @@ int snd_func_card_name(snd_config_t **dst, snd_config_t *root,
 		       snd_config_t *src, snd_config_t *private_data)
 {
 	snd_ctl_t *ctl = NULL;
-	snd_ctl_card_info_t *info;
+	snd_ctl_card_info_t info = {0};
 	const char *id;
 	int card, err;
 	
@@ -925,8 +925,7 @@ int snd_func_card_name(snd_config_t **dst, snd_config_t *root,
 		SNDERR("could not open control for card %i", card);
 		goto __error;
 	}
-	snd_ctl_card_info_alloca(&info);
-	err = snd_ctl_card_info(ctl, info);
+	err = snd_ctl_card_info(ctl, &info);
 	if (err < 0) {
 		SNDERR("snd_ctl_card_info error: %s", snd_strerror(err));
 		goto __error;
@@ -934,7 +933,7 @@ int snd_func_card_name(snd_config_t **dst, snd_config_t *root,
 	err = snd_config_get_id(src, &id);
 	if (err >= 0)
 		err = snd_config_imake_safe_string(dst, id,
-					      snd_ctl_card_info_get_name(info));
+					snd_ctl_card_info_get_name(&info));
       __error:
       	if (ctl)
       		snd_ctl_close(ctl);
