@@ -522,7 +522,7 @@ static int parse_ctl_elem_id(struct alisp_instance * instance,
 static struct alisp_object * FA_hctl_find_elem(struct alisp_instance * instance, struct acall_table * item, struct alisp_object * args)
 {
 	snd_hctl_t *handle;
-	snd_ctl_elem_id_t *id;
+	snd_ctl_elem_id_t id = {0};
 	struct alisp_object *p1;
 
 	handle = (snd_hctl_t *)get_ptr(instance, car(args), item->prefix);
@@ -531,14 +531,13 @@ static struct alisp_object * FA_hctl_find_elem(struct alisp_instance * instance,
 		delete_object(instance, args);
 		return &alsa_lisp_nil;
 	}
-	snd_ctl_elem_id_alloca(&id);
 	p1 = car(cdr(args));
 	delete_tree(instance, cdr(cdr(args)));
 	delete_object(instance, cdr(args));
 	delete_object(instance, args);
-	if (parse_ctl_elem_id(instance, eval(instance, p1), id) < 0)
+	if (parse_ctl_elem_id(instance, eval(instance, p1), &id) < 0)
 		return &alsa_lisp_nil;
-	return new_cons_pointer(instance, "hctl_elem", snd_hctl_find_elem(handle, id));
+	return new_cons_pointer(instance, "hctl_elem", snd_hctl_find_elem(handle, &id));
 }
 
 static struct alisp_object * FA_hctl_elem_info(struct alisp_instance * instance, struct acall_table * item, struct alisp_object * args)
