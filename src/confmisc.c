@@ -969,7 +969,7 @@ int snd_func_pcm_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src, v
 {
 	snd_config_t *n;
 	snd_ctl_t *ctl = NULL;
-	snd_pcm_info_t *info;
+	snd_pcm_info_t info = {0};
 	const char *id;
 	long card, device, subdevice = 0;
 	int err;
@@ -1009,17 +1009,17 @@ int snd_func_pcm_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src, v
 		SNDERR("could not open control for card %li", card);
 		goto __error;
 	}
-	snd_pcm_info_alloca(&info);
-	snd_pcm_info_set_device(info, device);
-	snd_pcm_info_set_subdevice(info, subdevice);
-	err = snd_ctl_pcm_info(ctl, info);
+	snd_pcm_info_set_device(&info, device);
+	snd_pcm_info_set_subdevice(&info, subdevice);
+	err = snd_ctl_pcm_info(ctl, &info);
 	if (err < 0) {
 		SNDERR("snd_ctl_pcm_info error: %s", snd_strerror(err));
 		goto __error;
 	}
 	err = snd_config_get_id(src, &id);
 	if (err >= 0)
-		err = snd_config_imake_string(dst, id, snd_pcm_info_get_id(info));
+		err = snd_config_imake_string(dst, id,
+						snd_pcm_info_get_id(&info));
       __error:
       	if (ctl)
       		snd_ctl_close(ctl);
