@@ -749,7 +749,7 @@ static struct alisp_object * FA_pcm_info(struct alisp_instance * instance, struc
 {
 	snd_pcm_t *handle;
 	struct alisp_object * lexpr, * p1;
-	snd_pcm_info_t *info;
+	snd_pcm_info_t info = {0};
 	int err;
 
 	p1 = eval(instance, car(args));
@@ -758,22 +758,21 @@ static struct alisp_object * FA_pcm_info(struct alisp_instance * instance, struc
 	handle = (snd_pcm_t *)get_ptr(instance, p1, item->prefix);
 	if (handle == NULL)
 		return &alsa_lisp_nil;
-	snd_pcm_info_alloca(&info);
-	err = snd_pcm_info(handle, info);
+	err = snd_pcm_info(handle, &info);
 	lexpr = new_lexpr(instance, err);
 	if (err < 0)
 		return lexpr;
-	p1 = add_cons(instance, lexpr->value.c.cdr, 0, "card", new_integer(instance, snd_pcm_info_get_card(info)));
-	p1 = add_cons(instance, p1, 1, "device", new_integer(instance, snd_pcm_info_get_device(info)));
-	p1 = add_cons(instance, p1, 1, "subdevice", new_integer(instance, snd_pcm_info_get_subdevice(info)));
-	p1 = add_cons(instance, p1, 1, "id", new_string(instance, snd_pcm_info_get_id(info)));
-	p1 = add_cons(instance, p1, 1, "name", new_string(instance, snd_pcm_info_get_name(info)));
-	p1 = add_cons(instance, p1, 1, "subdevice_name", new_string(instance, snd_pcm_info_get_subdevice_name(info)));
-	p1 = add_cons(instance, p1, 1, "class", new_integer(instance, snd_pcm_info_get_class(info)));
-	p1 = add_cons(instance, p1, 1, "subclass", new_integer(instance, snd_pcm_info_get_subclass(info)));
-	p1 = add_cons(instance, p1, 1, "subdevices_count", new_integer(instance, snd_pcm_info_get_subdevices_count(info)));
-	p1 = add_cons(instance, p1, 1, "subdevices_avail", new_integer(instance, snd_pcm_info_get_subdevices_avail(info)));
-	//p1 = add_cons(instance, p1, 1, "sync", new_string(instance, snd_pcm_info_get_sync(info)));
+	p1 = add_cons(instance, lexpr->value.c.cdr, 0, "card", new_integer(instance, snd_pcm_info_get_card(&info)));
+	p1 = add_cons(instance, p1, 1, "device", new_integer(instance, snd_pcm_info_get_device(&info)));
+	p1 = add_cons(instance, p1, 1, "subdevice", new_integer(instance, snd_pcm_info_get_subdevice(&info)));
+	p1 = add_cons(instance, p1, 1, "id", new_string(instance, snd_pcm_info_get_id(&info)));
+	p1 = add_cons(instance, p1, 1, "name", new_string(instance, snd_pcm_info_get_name(&info)));
+	p1 = add_cons(instance, p1, 1, "subdevice_name", new_string(instance, snd_pcm_info_get_subdevice_name(&info)));
+	p1 = add_cons(instance, p1, 1, "class", new_integer(instance, snd_pcm_info_get_class(&info)));
+	p1 = add_cons(instance, p1, 1, "subclass", new_integer(instance, snd_pcm_info_get_subclass(&info)));
+	p1 = add_cons(instance, p1, 1, "subdevices_count", new_integer(instance, snd_pcm_info_get_subdevices_count(&info)));
+	p1 = add_cons(instance, p1, 1, "subdevices_avail", new_integer(instance, snd_pcm_info_get_subdevices_avail(&info)));
+	//p1 = add_cons(instance, p1, 1, "sync", new_string(instance, snd_pcm_info_get_sync(&info)));
 	return lexpr;
 }
 
