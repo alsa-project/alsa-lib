@@ -1176,23 +1176,22 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 int snd_pcm_direct_initialize_poll_fd(snd_pcm_direct_t *dmix)
 {
 	int ret;
-	snd_pcm_info_t *info;
+	snd_pcm_info_t info = {0};
 	char name[128];
 	int capture = dmix->type == SND_PCM_TYPE_DSNOOP ? 1 : 0;
 
 	dmix->tread = 1;
 	dmix->timer_need_poll = 0;
-	snd_pcm_info_alloca(&info);
-	ret = snd_pcm_info(dmix->spcm, info);
+	ret = snd_pcm_info(dmix->spcm, &info);
 	if (ret < 0) {
 		SNDERR("unable to info for slave pcm");
 		return ret;
 	}
 	sprintf(name, "hw:CLASS=%i,SCLASS=0,CARD=%i,DEV=%i,SUBDEV=%i",
 		(int)SND_TIMER_CLASS_PCM,
-		snd_pcm_info_get_card(info),
-		snd_pcm_info_get_device(info),
-		snd_pcm_info_get_subdevice(info) * 2 + capture);
+		snd_pcm_info_get_card(&info),
+		snd_pcm_info_get_device(&info),
+		snd_pcm_info_get_subdevice(&info) * 2 + capture);
 	ret = snd_timer_open(&dmix->timer, name,
 			     SND_TIMER_OPEN_NONBLOCK | SND_TIMER_OPEN_TREAD);
 	if (ret < 0) {
