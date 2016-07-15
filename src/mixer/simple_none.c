@@ -441,17 +441,16 @@ static int selem_read(snd_mixer_elem_t *elem)
 			return err;
 	}
 	if (s->ctls[CTL_CAPTURE_SOURCE].elem) {
-		snd_ctl_elem_value_t *ctl;
+		snd_ctl_elem_value_t ctl = {0};
 		selem_ctl_t *c = &s->ctls[CTL_CAPTURE_SOURCE];
-		snd_ctl_elem_value_alloca(&ctl);
-		err = snd_hctl_elem_read(c->elem, ctl);
+		err = snd_hctl_elem_read(c->elem, &ctl);
 		if (err < 0)
 			return err;
 		for (idx = 0; idx < s->str[SM_CAPT].channels; idx++) {
 			unsigned int idx1 = idx;
 			if (idx >= c->values)
 				idx1 = 0;
-			if (snd_ctl_elem_value_get_enumerated(ctl, idx1) !=
+			if (snd_ctl_elem_value_get_enumerated(&ctl, idx1) !=
 								s->capture_item)
 				s->str[SM_CAPT].sw &= ~(1 << idx);
 		}
