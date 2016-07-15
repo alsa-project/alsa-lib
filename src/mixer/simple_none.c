@@ -290,7 +290,7 @@ static int elem_read_route(selem_none_t *s, int dir, selem_ctl_type_t type)
 
 static int elem_read_enum(selem_none_t *s)
 {
-	snd_ctl_elem_value_t *ctl;
+	snd_ctl_elem_value_t ctl = {0};
 	unsigned int idx;
 	int err;
 	int type;
@@ -304,15 +304,14 @@ static int elem_read_enum(selem_none_t *s)
 	else if (s->selem.caps & SM_CAP_CENUM)
 		type = CTL_CAPTURE_ENUM;
 	c = &s->ctls[type];
-	snd_ctl_elem_value_alloca(&ctl);
-	if ((err = snd_hctl_elem_read(c->elem, ctl)) < 0)
+	if ((err = snd_hctl_elem_read(c->elem, &ctl)) < 0)
 		return err;
 	for (idx = 0; idx < s->str[0].channels; idx++) {
 		unsigned int idx1 = idx;
 		if (idx >= c->values)
 			idx1 = 0;
 		s->str[0].vol[idx] =
-				snd_ctl_elem_value_get_enumerated(ctl, idx1);
+				snd_ctl_elem_value_get_enumerated(&ctl, idx1);
 	}
 	return 0;
 }
