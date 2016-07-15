@@ -499,16 +499,15 @@ static int elem_write_switch(selem_none_t *s, int dir, selem_ctl_type_t type)
 
 static int elem_write_switch_constant(selem_none_t *s, selem_ctl_type_t type, int val)
 {
-	snd_ctl_elem_value_t *ctl;
+	snd_ctl_elem_value_t ctl = {0};
 	unsigned int idx;
 	int err;
 	selem_ctl_t *c = &s->ctls[type];
-	snd_ctl_elem_value_alloca(&ctl);
-	if ((err = snd_hctl_elem_read(c->elem, ctl)) < 0)
+	if ((err = snd_hctl_elem_read(c->elem, &ctl)) < 0)
 		return err;
 	for (idx = 0; idx < c->values; idx++)
-		snd_ctl_elem_value_set_integer(ctl, idx, !!val);
-	if ((err = snd_hctl_elem_write(c->elem, ctl)) < 0)
+		snd_ctl_elem_value_set_integer(&ctl, idx, !!val);
+	if ((err = snd_hctl_elem_write(c->elem, &ctl)) < 0)
 		return err;
 	return 0;
 }
