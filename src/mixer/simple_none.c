@@ -1610,23 +1610,22 @@ static int simple_event_add(snd_mixer_class_t *class, snd_hctl_elem_t *helem)
 	if (snd_hctl_elem_get_interface(helem) != SND_CTL_ELEM_IFACE_MIXER)
 		return 0;
 	if (strcmp(name, "Capture Source") == 0) {
-		snd_ctl_elem_info_t *info;
+		snd_ctl_elem_info_t info = {0};
 		unsigned int k, items;
 		int err;
-		snd_ctl_elem_info_alloca(&info);
-		err = snd_hctl_elem_info(helem, info);
+		err = snd_hctl_elem_info(helem, &info);
 		assert(err >= 0);
-		if (snd_ctl_elem_info_get_type(info) !=
+		if (snd_ctl_elem_info_get_type(&info) !=
 						SND_CTL_ELEM_TYPE_ENUMERATED)
 			return 0;
-		items = snd_ctl_elem_info_get_items(info);
+		items = snd_ctl_elem_info_get_items(&info);
 		for (k = 0; k < items; ++k) {
 			const char *n;
-			snd_ctl_elem_info_set_item(info, k);
-			err = snd_hctl_elem_info(helem, info);
+			snd_ctl_elem_info_set_item(&info, k);
+			err = snd_hctl_elem_info(helem, &info);
 			if (err < 0)
 				return err;
-			n = snd_ctl_elem_info_get_item_name(info);
+			n = snd_ctl_elem_info_get_item_name(&info);
 			err = simple_add1(class, n, helem, CTL_CAPTURE_SOURCE,
 					  k);
 			if (err < 0)
