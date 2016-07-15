@@ -1419,18 +1419,17 @@ static int simple_add1(snd_mixer_class_t *class, const char *name,
 	snd_mixer_selem_id_t *id;
 	int new = 0;
 	int err;
-	snd_ctl_elem_info_t *info;
+	snd_ctl_elem_info_t info = {0};
 	selem_none_t *simple;
 	const char *name1;
 	snd_ctl_elem_type_t ctype;
 	unsigned long values;
 
-	snd_ctl_elem_info_alloca(&info);
-	err = snd_hctl_elem_info(helem, info);
+	err = snd_hctl_elem_info(helem, &info);
 	if (err < 0)
 		return err;
-	ctype = snd_ctl_elem_info_get_type(info);
-	values = snd_ctl_elem_info_get_count(info);
+	ctype = snd_ctl_elem_info_get_type(&info);
+	values = snd_ctl_elem_info_get_count(&info);
 	switch (type) {
 	case CTL_SINGLE:
 		if (ctype == SND_CTL_ELEM_TYPE_ENUMERATED)
@@ -1553,20 +1552,20 @@ static int simple_add1(snd_mixer_class_t *class, const char *name,
 		goto __error;
 	}
 	simple->ctls[type].elem = helem;
-	simple->ctls[type].type = snd_ctl_elem_info_get_type(info);
-	simple->ctls[type].inactive = snd_ctl_elem_info_is_inactive(info);
+	simple->ctls[type].type = snd_ctl_elem_info_get_type(&info);
+	simple->ctls[type].inactive = snd_ctl_elem_info_is_inactive(&info);
 	simple->ctls[type].values = values;
 	if ( (type == CTL_GLOBAL_ENUM) ||
 	     (type == CTL_PLAYBACK_ENUM) ||
 	     (type == CTL_CAPTURE_ENUM) ) {
 		simple->ctls[type].min = 0;
-		simple->ctls[type].max = snd_ctl_elem_info_get_items(info);
+		simple->ctls[type].max = snd_ctl_elem_info_get_items(&info);
 	} else {
 		if (ctype == SND_CTL_ELEM_TYPE_INTEGER) {
 			simple->ctls[type].min =
-					snd_ctl_elem_info_get_min(info);
+					snd_ctl_elem_info_get_min(&info);
 			simple->ctls[type].max =
-					snd_ctl_elem_info_get_max(info);
+					snd_ctl_elem_info_get_max(&info);
 		}
 	}
 	switch (type) {
