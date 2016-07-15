@@ -1112,10 +1112,10 @@ static int init_db_range(snd_hctl_elem_t *ctl, struct selem_str *rec)
 	snd_ctl_elem_info_alloca(&info);
 	if (snd_hctl_elem_info(ctl, info) < 0)
 		goto error;
-	if (! snd_ctl_elem_info_is_tlv_readable(info))
+	if (!snd_ctl_elem_info_is_tlv_readable(info))
 		goto error;
 	tlv = malloc(tlv_size);
-	if (! tlv)
+	if (!tlv)
 		return -ENOMEM;
 	if (snd_hctl_elem_tlv_read(ctl, tlv, tlv_size) < 0)
 		goto error;
