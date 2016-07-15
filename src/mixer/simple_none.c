@@ -532,7 +532,7 @@ static int elem_write_route(selem_none_t *s, int dir, selem_ctl_type_t type)
 
 static int elem_write_enum(selem_none_t *s)
 {
-	snd_ctl_elem_value_t *ctl;
+	snd_ctl_elem_value_t ctl = {0};
 	unsigned int idx;
 	int err;
 	int type;
@@ -546,13 +546,12 @@ static int elem_write_enum(selem_none_t *s)
 	else if (s->selem.caps & SM_CAP_CENUM)
 		type = CTL_CAPTURE_ENUM;
 	c = &s->ctls[type];
-	snd_ctl_elem_value_alloca(&ctl);
-	if ((err = snd_hctl_elem_read(c->elem, ctl)) < 0)
+	if ((err = snd_hctl_elem_read(c->elem, &ctl)) < 0)
 		return err;
 	for (idx = 0; idx < c->values; idx++)
-		snd_ctl_elem_value_set_enumerated(ctl, idx,
+		snd_ctl_elem_value_set_enumerated(&ctl, idx,
 					(unsigned int)s->str[0].vol[idx]);
-	if ((err = snd_hctl_elem_write(c->elem, ctl)) < 0)
+	if ((err = snd_hctl_elem_write(c->elem, &ctl)) < 0)
 		return err;
 	return 0;
 }
