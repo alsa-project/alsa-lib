@@ -1313,7 +1313,7 @@ static int enum_item_name_ops(snd_mixer_elem_t *elem,
 			      size_t maxlen, char *buf)
 {
 	selem_none_t *s = snd_mixer_elem_get_private(elem);
-	snd_ctl_elem_info_t *info;
+	snd_ctl_elem_info_t info = {0};
 	snd_hctl_elem_t *helem;
 	int type;
 
@@ -1330,11 +1330,10 @@ static int enum_item_name_ops(snd_mixer_elem_t *elem,
 	assert(helem);
 	if (item >= (unsigned int)s->ctls[type].max)
 		return -EINVAL;
-	snd_ctl_elem_info_alloca(&info);
-	snd_hctl_elem_info(helem, info);
-	snd_ctl_elem_info_set_item(info, item);
-	snd_hctl_elem_info(helem, info);
-	strncpy(buf, snd_ctl_elem_info_get_item_name(info), maxlen);
+	snd_hctl_elem_info(helem, &info);
+	snd_ctl_elem_info_set_item(&info, item);
+	snd_hctl_elem_info(helem, &info);
+	strncpy(buf, snd_ctl_elem_info_get_item_name(&info), maxlen);
 	return 0;
 }
 
