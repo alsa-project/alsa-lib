@@ -1098,7 +1098,7 @@ static int convert_to_dB(snd_hctl_elem_t *ctl, struct selem_str *rec,
  */
 static int init_db_range(snd_hctl_elem_t *ctl, struct selem_str *rec)
 {
-	snd_ctl_elem_info_t *info;
+	snd_ctl_elem_info_t info = {0};
 	unsigned int *tlv = NULL;
 	const unsigned int tlv_size = 4096;
 	unsigned int *dbrec;
@@ -1109,10 +1109,9 @@ static int init_db_range(snd_hctl_elem_t *ctl, struct selem_str *rec)
 	if (rec->db_initialized)
 		return 0;
 
-	snd_ctl_elem_info_alloca(&info);
-	if (snd_hctl_elem_info(ctl, info) < 0)
+	if (snd_hctl_elem_info(ctl, &info) < 0)
 		goto error;
-	if (!snd_ctl_elem_info_is_tlv_readable(info))
+	if (!snd_ctl_elem_info_is_tlv_readable(&info))
 		goto error;
 	tlv = malloc(tlv_size);
 	if (!tlv)
