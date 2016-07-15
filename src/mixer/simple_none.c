@@ -282,7 +282,8 @@ static int elem_read_route(selem_none_t *s, int dir, selem_ctl_type_t type)
 		unsigned int idx1 = idx;
 		if (idx >= c->values)
 			idx1 = 0;
-		if (!snd_ctl_elem_value_get_integer(ctl, idx1 * c->values + idx1))
+		if (!snd_ctl_elem_value_get_integer(ctl,
+						    idx1 * c->values + idx1))
 			s->str[dir].sw &= ~(1 << idx);
 	}
 	return 0;
