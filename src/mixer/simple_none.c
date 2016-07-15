@@ -1363,7 +1363,7 @@ static int set_enum_item_ops(snd_mixer_elem_t *elem,
 			     unsigned int item)
 {
 	selem_none_t *s = snd_mixer_elem_get_private(elem);
-	snd_ctl_elem_value_t *ctl;
+	snd_ctl_elem_value_t ctl = {0};
 	snd_hctl_elem_t *helem;
 	int err;
 	int type;
@@ -1385,13 +1385,12 @@ static int set_enum_item_ops(snd_mixer_elem_t *elem,
 	if (item >= (unsigned int)s->ctls[type].max) {
 		return -EINVAL;
 	}
-	snd_ctl_elem_value_alloca(&ctl);
-	err = snd_hctl_elem_read(helem, ctl);
+	err = snd_hctl_elem_read(helem, &ctl);
 	if (err < 0) {
 		return err;
 	}
-	snd_ctl_elem_value_set_enumerated(ctl, channel, item);
-	return snd_hctl_elem_write(helem, ctl);
+	snd_ctl_elem_value_set_enumerated(&ctl, channel, item);
+	return snd_hctl_elem_write(helem, &ctl);
 }
 
 static struct sm_elem_ops simple_none_ops = {
