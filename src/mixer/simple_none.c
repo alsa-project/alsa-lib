@@ -628,17 +628,16 @@ static int selem_write_main(snd_mixer_elem_t *elem)
 			return err;
 	}
 	if (s->ctls[CTL_CAPTURE_SOURCE].elem) {
-		snd_ctl_elem_value_t *ctl;
+		snd_ctl_elem_value_t ctl = {0};
 		selem_ctl_t *c = &s->ctls[CTL_CAPTURE_SOURCE];
-		snd_ctl_elem_value_alloca(&ctl);
-		if ((err = snd_hctl_elem_read(c->elem, ctl)) < 0)
+		if ((err = snd_hctl_elem_read(c->elem, &ctl)) < 0)
 			return err;
 		for (idx = 0; idx < c->values; idx++) {
 			if (s->str[SM_CAPT].sw & (1 << idx))
-				snd_ctl_elem_value_set_enumerated(ctl,
+				snd_ctl_elem_value_set_enumerated(&ctl,
 							idx, s->capture_item);
 		}
-		if ((err = snd_hctl_elem_write(c->elem, ctl)) < 0)
+		if ((err = snd_hctl_elem_write(c->elem, &ctl)) < 0)
 			return err;
 		/* update the element, don't remove */
 		err = selem_read(elem);
