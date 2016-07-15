@@ -538,7 +538,8 @@ static int elem_write_enum(selem_none_t *s)
 	int type;
 	selem_ctl_t *c;
 	type = CTL_GLOBAL_ENUM;
-	if ( (s->selem.caps & (SM_CAP_CENUM | SM_CAP_PENUM) ) == (SM_CAP_CENUM | SM_CAP_PENUM) )
+	if ((s->selem.caps & (SM_CAP_CENUM | SM_CAP_PENUM)) ==
+						(SM_CAP_CENUM | SM_CAP_PENUM))
 		type = CTL_GLOBAL_ENUM;
 	else if (s->selem.caps & SM_CAP_PENUM)
 		type = CTL_PLAYBACK_ENUM;
@@ -549,7 +550,8 @@ static int elem_write_enum(selem_none_t *s)
 	if ((err = snd_hctl_elem_read(c->elem, ctl)) < 0)
 		return err;
 	for (idx = 0; idx < c->values; idx++)
-		snd_ctl_elem_value_set_enumerated(ctl, idx, (unsigned int)s->str[0].vol[idx]);
+		snd_ctl_elem_value_set_enumerated(ctl, idx,
+					(unsigned int)s->str[0].vol[idx]);
 	if ((err = snd_hctl_elem_write(c->elem, ctl)) < 0)
 		return err;
 	return 0;
