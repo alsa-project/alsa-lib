@@ -524,7 +524,8 @@ static int elem_write_route(selem_none_t *s, int dir, selem_ctl_type_t type)
 	for (idx = 0; idx < c->values * c->values; idx++)
 		snd_ctl_elem_value_set_integer(ctl, idx, 0);
 	for (idx = 0; idx < c->values; idx++)
-		snd_ctl_elem_value_set_integer(ctl, idx * c->values + idx, !!(s->str[dir].sw & (1 << idx)));
+		snd_ctl_elem_value_set_integer(ctl, idx * c->values + idx,
+					       !!(s->str[dir].sw & (1 << idx)));
 	if ((err = snd_hctl_elem_write(c->elem, ctl)) < 0)
 		return err;
 	return 0;
