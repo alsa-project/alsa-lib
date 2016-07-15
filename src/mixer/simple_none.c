@@ -1616,7 +1616,8 @@ static int simple_event_add(snd_mixer_class_t *class, snd_hctl_elem_t *helem)
 		snd_ctl_elem_info_alloca(&info);
 		err = snd_hctl_elem_info(helem, info);
 		assert(err >= 0);
-		if (snd_ctl_elem_info_get_type(info) != SND_CTL_ELEM_TYPE_ENUMERATED)
+		if (snd_ctl_elem_info_get_type(info) !=
+						SND_CTL_ELEM_TYPE_ENUMERATED)
 			return 0;
 		items = snd_ctl_elem_info_get_items(info);
 		for (k = 0; k < items; ++k) {
@@ -1626,7 +1627,8 @@ static int simple_event_add(snd_mixer_class_t *class, snd_hctl_elem_t *helem)
 			if (err < 0)
 				return err;
 			n = snd_ctl_elem_info_get_item_name(info);
-			err = simple_add1(class, n, helem, CTL_CAPTURE_SOURCE, k);
+			err = simple_add1(class, n, helem, CTL_CAPTURE_SOURCE,
+					  k);
 			if (err < 0)
 				return err;
 		}
