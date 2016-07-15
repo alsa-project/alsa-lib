@@ -1342,7 +1342,7 @@ static int get_enum_item_ops(snd_mixer_elem_t *elem,
 			     unsigned int *itemp)
 {
 	selem_none_t *s = snd_mixer_elem_get_private(elem);
-	snd_ctl_elem_value_t *ctl;
+	snd_ctl_elem_value_t ctl = {0};
 	snd_hctl_elem_t *helem;
 	int err;
 
@@ -1352,10 +1352,9 @@ static int get_enum_item_ops(snd_mixer_elem_t *elem,
 	if (!helem) helem = s->ctls[CTL_PLAYBACK_ENUM].elem;
 	if (!helem) helem = s->ctls[CTL_CAPTURE_ENUM].elem;
 	assert(helem);
-	snd_ctl_elem_value_alloca(&ctl);
-	err = snd_hctl_elem_read(helem, ctl);
+	err = snd_hctl_elem_read(helem, &ctl);
 	if (! err)
-		*itemp = snd_ctl_elem_value_get_enumerated(ctl, channel);
+		*itemp = snd_ctl_elem_value_get_enumerated(&ctl, channel);
 	return err;
 }
 
