@@ -228,7 +228,9 @@ int tplg_build_widgets(snd_tplg_t *tplg);
 int tplg_build_routes(snd_tplg_t *tplg);
 int tplg_build_pcm_dai(snd_tplg_t *tplg, unsigned int type);
 
-int tplg_copy_data(struct tplg_elem *elem, struct tplg_elem *ref);
+int tplg_copy_data(snd_tplg_t *tplg, struct tplg_elem *elem,
+		   struct tplg_ref *ref);
+
 int tplg_parse_data_refs(snd_config_t *cfg, struct tplg_elem *elem);
 
 int tplg_ref_add(struct tplg_elem *elem, int type, const char* id);

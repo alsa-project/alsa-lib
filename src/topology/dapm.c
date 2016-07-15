@@ -191,12 +191,11 @@ static int tplg_build_widget(snd_tplg_t *tplg,
 			break;
 
 		case SND_TPLG_TYPE_DATA:
-			if (!ref->elem)
-				ref->elem = tplg_elem_lookup(&tplg->pdata_list,
-						ref->id, SND_TPLG_TYPE_DATA);
-			if (ref->elem)
-				err = tplg_copy_data(elem, ref->elem);
+			err = tplg_copy_data(tplg, elem, ref);
+			if (err < 0)
+				return err;
 			break;
+
 		default:
 			break;
 		}

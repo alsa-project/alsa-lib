@@ -140,9 +140,9 @@ static int tplg_build_mixer_control(snd_tplg_t *tplg,
 				 err = copy_tlv(elem, ref->elem);
 
 		} else if (ref->type == SND_TPLG_TYPE_DATA) {
-			ref->elem = tplg_elem_lookup(&tplg->pdata_list,
-						ref->id, SND_TPLG_TYPE_DATA);
-			 err = tplg_copy_data(elem, ref->elem);
+			err = tplg_copy_data(tplg, elem, ref);
+			if (err < 0)
+				return err;
 		}
 
 		if (!ref->elem) {
@@ -188,9 +188,9 @@ static int tplg_build_enum_control(snd_tplg_t *tplg,
 				copy_enum_texts(elem, ref->elem);
 
 		} else if (ref->type == SND_TPLG_TYPE_DATA) {
-			ref->elem = tplg_elem_lookup(&tplg->pdata_list,
-						ref->id, SND_TPLG_TYPE_DATA);
-			err = tplg_copy_data(elem, ref->elem);
+			err = tplg_copy_data(tplg, elem, ref);
+			if (err < 0)
+				return err;
 		}
 		if (!ref->elem) {
 			SNDERR("error: cannot find '%s' referenced by"
@@ -208,6 +208,7 @@ static int tplg_build_bytes_control(snd_tplg_t *tplg, struct tplg_elem *elem)
 {
 	struct tplg_ref *ref;
 	struct list_head *base, *pos;
+	int err;
 
 	base = &elem->ref_list;
 
@@ -217,18 +218,11 @@ static int tplg_build_bytes_control(snd_tplg_t *tplg, struct tplg_elem *elem)
 		if (ref->id == NULL || ref->elem)
 			continue;
 
-		/* bytes control only reference one private data section */
-		ref->elem = tplg_elem_lookup(&tplg->pdata_list,
-			ref->id, SND_TPLG_TYPE_DATA);
-		if (!ref->elem) {
-			SNDERR("error: cannot find data '%s'"
-				" referenced by control '%s'\n",
-				ref->id, elem->id);
-			return -EINVAL;
+		 if (ref->type == SND_TPLG_TYPE_DATA) {
+			err = tplg_copy_data(tplg, elem, ref);
+			if (err < 0)
+				return err;
 		}
-
-		/* copy texts to enum elem */
-		return tplg_copy_data(elem, ref->elem);
 	}
 
 	return 0;

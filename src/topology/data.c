@@ -889,22 +889,30 @@ int tplg_parse_data(snd_tplg_t *tplg, snd_config_t *cfg,
 	return err;
 }
 
-/* Merge data from a referenced data element to the parent element's
- * private data buffer.
+/* Find a referenced data element and copy its data to the parent
+ * element's private data buffer.
  * An element can refer to multiple data sections. Data of these sections
  * will be merged in the their reference order.
  */
-int tplg_copy_data(struct tplg_elem *elem, struct tplg_elem *ref)
+int tplg_copy_data(snd_tplg_t *tplg, struct tplg_elem *elem,
+		   struct tplg_ref *ref)
 {
+	struct tplg_elem *ref_elem;
 	struct snd_soc_tplg_private *priv, *old_priv;
 	int priv_data_size, old_priv_data_size;
 	void *obj;
 
-	if (!ref)
+	ref_elem = tplg_elem_lookup(&tplg->pdata_list,
+				     ref->id, SND_TPLG_TYPE_DATA);
+	if (!ref_elem) {
+		SNDERR("error: cannot find data '%s' referenced by"
+		" element '%s'\n", ref->id, elem->id);
 		return -EINVAL;
+	}
 
 	tplg_dbg("Data '%s' used by '%s'\n", ref->id, elem->id);
-	if (!ref->data || !ref->data->size) /* overlook empty private data */
+	/* overlook empty private data */
+	if (!ref_elem->data || !ref_elem->data->size)
 		return 0;
 
 	old_priv = get_priv_data(elem);
@@ -912,7 +920,7 @@ int tplg_copy_data(struct tplg_elem *elem, struct tplg_elem *ref)
 		return -EINVAL;
 	old_priv_data_size = old_priv->size;
 
-	priv_data_size = ref->data->size;
+	priv_data_size = ref_elem->data->size;
 	obj = realloc(elem->obj,
 			elem->size + priv_data_size);
 	if (!obj)
@@ -926,9 +934,9 @@ int tplg_copy_data(struct tplg_elem *elem, struct tplg_elem *ref)
 	/* merge the new data block */
 	elem->size += priv_data_size;
 	priv->size = priv_data_size + old_priv_data_size;
-	ref->compound_elem = 1;
+	ref_elem->compound_elem = 1;
 	memcpy(priv->data + old_priv_data_size,
-	       ref->data->data, priv_data_size);
+	       ref_elem->data->data, priv_data_size);
 	return 0;
 }
 
