@@ -491,7 +491,8 @@ static int elem_write_switch(selem_none_t *s, int dir, selem_ctl_type_t type)
 	if ((err = snd_hctl_elem_read(c->elem, ctl)) < 0)
 		return err;
 	for (idx = 0; idx < c->values; idx++)
-		snd_ctl_elem_value_set_integer(ctl, idx, !!(s->str[dir].sw & (1 << idx)));
+		snd_ctl_elem_value_set_integer(ctl, idx,
+					!!(s->str[dir].sw & (1 << idx)));
 	if ((err = snd_hctl_elem_write(c->elem, ctl)) < 0)
 		return err;
 	return 0;
