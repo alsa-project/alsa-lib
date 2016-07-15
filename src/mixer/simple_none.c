@@ -1527,8 +1527,10 @@ static int simple_add1(snd_mixer_class_t *class, const char *name,
 		simple->selem.id = id;
 		simple->selem.ops = &simple_none_ops;
 		err = snd_mixer_elem_new(&melem, SND_MIXER_ELEM_SIMPLE,
-					 get_compare_weight(snd_mixer_selem_id_get_name(simple->selem.id), snd_mixer_selem_id_get_index(simple->selem.id)),
-					 simple, selem_free);
+			get_compare_weight(
+				snd_mixer_selem_id_get_name(simple->selem.id),
+				snd_mixer_selem_id_get_index(simple->selem.id)),
+			simple, selem_free);
 		if (err < 0) {
 			snd_mixer_selem_id_free(id);
 			free(simple);
@@ -1541,11 +1543,12 @@ static int simple_add1(snd_mixer_class_t *class, const char *name,
 	}
 	if (simple->ctls[type].elem) {
 		SNDERR("helem (%s,'%s',%u,%u,%u) appears twice or more",
-				snd_ctl_elem_iface_name(snd_hctl_elem_get_interface(helem)),
-				snd_hctl_elem_get_name(helem),
-				snd_hctl_elem_get_index(helem),
-				snd_hctl_elem_get_device(helem),
-				snd_hctl_elem_get_subdevice(helem));
+		       snd_ctl_elem_iface_name(
+				snd_hctl_elem_get_interface(helem)),
+		       snd_hctl_elem_get_name(helem),
+		       snd_hctl_elem_get_index(helem),
+		       snd_hctl_elem_get_device(helem),
+		       snd_hctl_elem_get_subdevice(helem));
 		err = -EINVAL;
 		goto __error;
 	}
@@ -1560,8 +1563,10 @@ static int simple_add1(snd_mixer_class_t *class, const char *name,
 		simple->ctls[type].max = snd_ctl_elem_info_get_items(info);
 	} else {
 		if (ctype == SND_CTL_ELEM_TYPE_INTEGER) {
-			simple->ctls[type].min = snd_ctl_elem_info_get_min(info);
-			simple->ctls[type].max = snd_ctl_elem_info_get_max(info);
+			simple->ctls[type].min =
+					snd_ctl_elem_info_get_min(info);
+			simple->ctls[type].max =
+					snd_ctl_elem_info_get_max(info);
 		}
 	}
 	switch (type) {
