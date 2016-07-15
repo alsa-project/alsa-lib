@@ -176,6 +176,49 @@ static int get_hex_num(const char *str)
 	return values;
 }
 
+/* get uuid from a string made by 16 characters separated by commas */
+static int get_uuid(const char *str, unsigned char *uuid_le)
+{
+	unsigned long int  val;
+	char *tmp, *s = NULL;
+	int values = 0, ret = 0;
+
+	tmp = strdup(str);
+	if (tmp == NULL)
+		return -ENOMEM;
+
+	s = strtok(tmp, ",");
+
+	while (s != NULL) {
+		errno = 0;
+		val = strtoul(s, NULL, 0);
+		if ((errno == ERANGE && val == ULONG_MAX)
+			|| (errno != 0 && val == 0)
+			|| (val > UCHAR_MAX)) {
+			SNDERR("error: invalid value for uuid\n");
+			ret = -EINVAL;
+			goto out;
+		}
+
+		 *(uuid_le + values) = (unsigned char)val;
+
+		values++;
+		if (values >= 16)
+			break;
+
+		s = strtok(NULL, ",");
+	}
+
+	if (values < 16) {
+		SNDERR("error: less than 16 integers for uuid\n");
+		ret = -EINVAL;
+	}
+
+out:
+	free(tmp);
+	return ret;
+}
+
 static int write_hex(char *buf, char *str, int width)
 {
 	long val;
@@ -474,7 +517,7 @@ static int build_tuples(snd_tplg_t *tplg, struct tplg_elem *elem)
 	return 0;
 }
 
-static int parse_tuple_set(snd_tplg_t *tplg, snd_config_t *cfg,
+static int parse_tuple_set(snd_config_t *cfg,
 	struct tplg_tuple_set **s)
 {
 	snd_config_iterator_t i, next;
@@ -484,7 +527,6 @@ static int parse_tuple_set(snd_tplg_t *tplg, snd_config_t *cfg,
 	unsigned int type, num_tuples = 0;
 	struct tplg_tuple *tuple;
 	unsigned long int tuple_val;
-	int len;
 
 	snd_config_get_id(cfg, &id);
 
@@ -535,14 +577,8 @@ static int parse_tuple_set(snd_tplg_t *tplg, snd_config_t *cfg,
 
 		switch (type) {
 		case SND_SOC_TPLG_TUPLE_TYPE_UUID:
-			len = strlen(value);
-			if (len > 16 || len == 0) {
-				SNDERR("error: tuple %s: invalid uuid\n", id);
+			if (get_uuid(value, tuple->uuid) < 0)
 				goto err;
-			}
-
-			memcpy(tuple->uuid, value, len);
-			tplg_dbg("\t\t%s = %s\n", tuple->token, tuple->uuid);
 			break;
 
 		case SND_SOC_TPLG_TUPLE_TYPE_STRING:
@@ -598,7 +634,7 @@ err:
 	return -EINVAL;
 }
 
-static int parse_tuple_sets(snd_tplg_t *tplg, snd_config_t *cfg,
+static int parse_tuple_sets(snd_config_t *cfg,
 	struct tplg_vendor_tuples *tuples)
 {
 	snd_config_iterator_t i, next;
@@ -632,7 +668,7 @@ static int parse_tuple_sets(snd_tplg_t *tplg, snd_config_t *cfg,
 			return -EINVAL;
 		}
 
-		err = parse_tuple_set(tplg, n, &tuples->set[tuples->num_sets]);
+		err = parse_tuple_set(n, &tuples->set[tuples->num_sets]);
 		if (err < 0)
 			return err;
 
@@ -774,7 +810,7 @@ int tplg_parse_tuples(snd_tplg_t *tplg, snd_config_t *cfg,
 		}
 
 		if (strcmp(id, "tuples") == 0) {
-			err = parse_tuple_sets(tplg, n, tuples);
+			err = parse_tuple_sets(n, tuples);
 			if (err < 0)
 				return err;
 		}

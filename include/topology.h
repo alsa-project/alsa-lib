@@ -273,8 +273,8 @@ extern "C" {
  *		...
  *	}
  *
- *	tuples."uuid" {
- *		VENDOR_TOKEN_ID2 "16 character uuid"
+ *	tuples."uuid" {			# 16 characters separated by commas
+ *		VENDOR_TOKEN_ID2 "0x01,0x02,...,0x0f"
  *		...
  *	}
  *

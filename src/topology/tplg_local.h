@@ -104,7 +104,7 @@ struct tplg_tuple {
 	char token[SNDRV_CTL_ELEM_ID_NAME_MAXLEN];
 	union {
 		char string[SNDRV_CTL_ELEM_ID_NAME_MAXLEN];
-		char uuid[16];
+		unsigned char uuid[16];
 		unsigned int value;
 	};
 };
