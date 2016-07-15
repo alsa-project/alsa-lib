@@ -26,6 +26,10 @@ struct snd_soc_tplg_private *get_priv_data(struct tplg_elem *elem)
 	struct snd_soc_tplg_private *priv = NULL;
 
 	switch (elem->type) {
+	case SND_TPLG_TYPE_MANIFEST:
+		priv = &elem->manifest->priv;
+		break;
+
 	case SND_TPLG_TYPE_MIXER:
 		priv = &elem->mixer_ctrl->priv;
 		break;
@@ -832,6 +836,103 @@ void tplg_free_tuples(void *obj)
 		free(tuples->set[i]);
 
 	free(tuples->set);
+}
+
+/* Parse manifest's data references
+ */
+int tplg_parse_manifest_data(snd_tplg_t *tplg, snd_config_t *cfg,
+	void *private ATTRIBUTE_UNUSED)
+{
+	struct snd_soc_tplg_manifest *manifest;
+	struct tplg_elem *elem;
+	snd_config_iterator_t i, next;
+	snd_config_t *n;
+	const char *id;
+	int err;
+
+	if (!list_empty(&tplg->manifest_list)) {
+		SNDERR("error: already has manifest data\n");
+		return -EINVAL;
+	}
+
+	elem = tplg_elem_new_common(tplg, cfg, NULL, SND_TPLG_TYPE_MANIFEST);
+	if (!elem)
+		return -ENOMEM;
+
+	manifest = elem->manifest;
+	manifest->size = elem->size;
+
+	tplg_dbg(" Manifest: %s\n", elem->id);
+
+	snd_config_for_each(i, next, cfg) {
+		n = snd_config_iterator_entry(i);
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
+
+		/* skip comments */
+		if (strcmp(id, "comment") == 0)
+			continue;
+		if (id[0] == '#')
+			continue;
+
+
+		if (strcmp(id, "data") == 0) {
+			err = tplg_parse_data_refs(n, elem);
+			if (err < 0)
+				return err;
+			continue;
+		}
+	}
+
+	return 0;
+}
+
+/* merge private data of manifest */
+int tplg_build_manifest_data(snd_tplg_t *tplg)
+{
+	struct list_head *base, *pos;
+	struct tplg_elem *elem = NULL;
+	struct tplg_ref *ref;
+	struct snd_soc_tplg_manifest *manifest;
+	int err = 0;
+
+	base = &tplg->manifest_list;
+	list_for_each(pos, base) {
+
+		elem = list_entry(pos, struct tplg_elem, list);
+		break;
+	}
+
+	if (!elem) /* no manifest data */
+		return 0;
+
+	base = &elem->ref_list;
+
+	/* for each ref in this manifest elem */
+	list_for_each(pos, base) {
+
+		ref = list_entry(pos, struct tplg_ref, list);
+		if (ref->id == NULL || ref->elem)
+			continue;
+
+		if (ref->type == SND_TPLG_TYPE_DATA) {
+			err = tplg_copy_data(tplg, elem, ref);
+			if (err < 0)
+				return err;
+		}
+	}
+
+	manifest = elem->manifest;
+	if (!manifest->priv.size) /* no manifest data */
+		return 0;
+
+	tplg->manifest_pdata = malloc(manifest->priv.size);
+	if (!tplg->manifest_pdata)
+		return -ENOMEM;
+
+	tplg->manifest.priv.size = manifest->priv.size;
+	memcpy(tplg->manifest_pdata, manifest->priv.data, manifest->priv.size);
+	return 0;
 }
 
 /* Parse Private data.

@@ -189,6 +189,15 @@ static int tplg_parse_config(snd_tplg_t *tplg, snd_config_t *cfg)
 			continue;
 		}
 
+		if (strcmp(id, "SectionManifest") == 0) {
+			err = tplg_parse_compound(tplg, n,
+						  tplg_parse_manifest_data,
+				NULL);
+			if (err < 0)
+				return err;
+			continue;
+		}
+
 		SNDERR("error: unknown section %s\n", id);
 	}
 	return 0;
@@ -243,6 +252,10 @@ static int tplg_build_integ(snd_tplg_t *tplg)
 	int err;
 
 	err = tplg_build_data(tplg);
+	if (err <  0)
+		return err;
+
+	err = tplg_build_manifest_data(tplg);
 	if (err <  0)
 		return err;
 
@@ -374,8 +387,16 @@ out:
 
 int snd_tplg_set_manifest_data(snd_tplg_t *tplg, const void *data, int len)
 {
+	if (len <= 0)
+		return 0;
+
 	tplg->manifest.priv.size = len;
-	tplg->manifest_pdata = data;
+
+	tplg->manifest_pdata = malloc(len);
+	if (!tplg->manifest_pdata)
+		return -ENOMEM;
+
+	memcpy(tplg->manifest_pdata, data, len);
 	return 0;
 }
 
@@ -423,6 +444,7 @@ snd_tplg_t *snd_tplg_new(void)
 	INIT_LIST_HEAD(&tplg->cc_list);
 	INIT_LIST_HEAD(&tplg->route_list);
 	INIT_LIST_HEAD(&tplg->pdata_list);
+	INIT_LIST_HEAD(&tplg->manifest_list);
 	INIT_LIST_HEAD(&tplg->text_list);
 	INIT_LIST_HEAD(&tplg->pcm_config_list);
 	INIT_LIST_HEAD(&tplg->pcm_caps_list);
@@ -437,6 +459,9 @@ snd_tplg_t *snd_tplg_new(void)
 
 void snd_tplg_free(snd_tplg_t *tplg)
 {
+	if (tplg->manifest_pdata)
+		free(tplg->manifest_pdata);
+
 	tplg_elem_free_list(&tplg->tlv_list);
 	tplg_elem_free_list(&tplg->widget_list);
 	tplg_elem_free_list(&tplg->pcm_list);
@@ -444,6 +469,7 @@ void snd_tplg_free(snd_tplg_t *tplg)
 	tplg_elem_free_list(&tplg->cc_list);
 	tplg_elem_free_list(&tplg->route_list);
 	tplg_elem_free_list(&tplg->pdata_list);
+	tplg_elem_free_list(&tplg->manifest_list);
 	tplg_elem_free_list(&tplg->text_list);
 	tplg_elem_free_list(&tplg->pcm_config_list);
 	tplg_elem_free_list(&tplg->pcm_caps_list);

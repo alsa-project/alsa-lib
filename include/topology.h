@@ -586,6 +586,20 @@ extern "C" {
  * }
  * </pre>
  *
+ * <h4>Manifest Private Data</h4>
+ * Manfiest may have private data. Users need to define a manifest section
+ * and add the references to 1 or multiple data sections. Please refer to
+ * section 'How to define an element with private data'. <br>
+ * And the text conf file can have at most 1 manifest section. <br><br>
+ *
+ * Manifest section is defined as follows :-
+ *
+ * <pre>
+ * SectionManifest"name" {
+ *
+ *	data "name"			# optional private data
+ * }
+ * </pre>
  */
 
 /** Maximum number of channels supported in one control */

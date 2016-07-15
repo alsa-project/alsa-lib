@@ -58,7 +58,7 @@ struct snd_tplg {
 
 	/* manifest */
 	struct snd_soc_tplg_manifest manifest;
-	const void *manifest_pdata;	/* copied by builder at file write */
+	void *manifest_pdata;	/* copied by builder at file write */
 
 	/* list of each element type */
 	struct list_head tlv_list;
@@ -71,6 +71,7 @@ struct snd_tplg {
 	struct list_head pdata_list;
 	struct list_head token_list;
 	struct list_head tuple_list;
+	struct list_head manifest_list;
 	struct list_head pcm_config_list;
 	struct list_head pcm_caps_list;
 
@@ -154,6 +155,7 @@ struct tplg_elem {
 		struct snd_soc_tplg_private *data;
 		struct tplg_vendor_tokens *tokens;
 		struct tplg_vendor_tuples *tuples;
+		struct snd_soc_tplg_manifest *manifest;
 	};
 
 	/* an element may refer to other elements:
@@ -195,6 +197,9 @@ int tplg_parse_tuples(snd_tplg_t *tplg, snd_config_t *cfg,
 
 void tplg_free_tuples(void *obj);
 
+int tplg_parse_manifest_data(snd_tplg_t *tplg, snd_config_t *cfg,
+	void *private ATTRIBUTE_UNUSED);
+
 int tplg_parse_control_bytes(snd_tplg_t *tplg,
 	snd_config_t *cfg, void *private ATTRIBUTE_UNUSED);
 
@@ -223,6 +228,7 @@ int tplg_parse_cc(snd_tplg_t *tplg,
 	snd_config_t *cfg, void *private ATTRIBUTE_UNUSED);
 
 int tplg_build_data(snd_tplg_t *tplg);
+int tplg_build_manifest_data(snd_tplg_t *tplg);
 int tplg_build_controls(snd_tplg_t *tplg);
 int tplg_build_widgets(snd_tplg_t *tplg);
 int tplg_build_routes(snd_tplg_t *tplg);
