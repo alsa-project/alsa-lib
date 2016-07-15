@@ -534,17 +534,17 @@ static int parse_tuple_set(snd_config_t *cfg,
 
 	snd_config_get_id(cfg, &id);
 
-	if (strcmp(id, "uuid") == 0)
+	if (strncmp(id, "uuid", 4) == 0)
 		type = SND_SOC_TPLG_TUPLE_TYPE_UUID;
-	else if (strcmp(id, "string") == 0)
+	else if (strncmp(id, "string", 5) == 0)
 		type = SND_SOC_TPLG_TUPLE_TYPE_STRING;
-	else if (strcmp(id, "bool") == 0)
+	else if (strncmp(id, "bool", 4) == 0)
 		type = SND_SOC_TPLG_TUPLE_TYPE_BOOL;
-	else if (strcmp(id, "byte") == 0)
+	else if (strncmp(id, "byte", 4) == 0)
 		type = SND_SOC_TPLG_TUPLE_TYPE_BYTE;
-	else if (strcmp(id, "short") == 0)
+	else if (strncmp(id, "short", 5) == 0)
 		type = SND_SOC_TPLG_TUPLE_TYPE_SHORT;
-	else if (strcmp(id, "word") == 0)
+	else if (strncmp(id, "word", 4) == 0)
 		type = SND_SOC_TPLG_TUPLE_TYPE_WORD;
 	else {
 		SNDERR("error: invalid tuple type '%s'\n", id);

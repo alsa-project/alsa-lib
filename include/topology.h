@@ -302,6 +302,29 @@ extern "C" {
  *	}
  * }
  * </pre>
+ * To define multiple vendor tuples of same type, please append some
+ * characters after the type string ("string", "uuid", "bool", "byte", "short"
+ * or "word"), to avoid ID duplication in the SectionVendorTuples.<br>
+ * The parser will check the first few characters in ID to get the tuple type.
+ * Here is an example:
+ * <pre>
+ * SectionVendorTuples."id of the vendor tuples" {
+ *    ...
+ *	tuples."word.module0" {
+ *		VENDOR_TOKEN_PARAM_ID1 "0x00112233"
+ *		VENDOR_TOKEN_PARAM_ID2 "0x44556677"
+ *		...
+ *	}
+ *
+ *	tuples."word.module2" {
+ *		VENDOR_TOKEN_PARAM_ID1 "0x11223344"
+ *		VENDOR_TOKEN_PARAM_ID2 "0x55667788"
+ *		...
+ *	}
+ *	...
+ * }
+ *
+ * </pre>
  *
  * <h5>Mixer Controls</h5>
  * A mixer control is defined as a new section that can include channel mapping,
