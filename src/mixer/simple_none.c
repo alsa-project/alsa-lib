@@ -451,7 +451,8 @@ static int selem_read(snd_mixer_elem_t *elem)
 			unsigned int idx1 = idx;
 			if (idx >= c->values)
 				idx1 = 0;
-			if (snd_ctl_elem_value_get_enumerated(ctl, idx1) != s->capture_item)
+			if (snd_ctl_elem_value_get_enumerated(ctl, idx1) !=
+								s->capture_item)
 				s->str[SM_CAPT].sw &= ~(1 << idx);
 		}
 	}
