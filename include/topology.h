@@ -213,6 +213,34 @@ extern "C" {
  * The keyword tuples is to define vendor specific tuples. Please refer to
  * section Vendor Tokens and Vendor tuples.
  *
+ * <h5>How to define an element with private data</h5>
+ * An element can refer to a single data section or multiple data
+ * sections.
+ *
+ * <h6>To refer to a single data section:</h6>
+ * <pre>
+ * Sectionxxx."element name" {
+ *    ...
+ *	data "name of data section"		# optional private data
+ * }
+ * </pre>
+ *
+ * <h6>To refer to multiple data sections:</h6>
+ * <pre>
+ * Sectionxxx."element name" {
+ *	...
+ *	data [						# optional private data
+ *		"name of 1st data section"
+ *		"name of 2nd data section"
+ *		...
+ *	]
+ * }
+ * </pre>
+ * And data of these sections will be merged in the same order as they are
+ * in the list, as the element's private data for kernel.
+ *
+ * </pre>
+ *
  *  <h6>Vendor Tokens</h6>
  * A vendor token list is defined as a new section. Each token element is
  * a pair of string ID and integer value. And both the ID and value are

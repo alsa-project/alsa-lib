@@ -447,11 +447,9 @@ int tplg_parse_control_bytes(snd_tplg_t *tplg,
 		}
 
 		if (strcmp(id, "data") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
-				return -EINVAL;
-
-			tplg_ref_add(elem, SND_TPLG_TYPE_DATA, val);
-			tplg_dbg("\t%s: %s\n", id, val);
+			err = tplg_parse_data_refs(n, elem);
+			if (err < 0)
+				return err;
 			continue;
 		}
 
@@ -587,11 +585,9 @@ int tplg_parse_control_enum(snd_tplg_t *tplg, snd_config_t *cfg,
 		}
 
 		if (strcmp(id, "data") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
-				return -EINVAL;
-
-			tplg_ref_add(elem, SND_TPLG_TYPE_DATA, val);
-			tplg_dbg("\t%s: %s\n", id, val);
+			err = tplg_parse_data_refs(n, elem);
+			if (err < 0)
+				return err;
 			continue;
 		}
 
@@ -725,11 +721,9 @@ int tplg_parse_control_mixer(snd_tplg_t *tplg,
 		}
 
 		if (strcmp(id, "data") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
-				return -EINVAL;
-
-			tplg_ref_add(elem, SND_TPLG_TYPE_DATA, val);
-			tplg_dbg("\t%s: %s\n", id, val);
+			err = tplg_parse_data_refs(n, elem);
+			if (err < 0)
+				return err;
 			continue;
 		}
 

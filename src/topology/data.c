@@ -20,6 +20,36 @@
 #include "tplg_local.h"
 #include <ctype.h>
 
+/* Get private data buffer of an element */
+struct snd_soc_tplg_private *get_priv_data(struct tplg_elem *elem)
+{
+	struct snd_soc_tplg_private *priv = NULL;
+
+	switch (elem->type) {
+	case SND_TPLG_TYPE_MIXER:
+		priv = &elem->mixer_ctrl->priv;
+		break;
+
+	case SND_TPLG_TYPE_ENUM:
+		priv = &elem->enum_ctrl->priv;
+		break;
+
+	case SND_TPLG_TYPE_BYTES:
+		priv = &elem->bytes_ext->priv;
+		break;
+
+	case SND_TPLG_TYPE_DAPM_WIDGET:
+		priv = &elem->widget->priv;
+		break;
+
+	default:
+		SNDERR("error: '%s': no support for private data for type %d\n",
+			elem->id, elem->type);
+	}
+
+	return priv;
+}
+
 /* Get Private data from a file. */
 static int tplg_parse_data_file(snd_config_t *cfg, struct tplg_elem *elem)
 {
@@ -614,6 +644,48 @@ static int parse_tuple_sets(snd_tplg_t *tplg, snd_config_t *cfg,
 	return 0;
 }
 
+/* Parse private data references for the element, either a single data section
+ * or a list of data sections.
+ */
+int tplg_parse_data_refs(snd_config_t *cfg,
+	struct tplg_elem *elem)
+{
+	snd_config_type_t  type;
+	snd_config_iterator_t i, next;
+	snd_config_t *n;
+	const char *val = NULL;
+
+	type = snd_config_get_type(cfg);
+
+	/* refer to a single data section */
+	if (type == SND_CONFIG_TYPE_STRING) {
+		if (snd_config_get_string(cfg, &val) < 0)
+			return -EINVAL;
+
+		tplg_dbg("\tdata: %s\n", val);
+		return tplg_ref_add(elem, SND_TPLG_TYPE_DATA, val);
+	}
+
+	if (type != SND_CONFIG_TYPE_COMPOUND) {
+		SNDERR("error: compound type expected for %s", elem->id);
+		return -EINVAL;
+	}
+
+	/* refer to a list of data sections */
+	snd_config_for_each(i, next, cfg) {
+		const char *val;
+
+		n = snd_config_iterator_entry(i);
+		if (snd_config_get_string(n, &val) < 0)
+			continue;
+
+		tplg_dbg("\tdata: %s\n", val);
+		tplg_ref_add(elem, SND_TPLG_TYPE_DATA, val);
+	}
+
+	return 0;
+}
+
 /* Parse vendor tokens
  */
 int tplg_parse_tokens(snd_tplg_t *tplg, snd_config_t *cfg,
@@ -817,11 +889,15 @@ int tplg_parse_data(snd_tplg_t *tplg, snd_config_t *cfg,
 	return err;
 }
 
-/* copy private data into the bytes extended control */
+/* Merge data from a referenced data element to the parent element's
+ * private data buffer.
+ * An element can refer to multiple data sections. Data of these sections
+ * will be merged in the their reference order.
+ */
 int tplg_copy_data(struct tplg_elem *elem, struct tplg_elem *ref)
 {
-	struct snd_soc_tplg_private *priv;
-	int priv_data_size;
+	struct snd_soc_tplg_private *priv, *old_priv;
+	int priv_data_size, old_priv_data_size;
 	void *obj;
 
 	if (!ref)
@@ -831,6 +907,11 @@ int tplg_copy_data(struct tplg_elem *elem, struct tplg_elem *ref)
 	if (!ref->data || !ref->data->size) /* overlook empty private data */
 		return 0;
 
+	old_priv = get_priv_data(elem);
+	if (!old_priv)
+		return -EINVAL;
+	old_priv_data_size = old_priv->size;
+
 	priv_data_size = ref->data->size;
 	obj = realloc(elem->obj,
 			elem->size + priv_data_size);
@@ -838,33 +919,16 @@ int tplg_copy_data(struct tplg_elem *elem, struct tplg_elem *ref)
 		return -ENOMEM;
 	elem->obj = obj;
 
-	switch (elem->type) {
-	case SND_TPLG_TYPE_MIXER:
-		priv = &elem->mixer_ctrl->priv;
-		break;
-
-	case SND_TPLG_TYPE_ENUM:
-		priv = &elem->enum_ctrl->priv;
-		break;
-
-	case SND_TPLG_TYPE_BYTES:
-		priv = &elem->bytes_ext->priv;
-		break;
-
-	case SND_TPLG_TYPE_DAPM_WIDGET:
-		priv = &elem->widget->priv;
-		break;
-
-	default:
-		SNDERR("error: elem '%s': type %d private data not supported \n",
-			elem->id, elem->type);
+	priv = get_priv_data(elem);
+	if (!priv)
 		return -EINVAL;
-	}
 
+	/* merge the new data block */
 	elem->size += priv_data_size;
-	priv->size = priv_data_size;
+	priv->size = priv_data_size + old_priv_data_size;
 	ref->compound_elem = 1;
-	memcpy(priv->data, ref->data->data, priv_data_size);
+	memcpy(priv->data + old_priv_data_size,
+	       ref->data->data, priv_data_size);
 	return 0;
 }
 
