@@ -671,9 +671,9 @@ static int add_user_ctl(snd_pcm_softvol_t *svol, snd_ctl_elem_info_t *cinfo,
 	unsigned int def_val;
 	
 	if (svol->max_val == 1)
-		err = snd_ctl_elem_add_boolean_set(svol->ctl, cinfo, 1, count);
+		err = snd_ctl_add_boolean_elem_set(svol->ctl, cinfo, 1, count);
 	else
-		err = snd_ctl_elem_add_integer_set(svol->ctl, cinfo, 1, count,
+		err = snd_ctl_add_integer_elem_set(svol->ctl, cinfo, 1, count,
 						   0, svol->max_val, 0);
 	if (err < 0)
 		return err;

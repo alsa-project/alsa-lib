@@ -31,7 +31,7 @@ struct elem_set_trial {
 static int add_bool_elem_set(struct elem_set_trial *trial,
 			     snd_ctl_elem_info_t *info)
 {
-	return snd_ctl_elem_add_boolean_set(trial->handle, info,
+	return snd_ctl_add_boolean_elem_set(trial->handle, info,
 				trial->element_count, trial->member_count);
 }
 
@@ -51,7 +51,7 @@ static void change_bool_elem_members(struct elem_set_trial *trial,
 static int add_int_elem_set(struct elem_set_trial *trial,
 			    snd_ctl_elem_info_t *info)
 {
-	return snd_ctl_elem_add_integer_set(trial->handle, info,
+	return snd_ctl_add_integer_elem_set(trial->handle, info,
 				trial->element_count, trial->member_count,
 				0, 99, 1);
 }
@@ -93,7 +93,7 @@ static const char *const labels[] = {
 static int add_enum_elem_set(struct elem_set_trial *trial,
 			     snd_ctl_elem_info_t *info)
 {
-	return snd_ctl_elem_add_enumerated_set(trial->handle, info,
+	return snd_ctl_add_enumerated_elem_set(trial->handle, info,
 				trial->element_count, trial->member_count,
 				sizeof(labels) / sizeof(labels[0]),
 				labels);
@@ -142,7 +142,7 @@ static void change_enum_elem_members(struct elem_set_trial *trial,
 static int add_bytes_elem_set(struct elem_set_trial *trial,
 			      snd_ctl_elem_info_t *info)
 {
-	return snd_ctl_elem_add_bytes_set(trial->handle, info,
+	return snd_ctl_add_bytes_elem_set(trial->handle, info,
 				trial->element_count, trial->member_count);
 }
 
@@ -195,7 +195,7 @@ static void change_iec958_elem_members(struct elem_set_trial *trial,
 static int add_int64_elem_set(struct elem_set_trial *trial,
 			      snd_ctl_elem_info_t *info)
 {
-	return snd_ctl_elem_add_integer64_set(trial->handle, info,
+	return snd_ctl_add_integer64_elem_set(trial->handle, info,
 				trial->element_count, trial->member_count,
 				100, 10000, 30);
 }

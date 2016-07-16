@@ -371,7 +371,7 @@ static bool validate_element_member_dimension(snd_ctl_elem_info_t *info)
  * \par Compatibility:
  * This function is added in version 1.1.2.
  */
-int snd_ctl_elem_add_integer_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
+int snd_ctl_add_integer_elem_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
 				 unsigned int element_count,
 				 unsigned int member_count,
 				 long min, long max, long step)
@@ -460,7 +460,7 @@ int snd_ctl_elem_add_integer_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
  * \par Compatibility:
  * This function is added in version 1.1.2.
  */
-int snd_ctl_elem_add_integer64_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
+int snd_ctl_add_integer64_elem_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
 				   unsigned int element_count,
 				   unsigned int member_count,
 				   long long min, long long max, long long step)
@@ -545,7 +545,7 @@ int snd_ctl_elem_add_integer64_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
  * \par Compatibility:
  * This function is added in version 1.1.2.
  */
-int snd_ctl_elem_add_boolean_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
+int snd_ctl_add_boolean_elem_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
 				 unsigned int element_count,
 				 unsigned int member_count)
 {
@@ -609,7 +609,7 @@ int snd_ctl_elem_add_boolean_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
  * \par Compatibility:
  * This function is added in version 1.1.2.
  */
-int snd_ctl_elem_add_enumerated_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
+int snd_ctl_add_enumerated_elem_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
 				    unsigned int element_count,
 				    unsigned int member_count,
 				    unsigned int items,
@@ -694,7 +694,7 @@ int snd_ctl_elem_add_enumerated_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
  * \par Compatibility:
  * This function is added in version 1.1.2.
  */
-int snd_ctl_elem_add_bytes_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
+int snd_ctl_add_bytes_elem_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
 			       unsigned int element_count,
 			       unsigned int member_count)
 {
@@ -716,9 +716,9 @@ int snd_ctl_elem_add_bytes_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
 /**
  * \brief Create and add an user-defined control element of integer type.
  *
- * This is a wrapper function to snd_ctl_elem_add_integer_set() for a control
+ * This is a wrapper function to snd_ctl_add_integer_elem_set() for a control
  * element. This doesn't fill the id data with full information, thus it's
- * recommended to use snd_ctl_elem_add_integer_set(), instead.
+ * recommended to use snd_ctl_add_integer_elem_set(), instead.
  */
 int snd_ctl_elem_add_integer(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
 			     unsigned int member_count,
@@ -728,16 +728,16 @@ int snd_ctl_elem_add_integer(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
 
 	info.id = *id;
 
-	return snd_ctl_elem_add_integer_set(ctl, &info, 1, member_count,
+	return snd_ctl_add_integer_elem_set(ctl, &info, 1, member_count,
 					    min, max, step);
 }
 
 /**
  * \brief Create and add an user-defined control element of integer64 type.
  *
- * This is a wrapper function to snd_ctl_elem_add_integer64_set() for a single
+ * This is a wrapper function to snd_ctl_add_integer64_elem_set() for a single
  * control element. This doesn't fill the id data with full information, thus
- * it's recommended to use snd_ctl_elem_add_integer64_set(), instead.
+ * it's recommended to use snd_ctl_add_integer64_elem_set(), instead.
  */
 int snd_ctl_elem_add_integer64(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
 			       unsigned int member_count,
@@ -747,16 +747,16 @@ int snd_ctl_elem_add_integer64(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
 
 	info.id = *id;
 
-	return snd_ctl_elem_add_integer64_set(ctl, &info, 1, member_count,
+	return snd_ctl_add_integer64_elem_set(ctl, &info, 1, member_count,
 					      min, max, step);
 }
 
 /**
  * \brief Create and add an user-defined control element of boolean type.
  *
- * This is a wrapper function to snd_ctl_elem_add_boolean_set() for a single
+ * This is a wrapper function to snd_ctl_add_boolean_elem_set() for a single
  * control element. This doesn't fill the id data with full information, thus
- * it's recommended to use snd_ctl_elem_add_boolean_set(), instead.
+ * it's recommended to use snd_ctl_add_boolean_elem_set(), instead.
  */
 int snd_ctl_elem_add_boolean(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
 			     unsigned int member_count)
@@ -765,15 +765,15 @@ int snd_ctl_elem_add_boolean(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
 
 	info.id = *id;
 
-	return snd_ctl_elem_add_boolean_set(ctl, &info, 1, member_count);
+	return snd_ctl_add_boolean_elem_set(ctl, &info, 1, member_count);
 }
 
 /**
  * \brief Create and add a user-defined control element of enumerated type.
  *
- * This is a wrapper function to snd_ctl_elem_add_enumerated_set() for a single
+ * This is a wrapper function to snd_ctl_add_enumerated_elem_set() for a single
  * control element. This doesn't fill the id data with full information, thus
- * it's recommended to use snd_ctl_elem_add_enumerated_set(), instead.
+ * it's recommended to use snd_ctl_add_enumerated_elem_set(), instead.
  *
  * This function is added in version 1.0.25.
  */
@@ -785,7 +785,7 @@ int snd_ctl_elem_add_enumerated(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
 
 	info.id = *id;
 
-	return snd_ctl_elem_add_enumerated_set(ctl, &info, 1, member_count,
+	return snd_ctl_add_enumerated_elem_set(ctl, &info, 1, member_count,
 					       items, labels);
 }
 
