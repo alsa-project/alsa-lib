@@ -253,6 +253,9 @@ struct tplg_elem* tplg_elem_new_common(snd_tplg_t *tplg,
 
 static inline void elem_copy_text(char *dest, const char *src, int len)
 {
+	if (!dest || !src || !len)
+		return;
+
 	strncpy(dest, src, len);
 	dest[len - 1] = 0;
 }
