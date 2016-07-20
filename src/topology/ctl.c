@@ -41,7 +41,6 @@ static const struct ctl_access_elem ctl_access[] = {
 	{"lock", SNDRV_CTL_ELEM_ACCESS_LOCK},
 	{"owner", SNDRV_CTL_ELEM_ACCESS_OWNER},
 	{"tlv_callback", SNDRV_CTL_ELEM_ACCESS_TLV_CALLBACK},
-	{"user", SNDRV_CTL_ELEM_ACCESS_USER},
 };
 
 /* find CTL access strings and conver to values */
