@@ -382,7 +382,8 @@ int snd_ctl_add_integer_elem_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
 	unsigned int numid;
 	int err;
 
-	assert(ctl && info && info->id.name[0]);
+	if (ctl == NULL || info == NULL || info->id.name[0] == '\0')
+		return -EINVAL;
 
 	info->type = SND_CTL_ELEM_TYPE_INTEGER;
 	info->access = SNDRV_CTL_ELEM_ACCESS_READWRITE |
@@ -471,7 +472,8 @@ int snd_ctl_add_integer64_elem_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
 	unsigned int numid;
 	int err;
 
-	assert(ctl && info && info->id.name[0]);
+	if (ctl == NULL || info == NULL || info->id.name[0] == '\0')
+		return -EINVAL;
 
 	info->type = SND_CTL_ELEM_TYPE_INTEGER64;
 	info->access = SNDRV_CTL_ELEM_ACCESS_READWRITE |
@@ -549,7 +551,8 @@ int snd_ctl_add_boolean_elem_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
 				 unsigned int element_count,
 				 unsigned int member_count)
 {
-	assert(ctl && info && info->id.name[0]);
+	if (ctl == NULL || info == NULL || info->id.name[0] == '\0')
+		return -EINVAL;
 
 	info->type = SND_CTL_ELEM_TYPE_BOOLEAN;
 	info->access = SNDRV_CTL_ELEM_ACCESS_READWRITE |
@@ -619,7 +622,9 @@ int snd_ctl_add_enumerated_elem_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
 	char *buf, *p;
 	int err;
 
-	assert(ctl && info && info->id.name[0] && labels);
+	if (ctl == NULL || info == NULL || info->id.name[0] == '\0' ||
+	    labels == NULL)
+		return -EINVAL;
 
 	info->type = SND_CTL_ELEM_TYPE_ENUMERATED;
 	info->access = SNDRV_CTL_ELEM_ACCESS_READWRITE |
@@ -698,7 +703,8 @@ int snd_ctl_add_bytes_elem_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
 			       unsigned int element_count,
 			       unsigned int member_count)
 {
-	assert(ctl && info && info->id.name[0]);
+	if (ctl == NULL || info == NULL || info->id.name[0] == '\0')
+		return -EINVAL;
 
 	info->type = SND_CTL_ELEM_TYPE_BYTES;
 	info->access = SNDRV_CTL_ELEM_ACCESS_READWRITE |
@@ -726,6 +732,8 @@ int snd_ctl_elem_add_integer(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
 {
 	snd_ctl_elem_info_t info = {0};
 
+	assert(ctl && id && id->name[0]);
+
 	info.id = *id;
 
 	return snd_ctl_add_integer_elem_set(ctl, &info, 1, member_count,
@@ -745,6 +753,8 @@ int snd_ctl_elem_add_integer64(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
 {
 	snd_ctl_elem_info_t info = {0};
 
+	assert(ctl && id && id->name[0]);
+
 	info.id = *id;
 
 	return snd_ctl_add_integer64_elem_set(ctl, &info, 1, member_count,
@@ -762,6 +772,8 @@ int snd_ctl_elem_add_boolean(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
 			     unsigned int member_count)
 {
 	snd_ctl_elem_info_t info = {0};
+
+	assert(ctl && id && id->name[0]);
 
 	info.id = *id;
 
@@ -782,6 +794,8 @@ int snd_ctl_elem_add_enumerated(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
 				const char *const labels[])
 {
 	snd_ctl_elem_info_t info = {0};
+
+	assert(ctl && id && id->name[0] && labels);
 
 	info.id = *id;
 
