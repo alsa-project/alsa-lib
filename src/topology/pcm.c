@@ -259,8 +259,8 @@ int tplg_parse_stream_caps(snd_tplg_t *tplg,
 }
 
 /* Parse the caps and config of a pcm stream */
-static int tplg_parse_streams(snd_tplg_t *tplg, snd_config_t *cfg,
-	void *private)
+static int tplg_parse_streams(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
+			      snd_config_t *cfg, void *private)
 {
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
@@ -321,8 +321,8 @@ static int tplg_parse_streams(snd_tplg_t *tplg, snd_config_t *cfg,
 }
 
 /* Parse name and id of a front-end DAI (ie. cpu dai of a FE DAI link) */
-static int tplg_parse_fe_dai(snd_tplg_t *tplg, snd_config_t *cfg,
-	void *private)
+static int tplg_parse_fe_dai(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
+			     snd_config_t *cfg, void *private)
 {
 	struct tplg_elem *elem = private;
 	struct snd_soc_tplg_pcm *pcm = elem->pcm;
