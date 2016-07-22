@@ -201,7 +201,7 @@ static int tplg_build_widget(snd_tplg_t *tplg,
 		}
 
 		if (!ref->elem) {
-			SNDERR("error: cannot find control '%s'"
+			SNDERR("error: cannot find '%s'"
 				" referenced by widget '%s'\n",
 				ref->id, elem->id);
 			return -EINVAL;
