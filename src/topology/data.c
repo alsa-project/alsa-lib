@@ -1049,8 +1049,10 @@ int tplg_copy_data(snd_tplg_t *tplg, struct tplg_elem *elem,
 
 	tplg_dbg("Data '%s' used by '%s'\n", ref->id, elem->id);
 	/* overlook empty private data */
-	if (!ref_elem->data || !ref_elem->data->size)
+	if (!ref_elem->data || !ref_elem->data->size) {
+		ref->elem = ref_elem;
 		return 0;
+	}
 
 	old_priv = get_priv_data(elem);
 	if (!old_priv)
@@ -1074,6 +1076,8 @@ int tplg_copy_data(snd_tplg_t *tplg, struct tplg_elem *elem,
 	ref_elem->compound_elem = 1;
 	memcpy(priv->data + old_priv_data_size,
 	       ref_elem->data->data, priv_data_size);
+
+	ref->elem = ref_elem;
 	return 0;
 }
 
