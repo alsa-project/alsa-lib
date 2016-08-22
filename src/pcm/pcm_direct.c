@@ -96,11 +96,12 @@ int snd_pcm_direct_shm_create_or_connect(snd_pcm_direct_t *dmix)
 retryget:
 	dmix->shmid = shmget(dmix->ipc_key, sizeof(snd_pcm_direct_share_t),
 			     dmix->ipc_perm);
-	if (dmix->shmid < 0) {
-		if (errno == ENOENT)
+	if (dmix->shmid < 0 && errno == ENOENT) {
 		if ((dmix->shmid = shmget(dmix->ipc_key, sizeof(snd_pcm_direct_share_t),
 					     IPC_CREAT | IPC_EXCL | dmix->ipc_perm)) != -1)
 			first_instance = 1;
+		else if (errno == EEXIST)
+			goto retryget;
 	}
 	err = -errno;
 	if (dmix->shmid < 0) {
