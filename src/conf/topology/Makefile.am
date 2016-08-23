@@ -1,1 +1,1 @@
-SUBDIRS=broadwell sklrt286
+SUBDIRS=broadwell sklrt286 bxtrt298
