@@ -244,7 +244,12 @@ struct _snd_pcm {
 	void *private_data;
 	struct list_head async_handlers;
 #ifdef THREAD_SAFE_API
-	int thread_safe;
+	int need_lock;		/* true = this PCM (plugin) is thread-unsafe,
+				 * thus it needs a lock.
+				 */
+	int lock_enabled;	/* thread-safety lock is enabled on the system;
+				 * it's set depending on $LIBASOUND_THREAD_SAFE.
+				 */
 	pthread_mutex_t lock;
 #endif
 };
@@ -1085,24 +1090,36 @@ static inline void sw_set_period_event(snd_pcm_sw_params_t *params, int val)
 #define PCMINABORT(pcm) (((pcm)->mode & SND_PCM_ABORT) != 0)
 
 #ifdef THREAD_SAFE_API
+/*
+ * __snd_pcm_lock() and __snd_pcm_unlock() are used to lock/unlock the plugin
+ * forcibly even if it's declared as thread-safe.  It's needed only for some
+ * codes that are thread-unsafe per design (e.g. snd_pcm_nonblock()).
+ *
+ * OTOH, snd_pcm_lock() and snd_pcm_unlock() are used to lock/unlock the plugin
+ * in normal situations.  They do lock/unlock only when the plugin is
+ * thread-unsafe.
+ *
+ * Both __snd_pcm_lock() and snd_pcm_lock() (and their unlocks) wouldn't do
+ * any action when the whole locking is disabled via $LIBASOUND_THREAD_SAFE=0.
+ */
 static inline void __snd_pcm_lock(snd_pcm_t *pcm)
 {
-	if (pcm->thread_safe >= 0)
+	if (pcm->lock_enabled)
 		pthread_mutex_lock(&pcm->lock);
 }
 static inline void __snd_pcm_unlock(snd_pcm_t *pcm)
 {
-	if (pcm->thread_safe >= 0)
+	if (pcm->lock_enabled)
 		pthread_mutex_unlock(&pcm->lock);
 }
 static inline void snd_pcm_lock(snd_pcm_t *pcm)
 {
-	if (!pcm->thread_safe)
+	if (pcm->lock_enabled && pcm->need_lock)
 		pthread_mutex_lock(&pcm->lock);
 }
 static inline void snd_pcm_unlock(snd_pcm_t *pcm)
 {
-	if (!pcm->thread_safe)
+	if (pcm->lock_enabled && pcm->need_lock)
 		pthread_mutex_unlock(&pcm->lock);
 }
 #else /* THREAD_SAFE_API */

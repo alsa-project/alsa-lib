@@ -2545,14 +2545,20 @@ int snd_pcm_new(snd_pcm_t **pcmp, snd_pcm_type_t type, const char *name,
 	INIT_LIST_HEAD(&pcm->async_handlers);
 #ifdef THREAD_SAFE_API
 	pthread_mutex_init(&pcm->lock, NULL);
+	/* use locking as default;
+	 * each plugin may suppress this in its open call
+	 */
+	pcm->need_lock = 1;
 	{
-		static int default_thread_safe = -1;
-		if (default_thread_safe < 0) {
+		/* set lock_enabled field depending on $LIBASOUND_THREAD_SAFE */
+		static int do_lock_enable = -1; /* uninitialized */
+
+		/* evaluate env var only once at the first open for consistency */
+		if (do_lock_enable == -1) {
 			char *p = getenv("LIBASOUND_THREAD_SAFE");
-			default_thread_safe = !p || *p != '0';
+			do_lock_enable = !p || *p != '0';
 		}
-		if (!default_thread_safe)
-			pcm->thread_safe = -1; /* force to disable */
+		pcm->lock_enabled = do_lock_enable;
 	}
 #endif
 	*pcmp = pcm;
