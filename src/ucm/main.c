@@ -1528,12 +1528,20 @@ int snd_use_case_geti(snd_use_case_mgr_t *uc_mgr,
                         str = NULL;
                 }
                 if (check_identifier(identifier, "_devstatus")) {
+			if (!str) {
+				err = -EINVAL;
+				goto __end;
+			}
                         err = device_status(uc_mgr, str);
 			if (err >= 0) {
 				*value = err;
 				err = 0;
 			}
 		} else if (check_identifier(identifier, "_modstatus")) {
+			if (!str) {
+				err = -EINVAL;
+				goto __end;
+			}
                         err = modifier_status(uc_mgr, str);
 			if (err >= 0) {
 				*value = err;
