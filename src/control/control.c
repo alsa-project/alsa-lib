@@ -918,6 +918,13 @@ static int snd_ctl_tlv_do(snd_ctl_t *ctl, int op_flag,
  * \param tlv An array with members of unsigned int type.
  * \param tlv_size The length of the array.
  * \return 0 on success otherwise a negative error code
+ *
+ * The format of an array of \a tlv argument is:
+ *   tlv[0]:   Type. One of SND_CTL_TLVT_XXX.
+ *   tlv[1]:   Length. The length of value in units of byte.
+ *   tlv[2..]: Value. Depending on the type.
+ *
+ * Details are described in <sound/tlv.h>.
  */
 int snd_ctl_elem_tlv_read(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
 			  unsigned int *tlv, unsigned int tlv_size)
@@ -948,6 +955,13 @@ int snd_ctl_elem_tlv_read(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
  * \retval 0 on success
  * \retval >0 on success when value was changed
  * \retval <0 a negative error code
+ *
+ * The format of an array of \a tlv argument is:
+ *   tlv[0]:   Type. One of SND_CTL_TLVT_XXX.
+ *   tlv[1]:   Length. The length of value in units of byte.
+ *   tlv[2..]: Value. Depending on the type.
+ *
+ * Details are described in <sound/tlv.h>.
  */
 int snd_ctl_elem_tlv_write(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
 			   const unsigned int *tlv)
@@ -965,6 +979,13 @@ int snd_ctl_elem_tlv_write(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
  * \retval 0 on success
  * \retval >0 on success when value was changed
  * \retval <0 a negative error code
+ *
+ * The format of an array of \a tlv argument is:
+ *   tlv[0]:   Type. One of SND_CTL_TLVT_XXX.
+ *   tlv[1]:   Length. The length of value in units of byte.
+ *   tlv[2..]: Value. Depending on the type.
+ *
+ * Details are described in <sound/tlv.h>.
  */
 int snd_ctl_elem_tlv_command(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
 			     const unsigned int *tlv)
