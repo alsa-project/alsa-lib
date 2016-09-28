@@ -912,7 +912,7 @@ static int snd_ctl_tlv_do(snd_ctl_t *ctl, int op_flag,
 }
 
 /**
- * \brief Set given data to an element as threshold level.
+ * \brief Read structured data from an element set to given buffer.
  * \param ctl A handle of backend module for control interface.
  * \param id ID of an element.
  * \param tlv An array with members of unsigned int type.
@@ -940,7 +940,7 @@ int snd_ctl_elem_tlv_read(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
 }
 
 /**
- * \brief Set given data to an element as threshold level.
+ * \brief Write structured data from given buffer to an element set.
  * \param ctl A handle of backend module for control interface.
  * \param id ID of an element.
  * \param tlv An array with members of unsigned int type. The second member
@@ -957,7 +957,7 @@ int snd_ctl_elem_tlv_write(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
 }
 
 /**
- * \brief Set given data to an element as threshold level.
+ * \brief Process structured data from given buffer for an element set.
  * \param ctl A handle of backend module for control interface.
  * \param id ID of an element.
  * \param tlv An array with members of unsigned int type. The second member
