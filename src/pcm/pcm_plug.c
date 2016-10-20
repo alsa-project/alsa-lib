@@ -652,8 +652,10 @@ static int snd_pcm_plug_insert_plugins(snd_pcm_t *pcm,
 	       (plug->ttable && !plug->ttable_ok)) {
 		snd_pcm_t *new;
 		int err;
-		if (k >= sizeof(funcs)/sizeof(*funcs))
+		if (k >= sizeof(funcs)/sizeof(*funcs)) {
+			snd_pcm_plug_clear(pcm);
 			return -EINVAL;
+		}
 		err = funcs[k](pcm, &new, client, &p);
 		if (err < 0) {
 			snd_pcm_plug_clear(pcm);
