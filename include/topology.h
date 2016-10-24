@@ -624,6 +624,36 @@ extern "C" {
  *	data "name"			# optional private data
  * }
  * </pre>
+ *
+ * <h4>Include other files</h4>
+ * Users may include other files in a text conf file via alsaconf syntax
+ * <path/to/configuration-file>. This allows users to define common info
+ * in separate files (e.g. vendor tokens, tuples) and share them for
+ * different platforms, thus save the total size of config files. <br>
+ * Users can also specifiy additional configuraiton directories relative
+ * to "/usr/share/alsa/" to search the included files,  via alsaconf syntax
+ * <searchfdir:/relative-path/to/usr/share/alsa>. <br><br>
+ *
+ * For example, file A and file B are two text conf files for platform X,
+ * they will be installed to /usr/share/alsa/topology/platformx. If we
+ * need file A to include file B, in file A we can add: <br>
+ *
+ * <searchdir:topology/platformx> <br>
+ * <name-of-file-B> <br><br>
+ *
+ * ALSA conf will search and open an included file in the following order
+ * of priority:
+ *  1. directly open the file by its name;
+ *  2. search for the file name in "/usr/share/alsa";
+ *  3. search for the file name in user specified subdirectories under
+ *     "/usr/share/alsa".
+ *
+ * The order of the included files need not to be same as their
+ * dependencies, since the topology library will load them all before
+ * parsing their dependencies. <br>
+ *
+ * The configuration directories defined by a file will only be used to search
+ * the files included by this file.
  */
 
 /** Maximum number of channels supported in one control */
