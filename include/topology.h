@@ -483,6 +483,7 @@ extern "C" {
  *	index "1"			# Index number
  *
  *	type "aif_in"			# Widget type - detailed above
+ *	stream_name "name"		# Stream name
  *
  *	no_pm "true"			# No PM control bit.
  *	reg "20"			# PM bit register offset

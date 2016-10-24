@@ -507,6 +507,16 @@ int tplg_parse_dapm_widget(snd_tplg_t *tplg,
 			continue;
 		}
 
+		if (strcmp(id, "stream_name") == 0) {
+			if (snd_config_get_string(n, &val) < 0)
+				return -EINVAL;
+
+			elem_copy_text(widget->sname, val,
+				       SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+			tplg_dbg("\t%s: %s\n", id, val);
+			continue;
+		}
+
 		if (strcmp(id, "no_pm") == 0) {
 			if (snd_config_get_string(n, &val) < 0)
 				return -EINVAL;
