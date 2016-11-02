@@ -157,23 +157,14 @@ static void snd_pcm_dshare_sync_area(snd_pcm_t *pcm)
 /*
  *  synchronize hardware pointer (hw_ptr) with ours
  */
-static int snd_pcm_dshare_sync_ptr(snd_pcm_t *pcm)
+static int snd_pcm_dshare_sync_ptr0(snd_pcm_t *pcm, snd_pcm_uframes_t slave_hw_ptr)
 {
 	snd_pcm_direct_t *dshare = pcm->private_data;
-	snd_pcm_uframes_t slave_hw_ptr, old_slave_hw_ptr, avail;
+	snd_pcm_uframes_t old_slave_hw_ptr, avail;
 	snd_pcm_sframes_t diff;
 	
-	switch (snd_pcm_state(dshare->spcm)) {
-	case SND_PCM_STATE_DISCONNECTED:
-		dshare->state = SNDRV_PCM_STATE_DISCONNECTED;
-		return -ENODEV;
-	default:
-		break;
-	}
-	if (dshare->slowptr)
-		snd_pcm_hwsync(dshare->spcm);
 	old_slave_hw_ptr = dshare->slave_hw_ptr;
-	slave_hw_ptr = dshare->slave_hw_ptr = *dshare->spcm->hw.ptr;
+	dshare->slave_hw_ptr = slave_hw_ptr;
 	diff = slave_hw_ptr - old_slave_hw_ptr;
 	if (diff == 0)		/* fast path */
 		return 0;
@@ -207,6 +198,24 @@ static int snd_pcm_dshare_sync_ptr(snd_pcm_t *pcm)
 	return 0;
 }
 
+static int snd_pcm_dshare_sync_ptr(snd_pcm_t *pcm)
+{
+	snd_pcm_direct_t *dshare = pcm->private_data;
+
+	switch (snd_pcm_state(dshare->spcm)) {
+	case SND_PCM_STATE_DISCONNECTED:
+		dshare->state = SNDRV_PCM_STATE_DISCONNECTED;
+		return -ENODEV;
+	default:
+		break;
+	}
+
+	if (dshare->slowptr)
+		snd_pcm_hwsync(dshare->spcm);
+
+	return snd_pcm_dshare_sync_ptr0(pcm, *dshare->spcm->hw.ptr);
+}
+
 /*
  *  plugin implementation
  */
@@ -215,22 +224,24 @@ static int snd_pcm_dshare_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 {
 	snd_pcm_direct_t *dshare = pcm->private_data;
 
+	memset(status, 0, sizeof(*status));
+	snd_pcm_status(dshare->spcm, status);
+
 	switch (dshare->state) {
 	case SNDRV_PCM_STATE_DRAINING:
 	case SNDRV_PCM_STATE_RUNNING:
-		snd_pcm_dshare_sync_ptr(pcm);
+		snd_pcm_dshare_sync_ptr0(pcm, status->hw_ptr);
+		status->delay += snd_pcm_mmap_playback_delay(pcm)
+				+ status->avail - dshare->spcm->buffer_size;
 		break;
 	default:
 		break;
 	}
-	memset(status, 0, sizeof(*status));
-	snd_pcm_status(dshare->spcm, status);
-	status->state = snd_pcm_state(dshare->spcm);
+
 	status->trigger_tstamp = dshare->trigger_tstamp;
 	status->avail = snd_pcm_mmap_playback_avail(pcm);
 	status->avail_max = status->avail > dshare->avail_max ? status->avail : dshare->avail_max;
 	dshare->avail_max = 0;
-	status->delay = snd_pcm_mmap_playback_delay(pcm);
 	return 0;
 }
 
