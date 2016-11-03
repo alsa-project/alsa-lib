@@ -111,6 +111,9 @@ struct tplg_elem *tplg_elem_lookup(struct list_head *base, const char* id,
 	struct list_head *pos;
 	struct tplg_elem *elem;
 
+	if (!base || !id)
+		return NULL;
+
 	list_for_each(pos, base) {
 
 		elem = list_entry(pos, struct tplg_elem, list);
