@@ -607,6 +607,11 @@ extern "C" {
  *			"config3"
  *		]
  *	}
+ *
+ *	# Optional boolean flags
+ *	symmetric_rates			"true"
+ *	symmetric_channels		"true"
+ *	symmetric_sample_bits		"false"
  * }
  * </pre>
  *
@@ -894,6 +899,8 @@ struct snd_tplg_pcm_template {
 	unsigned int capture;	/*!< supports capture mode */
 	unsigned int compress;	/*!< 1 = compressed; 0 = PCM */
 	struct snd_tplg_stream_caps_template *caps[2]; /*!< playback & capture for DAI */
+	unsigned int flag_mask; /*!< bitmask of flags to configure */
+	unsigned int flags;     /*!< flag value SND_SOC_TPLG_LNK_FLGBIT_* */
 	int num_streams;	/*!< number of supported configs */
 	struct snd_tplg_stream_template stream[0]; /*!< supported configs */
 };

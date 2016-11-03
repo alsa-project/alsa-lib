@@ -364,6 +364,24 @@ static int tplg_parse_fe_dai(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 	return 0;
 }
 
+/* parse a flag bit of the given mask */
+static int parse_flag(snd_config_t *n, unsigned int mask_in,
+		      unsigned int *mask, unsigned int *flags)
+{
+	const char *val = NULL;
+
+	if (snd_config_get_string(n, &val) < 0)
+		return -EINVAL;
+
+	*mask |= mask_in;
+	if (strcmp(val, "true") == 0)
+		*flags |= mask_in;
+	else
+		*flags &= ~mask_in;
+
+	return 0;
+}
+
 /* Parse pcm (for front end DAI & DAI link) */
 int tplg_parse_pcm(snd_tplg_t *tplg,
 	snd_config_t *cfg, void *private ATTRIBUTE_UNUSED)
@@ -426,6 +444,34 @@ int tplg_parse_pcm(snd_tplg_t *tplg,
 		if (strcmp(id, "dai") == 0) {
 			err = tplg_parse_compound(tplg, n,
 				tplg_parse_fe_dai, elem);
+			if (err < 0)
+				return err;
+			continue;
+		}
+
+		/* flags */
+		if (strcmp(id, "symmetric_rates") == 0) {
+			err = parse_flag(n,
+				SND_SOC_TPLG_LNK_FLGBIT_SYMMETRIC_RATES,
+				&pcm->flag_mask, &pcm->flags);
+			if (err < 0)
+				return err;
+			continue;
+		}
+
+		if (strcmp(id, "symmetric_channels") == 0) {
+			err = parse_flag(n,
+				SND_SOC_TPLG_LNK_FLGBIT_SYMMETRIC_CHANNELS,
+				&pcm->flag_mask, &pcm->flags);
+			if (err < 0)
+				return err;
+			continue;
+		}
+
+		if (strcmp(id, "symmetric_sample_bits") == 0) {
+			err = parse_flag(n,
+				SND_SOC_TPLG_LNK_FLGBIT_SYMMETRIC_SAMPLEBITS,
+				&pcm->flag_mask, &pcm->flags);
 			if (err < 0)
 				return err;
 			continue;
@@ -609,6 +655,9 @@ int tplg_add_pcm_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 		if (pcm_tpl->caps[i])
 			tplg_add_stream_caps(&pcm->caps[i], pcm_tpl->caps[i]);
 	}
+
+	pcm->flag_mask = pcm_tpl->flag_mask;
+	pcm->flags = pcm_tpl->flags;
 
 	pcm->num_streams = pcm_tpl->num_streams;
 	for (i = 0; i < pcm_tpl->num_streams; i++)
