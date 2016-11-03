@@ -267,7 +267,7 @@ static int tplg_build_integ(snd_tplg_t *tplg)
 	if (err <  0)
 		return err;
 
-	err = tplg_build_pcm(tplg, SND_TPLG_TYPE_PCM);
+	err = tplg_build_pcms(tplg, SND_TPLG_TYPE_PCM);
 	if (err <  0)
 		return err;
 

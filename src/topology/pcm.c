@@ -70,8 +70,20 @@ static int tplg_build_stream_caps(snd_tplg_t *tplg,
 	return 0;
 }
 
-/* build FE DAI/PCM configurations */
-int tplg_build_pcm(snd_tplg_t *tplg, unsigned int type)
+/* build a PCM (FE DAI & DAI link) element */
+static int build_pcm(snd_tplg_t *tplg, struct tplg_elem *elem)
+{
+	int err;
+
+	err = tplg_build_stream_caps(tplg, elem->id, elem->pcm->caps);
+		if (err < 0)
+			return err;
+
+	return 0;
+}
+
+/* build all PCM (FE DAI & DAI link) elements */
+int tplg_build_pcms(snd_tplg_t *tplg, unsigned int type)
 {
 	struct list_head *base, *pos;
 	struct tplg_elem *elem;
@@ -86,7 +98,7 @@ int tplg_build_pcm(snd_tplg_t *tplg, unsigned int type)
 			return -EINVAL;
 		}
 
-		err = tplg_build_stream_caps(tplg, elem->id, elem->pcm->caps);
+		err = build_pcm(tplg, elem);
 		if (err < 0)
 			return err;
 
