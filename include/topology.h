@@ -612,6 +612,8 @@ extern "C" {
  *	symmetric_rates			"true"
  *	symmetric_channels		"true"
  *	symmetric_sample_bits		"false"
+ *
+ *	data "name"			# optional private data
  * }
  * </pre>
  *
@@ -901,6 +903,7 @@ struct snd_tplg_pcm_template {
 	struct snd_tplg_stream_caps_template *caps[2]; /*!< playback & capture for DAI */
 	unsigned int flag_mask; /*!< bitmask of flags to configure */
 	unsigned int flags;     /*!< flag value SND_SOC_TPLG_LNK_FLGBIT_* */
+	struct snd_soc_tplg_private *priv;	/*!< private data */
 	int num_streams;	/*!< number of supported configs */
 	struct snd_tplg_stream_template stream[0]; /*!< supported configs */
 };
