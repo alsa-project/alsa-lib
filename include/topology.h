@@ -879,6 +879,7 @@ struct snd_tplg_stream_caps_template {
 	unsigned int period_size_max;	/*!< max period size bytes */
 	unsigned int buffer_size_min;	/*!< min buffer size bytes */
 	unsigned int buffer_size_max;	/*!< max buffer size bytes */
+	unsigned int sig_bits;		/*!< number of bits of content */
 };
 
 /** \struct snd_tplg_pcm_template

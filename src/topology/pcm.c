@@ -572,6 +572,7 @@ static void tplg_add_stream_caps(struct snd_soc_tplg_stream_caps *caps,
 	caps->period_size_max = caps_tpl->period_size_max;
 	caps->buffer_size_min = caps_tpl->buffer_size_min;
 	caps->buffer_size_max = caps_tpl->buffer_size_max;
+	caps->sig_bits = caps_tpl->sig_bits;
 }
 
 int tplg_add_pcm_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
