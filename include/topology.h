@@ -996,6 +996,7 @@ struct snd_tplg_link_template {
 
 	unsigned int flag_mask;         /* bitmask of flags to configure */
 	unsigned int flags;             /* SND_SOC_TPLG_LNK_FLGBIT_* flag value */
+	struct snd_soc_tplg_private *priv; /*!< private data */
 };
 
 /** \struct snd_tplg_obj_template

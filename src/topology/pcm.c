@@ -162,7 +162,7 @@ static int build_link(snd_tplg_t *tplg, struct tplg_elem *elem)
 	if (err < 0)
 		return err;
 
-	/* hw configs */
+	/* hw configs & private data */
 	base = &elem->ref_list;
 	list_for_each(pos, base) {
 
@@ -183,6 +183,12 @@ static int build_link(snd_tplg_t *tplg, struct tplg_elem *elem)
 				ref->elem->hw_cfg,
 				sizeof(struct snd_soc_tplg_hw_config));
 			num_hw_configs++;
+			break;
+
+		case SND_TPLG_TYPE_DATA: /* merge private data */
+			err = tplg_copy_data(tplg, elem, ref);
+			if (err < 0)
+				return err;
 			break;
 
 		default:
@@ -1043,5 +1049,24 @@ int tplg_add_link_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 	/* flags */
 	link->flag_mask = link_tpl->flag_mask;
 	link->flags = link_tpl->flags;
+
+	/* private data */
+	if (link_tpl->priv != NULL && link_tpl->priv->size) {
+		_link = realloc(link,
+			elem->size + link_tpl->priv->size);
+		if (!_link) {
+			tplg_elem_free(elem);
+			return -ENOMEM;
+		}
+
+		link = _link;
+		elem->link = link;
+		elem->size += link_tpl->priv->size;
+
+		memcpy(link->priv.data, link_tpl->priv->data,
+			link_tpl->priv->size);
+		link->priv.size = link_tpl->priv->size;
+	}
+
 	return 0;
 }
