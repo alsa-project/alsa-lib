@@ -622,6 +622,7 @@ int tplg_parse_link(snd_tplg_t *tplg,
 
 	link = elem->link;
 	link->size = elem->size;
+	elem_copy_text(link->name, elem->id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 
 	tplg_dbg(" Link: %s\n", elem->id);
 
@@ -652,6 +653,16 @@ int tplg_parse_link(snd_tplg_t *tplg,
 
 			link->id = atoi(val);
 			tplg_dbg("\t%s: %d\n", id, link->id);
+			continue;
+		}
+
+		if (strcmp(id, "stream_name") == 0) {
+			if (snd_config_get_string(n, &val) < 0)
+				return -EINVAL;
+
+			elem_copy_text(link->stream_name, val,
+				       SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+			tplg_dbg("\t%s: %s\n", id, val);
 			continue;
 		}
 
@@ -1030,7 +1041,15 @@ int tplg_add_link_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 	link = elem->link;
 	link->size = elem->size;
 
+	/* ID and names */
 	link->id = link_tpl->id;
+	if (link->name)
+		elem_copy_text(link->name, link_tpl->name,
+			       SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+	if (link->stream_name)
+		elem_copy_text(link->stream_name, link_tpl->stream_name,
+			       SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+
 	/* stream configs */
 	if (link_tpl->num_streams > SND_SOC_TPLG_STREAM_CONFIG_MAX)
 		return -EINVAL;

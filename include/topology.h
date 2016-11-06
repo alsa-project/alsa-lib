@@ -631,6 +631,8 @@ extern "C" {
  *
  *	id "0"				# used for binding to the link
  *
+ *	stream_name "name"		# used for binding to the link
+ *
  *	hw_configs [	# runtime supported HW configurations, optional
  *		"config1"
  *		"config2"
@@ -985,8 +987,10 @@ struct snd_tplg_hw_config_template {
  * \brief Template type for BE and CC DAI Links.
  */
 struct snd_tplg_link_template {
-	const char *name;	/*!< link name */
+	const char *name;	/*!< link name, used to match */
 	int id;	/*!< unique ID - used to match with existing BE and CC links */
+	const char *stream_name;        /*!< link stream name, used to match */
+
 	int num_streams;	/*!< number of configs */
 	struct snd_tplg_stream_template *stream;       /*!< supported configs */
 
