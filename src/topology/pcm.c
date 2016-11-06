@@ -400,13 +400,14 @@ static int tplg_parse_fe_dai(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 static int parse_flag(snd_config_t *n, unsigned int mask_in,
 		      unsigned int *mask, unsigned int *flags)
 {
-	const char *val = NULL;
+	int ret;
 
-	if (snd_config_get_string(n, &val) < 0)
-		return -EINVAL;
+	ret = snd_config_get_bool(n);
+	if (ret < 0)
+		return ret;
 
 	*mask |= mask_in;
-	if (strcmp(val, "true") == 0)
+	if (ret)
 		*flags |= mask_in;
 	else
 		*flags &= ~mask_in;
