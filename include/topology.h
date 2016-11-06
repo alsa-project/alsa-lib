@@ -639,6 +639,11 @@ extern "C" {
  *
  *	default_hw_conf_id "1"		#default HW config ID for init
  *
+ *	# Optional boolean flags
+ *	symmetric_rates			"true"
+ *	symmetric_channels		"false"
+ *	symmetric_sample_bits		"true"
+ *
  *	data "name"			# optional private data
  * }
  * </pre>
@@ -988,6 +993,9 @@ struct snd_tplg_link_template {
 	struct snd_tplg_hw_config_template *hw_config; /*!< supported HW configs */
 	int num_hw_configs;		/* number of hw configs */
 	int default_hw_config_id;       /* default hw config ID for init */
+
+	unsigned int flag_mask;         /* bitmask of flags to configure */
+	unsigned int flags;             /* SND_SOC_TPLG_LNK_FLGBIT_* flag value */
 };
 
 /** \struct snd_tplg_obj_template

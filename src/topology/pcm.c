@@ -664,6 +664,35 @@ int tplg_parse_link(snd_tplg_t *tplg,
 			continue;
 		}
 
+		/* flags */
+		if (strcmp(id, "symmetric_rates") == 0) {
+			err = parse_flag(n,
+				SND_SOC_TPLG_LNK_FLGBIT_SYMMETRIC_RATES,
+				&link->flag_mask, &link->flags);
+			if (err < 0)
+				return err;
+			continue;
+		}
+
+		if (strcmp(id, "symmetric_channels") == 0) {
+			err = parse_flag(n,
+				SND_SOC_TPLG_LNK_FLGBIT_SYMMETRIC_CHANNELS,
+				&link->flag_mask, &link->flags);
+			if (err < 0)
+				return err;
+			continue;
+		}
+
+		if (strcmp(id, "symmetric_sample_bits") == 0) {
+			err = parse_flag(n,
+				SND_SOC_TPLG_LNK_FLGBIT_SYMMETRIC_SAMPLEBITS,
+				&link->flag_mask, &link->flags);
+			if (err < 0)
+				return err;
+			continue;
+		}
+
+		/* private data */
 		if (strcmp(id, "data") == 0) {
 			err = tplg_parse_data_refs(n, elem);
 			if (err < 0)
@@ -1010,5 +1039,9 @@ int tplg_add_link_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 	link->default_hw_config_id = link_tpl->default_hw_config_id;
 	for (i = 0; i < link->num_hw_configs; i++)
 		set_link_hw_config(&link->hw_config[i], &link_tpl->hw_config[i]);
+
+	/* flags */
+	link->flag_mask = link_tpl->flag_mask;
+	link->flags = link_tpl->flags;
 	return 0;
 }
