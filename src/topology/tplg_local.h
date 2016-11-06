@@ -144,8 +144,7 @@ struct tplg_elem {
 		struct snd_soc_tplg_bytes_control *bytes_ext;
 		struct snd_soc_tplg_dapm_widget *widget;
 		struct snd_soc_tplg_pcm *pcm;
-		struct snd_soc_tplg_link_config *be;
-		struct snd_soc_tplg_link_config *cc;
+		struct snd_soc_tplg_link_config *link;/* physical link */
 		struct snd_soc_tplg_dapm_graph_elem *route;
 		struct snd_soc_tplg_stream *stream_cfg;
 		struct snd_soc_tplg_stream_caps *stream_caps;

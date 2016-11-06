@@ -175,11 +175,7 @@ int tplg_build_link_cfg(snd_tplg_t *tplg, unsigned int type)
 			return -EINVAL;
 		}
 
-		if (type == SND_TPLG_TYPE_BE)
-			link = elem->be;
-		else
-			link = elem->cc;
-
+		link = elem->link;
 		err = tplg_build_stream_cfg(tplg, link->stream,
 			link->num_streams);
 		if (err < 0)
@@ -528,7 +524,7 @@ int tplg_parse_be(snd_tplg_t *tplg,
 	if (!elem)
 		return -ENOMEM;
 
-	link = elem->be;
+	link = elem->link;
 	link->size = elem->size;
 
 	tplg_dbg(" BE: %s\n", elem->id);
@@ -588,7 +584,7 @@ int tplg_parse_cc(snd_tplg_t *tplg,
 	if (!elem)
 		return -ENOMEM;
 
-	link = elem->cc;
+	link = elem->link;
 	link->size = elem->size;
 
 	tplg_dbg(" CC: %s\n", elem->id);
@@ -742,14 +738,12 @@ int tplg_add_link_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 	if (!elem)
 		return -ENOMEM;
 
-	if (t->type == SND_TPLG_TYPE_BE) {
+	if (t->type == SND_TPLG_TYPE_BE)
 		tplg_dbg("BE Link: %s", link->name);
-		lk = elem->be;
-	} else {
+	else
 		tplg_dbg("CC Link: %s", link->name);
-		lk = elem->cc;
-	}
 
+	lk = elem->link;
 	lk->size = elem->size;
 	lk->id = link->id;
 	lk->num_streams = link->num_streams;
