@@ -220,7 +220,7 @@ int tplg_parse_stream_caps(snd_tplg_t *tplg,
 int tplg_parse_pcm(snd_tplg_t *tplg,
 	snd_config_t *cfg, void *private ATTRIBUTE_UNUSED);
 
-int tplg_parse_be(snd_tplg_t *tplg,
+int tplg_parse_link(snd_tplg_t *tplg,
 	snd_config_t *cfg, void *private ATTRIBUTE_UNUSED);
 
 int tplg_parse_cc(snd_tplg_t *tplg,

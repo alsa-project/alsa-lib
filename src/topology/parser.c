@@ -133,8 +133,9 @@ static int tplg_parse_config(snd_tplg_t *tplg, snd_config_t *cfg)
 			continue;
 		}
 
-		if (strcmp(id, "SectionBE") == 0) {
-			err = tplg_parse_compound(tplg, n, tplg_parse_be,
+		if (strcmp(id, "SectionLink") == 0
+			|| strcmp(id, "SectionBE") == 0) {
+			err = tplg_parse_compound(tplg, n, tplg_parse_link,
 				NULL);
 			if (err < 0)
 				return err;

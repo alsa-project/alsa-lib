@@ -617,6 +617,24 @@ extern "C" {
  * }
  * </pre>
  *
+ * <h4>Physical DAI Link Configurations</h4>
+ * The runtime configurations of a physical DAI link can be defined by
+ * SectionLink. <br> Backend DAI links belong to physical links, and can
+ * be configured by either SectionLink or SectionBE, with same syntax.
+ * But SectionBE is deprecated atm since the internal processing is
+ * actually same.
+ *
+ * <pre>
+ * SectionLink."name" {
+ *
+ *	index "1"			# Index number
+ *
+ *	id "0"				# used for binding to the link
+ *
+ *	data "name"			# optional private data
+ * }
+ * </pre>
+ *
  * <h4>Manifest Private Data</h4>
  * Manfiest may have private data. Users need to define a manifest section
  * and add the references to 1 or multiple data sections. Please refer to
@@ -687,6 +705,7 @@ enum snd_tplg_type {
 	SND_TPLG_TYPE_MANIFEST,		/*!< Topology manifest */
 	SND_TPLG_TYPE_TOKEN,		/*!< Vendor tokens */
 	SND_TPLG_TYPE_TUPLE,		/*!< Vendor tuples */
+	SND_TPLG_TYPE_LINK,		/*!< Physical DAI link */
 };
 
 /**

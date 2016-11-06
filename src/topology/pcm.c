@@ -527,7 +527,8 @@ int tplg_parse_pcm(snd_tplg_t *tplg,
 	return 0;
 }
 
-int tplg_parse_be(snd_tplg_t *tplg,
+/* Parse a physical link element in text conf file */
+int tplg_parse_link(snd_tplg_t *tplg,
 	snd_config_t *cfg, void *private ATTRIBUTE_UNUSED)
 {
 	struct snd_soc_tplg_link_config *link;
@@ -544,7 +545,7 @@ int tplg_parse_be(snd_tplg_t *tplg,
 	link = elem->link;
 	link->size = elem->size;
 
-	tplg_dbg(" BE: %s\n", elem->id);
+	tplg_dbg(" Link: %s\n", elem->id);
 
 	snd_config_for_each(i, next, cfg) {
 
@@ -748,7 +749,8 @@ int tplg_add_link_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 	struct tplg_elem *elem;
 	int i;
 
-	if (t->type != SND_TPLG_TYPE_BE && t->type != SND_TPLG_TYPE_CC)
+	if (t->type != SND_TPLG_TYPE_LINK && t->type != SND_TPLG_TYPE_BE
+	    && t->type != SND_TPLG_TYPE_CC)
 		return -EINVAL;
 
 	/* here type can be either BE or CC. */
@@ -756,10 +758,7 @@ int tplg_add_link_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 	if (!elem)
 		return -ENOMEM;
 
-	if (t->type == SND_TPLG_TYPE_BE)
-		tplg_dbg("BE Link: %s", link_tpl->name);
-	else
-		tplg_dbg("CC Link: %s", link_tpl->name);
+	tplg_dbg("Link: %s", link_tpl->name);
 
 	link = elem->link;
 	link->size = elem->size;
