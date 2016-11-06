@@ -193,6 +193,7 @@ struct tplg_elem* tplg_elem_new_common(snd_tplg_t *tplg,
 		obj_size = sizeof(struct snd_soc_tplg_pcm);
 		break;
 	case SND_TPLG_TYPE_BE:
+	case SND_TPLG_TYPE_LINK:
 		list_add_tail(&elem->list, &tplg->be_list);
 		obj_size = sizeof(struct snd_soc_tplg_link_config);
 		break;

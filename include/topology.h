@@ -927,6 +927,33 @@ struct snd_tplg_pcm_template {
 	struct snd_tplg_stream_template stream[0]; /*!< supported configs */
 };
 
+ /** \struct snd_tplg_hw_config_template
+ * \brief Template type to describe a physical link runtime supported
+ * hardware config, i.e. hardware audio formats.
+ */
+struct snd_tplg_hw_config_template {
+	int id;                         /* unique ID - - used to match */
+	unsigned int fmt;               /* SND_SOC_DAI_FORMAT_ format value */
+	unsigned char clock_gated;      /* 1 if clock can be gated to save power */
+	unsigned char  invert_bclk;     /* 1 for inverted BCLK, 0 for normal */
+	unsigned char  invert_fsync;    /* 1 for inverted frame clock, 0 for normal */
+	unsigned char  bclk_master;     /* 1 for master of BCLK, 0 for slave */
+	unsigned char  fsync_master;    /* 1 for master of FSYNC, 0 for slave */
+	unsigned char  mclk_direction;  /* 0 for input, 1 for output */
+	unsigned short reserved;        /* for 32bit alignment */
+	unsigned int mclk_rate;	        /* MCLK or SYSCLK freqency in Hz */
+	unsigned int bclk_rate;	        /* BCLK freqency in Hz */
+	unsigned int fsync_rate;        /* frame clock in Hz */
+	unsigned int tdm_slots;         /* number of TDM slots in use */
+	unsigned int tdm_slot_width;    /* width in bits for each slot */
+	unsigned int tx_slots;          /* bit mask for active Tx slots */
+	unsigned int rx_slots;          /* bit mask for active Rx slots */
+	unsigned int tx_channels;       /* number of Tx channels */
+	unsigned int *tx_chanmap;       /* array of slot number */
+	unsigned int rx_channels;       /* number of Rx channels */
+	unsigned int *rx_chanmap;       /* array of slot number */
+};
+
 /** \struct snd_tplg_link_template
  * \brief Template type for BE and CC DAI Links.
  */
@@ -934,7 +961,11 @@ struct snd_tplg_link_template {
 	const char *name;	/*!< link name */
 	int id;	/*!< unique ID - used to match with existing BE and CC links */
 	int num_streams;	/*!< number of configs */
-	struct snd_tplg_stream_template stream[0]; /*!< supported configs */
+	struct snd_tplg_stream_template *stream;       /*!< supported configs */
+
+	struct snd_tplg_hw_config_template *hw_config; /*!< supported HW configs */
+	int num_hw_configs;		/* number of hw configs */
+	int default_hw_config_id;       /* default hw config ID for init */
 };
 
 /** \struct snd_tplg_obj_template
