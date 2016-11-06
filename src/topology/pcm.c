@@ -740,10 +740,11 @@ int tplg_add_pcm_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 	return 0;
 }
 
+/* Add a physical DAI link element from C API */
 int tplg_add_link_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 {
-	struct snd_tplg_link_template *link = t->link;
-	struct snd_soc_tplg_link_config *lk;
+	struct snd_tplg_link_template *link_tpl = t->link;
+	struct snd_soc_tplg_link_config *link, *_link;
 	struct tplg_elem *elem;
 	int i;
 
@@ -751,22 +752,25 @@ int tplg_add_link_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 		return -EINVAL;
 
 	/* here type can be either BE or CC. */
-	elem = tplg_elem_new_common(tplg, NULL, link->name, t->type);
+	elem = tplg_elem_new_common(tplg, NULL, link_tpl->name, t->type);
 	if (!elem)
 		return -ENOMEM;
 
 	if (t->type == SND_TPLG_TYPE_BE)
-		tplg_dbg("BE Link: %s", link->name);
+		tplg_dbg("BE Link: %s", link_tpl->name);
 	else
-		tplg_dbg("CC Link: %s", link->name);
+		tplg_dbg("CC Link: %s", link_tpl->name);
 
-	lk = elem->link;
-	lk->size = elem->size;
-	lk->id = link->id;
-	lk->num_streams = link->num_streams;
+	link = elem->link;
+	link->size = elem->size;
 
+	link->id = link_tpl->id;
+	/* stream configs */
+	if (link_tpl->num_streams > SND_SOC_TPLG_STREAM_CONFIG_MAX)
+		return -EINVAL;
+	link->num_streams = link_tpl->num_streams;
 	for (i = 0; i < link->num_streams; i++)
-		tplg_add_stream_object(&lk->stream[i], &link->stream[i]);
+		tplg_add_stream_object(&link->stream[i], &link_tpl->stream[i]);
 
 	return 0;
 }
