@@ -631,7 +631,28 @@ extern "C" {
  *
  *	id "0"				# used for binding to the link
  *
+ *	hw_configs [	# runtime supported HW configurations, optional
+ *		"config1"
+ *		"config2"
+ *		...
+ *	]
+ *
+ *	default_hw_conf_id "1"		#default HW config ID for init
+ *
  *	data "name"			# optional private data
+ * }
+ * </pre>
+ *
+ * A physical link can refer to multiple runtime supported hardware
+ * configurations, which is defined by SectionHWConfig.
+ *
+ * <pre>
+ * SectionHWConfig."name" {
+ *
+ *	id "1"				# used for binding to the config
+ *	format "I2S"			# physical audio format.
+ *	bclk   "master"			# Platform is master of bit clock
+ *	fsync  "slave"			# Platform is slave of fsync
  * }
  * </pre>
  *
@@ -706,6 +727,7 @@ enum snd_tplg_type {
 	SND_TPLG_TYPE_TOKEN,		/*!< Vendor tokens */
 	SND_TPLG_TYPE_TUPLE,		/*!< Vendor tuples */
 	SND_TPLG_TYPE_LINK,		/*!< Physical DAI link */
+	SND_TPLG_TYPE_HW_CONFIG,	/*!< Link HW config */
 };
 
 /**

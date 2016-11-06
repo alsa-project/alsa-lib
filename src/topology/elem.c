@@ -208,6 +208,10 @@ struct tplg_elem* tplg_elem_new_common(snd_tplg_t *tplg,
 		list_add_tail(&elem->list, &tplg->tuple_list);
 		elem->free = tplg_free_tuples;
 		break;
+	case SND_TPLG_TYPE_HW_CONFIG:
+		list_add_tail(&elem->list, &tplg->hw_cfg_list);
+		obj_size = sizeof(struct snd_soc_tplg_hw_config);
+		break;
 	default:
 		free(elem);
 		return NULL;
