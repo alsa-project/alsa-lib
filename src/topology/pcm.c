@@ -148,12 +148,31 @@ static int tplg_build_stream_cfg(snd_tplg_t *tplg,
 	return 0;
 }
 
+static int build_link(snd_tplg_t *tplg, struct tplg_elem *elem)
+{
+	struct snd_soc_tplg_link_config *link = elem->link;
+	struct tplg_elem *ref_elem = NULL;
+	struct snd_soc_tplg_link_cmpnt  *codec, *cmpnt;
+	struct tplg_ref *ref;
+	struct list_head *base, *pos;
+	int i, num_hw_configs = 0, err = 0;
+
+	err = tplg_build_stream_cfg(tplg, link->stream,
+				    link->num_streams);
+	if (err < 0)
+		return err;
+
+	/* add link to manifest */
+	tplg->manifest.dai_link_elems++;
+
+	return 0;
+}
+
 /* build BE/CC DAI link configurations */
-int tplg_build_link_cfg(snd_tplg_t *tplg, unsigned int type)
+int tplg_build_links(snd_tplg_t *tplg, unsigned int type)
 {
 	struct list_head *base, *pos;
 	struct tplg_elem *elem;
-	struct snd_soc_tplg_link_config *link;
 	int err = 0;
 
 	switch (type) {
@@ -175,9 +194,7 @@ int tplg_build_link_cfg(snd_tplg_t *tplg, unsigned int type)
 			return -EINVAL;
 		}
 
-		link = elem->link;
-		err = tplg_build_stream_cfg(tplg, link->stream,
-			link->num_streams);
+		err =  build_link(tplg, elem);
 		if (err < 0)
 			return err;
 	}
