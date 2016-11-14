@@ -1,3 +1,4 @@
+if BUILD_PYTHON
 alsaplugindir = @ALSA_PLUGIN_DIR@
 pkglibdir = $(alsaplugindir)/smixer
 
@@ -9,9 +10,7 @@ pkglib_LTLIBRARIES = smixer-sbase.la \
 		     smixer-ac97.la \
 		     smixer-hda.la
 
-if BUILD_PYTHON
 pkglib_LTLIBRARIES += smixer-python.la
-endif
 
 noinst_HEADERS = sbase.h
 
@@ -27,7 +26,6 @@ smixer_hda_la_SOURCES = hda.c sbasedl.c
 smixer_hda_la_LDFLAGS = -module -avoid-version $(LDFLAGS_NOUNDEFINED)
 smixer_hda_la_LIBADD = ../../../src/libasound.la -ldl
 
-if BUILD_PYTHON
 smixer_python_la_SOURCES = python.c
 smixer_python_la_LDFLAGS = -module -avoid-version $(LDFLAGS_NOUNDEFINED)
 smixer_python_la_CFLAGS = $(PYTHON_INCLUDES)
