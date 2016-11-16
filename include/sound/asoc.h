@@ -102,7 +102,8 @@
 #define SND_SOC_TPLG_TYPE_CODEC_LINK	9
 #define SND_SOC_TPLG_TYPE_BACKEND_LINK	10
 #define SND_SOC_TPLG_TYPE_PDATA		11
-#define SND_SOC_TPLG_TYPE_MAX	SND_SOC_TPLG_TYPE_PDATA
+#define SND_SOC_TPLG_TYPE_DAI		12
+#define SND_SOC_TPLG_TYPE_MAX		SND_SOC_TPLG_TYPE_DAI
 
 /* vendor block IDs - please add new vendor types to end */
 #define SND_SOC_TPLG_TYPE_VENDOR_FW	1000
@@ -120,6 +121,11 @@
 #define SND_SOC_TPLG_TUPLE_TYPE_BYTE	3
 #define SND_SOC_TPLG_TUPLE_TYPE_WORD	4
 #define SND_SOC_TPLG_TUPLE_TYPE_SHORT	5
+
+/* DAI flags */
+#define SND_SOC_TPLG_DAI_FLGBIT_SYMMETRIC_RATES         (1 << 0)
+#define SND_SOC_TPLG_DAI_FLGBIT_SYMMETRIC_CHANNELS      (1 << 1)
+#define SND_SOC_TPLG_DAI_FLGBIT_SYMMETRIC_SAMPLEBITS    (1 << 2)
 
 /* DAI physical PCM data formats.
  * Add new formats to the end of the list.
@@ -508,6 +514,29 @@ struct snd_soc_tplg_link_config {
 	__le32 default_hw_config_id;   /* default hw config ID for init */
 	__le32 flag_mask;       /* bitmask of flags to configure */
 	__le32 flags;           /* SND_SOC_TPLG_LNK_FLGBIT_* flag value */
+	struct snd_soc_tplg_private priv;
+} __attribute__((packed));
+
+/*
+ * Describes SW/FW specific features of physical DAI.
+ * It can be used to configure backend DAIs for DPCM.
+ *
+ * File block representation for physical DAI :-
+ * +-----------------------------------+-----+
+ * | struct snd_soc_tplg_hdr           |  1  |
+ * +-----------------------------------+-----+
+ * | struct snd_soc_tplg_dai           |  N  |
+ * +-----------------------------------+-----+
+ */
+struct snd_soc_tplg_dai {
+	__le32 size;            /* in bytes of this structure */
+	char dai_name[SNDRV_CTL_ELEM_ID_NAME_MAXLEN]; /* name - used to match */
+	__le32 dai_id;          /* unique ID - used to match */
+	__le32 playback;        /* supports playback mode */
+	__le32 capture;         /* supports capture mode */
+	struct snd_soc_tplg_stream_caps caps[2]; /* playback and capture for DAI */
+	__le32 flag_mask;       /* bitmask of flags to configure */
+	__le32 flags;           /* SND_SOC_TPLG_DAI_FLGBIT_* */
 	struct snd_soc_tplg_private priv;
 } __attribute__((packed));
 #endif
