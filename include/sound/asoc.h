@@ -79,7 +79,8 @@
 #define SND_SOC_TPLG_NUM_TEXTS		16
 
 /* ABI version */
-#define SND_SOC_TPLG_ABI_VERSION	0x4
+#define SND_SOC_TPLG_ABI_VERSION	0x5	/* current version */
+#define SND_SOC_TPLG_ABI_VERSION_MIN	0x4	/* oldest version supported */
 
 /* Max size of TLV data */
 #define SND_SOC_TPLG_TLV_SIZE		32
@@ -331,6 +332,8 @@ struct snd_soc_tplg_manifest {
 	__le32 graph_elems;	/* number of graph elements */
 	__le32 pcm_elems;	/* number of PCM elements */
 	__le32 dai_link_elems;	/* number of DAI link elements */
+	__le32 dai_elems;	/* number of physical DAI elements */
+	__le32 reserved[20];	/* reserved for new ABI element types */
 	struct snd_soc_tplg_private priv;
 } __attribute__((packed));
 
