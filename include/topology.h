@@ -1014,6 +1014,22 @@ struct snd_tplg_hw_config_template {
 	unsigned int *rx_chanmap;       /* array of slot number */
 };
 
+/** \struct snd_tplg_dai_template
+ * \brief Template type for physical DAI.
+ * It can be used to configure backend DAIs for DPCM.
+ */
+struct snd_tplg_dai_template {
+	const char *dai_name;	/*!< DAI name */
+	unsigned int dai_id;	/*!< unique ID - used to match */
+	unsigned int playback;	/*!< supports playback mode */
+	unsigned int capture;	/*!< supports capture mode */
+	struct snd_tplg_stream_caps_template *caps[2]; /*!< playback & capture for DAI */
+	unsigned int flag_mask; /*!< bitmask of flags to configure */
+	unsigned int flags;	/*!< SND_SOC_TPLG_DAI_FLGBIT_* */
+	struct snd_soc_tplg_private *priv;	/*!< private data */
+
+};
+
 /** \struct snd_tplg_link_template
  * \brief Template type for BE and CC DAI Links.
  */
@@ -1050,6 +1066,7 @@ typedef struct snd_tplg_obj_template {
 		struct snd_tplg_graph_template *graph;		/*!< Graph elements */
 		struct snd_tplg_pcm_template *pcm;		/*!< PCM elements */
 		struct snd_tplg_link_template *link;		/*!< BE and CC Links */
+		struct snd_tplg_dai_template *dai;		/*!< Physical DAI */
 	};
 } snd_tplg_obj_template_t;
 

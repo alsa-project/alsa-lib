@@ -1201,3 +1201,58 @@ int tplg_add_link_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 
 	return 0;
 }
+
+int tplg_add_dai_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
+{
+	struct snd_tplg_dai_template *dai_tpl = t->dai;
+	struct snd_soc_tplg_dai *dai, *_dai;
+	struct tplg_elem *elem;
+	int i;
+
+	tplg_dbg("DAI %s\n", dai_tpl->dai_name);
+
+	elem = tplg_elem_new_common(tplg, NULL, dai_tpl->dai_name,
+		SND_TPLG_TYPE_DAI);
+	if (!elem)
+		return -ENOMEM;
+
+	dai = elem->dai;
+	dai->size = elem->size;
+
+	elem_copy_text(dai->dai_name, dai_tpl->dai_name,
+		SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+	dai->dai_id = dai_tpl->dai_id;
+
+	/* stream caps */
+	dai->playback = dai_tpl->playback;
+	dai->capture = dai_tpl->capture;
+
+	for (i = 0; i < 2; i++) {
+		if (dai_tpl->caps[i])
+			tplg_add_stream_caps(&dai->caps[i], dai_tpl->caps[i]);
+	}
+
+	/* flags */
+	dai->flag_mask = dai_tpl->flag_mask;
+	dai->flags = dai_tpl->flags;
+
+	/* private data */
+	if (dai_tpl->priv != NULL) {
+		_dai = realloc(dai,
+			elem->size + dai_tpl->priv->size);
+		if (!_dai) {
+			tplg_elem_free(elem);
+			return -ENOMEM;
+		}
+
+		dai = _dai;
+		dai->priv.size = dai_tpl->priv->size;
+
+		elem->dai = dai;
+		elem->size += dai->priv.size;
+		memcpy(dai->priv.data, dai_tpl->priv->data,
+		       dai->priv.size);
+	}
+
+	return 0;
+}
