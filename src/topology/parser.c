@@ -288,6 +288,10 @@ static int tplg_build_integ(snd_tplg_t *tplg)
 	if (err <  0)
 		return err;
 
+	err = tplg_build_dais(tplg, SND_TPLG_TYPE_DAI);
+	if (err <  0)
+		return err;
+
 	err = tplg_build_links(tplg, SND_TPLG_TYPE_BE);
 	if (err <  0)
 		return err;

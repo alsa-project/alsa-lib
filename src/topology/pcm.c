@@ -129,6 +129,61 @@ int tplg_build_pcms(snd_tplg_t *tplg, unsigned int type)
 	return 0;
 }
 
+/* build a physical DAI */
+static int tplg_build_dai(snd_tplg_t *tplg, struct tplg_elem *elem)
+{
+	struct tplg_ref *ref;
+	struct list_head *base, *pos;
+	int err = 0;
+
+	/* get playback & capture stream caps */
+	err = tplg_build_stream_caps(tplg, elem->id, elem->dai->caps);
+	if (err < 0)
+		return err;
+
+	/* get private data */
+	base = &elem->ref_list;
+	list_for_each(pos, base) {
+
+		ref = list_entry(pos, struct tplg_ref, list);
+
+		if (ref->type == SND_TPLG_TYPE_DATA) {
+			err = tplg_copy_data(tplg, elem, ref);
+			if (err < 0)
+				return err;
+		}
+	}
+
+	/* add DAI to manifest */
+	tplg->manifest.dai_elems++;
+
+	return 0;
+}
+
+/* build physical DAIs*/
+int tplg_build_dais(snd_tplg_t *tplg, unsigned int type)
+{
+	struct list_head *base, *pos;
+	struct tplg_elem *elem;
+	int err = 0;
+
+	base = &tplg->dai_list;
+	list_for_each(pos, base) {
+
+		elem = list_entry(pos, struct tplg_elem, list);
+		if (elem->type != type) {
+			SNDERR("error: invalid elem '%s'\n", elem->id);
+			return -EINVAL;
+		}
+
+		err = tplg_build_dai(tplg, elem);
+		if (err < 0)
+			return err;
+	}
+
+	return 0;
+}
+
 static int tplg_build_stream_cfg(snd_tplg_t *tplg,
 	struct snd_soc_tplg_stream *stream, int num_streams)
 {

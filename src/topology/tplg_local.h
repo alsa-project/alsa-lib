@@ -294,6 +294,7 @@ int tplg_add_bytes(snd_tplg_t *tplg, struct snd_tplg_bytes_template *bytes_ctl,
 		   struct tplg_elem **e);
 
 int tplg_build_pcms(snd_tplg_t *tplg, unsigned int type);
+int tplg_build_dais(snd_tplg_t *tplg, unsigned int type);
 int tplg_build_links(snd_tplg_t *tplg, unsigned int type);
 int tplg_add_link_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t);
 int tplg_add_pcm_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t);
