@@ -40,9 +40,10 @@ extern "C" {
  * currently recognises the following object types :-
  *
  *  * Controls (mixer, enumerated and byte) including TLV data.
- *  * PCMs (FE and BE configurations and capabilities)
+ *  * PCMs (Front End DAI & DAI link)
  *  * DAPM widgets
  *  * DAPM graph elements.
+ *  * Physical DAI & DAI links
  *  * Private data for each object type.
  *  * Manifest (containing count of each object type)
  *
@@ -511,8 +512,8 @@ extern "C" {
  * refer to section Control Private Data.
  *
  * <h4>PCM Capabilities</h4>
- * Topology can also define the capabilities of FE and BE PCMs. Capabilities
- * can be defined with the following section :-
+ * Topology can also define the PCM capabilities of front end or physical DAIs.
+ * Capabilities can be defined with the following section :-
  *
  * <pre>
  * SectionPCMCapabilities."name" {
@@ -525,8 +526,8 @@ extern "C" {
  * }
  * </pre>
  * The supported formats use the same naming convention as the driver macros.
- * The PCM capabilities name can be referred to and included by BE, PCM and
- * Codec <-> codec topology sections.
+ * The PCM capabilities name can be referred to and included by PCM and
+ * physical DAI sections.
  *
  * <h4>PCM Configurations</h4>
  * PCM runtime configurations can be defined for playback and capture stream
@@ -552,31 +553,14 @@ extern "C" {
  * </pre>
  *
  * The supported formats use the same naming convention as the driver macros.
- * The PCM configuration name can be referred to and included by BE, PCM and
- * Codec <-> codec topology sections.
+ * The PCM configuration name can be referred to and included by PCM and
+ * physical link sections.
  *
- * <h4>PCM Configurations</h4>
- * PCM, BE and Codec to Codec link sections define the supported capabilities
- * and configurations for supported playback and capture streams. The
- * definitions and content for PCMs, BE and Codec links are the same with the
- * exception of the section type :-
- *
- * <pre>
- * SectionPCM."name" {
- *	....
- * }
- * SectionBE."name" {
- *	....
- * }
- * SectionCC."name" {
- *	....
- * }
- * </pre>
- *
- * The section types above should be used for PCMs, Back Ends and Codec to Codec
- * links respectively.<br>
- *
- * The data for each section is defined as follows :-
+ * <h4>PCM (Front-end DAI & DAI link) </h4>
+ * PCM sections define the supported capabilities and configurations for
+ * supported playback and capture streams, names and flags for front end
+ * DAI & DAI links. Topology kernel driver will use a PCM object to create
+ * a pair of FE DAI & DAI links.
  *
  * <pre>
  * SectionPCM."name" {
@@ -1031,7 +1015,7 @@ struct snd_tplg_dai_template {
 };
 
 /** \struct snd_tplg_link_template
- * \brief Template type for BE and CC DAI Links.
+ * \brief Template type for physical DAI Links.
  */
 struct snd_tplg_link_template {
 	const char *name;	/*!< link name, used to match */
@@ -1065,7 +1049,7 @@ typedef struct snd_tplg_obj_template {
 		struct snd_tplg_enum_template *enum_ctl;	/*!< Enum control */
 		struct snd_tplg_graph_template *graph;		/*!< Graph elements */
 		struct snd_tplg_pcm_template *pcm;		/*!< PCM elements */
-		struct snd_tplg_link_template *link;		/*!< BE and CC Links */
+		struct snd_tplg_link_template *link;		/*!< physical DAI Links */
 		struct snd_tplg_dai_template *dai;		/*!< Physical DAI */
 	};
 } snd_tplg_obj_template_t;

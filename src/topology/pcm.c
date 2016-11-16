@@ -1198,7 +1198,6 @@ int tplg_add_link_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 	    && t->type != SND_TPLG_TYPE_CC)
 		return -EINVAL;
 
-	/* here type can be either BE or CC. */
 	elem = tplg_elem_new_common(tplg, NULL, link_tpl->name, t->type);
 	if (!elem)
 		return -ENOMEM;
