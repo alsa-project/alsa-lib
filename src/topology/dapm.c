@@ -160,7 +160,21 @@ static int tplg_build_widget(snd_tplg_t *tplg,
 
 	base = &elem->ref_list;
 
-	/* for each ref in this control elem */
+	/* A widget's private data sits before the embedded controls.
+	 * So merge the private data blocks at first
+	 */
+	 list_for_each(pos, base) {
+		ref = list_entry(pos, struct tplg_ref, list);
+
+		if (ref->type != SND_TPLG_TYPE_DATA)
+			continue;
+
+		err = tplg_copy_data(tplg, elem, ref);
+		if (err < 0)
+			return err;
+	}
+
+	/* Merge the embedded controls */
 	list_for_each(pos, base) {
 
 		ref = list_entry(pos, struct tplg_ref, list);
@@ -188,12 +202,6 @@ static int tplg_build_widget(snd_tplg_t *tplg,
 						ref->id, SND_TPLG_TYPE_BYTES);
 			if (ref->elem)
 				err = copy_dapm_control(elem, ref->elem);
-			break;
-
-		case SND_TPLG_TYPE_DATA:
-			err = tplg_copy_data(tplg, elem, ref);
-			if (err < 0)
-				return err;
 			break;
 
 		default:
