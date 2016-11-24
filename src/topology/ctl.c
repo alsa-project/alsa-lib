@@ -159,9 +159,11 @@ static void copy_enum_texts(struct tplg_elem *enum_elem,
 	struct tplg_elem *ref_elem)
 {
 	struct snd_soc_tplg_enum_control *ec = enum_elem->enum_ctrl;
+	struct tplg_texts *texts = ref_elem->texts;
 
-	memcpy(ec->texts, ref_elem->texts,
+	memcpy(ec->texts, texts->items,
 		SND_SOC_TPLG_NUM_TEXTS * SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+	ec->items += texts->num_items;
 }
 
 /* check referenced text for a enum control */

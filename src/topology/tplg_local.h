@@ -91,6 +91,11 @@ struct tplg_ref {
 	struct list_head list;
 };
 
+struct tplg_texts {
+	unsigned int num_items;
+	char items[SND_SOC_TPLG_NUM_TEXTS][SNDRV_CTL_ELEM_ID_NAME_MAXLEN];
+};
+
 /* element for vendor tokens */
 struct tplg_token {
 	char id[SNDRV_CTL_ELEM_ID_NAME_MAXLEN];
@@ -128,9 +133,6 @@ struct tplg_elem {
 
 	char id[SNDRV_CTL_ELEM_ID_NAME_MAXLEN];
 
-	/* storage for texts and data if this is text or data elem*/
-	char texts[SND_SOC_TPLG_NUM_TEXTS][SNDRV_CTL_ELEM_ID_NAME_MAXLEN];
-
 	int index;
 	enum snd_tplg_type type;
 
@@ -155,6 +157,7 @@ struct tplg_elem {
 
 		/* these do not map to UAPI structs but are internal only */
 		struct snd_soc_tplg_ctl_tlv *tlv;
+		struct tplg_texts *texts;
 		struct snd_soc_tplg_private *data;
 		struct tplg_vendor_tokens *tokens;
 		struct tplg_vendor_tuples *tuples;

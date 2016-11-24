@@ -159,6 +159,7 @@ struct tplg_elem* tplg_elem_new_common(snd_tplg_t *tplg,
 		break;
 	case SND_TPLG_TYPE_TEXT:
 		list_add_tail(&elem->list, &tplg->text_list);
+		obj_size = sizeof(struct tplg_texts);
 		break;
 	case SND_TPLG_TYPE_TLV:
 		list_add_tail(&elem->list, &tplg->tlv_list);
