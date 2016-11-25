@@ -642,6 +642,14 @@ static int snd_pcm_file_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 			return err;
 		}
 	}
+
+	/* pointer may have changed - e.g if plug is used. */
+	snd_pcm_unlink_hw_ptr(pcm, file->gen.slave);
+	snd_pcm_unlink_appl_ptr(pcm, file->gen.slave);
+
+	snd_pcm_link_hw_ptr(pcm, file->gen.slave);
+	snd_pcm_link_appl_ptr(pcm, file->gen.slave);
+
 	return 0;
 }
 
