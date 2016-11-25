@@ -706,6 +706,7 @@ static const snd_pcm_fast_ops_t snd_pcm_file_fast_ops = {
 	.readi = snd_pcm_file_readi,
 	.readn = snd_pcm_file_readn,
 	.avail_update = snd_pcm_generic_avail_update,
+	.htimestamp = snd_pcm_generic_htimestamp,
 	.mmap_commit = snd_pcm_file_mmap_commit,
 	.poll_descriptors_count = snd_pcm_generic_poll_descriptors_count,
 	.poll_descriptors = snd_pcm_generic_poll_descriptors,
