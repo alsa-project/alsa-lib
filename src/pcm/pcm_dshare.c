@@ -186,6 +186,7 @@ static int snd_pcm_dshare_sync_ptr0(snd_pcm_t *pcm, snd_pcm_uframes_t slave_hw_p
 		dshare->avail_max = avail;
 	if (avail >= pcm->stop_threshold) {
 		snd_timer_stop(dshare->timer);
+		do_silence(pcm);
 		gettimestamp(&dshare->trigger_tstamp, pcm->tstamp_type);
 		if (dshare->state == SND_PCM_STATE_RUNNING) {
 			dshare->state = SND_PCM_STATE_XRUN;
