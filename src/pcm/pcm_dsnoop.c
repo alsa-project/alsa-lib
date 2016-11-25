@@ -719,10 +719,12 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 		snd_pcm_direct_client_discard(dsnoop);
 	if (spcm)
 		snd_pcm_close(spcm);
-	if (dsnoop->shmid >= 0)
-		snd_pcm_direct_shm_discard(dsnoop);
-	if (snd_pcm_direct_semaphore_discard(dsnoop) < 0)
+	if ((dsnoop->shmid >= 0) && (snd_pcm_direct_shm_discard(dsnoop))) {
+		if (snd_pcm_direct_semaphore_discard(dsnoop))
+			snd_pcm_direct_semaphore_final(dsnoop, DIRECT_IPC_SEM_CLIENT);
+	} else
 		snd_pcm_direct_semaphore_up(dsnoop, DIRECT_IPC_SEM_CLIENT);
+
  _err_nosem:
 	if (dsnoop) {
 		free(dsnoop->bindings);

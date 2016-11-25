@@ -1154,9 +1154,10 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 		snd_pcm_close(spcm);
 	if (dmix->u.dmix.shmid_sum >= 0)
 		shm_sum_discard(dmix);
-	if (dmix->shmid >= 0)
-		snd_pcm_direct_shm_discard(dmix);
-	if (snd_pcm_direct_semaphore_discard(dmix) < 0)
+	if ((dmix->shmid >= 0) && (snd_pcm_direct_shm_discard(dmix))) {
+		if (snd_pcm_direct_semaphore_discard(dmix))
+			snd_pcm_direct_semaphore_final(dmix, DIRECT_IPC_SEM_CLIENT);
+	} else
 		snd_pcm_direct_semaphore_up(dmix, DIRECT_IPC_SEM_CLIENT);
  _err_nosem:
 	if (dmix) {

@@ -846,9 +846,10 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 		snd_pcm_direct_client_discard(dshare);
 	if (spcm)
 		snd_pcm_close(spcm);
-	if (dshare->shmid >= 0)
-		snd_pcm_direct_shm_discard(dshare);
-	if (snd_pcm_direct_semaphore_discard(dshare) < 0)
+	if ((dshare->shmid >= 0) && (snd_pcm_direct_shm_discard(dshare))) {
+		if (snd_pcm_direct_semaphore_discard(dshare))
+			snd_pcm_direct_semaphore_final(dshare, DIRECT_IPC_SEM_CLIENT);
+	} else
 		snd_pcm_direct_semaphore_up(dshare, DIRECT_IPC_SEM_CLIENT);
  _err_nosem:
 	if (dshare) {
