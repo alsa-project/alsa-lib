@@ -210,6 +210,7 @@ void uc_mgr_free_verb(snd_use_case_mgr_t *uc_mgr)
 		uc_mgr_free_transition(&verb->transition_list);
 		uc_mgr_free_value(&verb->value_list);
 		uc_mgr_free_device(&verb->device_list);
+		uc_mgr_free_device(&verb->cmpt_device_list);
 		uc_mgr_free_modifier(&verb->modifier_list);
 		list_del(&verb->list);
 		free(verb);

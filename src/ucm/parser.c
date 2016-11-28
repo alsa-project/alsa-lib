@@ -254,6 +254,82 @@ static int parse_device_list(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
 	return 0;
 }
 
+/* Find a component device by its name, and remove it from machine device
+ * list.
+ *
+ * Component devices are defined by machine components (usually off-soc
+ * codes or DSP embeded in SoC). Since alsaconf imports their configuration
+ * files automatically, we don't know which devices are component devices
+ * until they are referenced by a machine device sequence. So here when we
+ * find a referenced device, we move it from the machine device list to the
+ * component device list. Component devices will not be exposed to applications
+ * by the original API to list devices for backward compatibility. So sound
+ * servers can only see the machine devices.
+ */
+struct use_case_device *find_component_dev(snd_use_case_mgr_t *uc_mgr,
+	const char *name)
+{
+	struct list_head *pos, *posdev, *_posdev;
+	struct use_case_verb *verb;
+	struct use_case_device *dev;
+
+	list_for_each(pos, &uc_mgr->verb_list) {
+		verb = list_entry(pos, struct use_case_verb, list);
+
+		/* search in the component device list */
+		list_for_each(posdev, &verb->cmpt_device_list) {
+			dev = list_entry(posdev, struct use_case_device, list);
+			if (!strcmp(dev->name, name))
+				return dev;
+		}
+
+		/* search the machine device list */
+		list_for_each_safe(posdev, _posdev, &verb->device_list) {
+			dev = list_entry(posdev, struct use_case_device, list);
+			if (!strcmp(dev->name, name)) {
+				/* find the component device, move it from the
+				 * machine device list to the component device
+				 * list.
+				 */
+				list_del(&dev->list);
+				list_add_tail(&dev->list,
+					      &verb->cmpt_device_list);
+				return dev;
+			}
+		}
+	}
+
+	return NULL;
+}
+
+/* parse sequence of a component device
+ *
+ * This function will find the component device and mark if its enable or
+ * disable sequence is needed by its parenet device.
+ */
+static int parse_component_seq(snd_use_case_mgr_t *uc_mgr,
+			  snd_config_t *n, int enable,
+			  struct component_sequence *cmpt_seq)
+{
+	const char *val;
+	int err;
+
+	err = snd_config_get_string(n, &val);
+	if (err < 0)
+		return err;
+
+	cmpt_seq->device = find_component_dev(uc_mgr, val);
+	if (!cmpt_seq->device) {
+		uc_error("error: Cannot find component device %s", val);
+		return -EINVAL;
+	}
+
+	/* Parent needs its enable or disable sequence */
+	cmpt_seq->enable = enable;
+
+	return 0;
+}
+
 /*
  * Parse sequences.
  *
@@ -263,12 +339,16 @@ static int parse_device_list(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
  * cset "element_id_syntax value_syntax"
  * usleep time
  * exec "any unix command with arguments"
+ * enadev "component device name"
+ * disdev "component device name"
  *
  * e.g.
  *	cset "name='Master Playback Switch' 0,0"
  *      cset "iface=PCM,name='Disable HDMI',index=1 0"
+ *	enadev "rt286:Headphones"
+ *	disdev "rt286:Speaker"
  */
-static int parse_sequence(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
+static int parse_sequence(snd_use_case_mgr_t *uc_mgr,
 			  struct list_head *base,
 			  snd_config_t *cfg)
 {
@@ -320,6 +400,30 @@ static int parse_sequence(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
 			err = parse_string(n, &curr->data.cset);
 			if (err < 0) {
 				uc_error("error: cset requires a string!");
+				return err;
+			}
+			continue;
+		}
+
+		if (strcmp(cmd, "enadev") == 0) {
+			/* need to enable a component device */
+			curr->type = SEQUENCE_ELEMENT_TYPE_CMPT_SEQ;
+			err = parse_component_seq(uc_mgr, n, 1,
+						&curr->data.cmpt_seq);
+			if (err < 0) {
+				uc_error("error: enadev requires a valid device!");
+				return err;
+			}
+			continue;
+		}
+
+		if (strcmp(cmd, "disdev") == 0) {
+			/* need to disable a component device */
+			curr->type = SEQUENCE_ELEMENT_TYPE_CMPT_SEQ;
+			err = parse_component_seq(uc_mgr, n, 0,
+						&curr->data.cmpt_seq);
+			if (err < 0) {
+				uc_error("error: disdev requires a valid device!");
 				return err;
 			}
 			continue;
@@ -957,6 +1061,7 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 	INIT_LIST_HEAD(&verb->disable_list);
 	INIT_LIST_HEAD(&verb->transition_list);
 	INIT_LIST_HEAD(&verb->device_list);
+	INIT_LIST_HEAD(&verb->cmpt_device_list);
 	INIT_LIST_HEAD(&verb->modifier_list);
 	INIT_LIST_HEAD(&verb->value_list);
 	list_add_tail(&verb->list, &uc_mgr->verb_list);
