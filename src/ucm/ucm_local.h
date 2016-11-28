@@ -212,6 +212,14 @@ struct snd_use_case_mgr {
 	/* change to list of ctl handles */
 	snd_ctl_t *ctl;
 	char *ctl_dev;
+
+	/* Components don't define cdev, the card device. When executing
+	 * a sequence of a component device, ucm manager enters component
+	 * domain and needs to provide cdev to the component. This cdev
+	 * should be defined by the machine, parent of the component.
+	 */
+	int in_component_domain;
+	char *cdev;
 };
 
 #define uc_error SNDERR

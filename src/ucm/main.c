@@ -35,6 +35,7 @@
 #include <stdarg.h>
 #include <pthread.h>
 #include <sys/stat.h>
+#include <limits.h>
 
 /*
  * misc
@@ -47,6 +48,13 @@ static int get_value3(char **value,
 		      struct list_head *value_list1,
 		      struct list_head *value_list2,
 		      struct list_head *value_list3);
+
+static int execute_component_seq(snd_use_case_mgr_t *uc_mgr,
+				 struct component_sequence *cmpt_seq,
+				 struct list_head *value_list1,
+				 struct list_head *value_list2,
+				 struct list_head *value_list3,
+				 char *cdev);
 
 static int check_identifier(const char *identifier, const char *prefix)
 {
@@ -366,7 +374,19 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 		case SEQUENCE_ELEMENT_TYPE_CSET:
 		case SEQUENCE_ELEMENT_TYPE_CSET_BIN_FILE:
 		case SEQUENCE_ELEMENT_TYPE_CSET_TLV:
-			if (cdev == NULL) {
+			if (cdev == NULL && uc_mgr->in_component_domain) {
+				/* For sequence of a component device, use
+				 * its parent's cdev stored by ucm manager.
+				 */
+				if (uc_mgr->cdev == NULL) {
+					uc_error("cdev is not defined!");
+					return err;
+				}
+
+				cdev = strndup(uc_mgr->cdev, PATH_MAX);
+				if (!cdev)
+					return -ENOMEM;
+			} else if (cdev == NULL) {
 				char *playback_ctl = NULL;
 				char *capture_ctl = NULL;
 
@@ -427,6 +447,19 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 			if (err < 0)
 				goto __fail;
 			break;
+		case SEQUENCE_ELEMENT_TYPE_CMPT_SEQ:
+			/* Execute enable or disable sequence of a component
+			 * device. Pass the cdev defined by the machine device.
+			 */
+			err = execute_component_seq(uc_mgr,
+						    &s->data.cmpt_seq,
+						    value_list1,
+						    value_list2,
+						    value_list3,
+						    cdev);
+			if (err < 0)
+				goto __fail;
+			break;
 		default:
 			uc_error("unknown sequence command %i", s->type);
 			break;
@@ -440,6 +473,49 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 	free(cdev);
 	return err;
 
+}
+
+/* Execute enable or disable sequence of a component device.
+ *
+ * For a component device (a codec or embedded DSP), its sequence doesn't
+ * specify the sound card device 'cdev', because a component can be reused
+ * by different sound cards (machines). So when executing its sequence, a
+ * parameter 'cdev' is used to pass cdev defined by the sequence of its
+ * parent, the machine device. UCM manger will store the cdev when entering
+ * the component domain.
+ */
+static int execute_component_seq(snd_use_case_mgr_t *uc_mgr,
+				 struct component_sequence *cmpt_seq,
+				 struct list_head *value_list1,
+				 struct list_head *value_list2,
+				 struct list_head *value_list3,
+				 char *cdev)
+{
+	struct use_case_device *device = cmpt_seq->device;
+	struct list_head *seq;
+	int err;
+
+	/* enter component domain and store cdev for the component */
+	uc_mgr->in_component_domain = 1;
+	uc_mgr->cdev = cdev;
+
+	/* choose enable or disable sequence of the component device */
+	if (cmpt_seq->enable)
+		seq = &device->enable_list;
+	else
+		seq = &device->disable_list;
+
+	/* excecute the sequence of the component dev */
+	err = execute_sequence(uc_mgr, seq,
+			       &device->value_list,
+			       &uc_mgr->active_verb->value_list,
+			       &uc_mgr->value_list);
+
+	/* exit component domain and clear cdev */
+	uc_mgr->in_component_domain = 0;
+	uc_mgr->cdev = NULL;
+
+	return err;
 }
 
 /**
