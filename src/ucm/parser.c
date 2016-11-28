@@ -36,6 +36,25 @@
 /** The name of the environment variable containing the UCM directory */
 #define ALSA_CONFIG_UCM_VAR "ALSA_CONFIG_UCM"
 
+/* Directories to store UCM configuration files for components, like
+ * off-soc codecs or embedded DSPs. Components can define their own
+ * devices and sequences, to be reused by sound cards/machines. UCM
+ * manager should not scan these component directories.
+ * Machine use case files can include component configratuation files
+ * via alsaconf syntax:
+ * <searchdir:component-directory-name> and <component-conf-file-name>.
+ * Alsaconf will import the included files automatically. After including
+ * a component file, a machine device's sequence can enable or disable
+ * a component device via syntax:
+ * enadev "component_device_name"
+ * disdev "component_device_name"
+ */
+static const char * const component_dir[] = {
+	"codecs",	/* for off-soc codecs */
+	"dsps",		/* for DSPs embedded in SoC */
+	NULL,		/* terminator */
+};
+
 static int parse_sequence(snd_use_case_mgr_t *uc_mgr,
 			  struct list_head *base,
 			  snd_config_t *cfg);
@@ -1259,7 +1278,28 @@ static int filename_filter(const struct dirent *dirent)
 	return 0;
 }
 
-/* scan all cards and comments */
+/* whether input dir is a predefined component directory */
+static int is_component_directory(const char *dir)
+{
+	int i = 0;
+
+	while (component_dir[i]) {
+		if (!strncmp(dir, component_dir[i], PATH_MAX))
+			return 1;
+		i++;
+	};
+
+	return 0;
+}
+
+/* scan all cards and comments
+ *
+ * Cards are defined by machines. Each card/machine installs its UCM
+ * configuration files in a subdirectory with the same name as the sound
+ * card under /usr/share/alsa/ucm. This function will scan all the card
+ * directories and skip the component directories defined in the array
+ * component_dir.
+ */
 int uc_mgr_scan_master_configs(const char **_list[])
 {
 	char filename[MAX_FILE], dfl[MAX_FILE];
@@ -1309,6 +1349,11 @@ int uc_mgr_scan_master_configs(const char **_list[])
 	}
 
 	for (i = 0; i < cnt; i++) {
+
+		/* Skip the directories for component devices */
+		if (is_component_directory(namelist[i]->d_name))
+			continue;
+
 		err = load_master_config(namelist[i]->d_name, &cfg);
 		if (err < 0)
 			goto __err;
