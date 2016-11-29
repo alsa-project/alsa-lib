@@ -206,11 +206,9 @@ static int tplg_build_stream_cfg(snd_tplg_t *tplg,
 static int build_link(snd_tplg_t *tplg, struct tplg_elem *elem)
 {
 	struct snd_soc_tplg_link_config *link = elem->link;
-	struct tplg_elem *ref_elem = NULL;
-	struct snd_soc_tplg_link_cmpnt  *codec, *cmpnt;
 	struct tplg_ref *ref;
 	struct list_head *base, *pos;
-	int i, num_hw_configs = 0, err = 0;
+	int num_hw_configs = 0, err = 0;
 
 	err = tplg_build_stream_cfg(tplg, link->stream,
 				    link->num_streams);
