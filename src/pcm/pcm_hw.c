@@ -1516,6 +1516,7 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name,
 #ifdef THREAD_SAFE_API
 	pcm->need_lock = 0;	/* hw plugin is thread-safe */
 #endif
+	pcm->own_state_check = 1; /* skip the common state check */
 
 	ret = snd_pcm_hw_mmap_status(pcm);
 	if (ret < 0) {

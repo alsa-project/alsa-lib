@@ -234,6 +234,7 @@ struct _snd_pcm {
 					 * use the mmaped buffer of the slave
 					 */
 	unsigned int donot_close: 1;	/* don't close this PCM */
+	unsigned int own_state_check:1; /* plugin has own PCM state check */
 	snd_pcm_channel_info_t *mmap_channels;
 	snd_pcm_channel_area_t *running_areas;
 	snd_pcm_channel_area_t *stopped_areas;
