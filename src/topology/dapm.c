@@ -39,14 +39,6 @@ static const struct map_elem widget_map[] = {
 	{"dai_link", SND_SOC_TPLG_DAPM_DAI_LINK},
 };
 
-/* mapping of widget kcontrol text names to types */
-static const struct map_elem widget_control_map[] = {
-	{"volsw", SND_SOC_TPLG_DAPM_CTL_VOLSW},
-	{"enum_double", SND_SOC_TPLG_DAPM_CTL_ENUM_DOUBLE},
-	{"enum_virt", SND_SOC_TPLG_DAPM_CTL_ENUM_VIRT},
-	{"enum_value", SND_SOC_TPLG_DAPM_CTL_ENUM_VALUE},
-};
-
 static int lookup_widget(const char *w)
 {
 	unsigned int i;
