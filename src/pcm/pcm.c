@@ -260,8 +260,9 @@ If you like to use the compatibility functions in mmap mode, there are
 read / write routines equaling to standard read / write transfers. Using
 these functions discards the benefits of direct access to memory region.
 See the #snd_pcm_mmap_readi(),
-#snd_pcm_writei(), #snd_pcm_readn()
-and #snd_pcm_writen() functions.
+#snd_pcm_mmap_writei(), #snd_pcm_mmap_readn()
+and #snd_pcm_mmap_writen() functions. These functions use
+#snd_pcm_areas_copy() internally.
 
 \section pcm_errors Error codes
 
