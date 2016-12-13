@@ -206,7 +206,7 @@ asm(".symver snd_pcm_sw_params_get_sleep_min,snd_pcm_sw_params_get_sleep_min@ALS
 asm(".symver snd_pcm_sw_params_get_avail_min,snd_pcm_sw_params_get_avail_min@ALSA_0.9");
 asm(".symver snd_pcm_sw_params_get_xfer_align,snd_pcm_sw_params_get_xfer_align@ALSA_0.9");
 asm(".symver snd_pcm_sw_params_get_start_threshold,snd_pcm_sw_params_get_start_threshold@ALSA_0.9");
-asm(".symver snd_pcm_sw_params_get_stop_threshold,snd_pcm_sw_params_set_stop_threshold@ALSA_0.9");
+asm(".symver snd_pcm_sw_params_get_stop_threshold,snd_pcm_sw_params_get_stop_threshold@ALSA_0.9");
 asm(".symver snd_pcm_sw_params_get_silence_threshold,snd_pcm_sw_params_get_silence_threshold@ALSA_0.9");
 asm(".symver snd_pcm_sw_params_get_silence_size,snd_pcm_sw_params_get_silence_size@ALSA_0.9");
 
