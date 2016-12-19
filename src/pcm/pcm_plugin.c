@@ -535,8 +535,8 @@ static int snd_pcm_plugin_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	return 0;
 }
 
-static int snd_pcm_plugin_may_wait_for_avail_min(snd_pcm_t *pcm,
-						 snd_pcm_uframes_t avail)
+int snd_pcm_plugin_may_wait_for_avail_min(snd_pcm_t *pcm,
+					  snd_pcm_uframes_t avail)
 {
 	if (pcm->stream == SND_PCM_STREAM_CAPTURE &&
 	    pcm->access != SND_PCM_ACCESS_RW_INTERLEAVED &&
