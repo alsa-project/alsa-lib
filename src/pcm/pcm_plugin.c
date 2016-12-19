@@ -535,6 +535,68 @@ static int snd_pcm_plugin_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	return 0;
 }
 
+static int snd_pcm_plugin_may_wait_for_avail_min(snd_pcm_t *pcm,
+						 snd_pcm_uframes_t avail)
+{
+	if (pcm->stream == SND_PCM_STREAM_CAPTURE &&
+	    pcm->access != SND_PCM_ACCESS_RW_INTERLEAVED &&
+	    pcm->access != SND_PCM_ACCESS_RW_NONINTERLEAVED) {
+		/* mmap access on capture device already consumes data from
+		 * slave in avail_update operation. Entering snd_pcm_wait after
+		 * having already consumed some fragments leads to waiting for
+		 * too long time, as slave will unnecessarily wait for avail_min
+		 * condition reached again. To avoid unnecessary wait times we
+		 * adapt the avail_min threshold on slave dynamically. Just
+		 * modifying slave->avail_min as a shortcut and lightweight
+		 * solution does not work for all slave plugin types and in
+		 * addition it will not propagate the change through all
+		 * downstream plugins, so we have to use the sw_params API.
+		 * note: reading fragmental parts from slave will only happen
+		 * in case
+		 * a) the slave can provide contineous hw_ptr between periods
+		 * b) avail_min does not match one slave_period
+		 */
+		snd_pcm_plugin_t *plugin = pcm->private_data;
+		snd_pcm_t *slave = plugin->gen.slave;
+		snd_pcm_uframes_t needed_slave_avail_min;
+		snd_pcm_sframes_t available;
+
+		/* update, as it might have changed. This will also call
+		 * avail_update on slave and also can return error
+		 */
+		available = snd_pcm_avail_update(pcm);
+		if (available < 0)
+			return 0;
+
+		if (available >= pcm->avail_min)
+			/* don't wait at all. As we can't configure avail_min
+			 * of slave to 0 return here
+			 */
+			return 0;
+
+		needed_slave_avail_min = pcm->avail_min - available;
+		if (slave->avail_min != needed_slave_avail_min) {
+			snd_pcm_sw_params_t *swparams;
+			snd_pcm_sw_params_alloca(&swparams);
+			/* pray that changing sw_params while running is
+			 * properly implemented in all downstream plugins...
+			 * it's legal but not commonly used.
+			 */
+			snd_pcm_sw_params_current(slave, swparams);
+			/* snd_pcm_sw_params_set_avail_min() restricts setting
+			 * to >= period size. This conflicts at least with our
+			 * dshare patch which allows combining multiple periods
+			 * or with slaves which return hw postions between
+			 * periods -> set directly in sw_param structure
+			 */
+			swparams->avail_min = needed_slave_avail_min;
+			snd_pcm_sw_params(slave, swparams);
+		}
+		avail = available;
+	}
+	return snd_pcm_generic_may_wait_for_avail_min(pcm, avail);
+}
+
 const snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops = {
 	.status = snd_pcm_plugin_status,
 	.state = snd_pcm_generic_state,
@@ -564,7 +626,7 @@ const snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops = {
 	.poll_descriptors_count = snd_pcm_generic_poll_descriptors_count,
 	.poll_descriptors = snd_pcm_generic_poll_descriptors,
 	.poll_revents = snd_pcm_generic_poll_revents,
-	.may_wait_for_avail_min = snd_pcm_generic_may_wait_for_avail_min,
+	.may_wait_for_avail_min = snd_pcm_plugin_may_wait_for_avail_min,
 };
 
 #endif
