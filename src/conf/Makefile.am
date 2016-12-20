@@ -12,7 +12,9 @@ if BUILD_ALISP
 cfg_files += sndo-mixer.alisp
 endif
 if BUILD_MODULES
+if BUILD_PYTHON
 cfg_files += smixer.conf
+endif
 endif
 
 EXTRA_DIST = $(cfg_files)
