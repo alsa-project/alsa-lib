@@ -32,6 +32,7 @@
 
 #include "ucm_local.h"
 #include <dirent.h>
+#include <limits.h>
 
 /** The name of the environment variable containing the UCM directory */
 #define ALSA_CONFIG_UCM_VAR "ALSA_CONFIG_UCM"
