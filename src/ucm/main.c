@@ -486,9 +486,9 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
  */
 static int execute_component_seq(snd_use_case_mgr_t *uc_mgr,
 				 struct component_sequence *cmpt_seq,
-				 struct list_head *value_list1,
-				 struct list_head *value_list2,
-				 struct list_head *value_list3,
+				 struct list_head *value_list1 ATTRIBUTE_UNUSED,
+				 struct list_head *value_list2 ATTRIBUTE_UNUSED,
+				 struct list_head *value_list3 ATTRIBUTE_UNUSED,
 				 char *cdev)
 {
 	struct use_case_device *device = cmpt_seq->device;
