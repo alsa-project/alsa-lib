@@ -1040,6 +1040,7 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 	dmix->state = SND_PCM_STATE_OPEN;
 	dmix->slowptr = opts->slowptr;
 	dmix->max_periods = opts->max_periods;
+	dmix->var_periodsize = opts->var_periodsize;
 	dmix->sync_ptr = snd_pcm_dmix_sync_ptr;
 
  retry:

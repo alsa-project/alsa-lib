@@ -147,12 +147,14 @@ struct snd_pcm_direct {
 	int tread: 1;
 	int timer_need_poll: 1;
 	unsigned int timer_events;
+	unsigned int timer_ticks;
 	int server_fd;
 	pid_t server_pid;
 	snd_timer_t *timer; 		/* timer used as poll_fd */
 	int interleaved;	 	/* we have interleaved buffer */
 	int slowptr;			/* use slow but more precise ptr updates */
 	int max_periods;		/* max periods (-1 = fixed periods, 0 = max buffer size) */
+	int var_periodsize;		/* allow variable period size if max_periods is != -1*/
 	unsigned int channels;		/* client's channels */
 	unsigned int *bindings;
 	union {
@@ -326,6 +328,7 @@ struct snd_pcm_direct_open_conf {
 	int ipc_gid;
 	int slowptr;
 	int max_periods;
+	int var_periodsize;
 	snd_config_t *slave;
 	snd_config_t *bindings;
 };

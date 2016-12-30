@@ -660,6 +660,29 @@ static int hw_param_interval_refine_minmax(snd_pcm_hw_params_t *params,
 	return hw_param_interval_refine_one(params, var, &t);
 }
 
+/* this code is used 'as-is' from the alsa kernel code */
+static int snd_interval_step(struct snd_interval *i, unsigned int min,
+			     unsigned int step)
+{
+	unsigned int n;
+	int changed = 0;
+	n = (i->min - min) % step;
+	if (n != 0 || i->openmin) {
+		i->min += step - n;
+		changed = 1;
+	}
+	n = (i->max - min) % step;
+	if (n != 0 || i->openmax) {
+		i->max -= n;
+		changed = 1;
+	}
+	if (snd_interval_checkempty(i)) {
+		i->empty = 1;
+		return -EINVAL;
+	}
+	return changed;
+}
+
 #undef REFINE_DEBUG
 
 int snd_pcm_direct_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
@@ -710,15 +733,16 @@ int snd_pcm_direct_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 					   &dshare->shmptr->hw.rate);
 	if (err < 0)
 		return err;
-	err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_PERIOD_SIZE,
-					   &dshare->shmptr->hw.period_size);
-	if (err < 0)
-		return err;
-	err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_PERIOD_TIME,
-					   &dshare->shmptr->hw.period_time);
-	if (err < 0)
-		return err;
+
 	if (dshare->max_periods < 0) {
+		err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_PERIOD_SIZE,
+						   &dshare->shmptr->hw.period_size);
+		if (err < 0)
+			return err;
+		err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_PERIOD_TIME,
+						   &dshare->shmptr->hw.period_time);
+		if (err < 0)
+			return err;
 		err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_BUFFER_SIZE,
 						   &dshare->shmptr->hw.buffer_size);
 		if (err < 0)
@@ -730,11 +754,38 @@ int snd_pcm_direct_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	} else if (params->rmask & ((1<<SND_PCM_HW_PARAM_PERIODS)|
 				    (1<<SND_PCM_HW_PARAM_BUFFER_BYTES)|
 				    (1<<SND_PCM_HW_PARAM_BUFFER_SIZE)|
-				    (1<<SND_PCM_HW_PARAM_BUFFER_TIME))) {
+				    (1<<SND_PCM_HW_PARAM_BUFFER_TIME)|
+				    (1<<SND_PCM_HW_PARAM_PERIOD_TIME)|
+				    (1<<SND_PCM_HW_PARAM_PERIOD_SIZE)|
+				    (1<<SND_PCM_HW_PARAM_PERIOD_BYTES))) {
+		snd_interval_t period_size = dshare->shmptr->hw.period_size;
+		snd_interval_t period_time = dshare->shmptr->hw.period_time;
 		int changed;
 		unsigned int max_periods = dshare->max_periods;
 		if (max_periods < 2)
 			max_periods = dshare->slave_buffer_size / dshare->slave_period_size;
+
+		/* make sure buffer size does not exceed slave buffer size */
+		err = hw_param_interval_refine_minmax(params, SND_PCM_HW_PARAM_BUFFER_SIZE,
+					2 * dshare->slave_period_size, dshare->slave_buffer_size);
+		if (err < 0)
+			return err;
+		if (dshare->var_periodsize) {
+			/* more tolerant settings... */
+			if (dshare->shmptr->hw.buffer_size.max / 2 > period_size.max)
+				period_size.max = dshare->shmptr->hw.buffer_size.max / 2;
+			if (dshare->shmptr->hw.buffer_time.max / 2 > period_time.max)
+				period_time.max = dshare->shmptr->hw.buffer_time.max / 2;
+		}
+
+		err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_PERIOD_SIZE,
+						   &period_size);
+		if (err < 0)
+			return err;
+		err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_PERIOD_TIME,
+						   &period_time);
+		if (err < 0)
+			return err;
 		do {
 			changed = 0;
 			err = hw_param_interval_refine_minmax(params, SND_PCM_HW_PARAM_PERIODS,
@@ -746,8 +797,16 @@ int snd_pcm_direct_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 			if (err < 0)
 				return err;
 			changed |= err;
+			err = snd_interval_step(hw_param_interval(params, SND_PCM_HW_PARAM_PERIOD_SIZE),
+								0, dshare->slave_period_size);
+			if (err < 0)
+				return err;
+			changed |= err;
+			if (err)
+				params->rmask |= (1 << SND_PCM_HW_PARAM_PERIOD_SIZE);
 		} while (changed);
 	}
+	dshare->timer_ticks = hw_param_interval(params, SND_PCM_HW_PARAM_PERIOD_SIZE)->max / dshare->slave_period_size;
 	params->info = dshare->shmptr->s.info;
 #ifdef REFINE_DEBUG
 	snd_output_puts(log, "DMIX REFINE (end):\n");
@@ -1183,6 +1242,7 @@ int snd_pcm_direct_initialize_poll_fd(snd_pcm_direct_t *dmix)
 
 	dmix->tread = 1;
 	dmix->timer_need_poll = 0;
+	dmix->timer_ticks = 1;
 	ret = snd_pcm_info(dmix->spcm, &info);
 	if (ret < 0) {
 		SNDERR("unable to info for slave pcm");
@@ -1366,7 +1426,7 @@ int snd_pcm_direct_set_timer_params(snd_pcm_direct_t *dmix)
 	snd_timer_params_set_auto_start(&params, 1);
 	if (dmix->type != SND_PCM_TYPE_DSNOOP)
 		snd_timer_params_set_early_event(&params, 1);
-	snd_timer_params_set_ticks(&params, 1);
+	snd_timer_params_set_ticks(&params, dmix->timer_ticks);
 	if (dmix->tread) {
 		filter = (1<<SND_TIMER_EVENT_TICK) |
 			 dmix->timer_events;
@@ -1656,6 +1716,7 @@ int snd_pcm_direct_parse_open_conf(snd_config_t *root, snd_config_t *conf,
 	rec->ipc_gid = -1;
 	rec->slowptr = 1;
 	rec->max_periods = 0;
+	rec->var_periodsize = 1;
 
 	/* read defaults */
 	if (snd_config_search(root, "defaults.pcm.dmix_max_periods", &n) >= 0) {
@@ -1760,6 +1821,13 @@ int snd_pcm_direct_parse_open_conf(snd_config_t *root, snd_config_t *conf,
 			if (err < 0)
 				return err;
 			rec->max_periods = val;
+			continue;
+		}
+		if (strcmp(id, "var_periodsize") == 0) {
+			err = snd_config_get_bool(n);
+			if (err < 0)
+				return err;
+			rec->var_periodsize = err;
 			continue;
 		}
 		SNDERR("Unknown field %s", id);

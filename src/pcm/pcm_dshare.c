@@ -725,6 +725,7 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 	dshare->state = SND_PCM_STATE_OPEN;
 	dshare->slowptr = opts->slowptr;
 	dshare->max_periods = opts->max_periods;
+	dshare->var_periodsize = opts->var_periodsize;
 	dshare->sync_ptr = snd_pcm_dshare_sync_ptr;
 
  retry:

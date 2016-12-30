@@ -606,6 +606,7 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 	dsnoop->state = SND_PCM_STATE_OPEN;
 	dsnoop->slowptr = opts->slowptr;
 	dsnoop->max_periods = opts->max_periods;
+	dsnoop->var_periodsize = opts->var_periodsize;
 	dsnoop->sync_ptr = snd_pcm_dsnoop_sync_ptr;
 
  retry:
