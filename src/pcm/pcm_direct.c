@@ -1161,7 +1161,8 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 		return ret;
 	}
 
-	if (dmix->type != SND_PCM_TYPE_DMIX)
+	if (dmix->type != SND_PCM_TYPE_DMIX &&
+	    dmix->type != SND_PCM_TYPE_DSHARE)
 		goto __skip_silencing;
 
 	ret = snd_pcm_sw_params_set_silence_threshold(spcm, &sw_params, 0);
