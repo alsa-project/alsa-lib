@@ -50,7 +50,7 @@ typedef struct _snd_pcm_rate snd_pcm_rate_t;
 
 struct _snd_pcm_rate {
 	snd_pcm_generic_t gen;
-	snd_pcm_uframes_t appl_ptr, hw_ptr;
+	snd_pcm_uframes_t appl_ptr, hw_ptr, last_slave_hw_ptr;
 	snd_pcm_uframes_t last_commit_ptr;
 	snd_pcm_uframes_t orig_avail_min;
 	snd_pcm_sw_params_t sw_params;
@@ -563,14 +563,31 @@ static inline void snd_pcm_rate_sync_hwptr0(snd_pcm_t *pcm, snd_pcm_uframes_t sl
 {
 	snd_pcm_rate_t *rate = pcm->private_data;
 
+	snd_pcm_sframes_t slave_hw_ptr_diff = slave_hw_ptr - rate->last_slave_hw_ptr;
+	snd_pcm_sframes_t last_slave_hw_ptr_frac;
+
 	if (pcm->stream != SND_PCM_STREAM_PLAYBACK)
 		return;
-	/* FIXME: boundary overlap of slave hw_ptr isn't evaluated here!
-	 *        e.g. if slave rate is small... 
+
+	if (slave_hw_ptr_diff < 0)
+		slave_hw_ptr_diff += rate->gen.slave->boundary; /* slave boundary wraparound */
+	else if (slave_hw_ptr_diff == 0)
+		return;
+	last_slave_hw_ptr_frac = rate->last_slave_hw_ptr % rate->gen.slave->period_size;
+	/* While handling fraction part fo slave period, rounded value will be
+	 * introduced by input_frames().
+	 * To eliminate rounding issue on rate->hw_ptr, subtract last rounded
+	 * value from rate->hw_ptr and add new rounded value of present
+	 * slave_hw_ptr fraction part to rate->hw_ptr. Hence,
+	 * rate->hw_ptr += [ (no. of updated slave periods * pcm rate period size) -
+	 * 	fractional part of last_slave_hw_ptr rounded value +
+	 * 	fractional part of updated slave hw ptr's rounded value ]
 	 */
-	rate->hw_ptr =
-		(slave_hw_ptr / rate->gen.slave->period_size) * pcm->period_size +
-		rate->ops.input_frames(rate->obj, slave_hw_ptr % rate->gen.slave->period_size);
+	rate->hw_ptr += (
+			(((last_slave_hw_ptr_frac + slave_hw_ptr_diff) / rate->gen.slave->period_size) * pcm->period_size) -
+			rate->ops.input_frames(rate->obj, last_slave_hw_ptr_frac) +
+			rate->ops.input_frames(rate->obj, (last_slave_hw_ptr_frac + slave_hw_ptr_diff) % rate->gen.slave->period_size));
+	rate->last_slave_hw_ptr = slave_hw_ptr;
 
 	rate->hw_ptr %= pcm->boundary;
 }
@@ -635,6 +652,7 @@ static int snd_pcm_rate_prepare(snd_pcm_t *pcm)
 		return err;
 	*pcm->hw.ptr = 0;
 	*pcm->appl.ptr = 0;
+	rate->last_slave_hw_ptr = 0;
 	err = snd_pcm_rate_init(pcm);
 	if (err < 0)
 		return err;
@@ -650,6 +668,7 @@ static int snd_pcm_rate_reset(snd_pcm_t *pcm)
 		return err;
 	*pcm->hw.ptr = 0;
 	*pcm->appl.ptr = 0;
+	rate->last_slave_hw_ptr = 0;
 	err = snd_pcm_rate_init(pcm);
 	if (err < 0)
 		return err;
