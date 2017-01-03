@@ -1530,7 +1530,25 @@ int snd_seq_client_info_get_error_bounce(const snd_seq_client_info_t *info)
  * \param info client_info container
  * \return card number or -1 if value is not available.
  *
- * Only available for SND_SEQ_KERNEL_CLIENT clients.
+ * Only available for #SND_SEQ_KERNEL_CLIENT clients.
+ *
+ * The card number can be used to query state about the hardware
+ * device providing this client, by concatenating <code>"hw:CARD="</code>
+ * with the card number and using it as the <code>name</code> parameter
+ * to #snd_ctl_open().
+ *
+ * \note
+ * The return value of -1 is returned for two different conditions: when the
+ * running kernel does not support this operation, and when the client
+ * does not have a hardware card attached. See
+ * #snd_seq_client_info_get_pid() for a way to determine if the
+ * currently running kernel has support for this operation.
+ *
+ * \sa snd_seq_client_info_get_pid(),
+ *     snd_card_get_name(),
+ *     snd_card_get_longname(),
+ *     snd_ctl_open(),
+ *     snd_ctl_card_info()
  */
 int snd_seq_client_info_get_card(const snd_seq_client_info_t *info)
 {
@@ -1543,7 +1561,29 @@ int snd_seq_client_info_get_card(const snd_seq_client_info_t *info)
  * \param info client_info container
  * \return pid or -1 if value is not available.
  *
- * Only available for SND_SEQ_USER_CLIENT clients.
+ * Only available for #SND_SEQ_USER_CLIENT clients.
+ *
+ * \note
+ * The functionality for getting a client's PID and getting a
+ * client's card was added to the kernel at the same time, so you can
+ * use this function to determine if the running kernel
+ * supports reporting these values. If your own client has a valid
+ * PID as reported by this function, then the running kernel supports
+ * both #snd_seq_client_info_get_card() and #snd_seq_client_info_get_pid().
+ *
+ * \note
+ * Example code for determining kernel support:
+ * \code
+ *   int is_get_card_or_pid_supported(snd_seq_t *seq)
+ *   {
+ *   	snd_seq_client_info_t *my_client_info;
+ *   	snd_seq_client_info_alloca(&my_client_info);
+ *   	snd_seq_get_client_info(seq, my_client_info);
+ *   	return snd_seq_client_info_get_pid(my_client_info) != -1;
+ *   }
+ * \endcode
+ *
+ * \sa snd_seq_client_info_get_card()
  */
 int snd_seq_client_info_get_pid(const snd_seq_client_info_t *info)
 {
