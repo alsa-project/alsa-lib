@@ -434,15 +434,21 @@ static int snd_pcm_dmix_sync_ptr0(snd_pcm_t *pcm, snd_pcm_uframes_t slave_hw_ptr
 static int snd_pcm_dmix_sync_ptr(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dmix = pcm->private_data;
+	int err;
 
 	switch (snd_pcm_state(dmix->spcm)) {
 	case SND_PCM_STATE_DISCONNECTED:
 		dmix->state = SND_PCM_STATE_DISCONNECTED;
 		return -ENODEV;
+	case SND_PCM_STATE_XRUN:
+		if ((err = snd_pcm_direct_slave_recover(dmix)) < 0)
+			return err;
+		break;
 	default:
 		break;
 	}
-
+	if (snd_pcm_direct_client_chk_xrun(dmix, pcm))
+		return -EPIPE;
 	if (dmix->slowptr)
 		snd_pcm_hwsync(dmix->spcm);
 
@@ -828,12 +834,16 @@ static snd_pcm_sframes_t snd_pcm_dmix_mmap_commit(snd_pcm_t *pcm,
 
 	switch (snd_pcm_state(dmix->spcm)) {
 	case SND_PCM_STATE_XRUN:
-		return -EPIPE;
+		if ((err = snd_pcm_direct_slave_recover(dmix)) < 0)
+			return err;
+		break;
 	case SND_PCM_STATE_SUSPENDED:
 		return -ESTRPIPE;
 	default:
 		break;
 	}
+	if (snd_pcm_direct_client_chk_xrun(dmix, pcm))
+		return -EPIPE;
 	if (! size)
 		return 0;
 	snd_pcm_mmap_appl_forward(pcm, size);
@@ -841,8 +851,10 @@ static snd_pcm_sframes_t snd_pcm_dmix_mmap_commit(snd_pcm_t *pcm,
 		if ((err = snd_pcm_dmix_start_timer(pcm, dmix)) < 0)
 			return err;
 	} else if (dmix->state == SND_PCM_STATE_RUNNING ||
-		   dmix->state == SND_PCM_STATE_DRAINING)
-		snd_pcm_dmix_sync_ptr(pcm);
+		   dmix->state == SND_PCM_STATE_DRAINING) {
+		if ((err = snd_pcm_dmix_sync_ptr(pcm)) < 0)
+			return err;
+	}
 	if (dmix->state == SND_PCM_STATE_RUNNING ||
 	    dmix->state == SND_PCM_STATE_DRAINING) {
 		/* ok, we commit the changes after the validation of area */
@@ -858,10 +870,13 @@ static snd_pcm_sframes_t snd_pcm_dmix_mmap_commit(snd_pcm_t *pcm,
 static snd_pcm_sframes_t snd_pcm_dmix_avail_update(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dmix = pcm->private_data;
+	int err;
 	
 	if (dmix->state == SND_PCM_STATE_RUNNING ||
-	    dmix->state == SND_PCM_STATE_DRAINING)
-		snd_pcm_dmix_sync_ptr(pcm);
+	    dmix->state == SND_PCM_STATE_DRAINING) {
+		if ((err = snd_pcm_dmix_sync_ptr(pcm)) < 0)
+			return err;
+	}
 	return snd_pcm_mmap_playback_avail(pcm);
 }
 

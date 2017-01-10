@@ -66,6 +66,7 @@ typedef struct {
 	char socket_name[256];			/* name of communication socket */
 	snd_pcm_type_t type;			/* PCM type (currently only hw) */
 	int use_server;
+	unsigned int recoveries;		/* no of executed recoveries on slave*/
 	struct {
 		unsigned int format;
 		snd_interval_t rate;
@@ -157,6 +158,7 @@ struct snd_pcm_direct {
 	int var_periodsize;		/* allow variable period size if max_periods is != -1*/
 	unsigned int channels;		/* client's channels */
 	unsigned int *bindings;
+	unsigned int recoveries;	/* mirror of executed recoveries on slave */
 	union {
 		struct {
 			int shmid_sum;			/* IPC global sum ring buffer memory identification */
@@ -324,7 +326,8 @@ int snd_pcm_direct_open_secondary_client(snd_pcm_t **spcmp, snd_pcm_direct_t *dm
 snd_pcm_chmap_query_t **snd_pcm_direct_query_chmaps(snd_pcm_t *pcm);
 snd_pcm_chmap_t *snd_pcm_direct_get_chmap(snd_pcm_t *pcm);
 int snd_pcm_direct_set_chmap(snd_pcm_t *pcm, const snd_pcm_chmap_t *map);
-
+int snd_pcm_direct_slave_recover(snd_pcm_direct_t *direct);
+int snd_pcm_direct_client_chk_xrun(snd_pcm_direct_t *direct, snd_pcm_t *pcm);
 int snd_timer_async(snd_timer_t *timer, int sig, pid_t pid);
 struct timespec snd_pcm_hw_fast_tstamp(snd_pcm_t *pcm);
 

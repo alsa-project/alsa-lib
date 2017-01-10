@@ -162,7 +162,7 @@ static int snd_pcm_dshare_sync_ptr0(snd_pcm_t *pcm, snd_pcm_uframes_t slave_hw_p
 	snd_pcm_direct_t *dshare = pcm->private_data;
 	snd_pcm_uframes_t old_slave_hw_ptr, avail;
 	snd_pcm_sframes_t diff;
-	
+
 	old_slave_hw_ptr = dshare->slave_hw_ptr;
 	dshare->slave_hw_ptr = slave_hw_ptr;
 	diff = slave_hw_ptr - old_slave_hw_ptr;
@@ -202,15 +202,21 @@ static int snd_pcm_dshare_sync_ptr0(snd_pcm_t *pcm, snd_pcm_uframes_t slave_hw_p
 static int snd_pcm_dshare_sync_ptr(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dshare = pcm->private_data;
+	int err;
 
 	switch (snd_pcm_state(dshare->spcm)) {
 	case SND_PCM_STATE_DISCONNECTED:
 		dshare->state = SNDRV_PCM_STATE_DISCONNECTED;
 		return -ENODEV;
+	case SND_PCM_STATE_XRUN:
+		if ((err = snd_pcm_direct_slave_recover(dshare)) < 0)
+			return err;
+		break;
 	default:
 		break;
 	}
-
+	if (snd_pcm_direct_client_chk_xrun(dshare, pcm))
+		return -EPIPE;
 	if (dshare->slowptr)
 		snd_pcm_hwsync(dshare->spcm);
 
@@ -516,12 +522,16 @@ static snd_pcm_sframes_t snd_pcm_dshare_mmap_commit(snd_pcm_t *pcm,
 
 	switch (snd_pcm_state(dshare->spcm)) {
 	case SND_PCM_STATE_XRUN:
-		return -EPIPE;
+		if ((err = snd_pcm_direct_slave_recover(dshare)) < 0)
+			return err;
+		break;
 	case SND_PCM_STATE_SUSPENDED:
 		return -ESTRPIPE;
 	default:
 		break;
 	}
+	if (snd_pcm_direct_client_chk_xrun(dshare, pcm))
+		return -EPIPE;
 	if (! size)
 		return 0;
 	snd_pcm_mmap_appl_forward(pcm, size);
@@ -529,8 +539,10 @@ static snd_pcm_sframes_t snd_pcm_dshare_mmap_commit(snd_pcm_t *pcm,
 		if ((err = snd_pcm_dshare_start_timer(dshare)) < 0)
 			return err;
 	} else if (dshare->state == SND_PCM_STATE_RUNNING ||
-		   dshare->state == SND_PCM_STATE_DRAINING)
-		snd_pcm_dshare_sync_ptr(pcm);
+		   dshare->state == SND_PCM_STATE_DRAINING) {
+		if ((err = snd_pcm_dshare_sync_ptr(pcm)) < 0)
+			return err;
+	}
 	if (dshare->state == SND_PCM_STATE_RUNNING ||
 	    dshare->state == SND_PCM_STATE_DRAINING) {
 		/* ok, we commit the changes after the validation of area */
@@ -546,10 +558,13 @@ static snd_pcm_sframes_t snd_pcm_dshare_mmap_commit(snd_pcm_t *pcm,
 static snd_pcm_sframes_t snd_pcm_dshare_avail_update(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dshare = pcm->private_data;
+	int err;
 	
 	if (dshare->state == SND_PCM_STATE_RUNNING ||
-	    dshare->state == SND_PCM_STATE_DRAINING)
-		snd_pcm_dshare_sync_ptr(pcm);
+	    dshare->state == SND_PCM_STATE_DRAINING) {
+		if ((err = snd_pcm_dshare_sync_ptr(pcm)) < 0)
+			return err;
+	}
 	return snd_pcm_mmap_playback_avail(pcm);
 }
 
