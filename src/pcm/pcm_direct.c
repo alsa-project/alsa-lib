@@ -645,6 +645,46 @@ int snd_pcm_direct_client_chk_xrun(snd_pcm_direct_t *direct, snd_pcm_t *pcm)
 	return 0;
 }
 
+/*
+ * This is the only operation guaranteed to be called before entering poll().
+ * Direct plugins use fd of snd_timer to poll on, these timers do NOT check
+ * state of substream in kernel by intention.
+ * Only the enter to xrun might be notified once (SND_TIMER_EVENT_MSTOP).
+ * If xrun event was not correctly handled or was ignored it will never be
+ * evaluated again afterwards.
+ * This will result in snd_pcm_wait() always returning timeout.
+ * In contrast poll() on pcm hardware checks ALSA state and will immediately
+ * return POLLERR on XRUN.
+ *
+ * To prevent timeout and applications endlessly spinning without xrun
+ * detected we add a state check here which may trigger the xrun sequence.
+ *
+ * return count of filled descriptors or negative error code
+ */
+int snd_pcm_direct_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds,
+				    unsigned int space)
+{
+	if (pcm->poll_fd < 0) {
+		SNDMSG("poll_fd < 0");
+		return -EIO;
+	}
+	if (space >= 1 && pfds) {
+		pfds->fd = pcm->poll_fd;
+		pfds->events = pcm->poll_events | POLLERR | POLLNVAL;
+	} else {
+		return 0;
+	}
+
+	/* this will also evaluate slave state and enter xrun if necessary */
+	switch (snd_pcm_state(pcm)) {
+	case SND_PCM_STATE_XRUN:
+		return -EPIPE;
+	default:
+		break;
+	}
+	return 1;
+}
+
 int snd_pcm_direct_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
 {
 	snd_pcm_direct_t *dmix = pcm->private_data;

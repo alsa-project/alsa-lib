@@ -208,17 +208,22 @@ static int snd_pcm_dsnoop_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 static snd_pcm_state_t snd_pcm_dsnoop_state(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dsnoop = pcm->private_data;
+	int err;
 	snd_pcm_state_t state;
 	state = snd_pcm_state(dsnoop->spcm);
 	switch (state) {
-	case SND_PCM_STATE_XRUN:
 	case SND_PCM_STATE_SUSPENDED:
 	case SND_PCM_STATE_DISCONNECTED:
 		dsnoop->state = state;
 		return state;
+	case SND_PCM_STATE_XRUN:
+		if ((err = snd_pcm_direct_slave_recover(dsnoop)) < 0)
+			return err;
+		break;
 	default:
 		break;
 	}
+	snd_pcm_direct_client_chk_xrun(dsnoop, pcm);
 	return dsnoop->state;
 }
 
@@ -531,7 +536,7 @@ static const snd_pcm_fast_ops_t snd_pcm_dsnoop_fast_ops = {
 	.avail_update = snd_pcm_dsnoop_avail_update,
 	.mmap_commit = snd_pcm_dsnoop_mmap_commit,
 	.htimestamp = snd_pcm_dsnoop_htimestamp,
-	.poll_descriptors = NULL,
+	.poll_descriptors = snd_pcm_direct_poll_descriptors,
 	.poll_descriptors_count = NULL,
 	.poll_revents = snd_pcm_direct_poll_revents,
 };
