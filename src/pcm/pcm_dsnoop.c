@@ -454,6 +454,9 @@ static snd_pcm_sframes_t snd_pcm_dsnoop_avail_update(snd_pcm_t *pcm)
 		if (err < 0)
 			return err;
 	}
+	if (dsnoop->state == SND_PCM_STATE_XRUN)
+		return -EPIPE;
+
 	return snd_pcm_mmap_capture_avail(pcm);
 }
 

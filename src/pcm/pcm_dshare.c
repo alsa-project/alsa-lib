@@ -570,6 +570,9 @@ static snd_pcm_sframes_t snd_pcm_dshare_avail_update(snd_pcm_t *pcm)
 		if ((err = snd_pcm_dshare_sync_ptr(pcm)) < 0)
 			return err;
 	}
+	if (dshare->state == SND_PCM_STATE_XRUN)
+		return -EPIPE;
+
 	return snd_pcm_mmap_playback_avail(pcm);
 }
 
