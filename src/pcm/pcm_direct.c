@@ -676,7 +676,8 @@ int snd_pcm_direct_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds,
 	}
 
 	/* this will also evaluate slave state and enter xrun if necessary */
-	switch (snd_pcm_state(pcm)) {
+	/* using __snd_pcm_state() since this function is called inside lock */
+	switch (__snd_pcm_state(pcm)) {
 	case SND_PCM_STATE_XRUN:
 		return -EPIPE;
 	default:
