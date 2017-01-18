@@ -1335,6 +1335,12 @@ static int load_master_config(const char *card_name, snd_config_t **cfg)
 	char *env = getenv(ALSA_CONFIG_UCM_VAR);
 	int err;
 
+	if (strnlen(card_name, MAX_CARD_LONG_NAME) == MAX_CARD_LONG_NAME) {
+		uc_error("error: invalid card name %s (at most %d chars)\n",
+			 card_name, MAX_CARD_LONG_NAME - 1);
+		return -EINVAL;
+	}
+
 	snprintf(filename, sizeof(filename)-1,
 		"%s/%s/%s.conf", env ? env : ALSA_USE_CASE_DIR,
 		card_name, card_name);

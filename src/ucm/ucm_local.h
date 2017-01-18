@@ -41,6 +41,7 @@
 #include "use-case.h"
 
 #define MAX_FILE		256
+#define MAX_CARD_LONG_NAME	80
 #define ALSA_USE_CASE_DIR	ALSA_CONFIG_DIR "/ucm"
 
 #define SEQUENCE_ELEMENT_TYPE_CDEV	1
