@@ -1528,6 +1528,20 @@ int snd_use_case_get(snd_use_case_mgr_t *uc_mgr,
                         goto __end;
                 }
 	        err = 0;
+	} else if (strcmp(identifier, "_file") == 0) {
+		/* get the conf file name of the opened card */
+		if ((uc_mgr->card_name == NULL)
+		    || (uc_mgr->conf_file_name[0] == '\0')) {
+			err = -ENOENT;
+			goto __end;
+		}
+		*value = strndup(uc_mgr->conf_file_name, MAX_FILE);
+		if (*value == NULL) {
+			err = -ENOMEM;
+			goto __end;
+		}
+		err = 0;
+
 	} else if (identifier[0] == '_') {
 		err = -ENOENT;
 		goto __end;
