@@ -191,6 +191,8 @@ struct use_case_verb {
  */
 struct snd_use_case_mgr {
 	char *card_name;
+	char card_long_name[MAX_CARD_LONG_NAME];
+	char conf_file_name[MAX_CARD_LONG_NAME];
 	char *comment;
 
 	/* use case verb, devices and modifier configs parsed from files */
