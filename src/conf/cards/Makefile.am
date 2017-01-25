@@ -39,6 +39,7 @@ cfg_files = aliases.conf \
 	Maestro3.conf \
 	NFORCE.conf \
 	PC-Speaker.conf \
+	pistachio-card.conf \
 	PMac.conf \
 	PMacToonie.conf \
 	PS3.conf \
