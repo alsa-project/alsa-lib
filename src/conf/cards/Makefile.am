@@ -30,6 +30,7 @@ cfg_files = aliases.conf \
 	FireWave.conf \
 	GUS.conf \
 	HDA-Intel.conf \
+	HdmiLpeAudio.conf \
 	ICE1712.conf \
 	ICE1724.conf \
 	ICH.conf \
