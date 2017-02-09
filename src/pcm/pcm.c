@@ -759,7 +759,10 @@ int snd_pcm_nonblock(snd_pcm_t *pcm, int nonblock)
 	int err = 0;
 
 	assert(pcm);
-	__snd_pcm_lock(pcm); /* forced lock due to pcm field change */
+	/* FIXME: __snd_pcm_lock() call below is commented out because of the
+	 * the possible deadlock in signal handler calling snd_pcm_abort()
+	 */
+	/* __snd_pcm_lock(pcm); */ /* forced lock due to pcm field change */
 	if ((err = pcm->ops->nonblock(pcm->op_arg, nonblock)) < 0)
 		goto unlock;
 	if (nonblock == 2) {
@@ -775,7 +778,7 @@ int snd_pcm_nonblock(snd_pcm_t *pcm, int nonblock)
 			pcm->mode &= ~SND_PCM_NONBLOCK;
 	}
  unlock:
-	__snd_pcm_unlock(pcm);
+	/* __snd_pcm_unlock(pcm); */ /* FIXME: see above */
 	return err;
 }
 
