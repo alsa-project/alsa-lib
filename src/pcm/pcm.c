@@ -799,6 +799,8 @@ int snd_pcm_async(snd_pcm_t *pcm, int sig, pid_t pid)
 		sig = SIGIO;
 	if (pid == 0)
 		pid = getpid();
+	/* async handler may lead to a deadlock; suppose no multi thread */
+	pcm->lock_enabled = 0;
 	return pcm->ops->async(pcm->op_arg, sig, pid);
 }
 #endif
@@ -2597,7 +2599,10 @@ int snd_pcm_new(snd_pcm_t **pcmp, snd_pcm_type_t type, const char *name,
 	 * each plugin may suppress this in its open call
 	 */
 	pcm->need_lock = 1;
-	{
+	if (mode & SND_PCM_ASYNC) {
+		/* async handler may lead to a deadlock; suppose no MT */
+		pcm->lock_enabled = 0;
+	} else {
 		/* set lock_enabled field depending on $LIBASOUND_THREAD_SAFE */
 		static int do_lock_enable = -1; /* uninitialized */
 
