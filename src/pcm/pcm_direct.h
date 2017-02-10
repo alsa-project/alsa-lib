@@ -159,6 +159,7 @@ struct snd_pcm_direct {
 	unsigned int channels;		/* client's channels */
 	unsigned int *bindings;
 	unsigned int recoveries;	/* mirror of executed recoveries on slave */
+	int direct_memory_access;	/* use arch-optimized buffer RW */
 	union {
 		struct {
 			int shmid_sum;			/* IPC global sum ring buffer memory identification */
@@ -340,6 +341,7 @@ struct snd_pcm_direct_open_conf {
 	int slowptr;
 	int max_periods;
 	int var_periodsize;
+	int direct_memory_access;
 	snd_config_t *slave;
 	snd_config_t *bindings;
 };

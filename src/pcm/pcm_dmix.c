@@ -1065,6 +1065,7 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 	dmix->max_periods = opts->max_periods;
 	dmix->var_periodsize = opts->var_periodsize;
 	dmix->sync_ptr = snd_pcm_dmix_sync_ptr;
+	dmix->direct_memory_access = opts->direct_memory_access;
 
  retry:
 	if (first_instance) {

@@ -1861,6 +1861,7 @@ int snd_pcm_direct_parse_open_conf(snd_config_t *root, snd_config_t *conf,
 	rec->slowptr = 1;
 	rec->max_periods = 0;
 	rec->var_periodsize = 1;
+	rec->direct_memory_access = 1;
 
 	/* read defaults */
 	if (snd_config_search(root, "defaults.pcm.dmix_max_periods", &n) >= 0) {
@@ -1972,6 +1973,13 @@ int snd_pcm_direct_parse_open_conf(snd_config_t *root, snd_config_t *conf,
 			if (err < 0)
 				return err;
 			rec->var_periodsize = err;
+			continue;
+		}
+		if (strcmp(id, "direct_memory_access") == 0) {
+			err = snd_config_get_bool(n);
+			if (err < 0)
+				return err;
+			rec->direct_memory_access = err;
 			continue;
 		}
 		SNDERR("Unknown field %s", id);

@@ -70,6 +70,11 @@ static void mix_select_callbacks(snd_pcm_direct_t *dmix)
 {
 	static int smp = 0;
 	
+	if (!dmix->direct_memory_access) {
+		generic_mix_select_callbacks(dmix);
+		return;
+	}
+
 	if (!((1ULL<< dmix->shmptr->s.format) & x86_64_dmix_supported_format)) {
 		generic_mix_select_callbacks(dmix);
 		return;
