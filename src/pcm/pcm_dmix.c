@@ -706,7 +706,7 @@ static snd_pcm_sframes_t snd_pcm_dmix_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t f
 {
 	snd_pcm_direct_t *dmix = pcm->private_data;
 	snd_pcm_uframes_t slave_appl_ptr, slave_size;
-	snd_pcm_uframes_t appl_ptr, size, transfer, result;
+	snd_pcm_uframes_t appl_ptr, size, transfer, result, frames_to_remix;
 	int err;
 	const snd_pcm_channel_area_t *src_areas, *dst_areas;
 
@@ -716,6 +716,13 @@ static snd_pcm_sframes_t snd_pcm_dmix_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t f
 		if (err < 0)
 			return err;
 	}
+
+	/* (appl_ptr - last_appl_ptr) indicates the frames which are not
+	 * already mixed
+	 * (last_appl_ptr - hw_ptr)  indicates the frames which are already
+	 * mixed but not played yet.
+	 * So they can be remixed.
+	 */
 
 	if (dmix->last_appl_ptr < dmix->appl_ptr)
 		size = dmix->appl_ptr - dmix->last_appl_ptr;
@@ -729,6 +736,9 @@ static snd_pcm_sframes_t snd_pcm_dmix_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t f
 		return size;
 	result = size;
 
+	/* Always at this point last_appl_ptr == appl_ptr
+	 * So (appl_ptr - hw_ptr) indicates the frames which can be remixed
+	 */
 	if (dmix->hw_ptr < dmix->appl_ptr)
 		size = dmix->appl_ptr - dmix->hw_ptr;
 	else
@@ -741,9 +751,12 @@ static snd_pcm_sframes_t snd_pcm_dmix_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t f
 		slave_size = dmix->slave_appl_ptr + (pcm->boundary - dmix->slave_hw_ptr);
 	if (slave_size < size)
 		size = slave_size;
-	frames -= size;
-	result += size;
-		
+
+	/* frames which should be remixed will be saved
+	 * to also backward the appl pointer on success
+	 */
+	frames_to_remix = size;
+
 	/* add sample areas here */
 	src_areas = snd_pcm_mmap_areas(pcm);
 	dst_areas = snd_pcm_mmap_areas(dmix->spcm);
@@ -769,15 +782,15 @@ static snd_pcm_sframes_t snd_pcm_dmix_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t f
 		appl_ptr += transfer;
 		appl_ptr %= pcm->buffer_size;
 	}
-	dmix->last_appl_ptr -= frames;
-	dmix->last_appl_ptr %= pcm->boundary;
-	dmix->slave_appl_ptr -= frames;
-	dmix->slave_appl_ptr %= dmix->slave_boundary;
 	dmix_up_sem(dmix);
 
-	snd_pcm_mmap_appl_backward(pcm, frames);
+	snd_pcm_mmap_appl_backward(pcm, frames_to_remix);
+	result += frames_to_remix;
+	/* At this point last_appl_ptr and appl_ptr has to indicate the
+	 * position of the first not mixed frame
+	 */
 
-	return result + frames;
+	return result;
 }
 
 static snd_pcm_sframes_t snd_pcm_dmix_forwardable(snd_pcm_t *pcm)
