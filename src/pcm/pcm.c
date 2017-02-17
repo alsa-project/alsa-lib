@@ -2194,9 +2194,10 @@ int snd_pcm_status_dump(snd_pcm_status_t *status, snd_output_t *out)
 	assert(status);
 	snd_output_printf(out, "  state       : %s\n", snd_pcm_state_name((snd_pcm_state_t) status->state));
 	snd_output_printf(out, "  trigger_time: %ld.%06ld\n",
-		status->trigger_tstamp.tv_sec, status->trigger_tstamp.tv_nsec);
+			  status->trigger_tstamp.tv_sec,
+			  status->trigger_tstamp.tv_nsec / 1000);
 	snd_output_printf(out, "  tstamp      : %ld.%06ld\n",
-		status->tstamp.tv_sec, status->tstamp.tv_nsec);
+		status->tstamp.tv_sec, status->tstamp.tv_nsec / 1000);
 	snd_output_printf(out, "  delay       : %ld\n", (long)status->delay);
 	snd_output_printf(out, "  avail       : %ld\n", (long)status->avail);
 	snd_output_printf(out, "  avail_max   : %ld\n", (long)status->avail_max);
