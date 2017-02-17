@@ -172,6 +172,8 @@ int snd_ext_parm_mask_refine(snd_mask_t *mask, struct snd_ext_parm *parm, int ty
 	unsigned int i;
 
 	parm += type;
+	if (!parm->active)
+		return 0;
 	memset(&bits, 0, sizeof(bits));
 	for (i = 0; i < parm->num_list; i++)
 		bits.bits[parm->list[i] / 32] |= 1U << (parm->list[i] % 32);
