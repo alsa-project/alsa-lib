@@ -322,7 +322,7 @@ int snd_pcm_direct_munmap(snd_pcm_t *pcm);
 int snd_pcm_direct_prepare(snd_pcm_t *pcm);
 int snd_pcm_direct_resume(snd_pcm_t *pcm);
 int snd_pcm_direct_timer_stop(snd_pcm_direct_t *dmix);
-void snd_pcm_direct_clear_timer_queue(snd_pcm_direct_t *dmix);
+int snd_pcm_direct_clear_timer_queue(snd_pcm_direct_t *dmix);
 int snd_pcm_direct_set_timer_params(snd_pcm_direct_t *dmix);
 int snd_pcm_direct_open_secondary_client(snd_pcm_t **spcmp, snd_pcm_direct_t *dmix, const char *client_name);
 

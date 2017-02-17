@@ -515,10 +515,12 @@ int snd_pcm_direct_async(snd_pcm_t *pcm, int sig, pid_t pid)
 }
 
 /* empty the timer read queue */
-void snd_pcm_direct_clear_timer_queue(snd_pcm_direct_t *dmix)
+int snd_pcm_direct_clear_timer_queue(snd_pcm_direct_t *dmix)
 {
+	int changed = 0;
 	if (dmix->timer_need_poll) {
 		while (poll(&dmix->timer_fd, 1, 0) > 0) {
+			changed++;
 			/* we don't need the value */
 			if (dmix->tread) {
 				snd_timer_tread_t rbuf[4];
@@ -533,15 +535,17 @@ void snd_pcm_direct_clear_timer_queue(snd_pcm_direct_t *dmix)
 			snd_timer_tread_t rbuf[4];
 			int len;
 			while ((len = snd_timer_read(dmix->timer, rbuf,
-						     sizeof(rbuf))) > 0 &&
+						     sizeof(rbuf))) > 0
+						     && (++changed) &&
 			       len != sizeof(rbuf[0]))
 				;
 		} else {
 			snd_timer_read_t rbuf;
 			while (snd_timer_read(dmix->timer, &rbuf, sizeof(rbuf)) > 0)
-				;
+				changed++;
 		}
 	}
+	return changed;
 }
 
 int snd_pcm_direct_timer_stop(snd_pcm_direct_t *dmix)
@@ -693,6 +697,8 @@ int snd_pcm_direct_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned in
 	int empty = 0;
 
 	assert(pfds && nfds == 1 && revents);
+
+timer_changed:
 	events = pfds[0].revents;
 	if (events & POLLIN) {
 		snd_pcm_uframes_t avail;
@@ -720,7 +726,16 @@ int snd_pcm_direct_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned in
 		break;
 	default:
 		if (empty) {
-			snd_pcm_direct_clear_timer_queue(dmix);
+			/* here we have a race condition:
+			 * if period event arrived after the avail_update call
+			 * above we might clear this event with the following
+			 * clear_timer_queue.
+			 * There is no way to do this in atomic manner, so we
+			 * need to recheck avail_update if we successfully
+			 * cleared a poll event.
+			 */
+			if (snd_pcm_direct_clear_timer_queue(dmix))
+				goto timer_changed;
 			events &= ~(POLLOUT|POLLIN);
 			/* additional check */
 			switch (__snd_pcm_state(pcm)) {
