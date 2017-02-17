@@ -544,6 +544,7 @@ static snd_pcm_sframes_t snd_pcm_file_writen(snd_pcm_t *pcm, void **bufs, snd_pc
 static snd_pcm_sframes_t snd_pcm_file_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t size)
 {
 	snd_pcm_file_t *file = pcm->private_data;
+	snd_pcm_channel_area_t areas[pcm->channels];
 	snd_pcm_sframes_t n;
 
 	n = _snd_pcm_readi(file->gen.slave, buffer, size);
@@ -555,8 +556,10 @@ static snd_pcm_sframes_t snd_pcm_file_readi(snd_pcm_t *pcm, void *buffer, snd_pc
 		__snd_pcm_unlock(pcm);
 		if (n < 0)
 			return n;
-		return n * 8 / pcm->frame_bits;
+		n = n * 8 / pcm->frame_bits;
 	}
+	snd_pcm_areas_from_buf(pcm, areas, buffer);
+	snd_pcm_file_add_frames(pcm, areas, 0, n);
 	return n;
 }
 
@@ -564,6 +567,7 @@ static snd_pcm_sframes_t snd_pcm_file_readi(snd_pcm_t *pcm, void *buffer, snd_pc
 static snd_pcm_sframes_t snd_pcm_file_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
 	snd_pcm_file_t *file = pcm->private_data;
+	snd_pcm_channel_area_t areas[pcm->channels];
 	snd_pcm_sframes_t n;
 
 	if (file->ifd >= 0) {
@@ -572,6 +576,10 @@ static snd_pcm_sframes_t snd_pcm_file_readn(snd_pcm_t *pcm, void **bufs, snd_pcm
 	}
 
 	n = _snd_pcm_readn(file->gen.slave, bufs, size);
+	if (n > 0) {
+		snd_pcm_areas_from_bufs(pcm, areas, bufs);
+		snd_pcm_file_add_frames(pcm, areas, 0, n);
+	}
 	return n;
 }
 
@@ -635,7 +643,7 @@ static int snd_pcm_file_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 		a->first = slave->sample_bits * channel;
 		a->step = slave->frame_bits;
 	}
-	if ((file->fd < 0) && (pcm->stream == SND_PCM_STREAM_PLAYBACK)) {
+	if (file->fd < 0) {
 		err = snd_pcm_file_open_output_file(file);
 		if (err < 0) {
 			SYSERR("failed opening output file %s", file->fname);
