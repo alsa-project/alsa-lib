@@ -79,8 +79,8 @@ static int build_pcm(snd_tplg_t *tplg, struct tplg_elem *elem)
 	int err;
 
 	err = tplg_build_stream_caps(tplg, elem->id, elem->pcm->caps);
-		if (err < 0)
-			return err;
+	if (err < 0)
+		return err;
 
 	/* merge private data from the referenced data elements */
 	base = &elem->ref_list;
@@ -96,8 +96,7 @@ static int build_pcm(snd_tplg_t *tplg, struct tplg_elem *elem)
 			SNDERR("error: cannot find '%s' referenced by"
 				" PCM '%s'\n", ref->id, elem->id);
 			return -EINVAL;
-		} else if (err < 0)
-			return err;
+		}
 	}
 
 	return 0;
@@ -1208,12 +1207,10 @@ int tplg_add_link_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 
 	/* ID and names */
 	link->id = link_tpl->id;
-	if (link->name)
-		elem_copy_text(link->name, link_tpl->name,
-			       SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
-	if (link->stream_name)
-		elem_copy_text(link->stream_name, link_tpl->stream_name,
-			       SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+	elem_copy_text(link->name, link_tpl->name,
+		       SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+	elem_copy_text(link->stream_name, link_tpl->stream_name,
+		       SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 
 	/* stream configs */
 	if (link_tpl->num_streams > SND_SOC_TPLG_STREAM_CONFIG_MAX)

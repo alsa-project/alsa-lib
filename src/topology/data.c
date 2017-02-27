@@ -917,7 +917,7 @@ int tplg_build_manifest_data(snd_tplg_t *tplg)
 	list_for_each(pos, base) {
 
 		ref = list_entry(pos, struct tplg_ref, list);
-		if (ref->id == NULL || ref->elem)
+		if (ref->elem)
 			continue;
 
 		if (ref->type == SND_TPLG_TYPE_DATA) {

@@ -173,7 +173,7 @@ static int tplg_build_enum_control(snd_tplg_t *tplg,
 {
 	struct tplg_ref *ref;
 	struct list_head *base, *pos;
-	int err = 0;
+	int err;
 
 	base = &elem->ref_list;
 
@@ -198,8 +198,7 @@ static int tplg_build_enum_control(snd_tplg_t *tplg,
 			SNDERR("error: cannot find '%s' referenced by"
 				" control '%s'\n", ref->id, elem->id);
 			return -EINVAL;
-		} else if (err < 0)
-			return err;
+		}
 	}
 
 	return 0;
