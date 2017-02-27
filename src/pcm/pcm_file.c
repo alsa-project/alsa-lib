@@ -593,11 +593,13 @@ static snd_pcm_sframes_t snd_pcm_file_mmap_commit(snd_pcm_t *pcm,
 	const snd_pcm_channel_area_t *areas;
 	snd_pcm_sframes_t result;
 
-	snd_pcm_mmap_begin(file->gen.slave, &areas, &ofs, &siz);
-	assert(ofs == offset && siz == size);
-	result = snd_pcm_mmap_commit(file->gen.slave, ofs, siz);
-	if (result > 0)
-		snd_pcm_file_add_frames(pcm, areas, ofs, result);
+	result = snd_pcm_mmap_begin(file->gen.slave, &areas, &ofs, &siz);
+	if (result >= 0) {
+		assert(ofs == offset && siz == size);
+		result = snd_pcm_mmap_commit(file->gen.slave, ofs, siz);
+		if (result > 0)
+			snd_pcm_file_add_frames(pcm, areas, ofs, result);
+	}
 	return result;
 }
 
