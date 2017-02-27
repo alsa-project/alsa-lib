@@ -1339,7 +1339,8 @@ static int is_string_array(const snd_config_t *conf)
 	if (i && i != snd_config_iterator_end(conf)) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id;
-		snd_config_get_id(n, &id);
+		if (snd_config_get_id(n, &id) < 0)
+			return 0;
 		if (id && strcmp(id, "0") != 0)
 			return 0;
 	}
@@ -1422,7 +1423,8 @@ int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name,
 		snd_config_for_each(i, next, converter) {
 			snd_config_t *n = snd_config_iterator_entry(i);
 			const char *id;
-			snd_config_get_id(n, &id);
+			if (snd_config_get_id(n, &id) < 0)
+				continue;
 			if (strcmp(id, "name") != 0)
 				continue;
 			snd_config_get_string(n, &type);
