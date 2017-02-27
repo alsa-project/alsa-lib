@@ -251,8 +251,12 @@ static snd_pcm_sframes_t snd_pcm_plugin_write_areas(snd_pcm_t *pcm,
 		snd_pcm_uframes_t slave_offset;
 		snd_pcm_uframes_t slave_frames = ULONG_MAX;
 		
-		err = snd_pcm_mmap_begin(slave, &slave_areas, &slave_offset, &slave_frames);
-		if (err < 0 || slave_frames == 0)
+		result = snd_pcm_mmap_begin(slave, &slave_areas, &slave_offset, &slave_frames);
+		if (result < 0) {
+			err = result;
+			goto error;
+		}
+		if (slave_frames == 0)
 			break;
 		frames = plugin->write(pcm, areas, offset, frames,
 				       slave_areas, slave_offset, &slave_frames);
@@ -304,7 +308,11 @@ static snd_pcm_sframes_t snd_pcm_plugin_read_areas(snd_pcm_t *pcm,
 		snd_pcm_uframes_t slave_offset;
 		snd_pcm_uframes_t slave_frames = ULONG_MAX;
 		
-		snd_pcm_mmap_begin(slave, &slave_areas, &slave_offset, &slave_frames);
+		result = snd_pcm_mmap_begin(slave, &slave_areas, &slave_offset, &slave_frames);
+		if (result < 0) {
+			err = result;
+			goto error;
+		}
 		if (slave_frames == 0)
 			break;
 		frames = (plugin->read)(pcm, areas, offset, frames,
@@ -409,9 +417,11 @@ snd_pcm_plugin_mmap_commit(snd_pcm_t *pcm,
 		snd_pcm_uframes_t slave_frames = ULONG_MAX;
 		snd_pcm_sframes_t result;
 
-		err = snd_pcm_mmap_begin(slave, &slave_areas, &slave_offset, &slave_frames);
-		if (err < 0)
+		result = snd_pcm_mmap_begin(slave, &slave_areas, &slave_offset, &slave_frames);
+		if (result < 0) {
+			err = result;
 			goto error;
+		}
 		if (frames > cont)
 			frames = cont;
 		frames = plugin->write(pcm, areas, appl_offset, frames,
@@ -481,9 +491,11 @@ static snd_pcm_sframes_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm)
 			snd_pcm_uframes_t slave_frames = ULONG_MAX;
 			snd_pcm_sframes_t result;
 
-			err = snd_pcm_mmap_begin(slave, &slave_areas, &slave_offset, &slave_frames);
-			if (err < 0)
+			result = snd_pcm_mmap_begin(slave, &slave_areas, &slave_offset, &slave_frames);
+			if (result < 0) {
+				err = result;
 				goto error;
+			}
 			if (frames > cont)
 				frames = cont;
 			frames = (plugin->read)(pcm, areas, hw_offset, frames,
