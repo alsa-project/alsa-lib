@@ -1453,7 +1453,8 @@ int uc_mgr_import_master_config(snd_use_case_mgr_t *uc_mgr)
 		err = load_master_config(uc_mgr->card_name, &cfg);
 		if (err < 0)
 			return err;
-		strcpy(uc_mgr->conf_file_name, uc_mgr->card_name);
+		strncpy(uc_mgr->conf_file_name, uc_mgr->card_name, MAX_CARD_LONG_NAME);
+		uc_mgr->conf_file_name[MAX_CARD_LONG_NAME-1] = '\0';
 	}
 
 	err = parse_master_file(uc_mgr, cfg);
