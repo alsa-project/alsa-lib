@@ -51,6 +51,7 @@ cfg_files = aliases.conf \
 	TRID4DWAVENX.conf \
 	USB-Audio.conf \
 	YMF744.conf \
+	vc4-hdmi.conf \
 	VIA686A.conf \
 	VIA8233.conf \
 	VIA8233A.conf \
