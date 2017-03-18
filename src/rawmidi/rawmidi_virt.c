@@ -263,8 +263,8 @@ static ssize_t snd_rawmidi_virtual_read(snd_rawmidi_t *rmidi, void *buffer, size
 		}
 		size1 = virt->in_buf_size - virt->in_buf_ofs;
 		if ((size_t)size1 > size) {
-			virt->in_buf_ofs += size1 - size;
-			memcpy(buffer, virt->in_buf_ptr, size);
+			memcpy(buffer, virt->in_buf_ptr + virt->in_buf_ofs, size);
+			virt->in_buf_ofs += size;
 			result += size;
 			break;
 		}
