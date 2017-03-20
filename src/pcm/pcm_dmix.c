@@ -628,7 +628,7 @@ static int __snd_pcm_dmix_drain(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dmix = pcm->private_data;
 	snd_pcm_uframes_t stop_threshold;
-	int err;
+	int err = 0;
 
 	switch (snd_pcm_state(dmix->spcm)) {
 	case SND_PCM_STATE_SUSPENDED:
@@ -639,8 +639,6 @@ static int __snd_pcm_dmix_drain(snd_pcm_t *pcm)
 
 	if (dmix->state == SND_PCM_STATE_OPEN)
 		return -EBADFD;
-	if (pcm->mode & SND_PCM_NONBLOCK)
-		return -EAGAIN;
 	if (dmix->state == SND_PCM_STATE_PREPARED) {
 		if (snd_pcm_mmap_playback_hw_avail(pcm) > 0)
 			snd_pcm_dmix_start(pcm);
@@ -663,23 +661,33 @@ static int __snd_pcm_dmix_drain(snd_pcm_t *pcm)
 		err = snd_pcm_dmix_sync_ptr(pcm);
 		if (err < 0) {
 			snd_pcm_dmix_drop(pcm);
-			return err;
+			goto done;
 		}
 		if (dmix->state == SND_PCM_STATE_DRAINING) {
 			snd_pcm_dmix_sync_area(pcm);
-			snd_pcm_wait_nocheck(pcm, -1);
-			snd_pcm_direct_clear_timer_queue(dmix); /* force poll to wait */
+			if ((pcm->mode & SND_PCM_NONBLOCK) == 0) {
+				snd_pcm_wait_nocheck(pcm, -1);
+				snd_pcm_direct_clear_timer_queue(dmix); /* force poll to wait */
+			}
 
 			switch (snd_pcm_state(dmix->spcm)) {
 			case SND_PCM_STATE_SUSPENDED:
-				return -ESTRPIPE;
+				err = -ESTRPIPE;
+				goto done;
+			case SND_PCM_STATE_DRAINING:
+				if (pcm->mode & SND_PCM_NONBLOCK) {
+					err = -EAGAIN;
+					goto done;
+				}
+				break;
 			default:
 				break;
 			}
 		}
 	} while (dmix->state == SND_PCM_STATE_DRAINING);
+done:
 	pcm->stop_threshold = stop_threshold;
-	return 0;
+	return err;
 }
 
 static int snd_pcm_dmix_drain(snd_pcm_t *pcm)
