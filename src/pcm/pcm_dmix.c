@@ -674,14 +674,14 @@ static int __snd_pcm_dmix_drain(snd_pcm_t *pcm)
 			case SND_PCM_STATE_SUSPENDED:
 				err = -ESTRPIPE;
 				goto done;
-			case SND_PCM_STATE_DRAINING:
-				if (pcm->mode & SND_PCM_NONBLOCK) {
-					err = -EAGAIN;
-					goto done;
-				}
-				break;
 			default:
 				break;
+			}
+		}
+		if (pcm->mode & SND_PCM_NONBLOCK) {
+			if (dmix->state == SND_PCM_STATE_DRAINING) {
+				err = -EAGAIN;
+				goto done;
 			}
 		}
 	} while (dmix->state == SND_PCM_STATE_DRAINING);
