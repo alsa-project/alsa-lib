@@ -490,7 +490,14 @@ static snd_pcm_sframes_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm)
 			snd_pcm_uframes_t slave_offset;
 			snd_pcm_uframes_t slave_frames = ULONG_MAX;
 			snd_pcm_sframes_t result;
-
+			/* As mentioned in the ALSA API (see pcm/pcm.c:942):
+			 * The function #snd_pcm_avail_update()
+			 * have to be called before any mmap begin+commit operation.
+			 * Otherwise the snd_pcm_areas_copy will not called a second time.
+			 * But this is needed, if the ring buffer wrap is reached and
+			 * there is more data available.
+			 */
+			slave_size = snd_pcm_avail_update(slave);
 			result = snd_pcm_mmap_begin(slave, &slave_areas, &slave_offset, &slave_frames);
 			if (result < 0) {
 				err = result;
