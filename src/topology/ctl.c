@@ -396,15 +396,6 @@ int tplg_parse_control_bytes(snd_tplg_t *tplg,
 		if (id[0] == '#')
 			continue;
 
-		if (strcmp(id, "index") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
-				return -EINVAL;
-
-			elem->index = atoi(val);
-			tplg_dbg("\t%s: %d\n", id, elem->index);
-			continue;
-		}
-
 		if (strcmp(id, "base") == 0) {
 			if (snd_config_get_string(n, &val) < 0)
 				return -EINVAL;
@@ -537,15 +528,6 @@ int tplg_parse_control_enum(snd_tplg_t *tplg, snd_config_t *cfg,
 		if (id[0] == '#')
 			continue;
 
-		if (strcmp(id, "index") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
-				return -EINVAL;
-
-			elem->index = atoi(val);
-			tplg_dbg("\t%s: %d\n", id, elem->index);
-			continue;
-		}
-
 		if (strcmp(id, "texts") == 0) {
 			if (snd_config_get_string(n, &val) < 0)
 				return -EINVAL;
@@ -646,15 +628,6 @@ int tplg_parse_control_mixer(snd_tplg_t *tplg,
 			continue;
 		if (id[0] == '#')
 			continue;
-
-		if (strcmp(id, "index") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
-				return -EINVAL;
-
-			elem->index = atoi(val);
-			tplg_dbg("\t%s: %d\n", id, elem->index);
-			continue;
-		}
 
 		if (strcmp(id, "channel") == 0) {
 			if (mc->num_channels >= SND_SOC_TPLG_MAX_CHAN) {

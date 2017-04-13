@@ -1009,15 +1009,6 @@ int tplg_parse_data(snd_tplg_t *tplg, snd_config_t *cfg,
 			continue;
 		}
 
-		if (strcmp(id, "index") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
-				return -EINVAL;
-
-			elem->index = atoi(val);
-			tplg_dbg("\t%s: %d\n", id, elem->index);
-			continue;
-		}
-
 		if (strcmp(id, "type") == 0) {
 			if (snd_config_get_string(n, &val) < 0)
 				return -EINVAL;

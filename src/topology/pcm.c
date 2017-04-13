@@ -553,15 +553,6 @@ int tplg_parse_pcm(snd_tplg_t *tplg,
 		if (id[0] == '#')
 			continue;
 
-		if (strcmp(id, "index") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
-				return -EINVAL;
-
-			elem->index = atoi(val);
-			tplg_dbg("\t%s: %d\n", id, elem->index);
-			continue;
-		}
-
 		if (strcmp(id, "id") == 0) {
 			if (snd_config_get_string(n, &val) < 0)
 				return -EINVAL;
@@ -652,15 +643,6 @@ int tplg_parse_dai(snd_tplg_t *tplg,
 			continue;
 		if (id[0] == '#')
 			continue;
-
-		if (strcmp(id, "index") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
-				return -EINVAL;
-
-			elem->index = atoi(val);
-			tplg_dbg("\t%s: %d\n", id, elem->index);
-			continue;
-		}
 
 		if (strcmp(id, "id") == 0) {
 			if (snd_config_get_string(n, &val) < 0)
@@ -803,15 +785,6 @@ int tplg_parse_link(snd_tplg_t *tplg,
 		if (id[0] == '#')
 			continue;
 
-		if (strcmp(id, "index") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
-				return -EINVAL;
-
-			elem->index = atoi(val);
-			tplg_dbg("\t%s: %d\n", id, elem->index);
-			continue;
-		}
-
 		if (strcmp(id, "id") == 0) {
 			if (snd_config_get_string(n, &val) < 0)
 				return -EINVAL;
@@ -916,15 +889,6 @@ int tplg_parse_cc(snd_tplg_t *tplg,
 			continue;
 		if (id[0] == '#')
 			continue;
-
-		if (strcmp(id, "index") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
-				return -EINVAL;
-
-			elem->index = atoi(val);
-			tplg_dbg("\t%s: %d\n", id, elem->index);
-			continue;
-		}
 
 		if (strcmp(id, "id") == 0) {
 			if (snd_config_get_string(n, &val) < 0)

@@ -483,15 +483,6 @@ int tplg_parse_dapm_widget(snd_tplg_t *tplg,
 		if (id[0] == '#')
 			continue;
 
-		if (strcmp(id, "index") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
-				return -EINVAL;
-
-			elem->index = atoi(val);
-			tplg_dbg("\t%s: %d\n", id, elem->index);
-			continue;
-		}
-
 		if (strcmp(id, "type") == 0) {
 			if (snd_config_get_string(n, &val) < 0)
 				return -EINVAL;
