@@ -135,7 +135,7 @@ static int tplg_build_mixer_control(snd_tplg_t *tplg,
 
 		if (ref->type == SND_TPLG_TYPE_TLV) {
 			ref->elem = tplg_elem_lookup(&tplg->tlv_list,
-						ref->id, SND_TPLG_TYPE_TLV);
+				ref->id, SND_TPLG_TYPE_TLV, elem->index);
 			if (ref->elem)
 				 err = copy_tlv(elem, ref->elem);
 
@@ -185,7 +185,7 @@ static int tplg_build_enum_control(snd_tplg_t *tplg,
 
 		if (ref->type == SND_TPLG_TYPE_TEXT) {
 			ref->elem = tplg_elem_lookup(&tplg->text_list,
-						ref->id, SND_TPLG_TYPE_TEXT);
+				ref->id, SND_TPLG_TYPE_TEXT, elem->index);
 			if (ref->elem)
 				copy_enum_texts(elem, ref->elem);
 

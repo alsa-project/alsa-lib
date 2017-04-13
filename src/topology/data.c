@@ -366,7 +366,7 @@ static struct tplg_elem *get_tokens(snd_tplg_t *tplg, struct tplg_elem *elem)
 
 		if (!ref->elem) {
 			ref->elem = tplg_elem_lookup(&tplg->token_list,
-						ref->id, SND_TPLG_TYPE_TOKEN);
+				ref->id, SND_TPLG_TYPE_TOKEN, elem->index);
 		}
 
 		return ref->elem;
@@ -508,7 +508,7 @@ static int build_tuples(snd_tplg_t *tplg, struct tplg_elem *elem)
 
 		if (!ref->elem)
 			ref->elem = tplg_elem_lookup(&tplg->tuple_list,
-						ref->id, SND_TPLG_TYPE_TUPLE);
+				ref->id, SND_TPLG_TYPE_TUPLE, elem->index);
 		tuples = ref->elem;
 		if (!tuples)
 			return -EINVAL;
@@ -1036,7 +1036,7 @@ int tplg_copy_data(snd_tplg_t *tplg, struct tplg_elem *elem,
 	void *obj;
 
 	ref_elem = tplg_elem_lookup(&tplg->pdata_list,
-				     ref->id, SND_TPLG_TYPE_DATA);
+				     ref->id, SND_TPLG_TYPE_DATA, elem->index);
 	if (!ref_elem) {
 		SNDERR("error: cannot find data '%s' referenced by"
 		" element '%s'\n", ref->id, elem->id);

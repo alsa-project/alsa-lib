@@ -55,14 +55,14 @@ static void copy_stream_caps(const char *id,
 
 /* find and copy the referenced stream caps */
 static int tplg_build_stream_caps(snd_tplg_t *tplg,
-	const char *id, struct snd_soc_tplg_stream_caps *caps)
+	const char *id, int index, struct snd_soc_tplg_stream_caps *caps)
 {
 	struct tplg_elem *ref_elem = NULL;
 	unsigned int i;
 
 	for (i = 0; i < 2; i++) {
 		ref_elem = tplg_elem_lookup(&tplg->pcm_caps_list,
-			caps[i].name, SND_TPLG_TYPE_STREAM_CAPS);
+			caps[i].name, SND_TPLG_TYPE_STREAM_CAPS, index);
 
 		if (ref_elem != NULL)
 			copy_stream_caps(id, &caps[i], ref_elem);
@@ -78,7 +78,8 @@ static int build_pcm(snd_tplg_t *tplg, struct tplg_elem *elem)
 	struct list_head *base, *pos;
 	int err;
 
-	err = tplg_build_stream_caps(tplg, elem->id, elem->pcm->caps);
+	err = tplg_build_stream_caps(tplg, elem->id, elem->index,
+						elem->pcm->caps);
 	if (err < 0)
 		return err;
 
@@ -137,7 +138,8 @@ static int tplg_build_dai(snd_tplg_t *tplg, struct tplg_elem *elem)
 	int err = 0;
 
 	/* get playback & capture stream caps */
-	err = tplg_build_stream_caps(tplg, elem->id, elem->dai->caps);
+	err = tplg_build_stream_caps(tplg, elem->id, elem->index,
+						elem->dai->caps);
 	if (err < 0)
 		return err;
 
@@ -185,7 +187,7 @@ int tplg_build_dais(snd_tplg_t *tplg, unsigned int type)
 }
 
 static int tplg_build_stream_cfg(snd_tplg_t *tplg,
-	struct snd_soc_tplg_stream *stream, int num_streams)
+	struct snd_soc_tplg_stream *stream, int num_streams, int index)
 {
 	struct snd_soc_tplg_stream *strm;
 	struct tplg_elem *ref_elem;
@@ -194,7 +196,7 @@ static int tplg_build_stream_cfg(snd_tplg_t *tplg,
 	for (i = 0; i < num_streams; i++) {
 		strm = stream + i;
 		ref_elem = tplg_elem_lookup(&tplg->pcm_config_list,
-			strm->name, SND_TPLG_TYPE_STREAM_CONFIG);
+			strm->name, SND_TPLG_TYPE_STREAM_CONFIG, index);
 
 		if (ref_elem && ref_elem->stream_cfg)
 			*strm = *ref_elem->stream_cfg;
@@ -211,7 +213,7 @@ static int build_link(snd_tplg_t *tplg, struct tplg_elem *elem)
 	int num_hw_configs = 0, err = 0;
 
 	err = tplg_build_stream_cfg(tplg, link->stream,
-				    link->num_streams);
+				    link->num_streams, elem->index);
 	if (err < 0)
 		return err;
 
@@ -224,7 +226,7 @@ static int build_link(snd_tplg_t *tplg, struct tplg_elem *elem)
 		switch (ref->type) {
 		case SND_TPLG_TYPE_HW_CONFIG:
 			ref->elem = tplg_elem_lookup(&tplg->hw_cfg_list,
-					ref->id, SND_TPLG_TYPE_HW_CONFIG);
+				ref->id, SND_TPLG_TYPE_HW_CONFIG, elem->index);
 			if (!ref->elem) {
 				SNDERR("error: cannot find HW config '%s'"
 				" referenced by link '%s'\n",

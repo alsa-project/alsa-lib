@@ -107,7 +107,7 @@ void tplg_elem_free_list(struct list_head *base)
 }
 
 struct tplg_elem *tplg_elem_lookup(struct list_head *base, const char* id,
-	unsigned int type)
+	unsigned int type, int index)
 {
 	struct list_head *pos;
 	struct tplg_elem *elem;
@@ -121,6 +121,11 @@ struct tplg_elem *tplg_elem_lookup(struct list_head *base, const char* id,
 
 		if (!strcmp(elem->id, id) && elem->type == type)
 			return elem;
+		/* SND_TPLG_INDEX_ALL is the default value "0" and applicable
+		   for all use cases */
+		if ((elem->index != SND_TPLG_INDEX_ALL)
+			&& (elem->index > index))
+			break;
 	}
 
 	return NULL;

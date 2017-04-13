@@ -176,7 +176,7 @@ static int tplg_build_widget(snd_tplg_t *tplg,
 		case SND_TPLG_TYPE_MIXER:
 			if (!ref->elem)
 				ref->elem = tplg_elem_lookup(&tplg->mixer_list,
-						ref->id, SND_TPLG_TYPE_MIXER);
+				ref->id, SND_TPLG_TYPE_MIXER, elem->index);
 			if (ref->elem)
 				err = copy_dapm_control(elem, ref->elem);
 			break;
@@ -184,7 +184,7 @@ static int tplg_build_widget(snd_tplg_t *tplg,
 		case SND_TPLG_TYPE_ENUM:
 			if (!ref->elem)
 				ref->elem = tplg_elem_lookup(&tplg->enum_list,
-						ref->id, SND_TPLG_TYPE_ENUM);
+				ref->id, SND_TPLG_TYPE_ENUM, elem->index);
 			if (ref->elem)
 				err = copy_dapm_control(elem, ref->elem);
 			break;
@@ -192,7 +192,7 @@ static int tplg_build_widget(snd_tplg_t *tplg,
 		case SND_TPLG_TYPE_BYTES:
 			if (!ref->elem)
 				ref->elem = tplg_elem_lookup(&tplg->bytes_ext_list,
-						ref->id, SND_TPLG_TYPE_BYTES);
+				ref->id, SND_TPLG_TYPE_BYTES, elem->index);
 			if (ref->elem)
 				err = copy_dapm_control(elem, ref->elem);
 			break;
@@ -271,17 +271,17 @@ int tplg_build_routes(snd_tplg_t *tplg)
 
 		}
 		if (!tplg_elem_lookup(&tplg->widget_list, route->sink,
-			SND_TPLG_TYPE_DAPM_WIDGET)) {
+			SND_TPLG_TYPE_DAPM_WIDGET, elem->index)) {
 			SNDERR("warning: undefined sink widget/stream '%s'\n",
 				route->sink);
 		}
 
 		/* validate control name */
 		if (strlen(route->control)) {
-			if (!tplg_elem_lookup(&tplg->mixer_list,
-				route->control, SND_TPLG_TYPE_MIXER) &&
-			!tplg_elem_lookup(&tplg->enum_list,
-				route->control, SND_TPLG_TYPE_ENUM)) {
+			if (!tplg_elem_lookup(&tplg->mixer_list, route->control,
+					SND_TPLG_TYPE_MIXER, elem->index) &&
+			!tplg_elem_lookup(&tplg->enum_list, route->control,
+					SND_TPLG_TYPE_ENUM, elem->index)) {
 				SNDERR("warning: Undefined mixer/enum control '%s'\n",
 					route->control);
 			}
@@ -294,7 +294,7 @@ int tplg_build_routes(snd_tplg_t *tplg)
 
 		}
 		if (!tplg_elem_lookup(&tplg->widget_list, route->source,
-			SND_TPLG_TYPE_DAPM_WIDGET)) {
+			SND_TPLG_TYPE_DAPM_WIDGET, elem->index)) {
 			SNDERR("warning: Undefined source widget/stream '%s'\n",
 				route->source);
 		}

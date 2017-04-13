@@ -356,9 +356,10 @@ extern "C" {
  * </pre>
  *
  * The section name is used to define the mixer name. The index number can be
- * used to identify topology objects groups. This allows driver operations on
- * objects with index number N and can be used to add/remove pipelines of
- * objects whilst other objects are unaffected.
+ * used to identify topology objects groups(index "0" is common, fit for all
+ * user cases).This allows driver operations on objects with index number N and
+ * can be used to add/remove pipelines of objects whilst other objects are
+ * unaffected.
  *
  * <h5>Byte Controls</h5>
  * A byte control is defined as a new section that can include channel mapping,
@@ -751,6 +752,9 @@ enum snd_tplg_type {
 	SND_TPLG_TYPE_HW_CONFIG,	/*!< Link HW config */
 	SND_TPLG_TYPE_DAI,		/*!< Physical DAI */
 };
+
+/** Fit for all user cases */
+#define SND_TPLG_INDEX_ALL  0
 
 /**
  * \brief Create a new topology parser instance.
