@@ -112,7 +112,7 @@ typedef struct _snd_timer_tread {
 /** global timer - system */
 #define SND_TIMER_GLOBAL_SYSTEM 0
 /** global timer - RTC */
-#define SND_TIMER_GLOBAL_RTC 	1
+#define SND_TIMER_GLOBAL_RTC	1	/* Obsoleted, due to enough legacy. */
 /** global timer - HPET */
 #define SND_TIMER_GLOBAL_HPET	2
 /** global timer - HRTIMER */
