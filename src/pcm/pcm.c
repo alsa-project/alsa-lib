@@ -2581,6 +2581,10 @@ int snd_pcm_new(snd_pcm_t **pcmp, snd_pcm_type_t type, const char *name,
 		snd_pcm_stream_t stream, int mode)
 {
 	snd_pcm_t *pcm;
+#ifdef THREAD_SAFE_API
+	pthread_mutexattr_t attr;
+#endif
+
 	pcm = calloc(1, sizeof(*pcm));
 	if (!pcm)
 		return -ENOMEM;
@@ -2595,7 +2599,9 @@ int snd_pcm_new(snd_pcm_t **pcmp, snd_pcm_type_t type, const char *name,
 	pcm->fast_op_arg = pcm;
 	INIT_LIST_HEAD(&pcm->async_handlers);
 #ifdef THREAD_SAFE_API
-	pthread_mutex_init(&pcm->lock, NULL);
+	pthread_mutexattr_init(&attr);
+	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+	pthread_mutex_init(&pcm->lock, &attr);
 	/* use locking as default;
 	 * each plugin may suppress this in its open call
 	 */
