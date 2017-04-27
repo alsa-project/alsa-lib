@@ -214,6 +214,20 @@ extern "C" {
  * The keyword tuples is to define vendor specific tuples. Please refer to
  * section Vendor Tokens and Vendor tuples.
  *
+ * It's easy to use a vendor tuples object to define a C structure instance.
+ * And a data section can include multiple vendor tuples objects:
+ *
+ * <pre>
+ * SectionData."data element name" {
+ *	index "1"	#Index number
+ *	tuples [
+ *		"id of the 1st vendor tuples section"
+ *		"id of the 2nd vendor tuples section"
+ *		...
+ *	]
+ * };
+ * </pre>
+ *
  * <h5>How to define an element with private data</h5>
  * An element can refer to a single data section or multiple data
  * sections.

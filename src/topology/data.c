@@ -408,7 +408,7 @@ static unsigned int get_tuple_size(int type)
 	}
 }
 
-/* fill a data element's private buffer with its tuples */
+/* Add a tuples object to the private buffer of its parent data element */
 static int copy_tuples(struct tplg_elem *elem,
 	struct tplg_vendor_tuples *tuples, struct tplg_vendor_tokens *tokens)
 {
@@ -423,12 +423,9 @@ static int copy_tuples(struct tplg_elem *elem,
 	unsigned int i, j;
 	int token_val;
 
-	if (priv) {
-		SNDERR("error: %s has more data than tuples\n", elem->id);
-		return -EINVAL;
-	}
+	size = priv ? priv->size : 0; /* original private data size */
 
-	size = 0;
+	/* scan each tuples set (one set per type) */
 	for (i = 0; i < tuples->num_sets ; i++) {
 		tuple_set = tuples->set[i];
 		set_size = sizeof(struct snd_soc_tplg_vendor_array)
@@ -448,7 +445,7 @@ static int copy_tuples(struct tplg_elem *elem,
 			return -ENOMEM;
 
 		off = priv->size;
-		priv->size = size;
+		priv->size = size; /* update private data size */
 
 		array = (struct snd_soc_tplg_vendor_array *)(priv->data + off);
 		array->size = set_size;
@@ -495,6 +492,7 @@ static int build_tuples(snd_tplg_t *tplg, struct tplg_elem *elem)
 	struct tplg_ref *ref;
 	struct list_head *base, *pos;
 	struct tplg_elem *tuples, *tokens;
+	int err;
 
 	base = &elem->ref_list;
 	list_for_each(pos, base) {
@@ -504,23 +502,27 @@ static int build_tuples(snd_tplg_t *tplg, struct tplg_elem *elem)
 		if (!ref->id || ref->type != SND_TPLG_TYPE_TUPLE)
 			continue;
 
-		tplg_dbg("look up tuples %s\n", ref->id);
+		tplg_dbg("tuples '%s' used by data '%s'\n", ref->id, elem->id);
 
 		if (!ref->elem)
 			ref->elem = tplg_elem_lookup(&tplg->tuple_list,
 				ref->id, SND_TPLG_TYPE_TUPLE, elem->index);
 		tuples = ref->elem;
-		if (!tuples)
+		if (!tuples) {
+			SNDERR("error: cannot find tuples %s\n", ref->id);
 			return -EINVAL;
+		}
 
-		tplg_dbg("found tuples %s\n", tuples->id);
 		tokens = get_tokens(tplg, tuples);
-		if (!tokens)
+		if (!tokens) {
+			SNDERR("error: cannot find token for %s\n", ref->id);
 			return -EINVAL;
+		}
 
-		tplg_dbg("found tokens %s\n", tokens->id);
-		/* a data object can only have one tuples object */
-		return copy_tuples(elem, tuples->tuples, tokens->tokens);
+		/* a data object can have multiple tuples objects */
+		err = copy_tuples(elem, tuples->tuples, tokens->tokens);
+		if (err < 0)
+			return err;
 	}
 
 	return 0;
@@ -684,6 +686,47 @@ static int parse_tuple_sets(snd_config_t *cfg,
 		/* overlook empty tuple sets */
 		if (tuples->set[tuples->num_sets])
 			tuples->num_sets++;
+	}
+
+	return 0;
+}
+
+/* Parse tuples references for a data element, either a single tuples section
+ * or a list of tuples sections.
+ */
+static int parse_tuples_refs(snd_config_t *cfg,
+	struct tplg_elem *elem)
+{
+	snd_config_type_t  type;
+	snd_config_iterator_t i, next;
+	snd_config_t *n;
+	const char *val = NULL;
+
+	type = snd_config_get_type(cfg);
+
+	/* refer to a single tuples section */
+	if (type == SND_CONFIG_TYPE_STRING) {
+		if (snd_config_get_string(cfg, &val) < 0)
+			return -EINVAL;
+		tplg_dbg("\ttuples: %s\n", val);
+		return tplg_ref_add(elem, SND_TPLG_TYPE_TUPLE, val);
+	}
+
+	if (type != SND_CONFIG_TYPE_COMPOUND) {
+		SNDERR("error: compound type expected for %s", elem->id);
+		return -EINVAL;
+	}
+
+	/* refer to a list of data sections */
+	snd_config_for_each(i, next, cfg) {
+		const char *val;
+
+		n = snd_config_iterator_entry(i);
+		if (snd_config_get_string(n, &val) < 0)
+			continue;
+
+		tplg_dbg("\ttuples: %s\n", val);
+		tplg_ref_add(elem, SND_TPLG_TYPE_TUPLE, val);
 	}
 
 	return 0;
@@ -1002,10 +1045,9 @@ int tplg_parse_data(snd_tplg_t *tplg, snd_config_t *cfg,
 		}
 
 		if (strcmp(id, "tuples") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
-				return -EINVAL;
-			tplg_dbg(" Data: %s\n", val);
-			tplg_ref_add(elem, SND_TPLG_TYPE_TUPLE, val);
+			err = parse_tuples_refs(n, elem);
+			if (err < 0)
+				return err;
 			continue;
 		}
 
