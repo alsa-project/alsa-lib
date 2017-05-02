@@ -555,6 +555,37 @@ static void free_include_paths(struct filedesc *fd)
 	}
 }
 
+/**
+ * \brief Returns the default top-level config directory
+ * \return The top-level config directory path string
+ *
+ * This function returns the string of the top-level config directory path.
+ * If the path is specified via the environment variable \c ALSA_CONFIG_DIR
+ * and the value is a valid path, it returns this value.  If unspecified, it
+ * returns the default value, "/usr/share/alsa".
+ */
+const char *snd_config_topdir(void)
+{
+	static char *topdir;
+
+	if (!topdir) {
+		topdir = getenv("ALSA_CONFIG_DIR");
+		if (!topdir || *topdir != '/' || strlen(topdir) >= PATH_MAX)
+			topdir = ALSA_CONFIG_DIR;
+	}
+	return topdir;
+}
+
+static char *_snd_config_path(const char *name)
+{
+	const char *root = snd_config_topdir();
+	char *path = malloc(strlen(root) + strlen(name) + 2);
+	if (!path)
+		return NULL;
+	sprintf(path, "%s/%s", root, name);
+	return path;
+}
+
 /*
  * Search and open a file, and creates a new input object reading from the file.
  * param inputp - The functions puts the pointer to the new input object
@@ -589,7 +620,7 @@ static int input_stdio_open(snd_input_t **inputp, const char *file,
 		return err;
 
 	/* search file in top configuration directory /usr/share/alsa */
-	snprintf(full_path, PATH_MAX, "%s/%s", ALSA_CONFIG_DIR, file);
+	snprintf(full_path, PATH_MAX, "%s/%s", snd_config_topdir(), file);
 	err = snd_input_stdio_open(inputp, full_path, "r");
 	if (err == 0)
 		goto out;
@@ -750,16 +781,10 @@ static int get_char_skip_comments(input_t *input)
 
 			if (!strncmp(str, "searchdir:", 10)) {
 				/* directory to search included files */
-				char *tmp;
-
-				tmp = malloc(strlen(ALSA_CONFIG_DIR) + 1
-					     + strlen(str + 10) + 1);
-				if (tmp == NULL) {
-					free(str);
-					return -ENOMEM;
-				}
-				sprintf(tmp, ALSA_CONFIG_DIR "/%s", str + 10);
+				char *tmp = _snd_config_path(str + 10);
 				free(str);
+				if (tmp == NULL)
+					return -ENOMEM;
 				str = tmp;
 
 				dirp = opendir(str);
@@ -781,13 +806,10 @@ static int get_char_skip_comments(input_t *input)
 
 			if (!strncmp(str, "confdir:", 8)) {
 				/* file in the specified directory */
-				char *tmp = malloc(strlen(ALSA_CONFIG_DIR) + 1 + strlen(str + 8) + 1);
-				if (tmp == NULL) {
-					free(str);
-					return -ENOMEM;
-				}
-				sprintf(tmp, ALSA_CONFIG_DIR "/%s", str + 8);
+				char *tmp = _snd_config_path(str + 8);
 				free(str);
+				if (tmp == NULL)
+					return -ENOMEM;
 				str = tmp;
 				err = snd_input_stdio_open(&in, str, "r");
 			} else { /* absolute or relative file path */
@@ -3408,9 +3430,6 @@ int snd_config_search_alias_hooks(snd_config_t *config,
 /** The name of the environment variable containing the files list for #snd_config_update. */
 #define ALSA_CONFIG_PATH_VAR "ALSA_CONFIG_PATH"
 
-/** The name of the default files used by #snd_config_update. */
-#define ALSA_CONFIG_PATH_DEFAULT ALSA_CONFIG_DIR "/alsa.conf"
-
 /**
  * \ingroup Config
  * \brief Configuration top-level node (the global configuration).
@@ -3869,8 +3888,13 @@ int snd_config_update_r(snd_config_t **_top, snd_config_update_t **_update, cons
 	configs = cfgs;
 	if (!configs) {
 		configs = getenv(ALSA_CONFIG_PATH_VAR);
-		if (!configs || !*configs)
-			configs = ALSA_CONFIG_PATH_DEFAULT;
+		if (!configs || !*configs) {
+			const char *topdir = snd_config_topdir();
+			char *s = alloca(strlen(topdir) +
+					 strlen("alsa.conf") + 2);
+			sprintf(s, "%s/alsa.conf", topdir);
+			configs = s;
+		}
 	}
 	for (k = 0, c = configs; (l = strcspn(c, ": ")) > 0; ) {
 		c += l;

@@ -76,8 +76,11 @@ static int tplg_parse_data_file(snd_config_t *cfg, struct tplg_elem *elem)
 		return -EINVAL;
 
 	/* prepend alsa config directory to path */
-	snprintf(filename, sizeof(filename), "%s/%s",
-		env ? env : ALSA_TPLG_DIR, value);
+	if (env)
+		snprintf(filename, sizeof(filename), "%s/%s", env, value);
+	else
+		snprintf(filename, sizeof(filename), "%s/topology/%s",
+			 snd_config_topdir(), value);
 
 	fp = fopen(filename, "r");
 	if (fp == NULL) {

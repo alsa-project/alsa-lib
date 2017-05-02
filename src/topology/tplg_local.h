@@ -31,7 +31,6 @@
 
 #define MAX_FILE		256
 #define TPLG_MAX_PRIV_SIZE	(1024 * 128)
-#define ALSA_TPLG_DIR	ALSA_CONFIG_DIR "/topology"
 
 /** The name of the environment variable containing the tplg directory */
 #define ALSA_CONFIG_TPLG_VAR "ALSA_CONFIG_TPLG"

@@ -299,8 +299,12 @@ int snd_mixer_simple_basic_register(snd_mixer_t *mixer,
 	snd_mixer_class_set_private(class, priv);
 	snd_mixer_class_set_private_free(class, private_free);
 	file = getenv("ALSA_MIXER_SIMPLE");
-	if (!file)
-		file = ALSA_CONFIG_DIR "/smixer.conf";
+	if (!file) {
+		const char *topdir = snd_config_topdir();
+		char *s = alloca(strlen(topdir) + strlen("smixer.conf") + 2);
+		sprintf(s, "%s/smixer.conf", topdir);
+		file = s;
+	}
 	err = snd_config_top(&top);
 	if (err >= 0) {
 		err = snd_input_stdio_open(&input, file, "r");

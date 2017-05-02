@@ -84,6 +84,8 @@ typedef struct _snd_config_update snd_config_update_t;
 
 extern snd_config_t *snd_config;
 
+const char *snd_config_topdir(void);
+
 int snd_config_top(snd_config_t **config);
 
 int snd_config_load(snd_config_t *config, snd_input_t *in);

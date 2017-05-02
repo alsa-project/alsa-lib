@@ -1082,9 +1082,12 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 	}
 
 	/* open Verb file for reading */
-	snprintf(filename, sizeof(filename), "%s/%s/%s",
-		env ? env : ALSA_USE_CASE_DIR,
-		uc_mgr->card_name, file);
+	if (env)
+		snprintf(filename, sizeof(filename), "%s/%s/%s",
+			 env, uc_mgr->card_name, file);
+	else
+		snprintf(filename, sizeof(filename), "%s/ucm/%s/%s",
+			 snd_config_topdir(), uc_mgr->card_name, file);
 	filename[sizeof(filename)-1] = '\0';
 	
 	err = uc_mgr_config_load(filename, &cfg);
@@ -1404,9 +1407,13 @@ static int load_master_config(const char *card_name, snd_config_t **cfg)
 		return -EINVAL;
 	}
 
-	snprintf(filename, sizeof(filename)-1,
-		"%s/%s/%s.conf", env ? env : ALSA_USE_CASE_DIR,
-		card_name, card_name);
+	if (env)
+		snprintf(filename, sizeof(filename)-1,
+			 "%s/%s/%s.conf", env, card_name, card_name);
+	else
+		snprintf(filename, sizeof(filename)-1,
+			 "%s/ucm/%s/%s.conf", snd_config_topdir(),
+			 card_name, card_name);
 	filename[MAX_FILE-1] = '\0';
 
 	err = uc_mgr_config_load(filename, cfg);
@@ -1514,8 +1521,11 @@ int uc_mgr_scan_master_configs(const char **_list[])
 	ssize_t ss;
 	struct dirent **namelist;
 
-	snprintf(filename, sizeof(filename)-1,
-		"%s", env ? env : ALSA_USE_CASE_DIR);
+	if (env)
+		snprintf(filename, sizeof(filename)-1, "%s", env);
+	else
+		snprintf(filename, sizeof(filename)-1, "%s/ucm",
+			 snd_config_topdir());
 	filename[MAX_FILE-1] = '\0';
 
 #if defined(_GNU_SOURCE) && !defined(__NetBSD__) && !defined(__FreeBSD__) && !defined(__sun)

@@ -2399,7 +2399,7 @@ struct alisp_object * F_path(struct alisp_instance *instance, struct alisp_objec
 	}
 	if (!strcmp(p1->value.s, "data")) {
 		delete_tree(instance, p1);
-		return new_string(instance, ALSA_CONFIG_DIR);
+		return new_string(instance, snd_config_topdir());
 	}
 	delete_tree(instance, p1);
 	return &alsa_lisp_nil;
