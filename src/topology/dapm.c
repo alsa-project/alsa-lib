@@ -381,7 +381,7 @@ done:
 }
 
 
-static int tplg_parse_routes(snd_tplg_t *tplg, snd_config_t *cfg)
+static int tplg_parse_routes(snd_tplg_t *tplg, snd_config_t *cfg, int index)
 {
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
@@ -399,7 +399,7 @@ static int tplg_parse_routes(snd_tplg_t *tplg, snd_config_t *cfg)
 		elem = tplg_elem_new_route(tplg);
 		if (!elem)
 			return -ENOMEM;
-
+		elem->index = index;
 		line = elem->route;
 
 		err = tplg_parse_line(val, line);
@@ -419,7 +419,8 @@ int tplg_parse_dapm_graph(snd_tplg_t *tplg, snd_config_t *cfg,
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
 	int err;
-	const char *graph_id;
+	const char *graph_id, *val = NULL;
+	int index;
 
 	if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
 		SNDERR("error: compound is expected for dapm graph definition\n");
@@ -436,8 +437,14 @@ int tplg_parse_dapm_graph(snd_tplg_t *tplg, snd_config_t *cfg,
 			continue;
 		}
 
+		if (strcmp(id, "index") == 0) {
+			if (snd_config_get_string(n, &val) < 0)
+				return -EINVAL;
+			index = atoi(val);
+		}
+
 		if (strcmp(id, "lines") == 0) {
-			err = tplg_parse_routes(tplg, n);
+			err = tplg_parse_routes(tplg, n, index);
 			if (err < 0) {
 				SNDERR("error: failed to parse dapm graph %s\n",
 					graph_id);
