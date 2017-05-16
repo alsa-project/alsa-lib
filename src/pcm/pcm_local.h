@@ -35,6 +35,7 @@
 #include "local.h"
 
 #ifdef THREAD_SAFE_API
+#define __USE_UNIX98 1	/* for old glibc */
 #include <pthread.h>
 #endif
 
