@@ -490,7 +490,9 @@ static void snd_config_init_mutex(void)
 	pthread_mutexattr_t attr;
 
 	pthread_mutexattr_init(&attr);
+#ifdef HAVE_PTHREAD_MUTEX_RECURSIVE
 	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+#endif
 	pthread_mutex_init(&snd_config_update_mutex, &attr);
 	pthread_mutexattr_destroy(&attr);
 }

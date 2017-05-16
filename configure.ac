@@ -266,6 +266,15 @@ else
   AC_MSG_RESULT(no)
 fi
 
+dnl Check for pthread
+if test "$HAVE_LIBPTHREAD" = "yes"; then
+  AC_CHECK_DECL(PTHREAD_MUTEX_RECURSIVE,
+    AC_DEFINE(HAVE_PTHREAD_MUTEX_RECURSIVE, [],
+      [Define if your pthreads implementation have PTHREAD_MUTEX_RECURSIVE]),
+    ,
+    [#include <pthread.h>])
+fi
+
 dnl Check for __thread
 AC_MSG_CHECKING([for __thread])
 AC_LINK_IFELSE([AC_LANG_PROGRAM([#if defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__)) && ((__GNUC__ < 4) || (__GNUC__ == 4 && __GNUC_MINOR__ < 1) || (__GNUC__ == 4 && __GNUC_MINOR__ == 1 && __GNUC_PATCHLEVEL__ < 2))

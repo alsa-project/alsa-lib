@@ -2600,7 +2600,9 @@ int snd_pcm_new(snd_pcm_t **pcmp, snd_pcm_type_t type, const char *name,
 	INIT_LIST_HEAD(&pcm->async_handlers);
 #ifdef THREAD_SAFE_API
 	pthread_mutexattr_init(&attr);
+#ifdef HAVE_PTHREAD_MUTEX_RECURSIVE
 	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+#endif
 	pthread_mutex_init(&pcm->lock, &attr);
 	/* use locking as default;
 	 * each plugin may suppress this in its open call
