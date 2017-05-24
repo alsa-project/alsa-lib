@@ -433,6 +433,78 @@ static int check_event(struct elem_set_trial *trial, unsigned int mask,
 	return 0;
 }
 
+static int check_elem_list(struct elem_set_trial *trial)
+{
+	snd_ctl_elem_list_t *list;
+	snd_ctl_elem_id_t *id;
+	int e;
+	unsigned int i;
+	int err;
+
+	snd_ctl_elem_list_alloca(&list);
+	snd_ctl_elem_id_alloca(&id);
+
+	err = snd_ctl_elem_list(trial->handle, list);
+	if (err < 0)
+		return err;
+
+	/* Certainly some elements are already added. */
+	if (snd_ctl_elem_list_get_count(list) == 0)
+		return -EIO;
+
+	err = snd_ctl_elem_list_alloc_space(list,
+					    snd_ctl_elem_list_get_count(list));
+	if (err < 0)
+		return err;
+
+	err = snd_ctl_elem_list(trial->handle, list);
+	if (err < 0)
+		goto end;
+
+	if (trial->element_count > snd_ctl_elem_list_get_count(list)) {
+		err = -EIO;
+		goto end;
+	}
+
+	i = 0;
+	for (e = 0; e < snd_ctl_elem_list_get_count(list); ++e) {
+		snd_ctl_elem_list_get_id(list, e, id);
+
+		if (strcmp(snd_ctl_elem_id_get_name(id),
+			   snd_ctl_elem_id_get_name(trial->id)) != 0)
+			continue;
+		if (snd_ctl_elem_id_get_interface(id) !=
+		    snd_ctl_elem_id_get_interface(trial->id))
+			continue;
+		if (snd_ctl_elem_id_get_device(id) !=
+		    snd_ctl_elem_id_get_device(trial->id))
+			continue;
+		if (snd_ctl_elem_id_get_subdevice(id) !=
+		    snd_ctl_elem_id_get_subdevice(trial->id))
+			continue;
+
+		/*
+		 * Here, I expect the list includes element ID data in numerical
+		 * order. Actually, it does.
+		 */
+		if (snd_ctl_elem_id_get_numid(id) !=
+		    snd_ctl_elem_id_get_numid(trial->id) + i)
+			continue;
+		if (snd_ctl_elem_id_get_index(id) !=
+		    snd_ctl_elem_id_get_index(trial->id) + i)
+			continue;
+
+		++i;
+	}
+
+	if (i != trial->element_count)
+		err = -EIO;
+end:
+	snd_ctl_elem_list_free_space(list);
+
+	return err;
+}
+
 static int check_elem_set_props(struct elem_set_trial *trial)
 {
 	snd_ctl_elem_id_t *id;
@@ -697,6 +769,14 @@ int main(void)
 		if (err < 0) {
 			printf("Fail to check some events to add elements with "
 			       "%s type.\n",
+			       snd_ctl_elem_type_name(trial.type));
+			break;
+		}
+
+		/* Check added elements are retrieved in a list. */
+		err = check_elem_list(&trial);
+		if (err < 0) {
+			printf("Fail to list each element with %s type.\n",
 			       snd_ctl_elem_type_name(trial.type));
 			break;
 		}
