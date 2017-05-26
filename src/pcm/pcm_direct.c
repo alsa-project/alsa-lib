@@ -615,7 +615,7 @@ int snd_pcm_direct_slave_recover(snd_pcm_direct_t *direct)
 		}
 		return ret;
 	}
-	direct->shmptr->recoveries++;
+	direct->shmptr->s.recoveries++;
 	semerr = snd_pcm_direct_semaphore_up(direct,
 						 DIRECT_IPC_SEM_CLIENT);
 	if (semerr < 0) {
@@ -631,11 +631,11 @@ int snd_pcm_direct_slave_recover(snd_pcm_direct_t *direct)
  */
 int snd_pcm_direct_client_chk_xrun(snd_pcm_direct_t *direct, snd_pcm_t *pcm)
 {
-	if (direct->shmptr->recoveries != direct->recoveries) {
+	if (direct->shmptr->s.recoveries != direct->recoveries) {
 		/* no matter how many xruns we missed -
 		 * so don't increment but just update to actual counter
 		 */
-		direct->recoveries = direct->shmptr->recoveries;
+		direct->recoveries = direct->shmptr->s.recoveries;
 		pcm->fast_ops->drop(pcm);
 		/* trigger_tstamp update is missing in drop callbacks */
 		gettimestamp(&direct->trigger_tstamp, pcm->tstamp_type);
@@ -1539,7 +1539,7 @@ int snd_pcm_direct_open_secondary_client(snd_pcm_t **spcmp, snd_pcm_direct_t *dm
 	dmix->slave_buffer_size = spcm->buffer_size;
 	dmix->slave_period_size = dmix->shmptr->s.period_size;
 	dmix->slave_boundary = spcm->boundary;
-	dmix->recoveries = dmix->shmptr->recoveries;
+	dmix->recoveries = dmix->shmptr->s.recoveries;
 
 	ret = snd_pcm_mmap(spcm);
 	if (ret < 0) {

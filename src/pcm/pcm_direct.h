@@ -66,7 +66,6 @@ typedef struct {
 	char socket_name[256];			/* name of communication socket */
 	snd_pcm_type_t type;			/* PCM type (currently only hw) */
 	int use_server;
-	unsigned int recoveries;		/* no of executed recoveries on slave*/
 	struct {
 		unsigned int format;
 		snd_interval_t rate;
@@ -95,7 +94,7 @@ typedef struct {
 		unsigned int stop_threshold;	
 		unsigned int silence_threshold;
 		unsigned int silence_size;
-		unsigned int xfer_align; /* not used */
+		unsigned int recoveries;	/* no of executed recoveries on slave*/
 		unsigned long long boundary;
 		unsigned int info;
 		unsigned int msbits;
