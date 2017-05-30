@@ -227,6 +227,8 @@ static int snd_pcm_dshare_sync_ptr(snd_pcm_t *pcm)
  *  plugin implementation
  */
 
+static snd_pcm_state_t snd_pcm_dshare_state(snd_pcm_t *pcm);
+
 static int snd_pcm_dshare_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 {
 	snd_pcm_direct_t *dshare = pcm->private_data;
@@ -244,7 +246,7 @@ static int snd_pcm_dshare_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	default:
 		break;
 	}
-	status->state = snd_pcm_state(pcm);
+	status->state = snd_pcm_dshare_state(pcm);
 	status->trigger_tstamp = dshare->trigger_tstamp;
 	status->avail = snd_pcm_mmap_playback_avail(pcm);
 	status->avail_max = status->avail > dshare->avail_max ? status->avail : dshare->avail_max;
