@@ -22,7 +22,6 @@
 #include <sound/asoc.h>
 #include <sound/tlv.h>
 
-#define TPLG_DEBUG
 #ifdef TPLG_DEBUG
 #define tplg_dbg SNDERR
 #else
