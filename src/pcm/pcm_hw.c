@@ -329,14 +329,7 @@ static int snd_pcm_hw_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	params->info &= ~0xf0000000;
 	if (pcm->tstamp_type != SND_PCM_TSTAMP_TYPE_GETTIMEOFDAY)
 		params->info |= SND_PCM_INFO_MONOTONIC;
-	err = sync_ptr(hw, 0);
-	if (err < 0)
-		return err;
-	if (pcm->stream == SND_PCM_STREAM_CAPTURE) {
-		snd_pcm_set_appl_ptr(pcm, &hw->mmap_control->appl_ptr, hw->fd,
-				     SNDRV_PCM_MMAP_OFFSET_CONTROL);
-	}
-	return 0;
+	return sync_ptr(hw, 0);
 }
 
 static void snd_pcm_hw_close_timer(snd_pcm_hw_t *hw)
