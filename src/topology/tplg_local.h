@@ -37,6 +37,26 @@
 struct tplg_ref;
 struct tplg_elem;
 
+typedef enum _snd_pcm_rates {
+	SND_PCM_RATE_UNKNOWN = -1,
+	SND_PCM_RATE_5512 = 0,
+	SND_PCM_RATE_8000,
+	SND_PCM_RATE_11025,
+	SND_PCM_RATE_16000,
+	SND_PCM_RATE_22050,
+	SND_PCM_RATE_32000,
+	SND_PCM_RATE_44100,
+	SND_PCM_RATE_48000,
+	SND_PCM_RATE_64000,
+	SND_PCM_RATE_88200,
+	SND_PCM_RATE_96000,
+	SND_PCM_RATE_176400,
+	SND_PCM_RATE_192000,
+	SND_PCM_RATE_CONTINUOUS = 30,
+	SND_PCM_RATE_KNOT = 31,
+	SND_PCM_RATE_LAST = SND_PCM_RATE_KNOT,
+} snd_pcm_rates_t;
+
 struct snd_tplg {
 
 	/* opaque vendor data */

@@ -534,6 +534,7 @@ extern "C" {
  * SectionPCMCapabilities."name" {
  *
  *	formats "S24_LE,S16_LE"		# Supported formats
+ *	rates "48000"			# Supported rates
  *	rate_min "48000"		# Max supported sample rate
  *	rate_max "48000"		# Min supported sample rate
  *	channels_min "2"		# Min number of channels
