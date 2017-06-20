@@ -1494,6 +1494,16 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name, int fd,
 	if (SNDRV_PROTOCOL_INCOMPATIBLE(ver, SNDRV_PCM_VERSION_MAX))
 		return -SND_ERROR_INCOMPATIBLE_VERSION;
 
+	if (SNDRV_PROTOCOL_VERSION(2, 0, 14) <= ver) {
+		/* inform the protocol version we're supporting */
+		unsigned int user_ver = SNDRV_PCM_VERSION;
+		if (ioctl(fd, SNDRV_PCM_IOCTL_USER_PVERSION, &user_ver) < 0) {
+			ret = -errno;
+			SNDMSG("USER_PVERSION failed\n");
+			return ret;
+		}
+	}
+
 #if defined(HAVE_CLOCK_GETTIME) && defined(CLOCK_MONOTONIC)
 	if (SNDRV_PROTOCOL_VERSION(2, 0, 9) <= ver) {
 		struct timespec timespec;
