@@ -132,8 +132,7 @@ static int sync_ptr1(snd_pcm_hw_t *hw, unsigned int flags)
 {
 	int err;
 	hw->sync_ptr->flags = flags;
-	err = ioctl((hw)->fd, SNDRV_PCM_IOCTL_SYNC_PTR, (hw)->sync_ptr);
-	if (err < 0) {
+	if (ioctl(hw->fd, SNDRV_PCM_IOCTL_SYNC_PTR, hw->sync_ptr) < 0) {
 		err = -errno;
 		SYSMSG("SNDRV_PCM_IOCTL_SYNC_PTR failed (%i)", err);
 		return err;
