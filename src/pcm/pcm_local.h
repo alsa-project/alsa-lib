@@ -935,7 +935,8 @@ snd_pcm_open_slave(snd_pcm_t **pcmp, snd_config_t *root,
 
 #define snd_pcm_conf_generic_id(id) _snd_conf_generic_id(id)
 
-int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name, int fd, int mmap_emulation, int sync_ptr_ioctl);
+int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name, int fd,
+		       int sync_ptr_ioctl);
 int __snd_pcm_mmap_emul_open(snd_pcm_t **pcmp, const char *name,
 			     snd_pcm_t *slave, int close_slave);
 

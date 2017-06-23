@@ -1523,7 +1523,7 @@ int snd_pcm_direct_open_secondary_client(snd_pcm_t **spcmp, snd_pcm_direct_t *dm
 	int ret;
 	snd_pcm_t *spcm;
 
-	ret = snd_pcm_hw_open_fd(spcmp, client_name, dmix->hw_fd, 0, 0);
+	ret = snd_pcm_hw_open_fd(spcmp, client_name, dmix->hw_fd, 0);
 	if (ret < 0) {
 		SNDERR("unable to open hardware");
 		return ret;

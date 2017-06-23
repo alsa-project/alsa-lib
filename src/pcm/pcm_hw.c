@@ -1410,15 +1410,13 @@ static const snd_pcm_fast_ops_t snd_pcm_hw_fast_ops_timer = {
  * \param pcmp Returns created PCM handle
  * \param name Name of PCM
  * \param fd File descriptor
- * \param mmap_emulation Obsoleted parameter
  * \param sync_ptr_ioctl Boolean flag for sync_ptr ioctl
  * \retval zero on success otherwise a negative error code
  * \warning Using of this function might be dangerous in the sense
  *          of compatibility reasons. The prototype might be freely
  *          changed in future.
  */
-int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name,
-		       int fd, int mmap_emulation ATTRIBUTE_UNUSED,
+int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name, int fd,
 		       int sync_ptr_ioctl)
 {
 	int ver, mode;
@@ -1615,7 +1613,7 @@ int snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 		}
 	}
 	snd_ctl_close(ctl);
-	return snd_pcm_hw_open_fd(pcmp, name, fd, 0, sync_ptr_ioctl);
+	return snd_pcm_hw_open_fd(pcmp, name, fd, sync_ptr_ioctl);
        _err:
 	snd_ctl_close(ctl);
 	return ret;
