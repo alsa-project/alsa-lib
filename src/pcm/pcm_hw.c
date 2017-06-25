@@ -943,44 +943,35 @@ static int map_status_and_control_data(snd_pcm_t *pcm, bool force_fallback)
 	return 0;
 }
 
-static int unmap_status_data(snd_pcm_hw_t *hw)
+static void unmap_status_data(snd_pcm_hw_t *hw)
 {
-	int err;
-
-	if (hw->sync_ptr_ioctl) {
-		free(hw->sync_ptr);
-		hw->sync_ptr = NULL;
-	} else {
-		if (munmap((void*)hw->mmap_status, page_align(sizeof(*hw->mmap_status))) < 0) {
-			err = -errno;
-			SYSMSG("status munmap failed (%i)", err);
-			return err;
-		}
+	if (!hw->sync_ptr) {
+		if (munmap((void *)hw->mmap_status,
+			   page_align(sizeof(*hw->mmap_status))) < 0)
+			SYSMSG("status munmap failed (%u)", errno);
 	}
-	return 0;
 }
 
-static int unmap_control_data(snd_pcm_hw_t *hw)
+static void unmap_control_data(snd_pcm_hw_t *hw)
 {
-	int err;
-
-	if (hw->sync_ptr_ioctl) {
-		free(hw->sync_ptr);
-		hw->sync_ptr = NULL;
-	} else {
-		if (munmap(hw->mmap_control, page_align(sizeof(*hw->mmap_control))) < 0) {
-			err = -errno;
-			SYSMSG("control munmap failed (%i)", err);
-			return err;
-		}
+	if (!hw->sync_ptr) {
+		if (munmap((void *)hw->mmap_control,
+			   page_align(sizeof(*hw->mmap_control))) < 0)
+			SYSMSG("control munmap failed (%u)", errno);
 	}
-	return 0;
 }
 
 static void unmap_status_and_control_data(snd_pcm_hw_t *hw)
 {
 	unmap_status_data(hw);
 	unmap_control_data(hw);
+
+	if (hw->sync_ptr)
+		free(hw->sync_ptr);
+
+	hw->mmap_status = NULL;
+	hw->mmap_control = NULL;
+	hw->sync_ptr = NULL;
 }
 
 static int snd_pcm_hw_mmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
