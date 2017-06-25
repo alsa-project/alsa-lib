@@ -867,21 +867,18 @@ static snd_pcm_sframes_t snd_pcm_hw_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_u
 	return xfern.result;
 }
 
-static int map_status_data(snd_pcm_hw_t *hw)
+static int map_status_data(snd_pcm_hw_t *hw, struct snd_pcm_sync_ptr *sync_ptr)
 {
 	void *ptr;
-	int err;
+
 	ptr = MAP_FAILED;
 	if (hw->sync_ptr_ioctl == 0)
 		ptr = mmap(NULL, page_align(sizeof(struct snd_pcm_mmap_status)),
 			   PROT_READ, MAP_FILE|MAP_SHARED, 
 			   hw->fd, SNDRV_PCM_MMAP_OFFSET_STATUS);
 	if (ptr == MAP_FAILED || ptr == NULL) {
-		hw->sync_ptr = calloc(1, sizeof(struct snd_pcm_sync_ptr));
-		if (hw->sync_ptr == NULL)
-			return -ENOMEM;
-		hw->mmap_status = &hw->sync_ptr->s.status;
-		hw->mmap_control = &hw->sync_ptr->c.control;
+		hw->mmap_status = &sync_ptr->s.status;
+		hw->mmap_control = &sync_ptr->c.control;
 		hw->sync_ptr_ioctl = 1;
 	} else {
 		hw->mmap_status = ptr;
@@ -894,7 +891,7 @@ static int map_control_data(snd_pcm_hw_t *hw)
 {
 	void *ptr;
 	int err;
-	if (hw->sync_ptr == NULL) {
+	if (hw->sync_ptr_ioctl == 0) {
 		ptr = mmap(NULL, page_align(sizeof(struct snd_pcm_mmap_control)),
 			   PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, 
 			   hw->fd, SNDRV_PCM_MMAP_OFFSET_CONTROL);
@@ -912,17 +909,32 @@ static int map_control_data(snd_pcm_hw_t *hw)
 static int map_status_and_control_data(snd_pcm_t *pcm, bool force_fallback)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
+	struct snd_pcm_sync_ptr *sync_ptr;
 	int err;
+
+	/* Preparation for fallback to failure of mmap(2). */
+	sync_ptr = malloc(sizeof(*sync_ptr));
+	if (sync_ptr == NULL)
+		return -ENOMEM;
+	memset(sync_ptr, 0, sizeof(*sync_ptr));
 
 	hw->sync_ptr_ioctl = (int)force_fallback;
 
-	err = map_status_data(hw);
+	err = map_status_data(hw, sync_ptr);
 	if (err < 0)
 		return err;
 
 	err = map_control_data(hw);
 	if (err < 0)
 		return err;
+
+	/* Any fallback mode needs to keep the buffer. */
+	if (hw->sync_ptr_ioctl == 0) {
+		hw->sync_ptr = sync_ptr;
+	} else {
+		free(sync_ptr);
+		hw->sync_ptr = NULL;
+	}
 
 	/* Initialize the data. */
 	hw->mmap_control->appl_ptr = 0;
