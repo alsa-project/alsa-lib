@@ -31,6 +31,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <unistd.h>
+#include <stdbool.h>
 #include <signal.h>
 #include <string.h>
 #include <fcntl.h>
@@ -866,7 +867,7 @@ static snd_pcm_sframes_t snd_pcm_hw_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_u
 	return xfern.result;
 }
 
-static int snd_pcm_hw_mmap_status(snd_pcm_t *pcm)
+static int map_status_data(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
 	struct snd_pcm_sync_ptr sync_ptr;
@@ -900,7 +901,7 @@ static int snd_pcm_hw_mmap_status(snd_pcm_t *pcm)
 	return 0;
 }
 
-static int snd_pcm_hw_mmap_control(snd_pcm_t *pcm)
+static int map_control_data(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
 	void *ptr;
@@ -922,10 +923,28 @@ static int snd_pcm_hw_mmap_control(snd_pcm_t *pcm)
 	return 0;
 }
 
-static int snd_pcm_hw_munmap_status(snd_pcm_t *pcm)
+static int map_status_and_control_data(snd_pcm_t *pcm, bool force_fallback)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
 	int err;
+
+	hw->sync_ptr_ioctl = (int)force_fallback;
+
+	err = map_status_data(pcm);
+	if (err < 0)
+		return err;
+
+	err = map_control_data(pcm);
+	if (err < 0)
+		return err;
+
+	return 0;
+}
+
+static int unmap_status_data(snd_pcm_hw_t *hw)
+{
+	int err;
+
 	if (hw->sync_ptr_ioctl) {
 		free(hw->sync_ptr);
 		hw->sync_ptr = NULL;
@@ -939,10 +958,10 @@ static int snd_pcm_hw_munmap_status(snd_pcm_t *pcm)
 	return 0;
 }
 
-static int snd_pcm_hw_munmap_control(snd_pcm_t *pcm)
+static int unmap_control_data(snd_pcm_hw_t *hw)
 {
-	snd_pcm_hw_t *hw = pcm->private_data;
 	int err;
+
 	if (hw->sync_ptr_ioctl) {
 		free(hw->sync_ptr);
 		hw->sync_ptr = NULL;
@@ -954,6 +973,12 @@ static int snd_pcm_hw_munmap_control(snd_pcm_t *pcm)
 		}
 	}
 	return 0;
+}
+
+static void unmap_status_and_control_data(snd_pcm_hw_t *hw)
+{
+	unmap_status_data(hw);
+	unmap_control_data(hw);
 }
 
 static int snd_pcm_hw_mmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
@@ -974,8 +999,9 @@ static int snd_pcm_hw_close(snd_pcm_t *pcm)
 		err = -errno;
 		SYSMSG("close failed (%i)\n", err);
 	}
-	snd_pcm_hw_munmap_status(pcm);
-	snd_pcm_hw_munmap_control(pcm);
+
+	unmap_status_and_control_data(hw);
+
 	free(hw);
 	return err;
 }
@@ -1484,7 +1510,6 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name, int fd,
 	hw->device = info.device;
 	hw->subdevice = info.subdevice;
 	hw->fd = fd;
-	hw->sync_ptr_ioctl = sync_ptr_ioctl;
 	/* no restriction */
 	hw->format = SND_PCM_FORMAT_UNKNOWN;
 	hw->rate = 0;
@@ -1508,12 +1533,7 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name, int fd,
 #endif
 	pcm->own_state_check = 1; /* skip the common state check */
 
-	ret = snd_pcm_hw_mmap_status(pcm);
-	if (ret < 0) {
-		snd_pcm_close(pcm);
-		return ret;
-	}
-	ret = snd_pcm_hw_mmap_control(pcm);
+	ret = map_status_and_control_data(pcm, !!sync_ptr_ioctl);
 	if (ret < 0) {
 		snd_pcm_close(pcm);
 		return ret;
