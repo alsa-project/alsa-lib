@@ -95,6 +95,7 @@ typedef struct {
 	volatile struct snd_pcm_mmap_status * mmap_status;
 	struct snd_pcm_mmap_control *mmap_control;
 	bool mmap_status_fallbacked;
+	bool mmap_control_fallbacked;
 	struct snd_pcm_sync_ptr *sync_ptr;
 
 	int period_event;
@@ -143,9 +144,11 @@ static int sync_ptr1(snd_pcm_hw_t *hw, unsigned int flags)
 	return 0;
 }
 
-static inline int sync_ptr(snd_pcm_hw_t *hw, unsigned int flags)
+static int sync_ptr(snd_pcm_hw_t *hw, unsigned int flags)
 {
-	return hw->sync_ptr ? sync_ptr1(hw, flags) : 0;
+	if (hw->mmap_status_fallbacked || hw->mmap_control_fallbacked)
+		return sync_ptr1(hw, flags);
+	return 0;
 }
 
 static int snd_pcm_hw_clear_timer_queue(snd_pcm_hw_t *hw)
@@ -899,24 +902,24 @@ static bool map_control_data(snd_pcm_hw_t *hw,
 			     bool force_fallback)
 {
 	struct snd_pcm_mmap_control *mmap_control;
-	int err;
+	bool fallbacked;
 
 	if (!force_fallback) {
 		mmap_control = mmap(NULL, page_align(sizeof(*mmap_control)),
 				    PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED,
 				    hw->fd, SNDRV_PCM_MMAP_OFFSET_CONTROL);
-		if (mmap_control == MAP_FAILED || mmap_control == NULL) {
-			err = -errno;
-			SYSMSG("control mmap failed (%i)", err);
-			return err;
-		}
-	} else {
+	}
+
+	if (mmap_control == MAP_FAILED || mmap_control == NULL) {
 		mmap_control = &sync_ptr->c.control;
+		fallbacked = true;
+	} else {
+		fallbacked = false;
 	}
 
 	hw->mmap_control = mmap_control;
 
-	return 0;
+	return fallbacked;
 }
 
 static int map_status_and_control_data(snd_pcm_t *pcm, bool force_fallback)
@@ -933,12 +936,11 @@ static int map_status_and_control_data(snd_pcm_t *pcm, bool force_fallback)
 
 	hw->mmap_status_fallbacked =
 			map_status_data(hw, sync_ptr, force_fallback);
-	err = map_control_data(hw, sync_ptr, hw->mmap_status_fallbacked);
-	if (err < 0)
-		return err;
+	hw->mmap_control_fallbacked =
+			map_control_data(hw, sync_ptr, force_fallback);
 
 	/* Any fallback mode needs to keep the buffer. */
-	if (hw->mmap_status_fallbacked == 0) {
+	if (hw->mmap_status_fallbacked || hw->mmap_control_fallbacked) {
 		hw->sync_ptr = sync_ptr;
 	} else {
 		free(sync_ptr);
@@ -953,7 +955,7 @@ static int map_status_and_control_data(snd_pcm_t *pcm, bool force_fallback)
 				offsetof(struct snd_pcm_mmap_status, hw_ptr));
 	snd_pcm_set_appl_ptr(pcm, &hw->mmap_control->appl_ptr, hw->fd,
 			     SNDRV_PCM_MMAP_OFFSET_CONTROL);
-	if (hw->mmap_status_fallbacked) {
+	if (hw->mmap_control_fallbacked) {
 		if (ioctl(hw->fd, SNDRV_PCM_IOCTL_SYNC_PTR, hw->sync_ptr) < 0) {
 			err = -errno;
 			SYSMSG("SNDRV_PCM_IOCTL_SYNC_PTR failed (%i)", err);
@@ -975,7 +977,7 @@ static void unmap_status_data(snd_pcm_hw_t *hw)
 
 static void unmap_control_data(snd_pcm_hw_t *hw)
 {
-	if (!hw->mmap_status_fallbacked) {
+	if (!hw->mmap_control_fallbacked) {
 		if (munmap((void *)hw->mmap_control,
 			   page_align(sizeof(*hw->mmap_control))) < 0)
 			SYSMSG("control munmap failed (%u)", errno);
@@ -987,12 +989,13 @@ static void unmap_status_and_control_data(snd_pcm_hw_t *hw)
 	unmap_status_data(hw);
 	unmap_control_data(hw);
 
-	if (hw->mmap_status_fallbacked)
+	if (hw->mmap_status_fallbacked || hw->mmap_control_fallbacked)
 		free(hw->sync_ptr);
 
 	hw->mmap_status = NULL;
 	hw->mmap_control = NULL;
 	hw->mmap_status_fallbacked = false;
+	hw->mmap_control_fallbacked = false;
 	hw->sync_ptr = NULL;
 }
 
