@@ -151,6 +151,15 @@ static int sync_ptr(snd_pcm_hw_t *hw, unsigned int flags)
 	return 0;
 }
 
+static int issue_applptr(snd_pcm_hw_t *hw)
+{
+	if (!hw->mmap_control_fallbacked)
+		return 0;
+
+	/* Avoid unexpected change of avail_min in kernel space. */
+	return sync_ptr1(hw, SNDRV_PCM_SYNC_PTR_AVAIL_MIN);
+}
+
 static int request_hwsync(snd_pcm_hw_t *hw)
 {
 	if (!hw->mmap_status_fallbacked)
@@ -667,7 +676,7 @@ static int snd_pcm_hw_start(snd_pcm_t *pcm)
 	assert(pcm->stream != SND_PCM_STREAM_PLAYBACK ||
 	       snd_pcm_mmap_playback_hw_avail(pcm) > 0);
 #endif
-	sync_ptr(hw, 0);
+	issue_applptr(hw);
 	if (ioctl(hw->fd, SNDRV_PCM_IOCTL_START) < 0) {
 		err = -errno;
 		SYSMSG("SNDRV_PCM_IOCTL_START failed (%i)", err);
@@ -1081,7 +1090,7 @@ static snd_pcm_sframes_t snd_pcm_hw_mmap_commit(snd_pcm_t *pcm,
 	snd_pcm_hw_t *hw = pcm->private_data;
 
 	snd_pcm_mmap_appl_forward(pcm, size);
-	sync_ptr(hw, 0);
+	issue_applptr(hw);
 #ifdef DEBUG_MMAP
 	fprintf(stderr, "appl_forward: hw_ptr = %li, appl_ptr = %li, size = %li\n", *pcm->hw.ptr, *pcm->appl.ptr, size);
 #endif
