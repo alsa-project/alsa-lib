@@ -38,6 +38,14 @@ static const struct map_elem widget_map[] = {
 	{"dai_in", SND_SOC_TPLG_DAPM_DAI_IN},
 	{"dai_out", SND_SOC_TPLG_DAPM_DAI_OUT},
 	{"dai_link", SND_SOC_TPLG_DAPM_DAI_LINK},
+	{"buffer", SND_SOC_TPLG_DAPM_BUFFER},
+	{"scheduler", SND_SOC_TPLG_DAPM_SCHEDULER},
+	{"effect", SND_SOC_TPLG_DAPM_EFFECT},
+	{"siggen", SND_SOC_TPLG_DAPM_SIGGEN},
+	{"src", SND_SOC_TPLG_DAPM_SRC},
+	{"asrc", SND_SOC_TPLG_DAPM_ASRC},
+	{"encoder", SND_SOC_TPLG_DAPM_ENCODER},
+	{"decoder", SND_SOC_TPLG_DAPM_DECODER},
 };
 
 static int lookup_widget(const char *w)
