@@ -151,6 +151,21 @@ static int sync_ptr(snd_pcm_hw_t *hw, unsigned int flags)
 	return 0;
 }
 
+static int request_hwsync(snd_pcm_hw_t *hw)
+{
+	if (!hw->mmap_status_fallbacked)
+		return 0;
+
+	/*
+	 * Query both of control/status data to avoid unexpected change of
+	 * control data in kernel space.
+	 */
+	return sync_ptr1(hw,
+			 SNDRV_PCM_SYNC_PTR_HWSYNC |
+			 SNDRV_PCM_SYNC_PTR_APPL |
+			 SNDRV_PCM_SYNC_PTR_AVAIL_MIN);
+}
+
 static int query_status_and_control_data(snd_pcm_hw_t *hw)
 {
 	if (!hw->mmap_control_fallbacked)
@@ -593,8 +608,8 @@ static int snd_pcm_hw_hwsync(snd_pcm_t *pcm)
 	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd, err;
 	if (SNDRV_PROTOCOL_VERSION(2, 0, 3) <= hw->version) {
-		if (hw->sync_ptr) {
-			err = sync_ptr1(hw, SNDRV_PCM_SYNC_PTR_HWSYNC);
+		if (hw->mmap_status_fallbacked) {
+			err = request_hwsync(hw);
 			if (err < 0)
 				return err;
 		} else {
