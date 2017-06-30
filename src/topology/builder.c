@@ -67,9 +67,10 @@ static int write_block_header(snd_tplg_t *tplg, unsigned int type,
 		exit(-EINVAL);
 	}
 
-	verbose(tplg, " header type %d size 0x%lx/%ld vendor %d "
-		"version %d\n", type, (long unsigned int)payload_size,
-		(long int)payload_size, vendor_type, version);
+	verbose(tplg, " header index %d type %d count %d size 0x%lx/%ld vendor %d "
+		"version %d\n", index, type, count,
+		(long unsigned int)payload_size, (long int)payload_size,
+		vendor_type, version);
 
 	tplg->next_hdr_pos += hdr.payload_size + sizeof(hdr);
 
@@ -119,8 +120,10 @@ static int write_elem_block(snd_tplg_t *tplg,
 					verbose(tplg, " %s '%s': write %d bytes\n",
 						obj_name, elem->id, elem->size);
 				else
-					verbose(tplg, " %s '%s': write %d bytes\n",
-						obj_name, elem->route->source, elem->size);
+					verbose(tplg, " %s '%s -> %s -> %s': write %d bytes\n",
+						obj_name, elem->route->source,
+						elem->route->control,
+						elem->route->sink, elem->size);
 
 				wsize = write(tplg->out_fd, elem->obj, elem->size);
 				if (wsize < 0) {
