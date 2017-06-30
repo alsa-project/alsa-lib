@@ -144,13 +144,6 @@ static int sync_ptr1(snd_pcm_hw_t *hw, unsigned int flags)
 	return 0;
 }
 
-static int sync_ptr(snd_pcm_hw_t *hw, unsigned int flags)
-{
-	if (hw->mmap_status_fallbacked || hw->mmap_control_fallbacked)
-		return sync_ptr1(hw, flags);
-	return 0;
-}
-
 static int issue_avail_min(snd_pcm_hw_t *hw)
 {
 	if (!hw->mmap_control_fallbacked)
@@ -777,9 +770,6 @@ static snd_pcm_sframes_t snd_pcm_hw_forward(snd_pcm_t *pcm, snd_pcm_uframes_t fr
 	} else {
 		snd_pcm_sframes_t avail;
 
-		err = sync_ptr(hw, SNDRV_PCM_SYNC_PTR_HWSYNC);
-		if (err < 0)
-			return err;
 		switch (FAST_PCM_STATE(hw)) {
 		case SNDRV_PCM_STATE_RUNNING:
 		case SNDRV_PCM_STATE_DRAINING:
@@ -797,9 +787,6 @@ static snd_pcm_sframes_t snd_pcm_hw_forward(snd_pcm_t *pcm, snd_pcm_uframes_t fr
 		if (frames > (snd_pcm_uframes_t)avail)
 			frames = avail;
 		snd_pcm_mmap_appl_forward(pcm, frames);
-		err = sync_ptr(hw, 0);
-		if (err < 0)
-			return err;
 		return frames;
 	}
 }
