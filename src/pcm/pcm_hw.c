@@ -904,6 +904,7 @@ static bool map_control_data(snd_pcm_hw_t *hw,
 	struct snd_pcm_mmap_control *mmap_control;
 	bool fallbacked;
 
+	mmap_control = MAP_FAILED;
 	if (!force_fallback) {
 		mmap_control = mmap(NULL, page_align(sizeof(*mmap_control)),
 				    PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED,
