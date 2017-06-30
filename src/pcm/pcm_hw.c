@@ -165,6 +165,20 @@ static int query_status_and_control_data(snd_pcm_hw_t *hw)
 			 SNDRV_PCM_SYNC_PTR_AVAIL_MIN);
 }
 
+static int query_status_data(snd_pcm_hw_t *hw)
+{
+	if (!hw->mmap_status_fallbacked)
+		return 0;
+
+	/*
+	 * Query both of control/status data to avoid unexpected change of
+	 * control data in kernel space.
+	 */
+	return sync_ptr1(hw,
+			 SNDRV_PCM_SYNC_PTR_APPL |
+			 SNDRV_PCM_SYNC_PTR_AVAIL_MIN);
+}
+
 static int snd_pcm_hw_clear_timer_queue(snd_pcm_hw_t *hw)
 {
 	if (hw->period_timer_need_poll) {
@@ -349,7 +363,7 @@ static int snd_pcm_hw_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	params->info &= ~0xf0000000;
 	if (pcm->tstamp_type != SND_PCM_TSTAMP_TYPE_GETTIMEOFDAY)
 		params->info |= SND_PCM_INFO_MONOTONIC;
-	return sync_ptr(hw, 0);
+	return query_status_data(hw);
 }
 
 static void snd_pcm_hw_close_timer(snd_pcm_hw_t *hw)
@@ -556,7 +570,7 @@ static int snd_pcm_hw_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 static snd_pcm_state_t snd_pcm_hw_state(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
-	int err = sync_ptr(hw, 0);
+	int err = query_status_data(hw);
 	if (err < 0)
 		return err;
 	return (snd_pcm_state_t) hw->mmap_status->state;
@@ -1064,7 +1078,7 @@ static snd_pcm_sframes_t snd_pcm_hw_avail_update(snd_pcm_t *pcm)
 	snd_pcm_hw_t *hw = pcm->private_data;
 	snd_pcm_uframes_t avail;
 
-	sync_ptr(hw, 0);
+	query_status_data(hw);
 	avail = snd_pcm_mmap_avail(pcm);
 	switch (FAST_PCM_STATE(hw)) {
 	case SNDRV_PCM_STATE_RUNNING:
