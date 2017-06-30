@@ -957,11 +957,9 @@ static int map_status_and_control_data(snd_pcm_t *pcm, bool force_fallback)
 	snd_pcm_set_appl_ptr(pcm, &hw->mmap_control->appl_ptr, hw->fd,
 			     SNDRV_PCM_MMAP_OFFSET_CONTROL);
 	if (hw->mmap_control_fallbacked) {
-		if (ioctl(hw->fd, SNDRV_PCM_IOCTL_SYNC_PTR, hw->sync_ptr) < 0) {
-			err = -errno;
-			SYSMSG("SNDRV_PCM_IOCTL_SYNC_PTR failed (%i)", err);
+		err = sync_ptr1(hw, 0);
+		if (err < 0)
 			return err;
-		}
 	}
 
 	return 0;
