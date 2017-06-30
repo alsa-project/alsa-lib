@@ -151,6 +151,15 @@ static int sync_ptr(snd_pcm_hw_t *hw, unsigned int flags)
 	return 0;
 }
 
+static int issue_avail_min(snd_pcm_hw_t *hw)
+{
+	if (!hw->mmap_control_fallbacked)
+		return 0;
+
+	/* Avoid unexpected change of applptr in kernel space. */
+	return sync_ptr1(hw, SNDRV_PCM_SYNC_PTR_APPL);
+}
+
 static int issue_applptr(snd_pcm_hw_t *hw)
 {
 	if (!hw->mmap_control_fallbacked)
@@ -506,7 +515,7 @@ static int snd_pcm_hw_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 	    params->silence_size == pcm->silence_size &&
 	    old_period_event == hw->period_event) {
 		hw->mmap_control->avail_min = params->avail_min;
-		return sync_ptr(hw, 0);
+		return issue_avail_min(hw);
 	}
 	if (params->tstamp_type == SND_PCM_TSTAMP_TYPE_MONOTONIC_RAW &&
 	    hw->version < SNDRV_PROTOCOL_VERSION(2, 0, 12)) {
