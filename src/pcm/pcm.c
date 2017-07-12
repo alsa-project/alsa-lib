@@ -651,7 +651,7 @@ playback devices.
 #include <stdarg.h>
 #include <signal.h>
 #include <ctype.h>
-#include <sys/poll.h>
+#include <poll.h>
 #include <sys/mman.h>
 #include <limits.h>
 #include "pcm_local.h"

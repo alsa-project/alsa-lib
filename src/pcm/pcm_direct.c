@@ -30,7 +30,7 @@
 #include <grp.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
-#include <sys/poll.h>
+#include <poll.h>
 #include <sys/shm.h>
 #include <sys/sem.h>
 #include <sys/wait.h>

@@ -22,7 +22,7 @@
 #include <stdio.h>
 #include <malloc.h>
 #include <string.h>
-#include <sys/poll.h>
+#include <poll.h>
 #include <sys/mman.h>
 #ifdef HAVE_SYS_SHM_H
 #include <sys/shm.h>

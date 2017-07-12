@@ -34,7 +34,7 @@
 #include <signal.h>
 #include <math.h>
 #include <sys/socket.h>
-#include <sys/poll.h>
+#include <poll.h>
 #include <pthread.h>
 #include "pcm_local.h"
 

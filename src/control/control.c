@@ -90,7 +90,7 @@ against the original design.
 #include <string.h>
 #include <fcntl.h>
 #include <signal.h>
-#include <sys/poll.h>
+#include <poll.h>
 #include <stdbool.h>
 #include "control_local.h"
 

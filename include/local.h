@@ -47,7 +47,7 @@
 #error Header defining endianness not defined
 #endif
 #include <stdarg.h>
-#include <sys/poll.h>
+#include <poll.h>
 #include <sys/types.h>
 #include <errno.h>
 #if defined(__linux__)

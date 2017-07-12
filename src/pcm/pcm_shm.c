@@ -36,7 +36,7 @@
 #include <sys/ioctl.h>
 #include <sys/shm.h>
 #include <sys/socket.h>
-#include <sys/poll.h>
+#include <poll.h>
 #include <sys/un.h>
 #include <sys/mman.h>
 #include <netinet/in.h>
