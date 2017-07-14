@@ -21,6 +21,7 @@
 #include <config.h>
 #include <string.h>
 #include <errno.h>
+#include <assert.h>
 
 /**
  * \brief Get the full file name
@@ -32,14 +33,13 @@
  * stores the first matchine one.  The returned string is strdup'ed.
  */
 
-#ifdef HAVE_WORDEXP_H
+#ifdef HAVE_WORDEXP
 #include <wordexp.h>
-#include <assert.h>
 int snd_user_file(const char *file, char **result)
 {
 	wordexp_t we;
 	int err;
-	
+
 	assert(file && result);
 	err = wordexp(file, &we, WRDE_NOCMD);
 	switch (err) {
@@ -61,13 +61,62 @@ int snd_user_file(const char *file, char **result)
 	return 0;
 }
 
-#else /* !HAVE_WORDEXP_H */
-/* just copy the string - would be nicer to expand by ourselves, though... */
+#else /* !HAVE_WORDEX */
+
+#include <sys/types.h>
+#include <unistd.h>
+#include <pwd.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 int snd_user_file(const char *file, char **result)
 {
-	*result = strdup(file);
-	if (! *result)
+	int err;
+	size_t len;
+	char *buf = NULL;
+
+	assert(file && result);
+	*result = NULL;
+
+	/* expand ~/ if needed */
+	if (file[0] == '~' && file[1] == '/') {
+		const char *home = getenv("HOME");
+		if (home == NULL) {
+			struct passwd pwent, *p = NULL;
+			uid_t id = getuid();
+			size_t bufsize = 1024;
+
+			buf = malloc(bufsize);
+			if (buf == NULL)
+				goto out;
+
+			while ((err = getpwuid_r(id, &pwent, buf, bufsize, &p)) == ERANGE) {
+				char *newbuf;
+				bufsize += 1024;
+				if (bufsize < 1024)
+					break;
+				newbuf = realloc(buf, bufsize);
+				if (newbuf == NULL)
+					goto out;
+				buf = newbuf;
+			}
+			home = err ? "" : pwent.pw_dir;
+		}
+		len = strlen(home) + strlen(&file[2]) + 2;
+		*result = malloc(len);
+		if (*result)
+			snprintf(*result, len, "%s/%s", home, &file[2]);
+	} else {
+		*result = strdup(file);
+	}
+
+out:
+	if (buf)
+		free(buf);
+
+	if (*result == NULL)
 		return -ENOMEM;
 	return 0;
 }
-#endif /* HAVE_WORDEXP_H */
+
+#endif /* HAVE_WORDEXP */

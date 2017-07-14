@@ -303,8 +303,25 @@ fi
 
 AC_SUBST(ALSA_DEPLIBS)
 
+dnl Check for use of wordexp...
+AC_MSG_CHECKING(for use of wordexp)
+AC_ARG_WITH(wordexp,
+  AS_HELP_STRING([--with-wordexp],
+    [Use wordexp when expanding configs (default = no)]),
+  [case "$withval" in
+	y|yes) wordexp=yes ;;
+	*) wordexp=no ;;
+   esac],)
+if test "$wordexp" = "yes" ; then
+  AC_DEFINE(HAVE_WORDEXP, "1", [Enable use of wordexp])
+  AC_MSG_RESULT(yes)
+  AC_CHECK_HEADER([wordexp.h],[], [AC_MSG_ERROR([Couldn't find wordexp.h])])
+else
+  AC_MSG_RESULT(no)
+fi
+
 dnl Check for headers
-AC_CHECK_HEADERS([wordexp.h endian.h sys/endian.h sys/shm.h])
+AC_CHECK_HEADERS([endian.h sys/endian.h sys/shm.h])
 
 dnl Check for resmgr support...
 AC_MSG_CHECKING(for resmgr support)
