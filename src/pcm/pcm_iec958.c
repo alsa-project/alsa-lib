@@ -102,7 +102,7 @@ static unsigned int iec958_parity(unsigned int data)
  *     31   = parity
  */
 
-static inline u_int32_t iec958_subframe(snd_pcm_iec958_t *iec, u_int32_t data, int channel)
+static inline uint32_t iec958_subframe(snd_pcm_iec958_t *iec, uint32_t data, int channel)
 {
 	unsigned int byte = iec->counter >> 3;
 	unsigned int mask = 1 << (iec->counter - (byte << 3));
@@ -132,7 +132,7 @@ static inline u_int32_t iec958_subframe(snd_pcm_iec958_t *iec, u_int32_t data, i
 	return data;
 }
 
-static inline int32_t iec958_to_s32(snd_pcm_iec958_t *iec, u_int32_t data)
+static inline int32_t iec958_to_s32(snd_pcm_iec958_t *iec, uint32_t data)
 {
 	if (iec->byteswap)
 		data = bswap_32(data);
@@ -155,7 +155,7 @@ static void snd_pcm_iec958_decode(snd_pcm_iec958_t *iec,
 	void *put = put32_labels[iec->getput_idx];
 	unsigned int channel;
 	for (channel = 0; channel < channels; ++channel) {
-		const u_int32_t *src;
+		const uint32_t *src;
 		char *dst;
 		int src_step, dst_step;
 		snd_pcm_uframes_t frames1;
@@ -163,7 +163,7 @@ static void snd_pcm_iec958_decode(snd_pcm_iec958_t *iec,
 		const snd_pcm_channel_area_t *dst_area = &dst_areas[channel];
 		src = snd_pcm_channel_area_addr(src_area, src_offset);
 		dst = snd_pcm_channel_area_addr(dst_area, dst_offset);
-		src_step = snd_pcm_channel_area_step(src_area) / sizeof(u_int32_t);
+		src_step = snd_pcm_channel_area_step(src_area) / sizeof(uint32_t);
 		dst_step = snd_pcm_channel_area_step(dst_area);
 		frames1 = frames;
 		while (frames1-- > 0) {
@@ -195,7 +195,7 @@ static void snd_pcm_iec958_encode(snd_pcm_iec958_t *iec,
 	int counter = iec->counter;
 	for (channel = 0; channel < channels; ++channel) {
 		const char *src;
-		u_int32_t *dst;
+		uint32_t *dst;
 		int src_step, dst_step;
 		snd_pcm_uframes_t frames1;
 		const snd_pcm_channel_area_t *src_area = &src_areas[channel];
@@ -203,7 +203,7 @@ static void snd_pcm_iec958_encode(snd_pcm_iec958_t *iec,
 		src = snd_pcm_channel_area_addr(src_area, src_offset);
 		dst = snd_pcm_channel_area_addr(dst_area, dst_offset);
 		src_step = snd_pcm_channel_area_step(src_area);
-		dst_step = snd_pcm_channel_area_step(dst_area) / sizeof(u_int32_t);
+		dst_step = snd_pcm_channel_area_step(dst_area) / sizeof(uint32_t);
 		frames1 = frames;
 		iec->counter = counter;
 		while (frames1-- > 0) {

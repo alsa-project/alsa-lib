@@ -346,7 +346,7 @@ static int linear_init(void *obj, snd_pcm_rate_info_t *info)
 			rate->func = linear_shrink;
 		/* pitch is get_increment */
 	}
-	rate->pitch = (((u_int64_t)info->out.rate * LINEAR_DIV) +
+	rate->pitch = (((uint64_t)info->out.rate * LINEAR_DIV) +
 		       (info->in.rate / 2)) / info->in.rate;
 	rate->channels = info->channels;
 
@@ -363,7 +363,7 @@ static int linear_adjust_pitch(void *obj, snd_pcm_rate_info_t *info)
 	struct rate_linear *rate = obj;
 	snd_pcm_uframes_t cframes;
 
-	rate->pitch = (((u_int64_t)info->out.period_size * LINEAR_DIV) +
+	rate->pitch = (((uint64_t)info->out.period_size * LINEAR_DIV) +
 		       (info->in.period_size/2) ) / info->in.period_size;
 			
 	cframes = input_frames(rate, info->out.period_size);

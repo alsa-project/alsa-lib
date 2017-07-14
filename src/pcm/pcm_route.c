@@ -190,7 +190,7 @@ static void snd_pcm_route_convert1_one_getput(const snd_pcm_channel_area_t *dst_
 	const char *src;
 	char *dst;
 	int src_step, dst_step;
-	u_int32_t sample = 0;
+	uint32_t sample = 0;
 	for (srcidx = 0; srcidx < ttable->nsrcs && srcidx < src_channels; ++srcidx) {
 		unsigned int channel = ttable->srcs[srcidx].channel;
 		if (channel >= src_channels)

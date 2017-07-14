@@ -183,7 +183,7 @@ void snd_pcm_linear_getput(const snd_pcm_channel_area_t *dst_areas, snd_pcm_ufra
 	void *get = get32_labels[get_idx];
 	void *put = put32_labels[put_idx];
 	unsigned int channel;
-	u_int32_t sample = 0;
+	uint32_t sample = 0;
 	for (channel = 0; channel < channels; ++channel) {
 		const char *src;
 		char *dst;

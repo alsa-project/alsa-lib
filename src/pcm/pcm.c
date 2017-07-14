@@ -2894,7 +2894,7 @@ int snd_pcm_area_silence(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes
 	char *dst;
 	unsigned int dst_step;
 	int width;
-	u_int64_t silence;
+	uint64_t silence;
 	if (!dst_area->addr)
 		return 0;
 	dst = snd_pcm_channel_area_addr(dst_area, dst_offset);
@@ -2902,7 +2902,7 @@ int snd_pcm_area_silence(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes
 	silence = snd_pcm_format_silence_64(format);
 	if (dst_area->step == (unsigned int) width) {
 		unsigned int dwords = samples * width / 64;
-		u_int64_t *dstp = (u_int64_t *)dst;
+		uint64_t *dstp = (uint64_t *)dst;
 		samples -= dwords * 64 / width;
 		while (dwords-- > 0)
 			*dstp++ = silence;
@@ -2912,8 +2912,8 @@ int snd_pcm_area_silence(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes
 	dst_step = dst_area->step / 8;
 	switch (width) {
 	case 4: {
-		u_int8_t s0 = silence & 0xf0;
-		u_int8_t s1 = silence & 0x0f;
+		uint8_t s0 = silence & 0xf0;
+		uint8_t s1 = silence & 0x0f;
 		int dstbit = dst_area->first % 8;
 		int dstbit_step = dst_area->step % 8;
 		while (samples-- > 0) {
@@ -2934,7 +2934,7 @@ int snd_pcm_area_silence(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes
 		break;
 	}
 	case 8: {
-		u_int8_t sil = silence;
+		uint8_t sil = silence;
 		while (samples-- > 0) {
 			*dst = sil;
 			dst += dst_step;
@@ -2942,9 +2942,9 @@ int snd_pcm_area_silence(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes
 		break;
 	}
 	case 16: {
-		u_int16_t sil = silence;
+		uint16_t sil = silence;
 		while (samples-- > 0) {
-			*(u_int16_t*)dst = sil;
+			*(uint16_t*)dst = sil;
 			dst += dst_step;
 		}
 		break;
@@ -2961,16 +2961,16 @@ int snd_pcm_area_silence(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes
 #endif
 		break;
 	case 32: {
-		u_int32_t sil = silence;
+		uint32_t sil = silence;
 		while (samples-- > 0) {
-			*(u_int32_t*)dst = sil;
+			*(uint32_t*)dst = sil;
 			dst += dst_step;
 		}
 		break;
 	}
 	case 64: {
 		while (samples-- > 0) {
-			*(u_int64_t*)dst = silence;
+			*(uint64_t*)dst = silence;
 			dst += dst_step;
 		}
 		break;
@@ -3114,7 +3114,7 @@ int snd_pcm_area_copy(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes_t 
 	}
 	case 16: {
 		while (samples-- > 0) {
-			*(u_int16_t*)dst = *(const u_int16_t*)src;
+			*(uint16_t*)dst = *(const uint16_t*)src;
 			src += src_step;
 			dst += dst_step;
 		}
@@ -3131,7 +3131,7 @@ int snd_pcm_area_copy(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes_t 
 		break;
 	case 32: {
 		while (samples-- > 0) {
-			*(u_int32_t*)dst = *(const u_int32_t*)src;
+			*(uint32_t*)dst = *(const uint32_t*)src;
 			src += src_step;
 			dst += dst_step;
 		}
@@ -3139,7 +3139,7 @@ int snd_pcm_area_copy(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes_t 
 	}
 	case 64: {
 		while (samples-- > 0) {
-			*(u_int64_t*)dst = *(const u_int64_t*)src;
+			*(uint64_t*)dst = *(const uint64_t*)src;
 			src += src_step;
 			dst += dst_step;
 		}

@@ -47,18 +47,6 @@
 #ifndef __le64
 #define __le64	uint64_t
 #endif
-#ifndef u_int8_t
-#define u_int8_t	uint8_t
-#endif
-#ifndef u_int16_t
-#define u_int16_t	uint16_t
-#endif
-#ifndef u_int32_t
-#define u_int32_t	uint32_t
-#endif
-#ifndef u_int32_t
-#define u_int32_t	uint64_t
-#endif
 #ifndef __kernel_pid_t
 #define __kernel_pid_t	pid_t
 #endif
