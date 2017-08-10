@@ -108,6 +108,7 @@ SectionDevice."Handset" {
 	EnableSequence [
 		cdev "hw:0"
 		cset "name='DEC1 MUX' ADC2"
+		cset "name='CIC1 MUX' AMIC"
 		cset "name='ADC2 Volume' 8"
 		cset "name='ADC2 MUX' INP2"
 	]
@@ -130,6 +131,7 @@ SectionDevice."Primarymic" {
 	EnableSequence [
 		cdev "hw:0"
 		cset "name='DEC1 MUX' ADC1"
+		cset "name='CIC1 MUX' AMIC"
 		cset "name='ADC1 Volume' 8"
 	]
 
@@ -150,6 +152,7 @@ SectionDevice."Secondarymic" {
 	EnableSequence [
 		cdev "hw:0"
 		cset "name='DEC1 MUX' ADC2"
+		cset "name='CIC1 MUX' AMIC"
 		cset "name='ADC2 Volume' 8"
 		cset "name='ADC2 MUX' INP2"
 	]
@@ -172,6 +175,7 @@ SectionDevice."DMIC" {
 	EnableSequence [
 		cdev "hw:0"
 		cset "name='DEC1 MUX' DMIC1"
+		cset "name='CIC1 MUX' DMIC"
 	]
 
 	DisableSequence [
