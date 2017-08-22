@@ -50,7 +50,9 @@ struct snd_soc_tplg_private *get_priv_data(struct tplg_elem *elem)
 	case SND_TPLG_TYPE_DAI:
 		priv = &elem->dai->priv;
 		break;
-
+	case SND_TPLG_TYPE_BE:
+		priv = &elem->link->priv;
+		break;
 	default:
 		SNDERR("error: '%s': no support for private data for type %d\n",
 			elem->id, elem->type);
