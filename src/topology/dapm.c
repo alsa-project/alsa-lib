@@ -279,7 +279,7 @@ int tplg_build_routes(snd_tplg_t *tplg)
 
 		}
 		if (!tplg_elem_lookup(&tplg->widget_list, route->sink,
-			SND_TPLG_TYPE_DAPM_WIDGET, elem->index)) {
+			SND_TPLG_TYPE_DAPM_WIDGET, SND_TPLG_INDEX_ALL)) {
 			SNDERR("warning: undefined sink widget/stream '%s'\n",
 				route->sink);
 		}
@@ -302,7 +302,7 @@ int tplg_build_routes(snd_tplg_t *tplg)
 
 		}
 		if (!tplg_elem_lookup(&tplg->widget_list, route->source,
-			SND_TPLG_TYPE_DAPM_WIDGET, elem->index)) {
+			SND_TPLG_TYPE_DAPM_WIDGET, SND_TPLG_INDEX_ALL)) {
 			SNDERR("warning: Undefined source widget/stream '%s'\n",
 				route->source);
 		}

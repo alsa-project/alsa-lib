@@ -123,7 +123,7 @@ struct tplg_elem *tplg_elem_lookup(struct list_head *base, const char* id,
 			return elem;
 		/* SND_TPLG_INDEX_ALL is the default value "0" and applicable
 		   for all use cases */
-		if ((elem->index != SND_TPLG_INDEX_ALL)
+		if ((index != SND_TPLG_INDEX_ALL)
 			&& (elem->index > index))
 			break;
 	}
