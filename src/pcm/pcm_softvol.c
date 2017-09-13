@@ -251,6 +251,44 @@ static inline short MULTI_DIV_short(short a, unsigned int b, int swap)
 		}							\
 	}								\
 } while (0)
+
+#define CONVERT_AREA_S24_LE() do {					\
+	unsigned int ch, fr;						\
+	int *src, *dst;							\
+	int tmp;							\
+	for (ch = 0; ch < channels; ch++) {				\
+		src_area = &src_areas[ch];				\
+		dst_area = &dst_areas[ch];				\
+		src = snd_pcm_channel_area_addr(src_area, src_offset);	\
+		dst = snd_pcm_channel_area_addr(dst_area, dst_offset);	\
+		src_step = snd_pcm_channel_area_step(src_area)		\
+				/ sizeof(int);				\
+		dst_step = snd_pcm_channel_area_step(dst_area)		\
+				/ sizeof(int);				\
+		GET_VOL_SCALE;						\
+		fr = frames;						\
+		if (! vol_scale) {					\
+			while (fr--) {					\
+				*dst = 0;				\
+				dst += dst_step;			\
+			}						\
+		} else if (vol_scale == 0xffff) {			\
+			while (fr--) {					\
+				*dst = *src;				\
+				src += dst_step;			\
+				dst += src_step;			\
+			}						\
+		} else {						\
+			while (fr--) {					\
+				tmp = *src << 8;			\
+				tmp = (signed int) tmp >> 8;		\
+				*dst = MULTI_DIV_24(tmp, vol_scale);	\
+				src += dst_step;			\
+				dst += src_step;			\
+			}						\
+		}							\
+	}								\
+} while (0)
 		
 #define GET_VOL_SCALE \
 	switch (ch) { \
@@ -315,6 +353,10 @@ static void softvol_convert_stereo_vol(snd_pcm_softvol_t *svol,
 		CONVERT_AREA(int,
 			     !snd_pcm_format_cpu_endian(svol->sformat));
 		break;
+	case SND_PCM_FORMAT_S24_LE:
+		/* 24bit samples */
+		CONVERT_AREA_S24_LE();
+		break;
 	case SND_PCM_FORMAT_S24_3LE:
 		CONVERT_AREA_S24_3LE();
 		break;
@@ -365,6 +407,10 @@ static void softvol_convert_mono_vol(snd_pcm_softvol_t *svol,
 		/* 32bit samples */
 		CONVERT_AREA(int,
 			     !snd_pcm_format_cpu_endian(svol->sformat));
+		break;
+	case SND_PCM_FORMAT_S24_LE:
+		/* 24bit samples */
+		CONVERT_AREA_S24_LE();
 		break;
 	case SND_PCM_FORMAT_S24_3LE:
 		CONVERT_AREA_S24_3LE();
@@ -422,6 +468,7 @@ static int snd_pcm_softvol_hw_refine_cprepare(snd_pcm_t *pcm,
 		{
 			(1ULL << SND_PCM_FORMAT_S16_LE) |
 			(1ULL << SND_PCM_FORMAT_S16_BE) |
+			(1ULL << SND_PCM_FORMAT_S24_LE) |
 			(1ULL << SND_PCM_FORMAT_S32_LE) |
  			(1ULL << SND_PCM_FORMAT_S32_BE),
 			(1ULL << (SND_PCM_FORMAT_S24_3LE - 32))
@@ -577,10 +624,11 @@ static int snd_pcm_softvol_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * param
 	if (slave->format != SND_PCM_FORMAT_S16_LE &&
 	    slave->format != SND_PCM_FORMAT_S16_BE &&
 	    slave->format != SND_PCM_FORMAT_S24_3LE && 
+	    slave->format != SND_PCM_FORMAT_S24_LE &&
 	    slave->format != SND_PCM_FORMAT_S32_LE &&
 	    slave->format != SND_PCM_FORMAT_S32_BE) {
-		SNDERR("softvol supports only S16_LE, S16_BE, S24_3LE, S32_LE "
-		       " or S32_BE");
+		SNDERR("softvol supports only S16_LE, S16_BE, S24_LE, S24_3LE, "
+		       "S32_LE or S32_BE");
 		return -EINVAL;
 	}
 	svol->sformat = slave->format;
@@ -863,6 +911,7 @@ int snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 	    sformat != SND_PCM_FORMAT_S16_LE &&
 	    sformat != SND_PCM_FORMAT_S16_BE &&
 	    sformat != SND_PCM_FORMAT_S24_3LE && 
+	    sformat != SND_PCM_FORMAT_S24_LE &&
 	    sformat != SND_PCM_FORMAT_S32_LE &&
 	    sformat != SND_PCM_FORMAT_S32_BE)
 		return -EINVAL;
@@ -1082,9 +1131,10 @@ int _snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 		    sformat != SND_PCM_FORMAT_S16_LE &&
 		    sformat != SND_PCM_FORMAT_S16_BE &&
 		    sformat != SND_PCM_FORMAT_S24_3LE && 
+		    sformat != SND_PCM_FORMAT_S24_LE &&
 		    sformat != SND_PCM_FORMAT_S32_LE &&
 		    sformat != SND_PCM_FORMAT_S32_BE) {
-			SNDERR("only S16_LE, S16_BE, S24_3LE, S32_LE or S32_BE format is supported");
+			SNDERR("only S16_LE, S16_BE, S24_LE, S24_3LE, S32_LE or S32_BE format is supported");
 			snd_config_delete(sconf);
 			return -EINVAL;
 		}
