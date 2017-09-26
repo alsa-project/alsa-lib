@@ -283,6 +283,12 @@ void event_decoder(snd_seq_t *handle, int argc, char *argv[])
 	snd_seq_port_info_set_name(pinfo, "Input");
 	snd_seq_port_info_set_type(pinfo, SND_SEQ_PORT_TYPE_MIDI_GENERIC);
 	snd_seq_port_info_set_capability(pinfo, SND_SEQ_PORT_CAP_WRITE | SND_SEQ_PORT_CAP_READ | SND_SEQ_PORT_CAP_SUBS_WRITE);
+
+	/* Enable timestamping for events sent by external subscribers. */
+	snd_seq_port_info_set_timestamping(pinfo, 1);
+	snd_seq_port_info_set_timestamp_real(pinfo, 1);
+	snd_seq_port_info_set_timestamp_queue(pinfo, queue);
+
 	if ((err = snd_seq_create_port(handle, pinfo)) < 0) {
 		fprintf(stderr, "Cannot create input port: %s\n", snd_strerror(err));
 		return;
