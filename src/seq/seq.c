@@ -452,13 +452,13 @@ For setting these tempo parameters, use #snd_seq_queue_tempo_t record.
 For example, to set the tempo of the queue <code>q</code> to
 48 PPQ, 60 BPM,
 \code
-void set_tempo(snd_seq_t *handle)
+void set_tempo(snd_seq_t *handle, int queue)
 {
         snd_seq_queue_tempo_t *tempo;
         snd_seq_queue_tempo_alloca(&tempo);
         snd_seq_queue_tempo_set_tempo(tempo, 1000000); // 60 BPM
         snd_seq_queue_tempo_set_ppq(tempo, 48); // 48 PPQ
-        snd_seq_set_queue_tempo(handle, tempo);
+        snd_seq_set_queue_tempo(handle, queue, tempo);
 }
 \endcode
 
