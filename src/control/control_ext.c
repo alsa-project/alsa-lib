@@ -415,8 +415,12 @@ static int snd_ctl_ext_read(snd_ctl_t *handle, snd_ctl_event_t *event)
 {
 	snd_ctl_ext_t *ext = handle->private_data;
 
-	memset(event, 0, sizeof(*event));
-	return ext->callback->read_event(ext, &event->data.elem.id, &event->data.elem.mask);
+	if (ext->callback->read_event) {
+		memset(event, 0, sizeof(*event));
+		return ext->callback->read_event(ext, &event->data.elem.id, &event->data.elem.mask);
+	}
+
+	return -EINVAL;
 }
 
 static int snd_ctl_ext_poll_descriptors_count(snd_ctl_t *handle)
