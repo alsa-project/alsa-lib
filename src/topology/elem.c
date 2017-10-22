@@ -178,8 +178,10 @@ struct tplg_elem* tplg_elem_new_common(snd_tplg_t *tplg,
 			if (snd_config_get_id(n, &id))
 				continue;
 			if (strcmp(id, "index") == 0) {
-				if (snd_config_get_string(n, &val) < 0)
+				if (snd_config_get_string(n, &val) < 0) {
+					free(elem);
 					return NULL;
+				}
 				elem->index = atoi(val);
 			}
 		}

@@ -132,7 +132,6 @@ err:
 static void dump_priv_data(struct tplg_elem *elem)
 {
 	struct snd_soc_tplg_private *priv = elem->data;
-	unsigned char *p = (unsigned char *)priv->data;
 	unsigned int i, j = 0;
 
 	tplg_dbg(" elem size = %d, priv data size = %d\n",
@@ -366,7 +365,7 @@ static struct tplg_elem *get_tokens(snd_tplg_t *tplg, struct tplg_elem *elem)
 
 		ref = list_entry(pos, struct tplg_ref, list);
 
-		if (!ref->id || ref->type != SND_TPLG_TYPE_TOKEN)
+		if (ref->type != SND_TPLG_TYPE_TOKEN)
 			continue;
 
 		if (!ref->elem) {
@@ -390,7 +389,7 @@ static bool has_tuples(struct tplg_elem *elem)
 	list_for_each(pos, base) {
 
 		ref = list_entry(pos, struct tplg_ref, list);
-		if (ref->id && ref->type == SND_TPLG_TYPE_TUPLE)
+		if (ref->type == SND_TPLG_TYPE_TUPLE)
 			return true;
 	}
 
@@ -504,7 +503,7 @@ static int build_tuples(snd_tplg_t *tplg, struct tplg_elem *elem)
 
 		ref = list_entry(pos, struct tplg_ref, list);
 
-		if (!ref->id || ref->type != SND_TPLG_TYPE_TUPLE)
+		if (ref->type != SND_TPLG_TYPE_TUPLE)
 			continue;
 
 		tplg_dbg("tuples '%s' used by data '%s'\n", ref->id, elem->id);

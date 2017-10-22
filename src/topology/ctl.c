@@ -130,7 +130,7 @@ static int tplg_build_mixer_control(snd_tplg_t *tplg,
 	list_for_each(pos, base) {
 
 		ref = list_entry(pos, struct tplg_ref, list);
-		if (ref->id == NULL || ref->elem)
+		if (ref->elem)
 			continue;
 
 		if (ref->type == SND_TPLG_TYPE_TLV) {
@@ -180,7 +180,7 @@ static int tplg_build_enum_control(snd_tplg_t *tplg,
 	list_for_each(pos, base) {
 
 		ref = list_entry(pos, struct tplg_ref, list);
-		if (ref->id == NULL || ref->elem)
+		if (ref->elem)
 			continue;
 
 		if (ref->type == SND_TPLG_TYPE_TEXT) {
@@ -216,7 +216,7 @@ static int tplg_build_bytes_control(snd_tplg_t *tplg, struct tplg_elem *elem)
 	list_for_each(pos, base) {
 
 		ref = list_entry(pos, struct tplg_ref, list);
-		if (ref->id == NULL || ref->elem)
+		if (ref->elem)
 			continue;
 
 		 if (ref->type == SND_TPLG_TYPE_DATA) {

@@ -428,7 +428,7 @@ int tplg_parse_dapm_graph(snd_tplg_t *tplg, snd_config_t *cfg,
 	snd_config_t *n;
 	int err;
 	const char *graph_id, *val = NULL;
-	int index;
+	int index = -1;
 
 	if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
 		SNDERR("error: compound is expected for dapm graph definition\n");
@@ -452,6 +452,11 @@ int tplg_parse_dapm_graph(snd_tplg_t *tplg, snd_config_t *cfg,
 		}
 
 		if (strcmp(id, "lines") == 0) {
+			if (index < 0) {
+				SNDERR("error: failed to parse dapm graph %s, missing index\n",
+					graph_id);
+				return -EINVAL;
+			}
 			err = tplg_parse_routes(tplg, n, index);
 			if (err < 0) {
 				SNDERR("error: failed to parse dapm graph %s\n",
