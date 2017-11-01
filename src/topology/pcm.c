@@ -1068,7 +1068,7 @@ static int get_audio_hw_format(const char *val)
 	if (!strcmp(val, "DSP_A"))
 		return SND_SOC_DAI_FORMAT_DSP_A;
 
-	if (!strcmp(val, "LEFT_B"))
+	if (!strcmp(val, "DSP_B"))
 		return SND_SOC_DAI_FORMAT_DSP_B;
 
 	if (!strcmp(val, "AC97"))
