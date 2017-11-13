@@ -2503,6 +2503,9 @@ const char *snd_ctl_elem_info_get_item_name(const snd_ctl_elem_info_t *obj)
  * \brief Get count of dimensions for given element
  * \param obj CTL element id/info
  * \return zero value if no dimensions are defined, otherwise positive value with count of dimensions
+ *
+ * \deprecated	Since 1.1.5
+ * #snd_ctl_elem_info_get_dimensions is deprecated without any replacement.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_ctl_elem_info_get_dimensions)(const snd_ctl_elem_info_t *obj)
@@ -2525,6 +2528,9 @@ use_default_symbol_version(__snd_ctl_elem_info_get_dimensions, snd_ctl_elem_info
  * \param obj CTL element id/info
  * \param idx The dimension index
  * \return zero value if no dimension width is defined, otherwise positive value with with of specified dimension
+ *
+ * \deprecated	Since 1.1.5
+ * #snd_ctl_elem_info_get_dimension is deprecated without any replacement.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_ctl_elem_info_get_dimension)(const snd_ctl_elem_info_t *obj, unsigned int idx)
@@ -2553,6 +2559,9 @@ use_default_symbol_version(__snd_ctl_elem_info_get_dimension, snd_ctl_elem_info_
  *
  * \par Compatibility:
  * This function is added in version 1.1.2.
+ *
+ * \deprecated Since 1.1.5
+ * #snd_ctl_elem_info_set_dimension is deprecated without any replacement.
  */
 int snd_ctl_elem_info_set_dimension(snd_ctl_elem_info_t *info,
 				    const int dimension[4])
