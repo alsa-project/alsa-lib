@@ -19,7 +19,6 @@ struct elem_set_trial {
 	unsigned int element_count;
 
 	snd_ctl_elem_id_t *id;
-	int dimension[4];
 
 	int (*add_elem_set)(struct elem_set_trial *trial,
 			    snd_ctl_elem_info_t *info);
@@ -373,7 +372,6 @@ static int add_elem_set(struct elem_set_trial *trial)
 	snd_ctl_elem_info_alloca(&info);
 	snd_ctl_elem_info_set_interface(info, SND_CTL_ELEM_IFACE_MIXER);
 	snd_ctl_elem_info_set_name(info, name);
-	snd_ctl_elem_info_set_dimension(info, trial->dimension);
 
 	err = trial->add_elem_set(trial, info);
 	if (err >= 0)
@@ -544,11 +542,6 @@ static int check_elem_set_props(struct elem_set_trial *trial)
 			return -EIO;
 		if (snd_ctl_elem_info_get_count(info) != trial->member_count)
 			return -EIO;
-		for (j = 0; j < 4; ++j) {
-			if (snd_ctl_elem_info_get_dimension(info, j) !=
-							trial->dimension[j])
-				return -EIO;
-		}
 
 		/*
 		 * In a case of IPC, this is the others. But in this case,
@@ -745,10 +738,6 @@ int main(void)
 		case SND_CTL_ELEM_TYPE_BOOLEAN:
 			trial.element_count = 900;
 			trial.member_count = 128;
-			trial.dimension[0] = 4;
-			trial.dimension[1] = 4;
-			trial.dimension[2] = 8;
-			trial.dimension[3] = 0;
 			trial.add_elem_set = add_bool_elem_set;
 			trial.check_elem_props = NULL;
 			trial.change_elem_members = change_bool_elem_members;
@@ -759,10 +748,6 @@ int main(void)
 		case SND_CTL_ELEM_TYPE_INTEGER:
 			trial.element_count = 900;
 			trial.member_count = 128;
-			trial.dimension[0] = 128;
-			trial.dimension[1] = 0;
-			trial.dimension[2] = 0;
-			trial.dimension[3] = 0;
 			trial.add_elem_set = add_int_elem_set;
 			trial.check_elem_props = check_int_elem_props;
 			trial.change_elem_members = change_int_elem_members;
@@ -773,10 +758,6 @@ int main(void)
 		case SND_CTL_ELEM_TYPE_ENUMERATED:
 			trial.element_count = 900;
 			trial.member_count = 128;
-			trial.dimension[0] = 16;
-			trial.dimension[1] = 8;
-			trial.dimension[2] = 0;
-			trial.dimension[3] = 0;
 			trial.add_elem_set = add_enum_elem_set;
 			trial.check_elem_props = check_enum_elem_props;
 			trial.change_elem_members = change_enum_elem_members;
@@ -786,10 +767,6 @@ int main(void)
 		case SND_CTL_ELEM_TYPE_BYTES:
 			trial.element_count = 900;
 			trial.member_count = 512;
-			trial.dimension[0] = 8;
-			trial.dimension[1] = 4;
-			trial.dimension[2] = 8;
-			trial.dimension[3] = 2;
 			trial.add_elem_set = add_bytes_elem_set;
 			trial.check_elem_props = NULL;
 			trial.change_elem_members = change_bytes_elem_members;
@@ -800,10 +777,6 @@ int main(void)
 		case SND_CTL_ELEM_TYPE_IEC958:
 			trial.element_count = 1;
 			trial.member_count = 1;
-			trial.dimension[0] = 0;
-			trial.dimension[1] = 0;
-			trial.dimension[2] = 0;
-			trial.dimension[3] = 0;
 			trial.add_elem_set = add_iec958_elem_set;
 			trial.check_elem_props = NULL;
 			trial.change_elem_members = change_iec958_elem_members;
@@ -814,10 +787,6 @@ int main(void)
 		default:
 			trial.element_count = 900;
 			trial.member_count = 64;
-			trial.dimension[0] = 0;
-			trial.dimension[1] = 0;
-			trial.dimension[2] = 0;
-			trial.dimension[3] = 0;
 			trial.add_elem_set = add_int64_elem_set;
 			trial.check_elem_props = check_int64_elem_props;
 			trial.change_elem_members = change_int64_elem_members;
