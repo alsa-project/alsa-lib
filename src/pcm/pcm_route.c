@@ -567,8 +567,8 @@ static int snd_pcm_route_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 		return err;
 	/* 3 bytes formats? */
 	route->params.use_getput =
-		(snd_pcm_format_physical_width(src_format) + 7) / 3 == 3 ||
-		(snd_pcm_format_physical_width(dst_format) + 7) / 3 == 3;
+		(snd_pcm_format_physical_width(src_format) + 7) / 8 == 3 ||
+		(snd_pcm_format_physical_width(dst_format) + 7) / 8 == 3;
 	route->params.get_idx = snd_pcm_linear_get_index(src_format, SND_PCM_FORMAT_S32);
 	route->params.put_idx = snd_pcm_linear_put_index(SND_PCM_FORMAT_S32, dst_format);
 	route->params.conv_idx = snd_pcm_linear_convert_index(src_format, dst_format);
