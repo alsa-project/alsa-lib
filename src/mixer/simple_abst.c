@@ -66,7 +66,7 @@ static int try_open(snd_mixer_class_t *class, const char *lib)
 	class_priv_t *priv = snd_mixer_class_get_private(class);
 	snd_mixer_event_t event_func;
 	snd_mixer_sbasic_init_t init_func = NULL;
-	char *xlib, *path;
+	char *xlib, *path, errbuf[256];
 	void *h;
 	int err = 0;
 
@@ -81,9 +81,9 @@ static int try_open(snd_mixer_class_t *class, const char *lib)
 	strcpy(xlib, path);
 	strcat(xlib, "/");
 	strcat(xlib, lib);
-	h = snd_dlopen(xlib, RTLD_NOW);
+	h = snd_dlopen(xlib, RTLD_NOW, errbuf, sizeof(errbuf));
 	if (h == NULL) {
-		SNDERR("Unable to open library '%s'", xlib);
+		SNDERR("Unable to open library '%s' (%s)", xlib, errbuf);
 		free(xlib);
 		return -ENXIO;
 	}
@@ -114,7 +114,7 @@ static int try_open_full(snd_mixer_class_t *class, snd_mixer_t *mixer,
 	class_priv_t *priv = snd_mixer_class_get_private(class);
 	snd_mixer_event_t event_func;
 	snd_mixer_sfbasic_init_t init_func = NULL;
-	char *xlib, *path;
+	char *xlib, *path, errbuf[256];
 	void *h;
 	int err = 0;
 
@@ -128,7 +128,7 @@ static int try_open_full(snd_mixer_class_t *class, snd_mixer_t *mixer,
 	strcat(xlib, "/");
 	strcat(xlib, lib);
 	/* note python modules requires RTLD_GLOBAL */
-	h = snd_dlopen(xlib, RTLD_NOW|RTLD_GLOBAL);
+	h = snd_dlopen(xlib, RTLD_NOW|RTLD_GLOBAL, errbuf, sizeof(errbuf));
 	if (h == NULL) {
 		SNDERR("Unable to open library '%s'", xlib);
 		free(xlib);

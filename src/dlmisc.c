@@ -43,12 +43,18 @@ struct snd_dlsym_link *snd_dlsym_start = NULL;
  * \brief Opens a dynamic library - ALSA wrapper for \c dlopen.
  * \param name name of the library, similar to \c dlopen.
  * \param mode mode flags, similar to \c dlopen.
+ * \param errbuf a string buffer for the error message \c dlerror.
+ * \param errbuflen a length of the string buffer for the error message.
  * \return Library handle if successful, otherwise \c NULL.
  *
  * This function can emulate dynamic linking for the static build of
  * the alsa-lib library. In that case, \p name is set to \c NULL.
  */
-void *snd_dlopen(const char *name, int mode)
+#ifndef DOXYGEN
+void *INTERNAL(snd_dlopen)(const char *name, int mode, char *errbuf, size_t errbuflen)
+#else
+void *snd_dlopen(const char *name, int mode, char *errbuf, size_t errbuflen)
+#endif
 {
 #ifndef PIC
 	if (name == NULL)
@@ -73,23 +79,45 @@ void *snd_dlopen(const char *name, int mode)
 	 * via ld.so.conf.
 	 */
 	void *handle = NULL;
-	char *filename;
+	char *filename = NULL;
 
 	if (name && name[0] != '/') {
-		filename = malloc(sizeof(ALSA_PLUGIN_DIR) + 1 + strlen(name) + 1);
-		strcpy(filename, ALSA_PLUGIN_DIR);
-		strcat(filename, "/");
-		strcat(filename, name);
-		handle = dlopen(filename, mode);
-		free(filename);
+		filename = alloca(sizeof(ALSA_PLUGIN_DIR) + 1 + strlen(name) + 1);
+		if (filename) {
+			strcpy(filename, ALSA_PLUGIN_DIR);
+			strcat(filename, "/");
+			strcat(filename, name);
+			handle = dlopen(filename, mode);
+			if (!handle) {
+				/* if the filename exists and cannot be opened */
+				/* return immediately */
+				if (access(filename, X_OK) == 0)
+					goto errpath;
+			}
+		}
 	}
-	if (!handle)
+	if (!handle) {
 		handle = dlopen(name, mode);
+		if (!handle)
+			goto errpath;
+	}
 	return handle;
-#else
-	return NULL;
+errpath:
+	if (errbuf)
+		snprintf(errbuf, errbuflen, "%s: %s", filename, dlerror());
 #endif
+	return NULL;
 }
+
+#ifndef DOXYGEN
+void *INTERNAL(snd_dlopen_old)(const char *name, int mode)
+{
+  return INTERNAL(snd_dlopen)(name, mode, NULL, 0);
+}
+#endif
+
+use_symbol_version(__snd_dlopen_old, snd_dlopen, ALSA_0.9);
+use_default_symbol_version(__snd_dlopen, snd_dlopen, ALSA_1.1.6);
 
 /**
  * \brief Closes a dynamic library - ALSA wrapper for \c dlclose.
@@ -229,6 +257,7 @@ void *snd_dlobj_cache_get(const char *lib, const char *name,
 	struct list_head *p;
 	struct dlobj_cache *c;
 	void *func, *dlobj;
+	char errbuf[256];
 
 	snd_dlobj_lock();
 	list_for_each(p, &pcm_dlobj_list) {
@@ -247,11 +276,15 @@ void *snd_dlobj_cache_get(const char *lib, const char *name,
 		}
 	}
 
-	dlobj = snd_dlopen(lib, RTLD_NOW);
+	errbuf[0] = '\0';
+	dlobj = snd_dlopen(lib, RTLD_NOW,
+	                   verbose ? errbuf : 0,
+	                   verbose ? sizeof(errbuf) : 0);
 	if (dlobj == NULL) {
 		if (verbose)
-			SNDERR("Cannot open shared library %s",
-						lib ? lib : "[builtin]");
+			SNDERR("Cannot open shared library %s (%s)",
+						lib ? lib : "[builtin]",
+						errbuf);
 		snd_dlobj_unlock();
 		return NULL;
 	}

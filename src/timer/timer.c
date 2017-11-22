@@ -76,7 +76,7 @@ static int snd_timer_open_conf(snd_timer_t **timer,
 			       snd_config_t *timer_conf, int mode)
 {
 	const char *str;
-	char buf[256];
+	char buf[256], errbuf[256];
 	int err;
 	snd_config_t *conf, *type_conf = NULL;
 	snd_config_iterator_t i, next;
@@ -150,12 +150,12 @@ static int snd_timer_open_conf(snd_timer_t **timer,
 #ifndef PIC
 	snd_timer_open_symbols();
 #endif
-	h = snd_dlopen(lib, RTLD_NOW);
+	h = snd_dlopen(lib, RTLD_NOW, errbuf, sizeof(errbuf));
 	if (h)
 		open_func = snd_dlsym(h, open_name, SND_DLSYM_VERSION(SND_TIMER_DLSYM_VERSION));
 	err = 0;
 	if (!h) {
-		SNDERR("Cannot open shared library %s", lib);
+		SNDERR("Cannot open shared library %s (%s)", lib, errbuf);
 		err = -ENOENT;
 	} else if (!open_func) {
 		SNDERR("symbol %s is not defined inside %s", open_name, lib);

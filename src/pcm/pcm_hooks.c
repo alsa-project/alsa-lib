@@ -341,7 +341,7 @@ even if the specified control doesn't exist.
 static int snd_pcm_hook_add_conf(snd_pcm_t *pcm, snd_config_t *root, snd_config_t *conf)
 {
 	int err;
-	char buf[256];
+	char buf[256], errbuf[256];
 	const char *str, *id;
 	const char *lib = NULL, *install = NULL;
 	snd_config_t *type = NULL, *args = NULL;
@@ -424,12 +424,12 @@ static int snd_pcm_hook_add_conf(snd_pcm_t *pcm, snd_config_t *root, snd_config_
 		install = buf;
 		snprintf(buf, sizeof(buf), "_snd_pcm_hook_%s_install", str);
 	}
-	h = snd_dlopen(lib, RTLD_NOW);
+	h = snd_dlopen(lib, RTLD_NOW, errbuf, sizeof(errbuf));
 	install_func = h ? snd_dlsym(h, install, SND_DLSYM_VERSION(SND_PCM_DLSYM_VERSION)) : NULL;
 	err = 0;
 	if (!h) {
-		SNDERR("Cannot open shared library %s",
-		       lib ? lib : "[builtin]");
+		SNDERR("Cannot open shared library %s (%s)",
+		       lib ? lib : "[builtin]", errbuf);
 		err = -ENOENT;
 	} else if (!install_func) {
 		SNDERR("symbol %s is not defined inside %s", install,

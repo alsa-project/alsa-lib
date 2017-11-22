@@ -982,6 +982,7 @@ static int get_freestring(char **string, int id, input_t *input)
 		case '.':
 			if (!id)
 				break;
+			/* fall through */
 		case ' ':
 		case '\f':
 		case '\t':
@@ -3477,7 +3478,7 @@ static int snd_config_hooks_call(snd_config_t *root, snd_config_t *config, snd_c
 {
 	void *h = NULL;
 	snd_config_t *c, *func_conf = NULL;
-	char *buf = NULL;
+	char *buf = NULL, errbuf[256];
 	const char *lib = NULL, *func_name = NULL;
 	const char *str;
 	int (*func)(snd_config_t *root, snd_config_t *config, snd_config_t **dst, snd_config_t *private_data) = NULL;
@@ -3537,11 +3538,11 @@ static int snd_config_hooks_call(snd_config_t *root, snd_config_t *config, snd_c
 		buf[len-1] = '\0';
 		func_name = buf;
 	}
-	h = snd_dlopen(lib, RTLD_NOW);
+	h = snd_dlopen(lib, RTLD_NOW, errbuf, sizeof(errbuf));
 	func = h ? snd_dlsym(h, func_name, SND_DLSYM_VERSION(SND_CONFIG_DLSYM_VERSION_HOOK)) : NULL;
 	err = 0;
 	if (!h) {
-		SNDERR("Cannot open shared library %s", lib);
+		SNDERR("Cannot open shared library %s (%s)", lib, errbuf);
 		err = -ENOENT;
 	} else if (!func) {
 		SNDERR("symbol %s is not defined inside %s", func_name, lib);
@@ -4471,7 +4472,7 @@ static int _snd_config_evaluate(snd_config_t *src,
 {
 	int err;
 	if (pass == SND_CONFIG_WALK_PASS_PRE) {
-		char *buf = NULL;
+		char *buf = NULL, errbuf[256];
 		const char *lib = NULL, *func_name = NULL;
 		const char *str;
 		int (*func)(snd_config_t **dst, snd_config_t *root,
@@ -4530,12 +4531,12 @@ static int _snd_config_evaluate(snd_config_t *src,
 			buf[len-1] = '\0';
 			func_name = buf;
 		}
-		h = snd_dlopen(lib, RTLD_NOW);
+		h = snd_dlopen(lib, RTLD_NOW, errbuf, sizeof(errbuf));
 		if (h)
 			func = snd_dlsym(h, func_name, SND_DLSYM_VERSION(SND_CONFIG_DLSYM_VERSION_EVALUATE));
 		err = 0;
 		if (!h) {
-			SNDERR("Cannot open shared library %s", lib);
+			SNDERR("Cannot open shared library %s (%s)", lib, errbuf);
 			err = -ENOENT;
 			goto _errbuf;
 		} else if (!func) {

@@ -41,7 +41,7 @@ int mixer_simple_basic_dlopen(snd_mixer_class_t *class,
 	struct bclass_private *priv = snd_mixer_sbasic_get_private(class);
 	const char *lib = "smixer-sbase.so";
 	void (*initpriv)(snd_mixer_class_t *class, struct bclass_private *priv);
-	char *xlib, *path;
+	char *xlib, *path, errbuf[256];
 	void *h;
 	int initflag = 0;
 
@@ -63,9 +63,9 @@ int mixer_simple_basic_dlopen(snd_mixer_class_t *class,
 	strcpy(xlib, path);
 	strcat(xlib, "/");
 	strcat(xlib, lib);
-	h = snd_dlopen(xlib, RTLD_NOW);
+	h = snd_dlopen(xlib, RTLD_NOW, errbuf, sizeof(errbuf));
 	if (h == NULL) {
-		SNDERR("Unable to open library '%s'", xlib);
+		SNDERR("Unable to open library '%s': %s", xlib, errbuf);
 		goto __error;
 	}
 	initpriv = dlsym(h, "alsa_mixer_sbasic_initpriv");
