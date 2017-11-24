@@ -126,33 +126,39 @@ static void change_int_elem_members(struct elem_set_trial *trial,
 static int allocate_int_elem_set_tlv(struct elem_set_trial *trial,
 				     unsigned int **tlv)
 {
-	unsigned int len, pos;
+	unsigned int count, pos;
 	unsigned int i, j;
 	struct chmap_entry *entry;
 
 	/* Calculate size of TLV packet for channel-mapping information. */
-	len = 0;
+	count = 0;
 	for (i = 1; i <= 25; ++i) {
-		len += sizeof(struct chmap_entry);
-		len += i * sizeof(unsigned int);
+		count += 2; /* sizeof(struct chmap_entry). */
+		count += i; /* struct chmap_entry.maps. */
 	}
 
-	*tlv = malloc(len);
-	if (*tlv == NULL)
+	*tlv = malloc((2 + count) * sizeof(unsigned int));
+	if (!*tlv)
 		return -ENOMEM;
 
 	/*
 	 * Emulate channel-mapping information in in-kernel implementation.
 	 * Here, 25 entries are for each different channel.
 	 */
-	pos = 0;
-	for (i = 1; i <= 25 && pos < len; ++i) {
+	(*tlv)[0] = SNDRV_CTL_TLVT_CONTAINER;
+	(*tlv)[1] = count * sizeof(unsigned int);
+	pos = 2;
+
+	for (i = 1; i <= 25 && pos < count; ++i) {
 		entry = (struct chmap_entry *)&(*tlv)[pos];
+
 		entry->type = SNDRV_CTL_TLVT_CHMAP_FIXED;
 		entry->length = i * sizeof(unsigned int);
+		pos += 2;
+
 		for (j = 0; j < i; ++j)
 			entry->maps[j] = SND_CHMAP_MONO + j;
-		pos += sizeof(struct chmap_entry) + i * sizeof(unsigned int);
+		pos += i;
 	}
 
 	return 0;
