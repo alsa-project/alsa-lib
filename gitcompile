@@ -4,6 +4,7 @@ set -e
 
 bit32=
 modules=
+alisp=
 if [ $# -ne 0 ]; then
   endloop=
   while [ -z "$endloop" ]; do
@@ -15,6 +16,10 @@ if [ $# -ne 0 ]; then
     modules)
       modules=yes
       echo "Forced mixer modules build..."
+      shift ;;
+    alisp)
+      alisp=yes
+      echo "Forced alisp code build..."
       shift ;;
     *)
       endloop=yes
@@ -49,6 +54,10 @@ fi
 if [ "$modules" = "yes" ]; then
   args="$args --enable-mixer-modules"
   args="$args --enable-mixer-pymodules"
+fi
+
+if [ "$alisp" = "yes" ]; then
+  args="$args --enable-alisp"
 fi
 
 touch ltconfig

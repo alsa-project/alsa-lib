@@ -394,8 +394,8 @@ AC_ARG_ENABLE(topology,
   AS_HELP_STRING([--disable-topology], [disable the DSP topology component]),
   [build_topology="$enableval"], [build_topology="yes"])
 AC_ARG_ENABLE(alisp,
-  AS_HELP_STRING([--disable-alisp], [disable the alisp component]),
-  [build_alisp="$enableval"], [build_alisp="yes"])
+  AS_HELP_STRING([--enable-alisp], [enable the alisp component]),
+  [build_alisp="$enableval"], [build_alisp="no"])
 test "$softfloat" = "yes" && build_alisp="no"
 AC_ARG_ENABLE(old-symbols,
   AS_HELP_STRING([--disable-old-symbols], [disable old obsoleted symbols]),
