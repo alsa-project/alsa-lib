@@ -402,20 +402,34 @@ AC_ARG_ENABLE(old-symbols,
   [keep_old_symbols="$enableval"], [keep_old_symbols="yes"])
 AM_CONDITIONAL([KEEP_OLD_SYMBOLS], [test x$keep_old_symbols = xyes])
 
+AC_ARG_ENABLE(mixer-modules,
+  AS_HELP_STRING([--enable-mixer-modules], [enable the additional mixer modules (experimental)]),
+  [build_mixer_modules="$enableval"], [build_mixer_modules="no"])
+
+AC_ARG_ENABLE(mixer-pymods,
+  AS_HELP_STRING([--enable-mixer-pymods], [enable the mixer python modules (experimental)]),
+  [build_mixer_pymodules="$enableval"], [build_mixer_pymodules="no"])
+
 AC_ARG_ENABLE(python,
   AS_HELP_STRING([--disable-python], [disable the python components]),
   [build_python="$enableval"], [build_python="yes"])
 PYTHON_LIBS=""
 PYTHON_INCLUDES=""
-if test "$build_python" = "yes"; then
+if test "$build_python" = "yes" -a "$build_mixer_pymodules" = "yes"; then
+  pythonlibs0=$(python3-config --libs)
+  pythoninc0=$(python3-config --includes)
+  if test -z "$pythonlibs0"; then
+    pythonlibs0=$(python-config --libs)
+    pythoninc0=$(python-config --includes)
+  fi
   AC_ARG_WITH(pythonlibs,
     AS_HELP_STRING([--with-pythonlibs=ldflags],
       [specify python libraries (-lpthread -lm -ldl -lpython2.4)]),
-    pythonlibs="$withval", pythonlibs=`python-config --libs`)
+    pythonlibs="$withval", pythonlibs=$pythonlibs0)
   AC_ARG_WITH(pythonincludes,
     AS_HELP_STRING([--with-pythonincludes=Cflags],
       [specify python C header files (-I/usr/include/python)]),
-    pythonincludes="$withval", pythonincludes=`python-config --includes`)
+    pythonincludes="$withval", pythonincludes=$pythoninc0)
   if test -z "$pythonlibs"; then
     echo "Unable to determine python libraries! Probably python-config is not"
     echo "available on this system. Please, use --with-pythonlibs and"
@@ -425,6 +439,9 @@ if test "$build_python" = "yes"; then
     PYTHON_LIBS="$pythonlibs"
     PYTHON_INCLUDES="$pythonincludes"
   fi
+fi
+if test "$build_python" != "yes"; then
+  build_mixer_pymodules=
 fi
 AC_SUBST(PYTHON_LIBS)
 AC_SUBST(PYTHON_INCLUDES)
@@ -437,7 +454,8 @@ AM_CONDITIONAL([BUILD_SEQ], [test x$build_seq = xyes])
 AM_CONDITIONAL([BUILD_UCM], [test x$build_ucm = xyes])
 AM_CONDITIONAL([BUILD_TOPOLOGY], [test x$build_topology = xyes])
 AM_CONDITIONAL([BUILD_ALISP], [test x$build_alisp = xyes])
-AM_CONDITIONAL([BUILD_PYTHON], [test x$build_python = xyes])
+AM_CONDITIONAL([BUILD_MIXER_MODULES], [test x$build_mixer_modules = xyes])
+AM_CONDITIONAL([BUILD_MIXER_PYMODULES], [test x$build_mixer_pymodules = xyes])
 
 if test "$build_mixer" = "yes"; then
   AC_DEFINE([BUILD_MIXER], "1", [Build mixer component])

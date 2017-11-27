@@ -3,9 +3,24 @@
 set -e
 
 bit32=
-if [ $# -ne 0 -a "$1" == "32" ]; then
-  bit32=yes
-  echo "Forced 32-bit library build..."
+modules=
+if [ $# -ne 0 ]; then
+  endloop=
+  while [ -z "$endloop" ]; do
+    case "$1" in
+    32)
+      bits32=yes
+      echo "Forced 32-bit library build..."
+      shift ;;
+    modules)
+      modules=yes
+      echo "Forced mixer modules build..."
+      shift ;;
+    *)
+      endloop=yes
+      ;;
+    esac
+  done
 fi
 if [ $# -ne 0 -a -z "$bit32" ]; then
   args="$@"
@@ -30,7 +45,12 @@ else
   args="$args --with-plugindir=$libdir2/alsa-lib"
   args="$args --with-pkgconfdir=$libdir2/pkgconfig"
 fi
-      
+
+if [ "$modules" = "yes" ]; then
+  args="$args --enable-mixer-modules"
+  args="$args --enable-mixer-pymodules"
+fi
+
 touch ltconfig
 libtoolize --force --copy --automake
 aclocal $ACLOCAL_FLAGS

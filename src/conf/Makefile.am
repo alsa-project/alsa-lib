@@ -12,7 +12,7 @@ if BUILD_ALISP
 cfg_files += sndo-mixer.alisp
 endif
 if BUILD_MODULES
-if BUILD_PYTHON
+if BUILD_MIXER_MODULES
 cfg_files += smixer.conf
 endif
 endif
