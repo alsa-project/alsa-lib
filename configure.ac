@@ -709,19 +709,20 @@ AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile doc/doxygen.cfg \
 	  src/conf/cards/Makefile \
 	  src/conf/pcm/Makefile \
 	  src/conf/ucm/Makefile \
+	  src/conf/ucm/broadwell-rt286/Makefile \
+	  src/conf/ucm/broxton-rt298/Makefile \
+	  src/conf/ucm/bytcr-rt5651/Makefile \
+	  src/conf/ucm/chtrt5645/Makefile \
 	  src/conf/ucm/DAISY-I2S/Makefile \
+	  src/conf/ucm/DB410c/Makefile \
+	  src/conf/ucm/GoogleNyan/Makefile \
 	  src/conf/ucm/PandaBoard/Makefile \
 	  src/conf/ucm/PandaBoardES/Makefile \
-	  src/conf/ucm/SDP4430/Makefile \
-	  src/conf/ucm/tegraalc5632/Makefile \
 	  src/conf/ucm/PAZ00/Makefile \
-	  src/conf/ucm/GoogleNyan/Makefile \
-	  src/conf/ucm/broadwell-rt286/Makefile \
+	  src/conf/ucm/SDP4430/Makefile \
 	  src/conf/ucm/skylake-rt286/Makefile \
+	  src/conf/ucm/tegraalc5632/Makefile \
 	  src/conf/ucm/VEYRON-I2S/Makefile \
-	  src/conf/ucm/chtrt5645/Makefile \
-	  src/conf/ucm/DB410c/Makefile \
-	  src/conf/ucm/bytcr-rt5651/Makefile \
 	  src/conf/topology/Makefile \
 	  src/conf/topology/broadwell/Makefile \
 	  modules/Makefile modules/mixer/Makefile modules/mixer/simple/Makefile \
@@ -729,7 +730,6 @@ AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile doc/doxygen.cfg \
 	  src/conf/topology/bxtrt298/Makefile \
 	  alsalisp/Makefile aserver/Makefile \
 	  test/Makefile test/lsb/Makefile \
-	  src/conf/ucm/broxton-rt298/Makefile \
 	  utils/Makefile utils/alsa-lib.spec utils/alsa.pc)
 
 dnl Create asoundlib.h dynamically according to configure options

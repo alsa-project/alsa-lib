@@ -1,1 +1,15 @@
-SUBDIRS=DAISY-I2S PandaBoard PandaBoardES SDP4430 tegraalc5632 PAZ00 GoogleNyan broadwell-rt286 skylake-rt286 VEYRON-I2S chtrt5645 DB410c broxton-rt298 bytcr-rt5651
+SUBDIRS=\
+broadwell-rt286 \
+broxton-rt298 \
+bytcr-rt5651 \
+chtrt5645 \
+DAISY-I2S \
+DB410c \
+GoogleNyan \
+PandaBoard \
+PandaBoardES \
+PAZ00 \
+SDP4430 \
+skylake-rt286 \
+tegraalc5632 \
+VEYRON-I2S
