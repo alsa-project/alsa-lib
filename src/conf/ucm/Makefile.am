@@ -6,6 +6,7 @@ chtrt5645 \
 DAISY-I2S \
 DB410c \
 GoogleNyan \
+HDAudio-Gigabyte-ALC1220DualCodecs \
 HDAudio-Lenovo-DualCodecs \
 PandaBoard \
 PandaBoardES \
