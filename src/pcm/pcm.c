@@ -1780,6 +1780,10 @@ static const char *const snd_pcm_format_names[] = {
 	FORMAT(IMA_ADPCM),
 	FORMAT(MPEG),
 	FORMAT(GSM),
+	FORMAT(S20_LE),
+	FORMAT(S20_BE),
+	FORMAT(U20_LE),
+	FORMAT(U20_BE),
 	FORMAT(SPECIAL),
 	FORMAT(S24_3LE),
 	FORMAT(S24_3BE),
@@ -1814,6 +1818,8 @@ static const char *const snd_pcm_format_aliases[SND_PCM_FORMAT_LAST+1] = {
 	FORMAT(FLOAT),
 	FORMAT(FLOAT64),
 	FORMAT(IEC958_SUBFRAME),
+	FORMAT(S20),
+	FORMAT(U20),
 };
 
 static const char *const snd_pcm_format_descriptions[] = {
@@ -1842,6 +1848,10 @@ static const char *const snd_pcm_format_descriptions[] = {
 	FORMATD(IMA_ADPCM, "Ima-ADPCM"),
 	FORMATD(MPEG, "MPEG"),
 	FORMATD(GSM, "GSM"),
+	FORMATD(S20_LE, "Signed 20 bit Little Endian in 4 bytes, LSB justified"),
+	FORMATD(S20_BE, "Signed 20 bit Big Endian in 4 bytes, LSB justified"),
+	FORMATD(U20_LE, "Unsigned 20 bit Little Endian in 4 bytes, LSB justified"),
+	FORMATD(U20_BE, "Unsigned 20 bit Big Endian in 4 bytes, LSB justified"),
 	FORMATD(SPECIAL, "Special"),
 	FORMATD(S24_3LE, "Signed 24 bit Little Endian in 3bytes"),
 	FORMATD(S24_3BE, "Signed 24 bit Big Endian in 3bytes"),

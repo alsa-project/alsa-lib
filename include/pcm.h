@@ -175,6 +175,14 @@ typedef enum _snd_pcm_format {
 	SND_PCM_FORMAT_MPEG,
 	/** GSM */
 	SND_PCM_FORMAT_GSM,
+	/** Signed 20bit Little Endian in 4bytes format, LSB justified */
+	SND_PCM_FORMAT_S20_LE,
+	/** Signed 20bit Big Endian in 4bytes format, LSB justified */
+	SND_PCM_FORMAT_S20_BE,
+	/** Unsigned 20bit Little Endian in 4bytes format, LSB justified */
+	SND_PCM_FORMAT_U20_LE,
+	/** Unsigned 20bit Big Endian in 4bytes format, LSB justified */
+	SND_PCM_FORMAT_U20_BE,
 	/** Special */
 	SND_PCM_FORMAT_SPECIAL = 31,
 	/** Signed 24bit Little Endian in 3bytes format */
@@ -239,7 +247,11 @@ typedef enum _snd_pcm_format {
 	/** Float 64 bit CPU endian */
 	SND_PCM_FORMAT_FLOAT64 = SND_PCM_FORMAT_FLOAT64_LE,
 	/** IEC-958 CPU Endian */
-	SND_PCM_FORMAT_IEC958_SUBFRAME = SND_PCM_FORMAT_IEC958_SUBFRAME_LE
+	SND_PCM_FORMAT_IEC958_SUBFRAME = SND_PCM_FORMAT_IEC958_SUBFRAME_LE,
+	/** Signed 20bit in 4bytes format, LSB justified, CPU Endian */
+	SND_PCM_FORMAT_S20 = SND_PCM_FORMAT_S20_LE,
+	/** Unsigned 20bit in 4bytes format, LSB justified, CPU Endian */
+	SND_PCM_FORMAT_U20 = SND_PCM_FORMAT_U20_LE,
 #elif __BYTE_ORDER == __BIG_ENDIAN
 	/** Signed 16 bit CPU endian */
 	SND_PCM_FORMAT_S16 = SND_PCM_FORMAT_S16_BE,
@@ -258,7 +270,11 @@ typedef enum _snd_pcm_format {
 	/** Float 64 bit CPU endian */
 	SND_PCM_FORMAT_FLOAT64 = SND_PCM_FORMAT_FLOAT64_BE,
 	/** IEC-958 CPU Endian */
-	SND_PCM_FORMAT_IEC958_SUBFRAME = SND_PCM_FORMAT_IEC958_SUBFRAME_BE
+	SND_PCM_FORMAT_IEC958_SUBFRAME = SND_PCM_FORMAT_IEC958_SUBFRAME_BE,
+	/** Signed 20bit in 4bytes format, LSB justified, CPU Endian */
+	SND_PCM_FORMAT_S20 = SND_PCM_FORMAT_S20_BE,
+	/** Unsigned 20bit in 4bytes format, LSB justified, CPU Endian */
+	SND_PCM_FORMAT_U20 = SND_PCM_FORMAT_U20_BE,
 #else
 #error "Unknown endian"
 #endif

@@ -984,6 +984,10 @@ const snd_config_t *snd_pcm_rate_get_default_converter(snd_config_t *root);
 	 (1U << SND_PCM_FORMAT_S16_BE) | \
 	 (1U << SND_PCM_FORMAT_U16_LE) | \
 	 (1U << SND_PCM_FORMAT_U16_BE) | \
+	 (1U << SND_PCM_FORMAT_S20_LE) | \
+	 (1U << SND_PCM_FORMAT_S20_BE) | \
+	 (1U << SND_PCM_FORMAT_U20_LE) | \
+	 (1U << SND_PCM_FORMAT_U20_BE) | \
 	 (1U << SND_PCM_FORMAT_S24_LE) | \
 	 (1U << SND_PCM_FORMAT_S24_BE) | \
 	 (1U << SND_PCM_FORMAT_U24_LE) | \

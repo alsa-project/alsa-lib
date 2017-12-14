@@ -38,6 +38,8 @@ int snd_pcm_format_signed(snd_pcm_format_t format)
 	case SNDRV_PCM_FORMAT_S8:
 	case SNDRV_PCM_FORMAT_S16_LE:
 	case SNDRV_PCM_FORMAT_S16_BE:
+	case SNDRV_PCM_FORMAT_S20_LE:
+	case SNDRV_PCM_FORMAT_S20_BE:
 	case SNDRV_PCM_FORMAT_S24_LE:
 	case SNDRV_PCM_FORMAT_S24_BE:
 	case SNDRV_PCM_FORMAT_S32_LE:
@@ -52,6 +54,8 @@ int snd_pcm_format_signed(snd_pcm_format_t format)
 	case SNDRV_PCM_FORMAT_U8:
 	case SNDRV_PCM_FORMAT_U16_LE:
 	case SNDRV_PCM_FORMAT_U16_BE:
+	case SNDRV_PCM_FORMAT_U20_LE:
+	case SNDRV_PCM_FORMAT_U20_BE:
 	case SNDRV_PCM_FORMAT_U24_LE:
 	case SNDRV_PCM_FORMAT_U24_BE:
 	case SNDRV_PCM_FORMAT_U32_LE:
@@ -126,6 +130,8 @@ int snd_pcm_format_little_endian(snd_pcm_format_t format)
 	switch (format) {
 	case SNDRV_PCM_FORMAT_S16_LE:
 	case SNDRV_PCM_FORMAT_U16_LE:
+	case SNDRV_PCM_FORMAT_S20_LE:
+	case SNDRV_PCM_FORMAT_U20_LE:
 	case SNDRV_PCM_FORMAT_S24_LE:
 	case SNDRV_PCM_FORMAT_U24_LE:
 	case SNDRV_PCM_FORMAT_S32_LE:
@@ -144,6 +150,8 @@ int snd_pcm_format_little_endian(snd_pcm_format_t format)
 		return 1;
 	case SNDRV_PCM_FORMAT_S16_BE:
 	case SNDRV_PCM_FORMAT_U16_BE:
+	case SNDRV_PCM_FORMAT_S20_BE:
+	case SNDRV_PCM_FORMAT_U20_BE:
 	case SNDRV_PCM_FORMAT_S24_BE:
 	case SNDRV_PCM_FORMAT_U24_BE:
 	case SNDRV_PCM_FORMAT_S32_BE:
@@ -218,6 +226,10 @@ int snd_pcm_format_width(snd_pcm_format_t format)
 	case SNDRV_PCM_FORMAT_U18_3LE:
 	case SNDRV_PCM_FORMAT_U18_3BE:
 		return 18;
+	case SNDRV_PCM_FORMAT_S20_LE:
+	case SNDRV_PCM_FORMAT_S20_BE:
+	case SNDRV_PCM_FORMAT_U20_LE:
+	case SNDRV_PCM_FORMAT_U20_BE:
 	case SNDRV_PCM_FORMAT_S20_3LE:
 	case SNDRV_PCM_FORMAT_S20_3BE:
 	case SNDRV_PCM_FORMAT_U20_3LE:
@@ -289,6 +301,10 @@ int snd_pcm_format_physical_width(snd_pcm_format_t format)
 	case SNDRV_PCM_FORMAT_U24_3LE:
 	case SNDRV_PCM_FORMAT_U24_3BE:
 		return 24;
+	case SNDRV_PCM_FORMAT_S20_LE:
+	case SNDRV_PCM_FORMAT_S20_BE:
+	case SNDRV_PCM_FORMAT_U20_LE:
+	case SNDRV_PCM_FORMAT_U20_BE:
 	case SNDRV_PCM_FORMAT_S24_LE:
 	case SNDRV_PCM_FORMAT_S24_BE:
 	case SNDRV_PCM_FORMAT_U24_LE:
@@ -350,6 +366,10 @@ ssize_t snd_pcm_format_size(snd_pcm_format_t format, size_t samples)
 	case SNDRV_PCM_FORMAT_U24_3LE:
 	case SNDRV_PCM_FORMAT_U24_3BE:
 		return samples * 3;
+	case SNDRV_PCM_FORMAT_S20_LE:
+	case SNDRV_PCM_FORMAT_S20_BE:
+	case SNDRV_PCM_FORMAT_U20_LE:
+	case SNDRV_PCM_FORMAT_U20_BE:
 	case SNDRV_PCM_FORMAT_S24_LE:
 	case SNDRV_PCM_FORMAT_S24_BE:
 	case SNDRV_PCM_FORMAT_U24_LE:
@@ -393,6 +413,8 @@ uint64_t snd_pcm_format_silence_64(snd_pcm_format_t format)
 	case SNDRV_PCM_FORMAT_S8:
 	case SNDRV_PCM_FORMAT_S16_LE:
 	case SNDRV_PCM_FORMAT_S16_BE:
+	case SNDRV_PCM_FORMAT_S20_LE:
+	case SNDRV_PCM_FORMAT_S20_BE:
 	case SNDRV_PCM_FORMAT_S24_LE:
 	case SNDRV_PCM_FORMAT_S24_BE:
 	case SNDRV_PCM_FORMAT_S32_LE:
@@ -415,12 +437,16 @@ uint64_t snd_pcm_format_silence_64(snd_pcm_format_t format)
 #ifdef SNDRV_LITTLE_ENDIAN
 	case SNDRV_PCM_FORMAT_U16_LE:
 		return 0x8000800080008000ULL;
+	case SNDRV_PCM_FORMAT_U20_LE:
+		return 0x0008000000080000ULL;
 	case SNDRV_PCM_FORMAT_U24_LE:
 		return 0x0080000000800000ULL;
 	case SNDRV_PCM_FORMAT_U32_LE:
 		return 0x8000000080000000ULL;
 	case SNDRV_PCM_FORMAT_U16_BE:
 		return 0x0080008000800080ULL;
+	case SNDRV_PCM_FORMAT_U20_BE:
+		return 0x0000080000000800ULL;
 	case SNDRV_PCM_FORMAT_U24_BE:
 		return 0x0000800000008000ULL;
 	case SNDRV_PCM_FORMAT_U32_BE:
@@ -440,12 +466,16 @@ uint64_t snd_pcm_format_silence_64(snd_pcm_format_t format)
 #else
 	case SNDRV_PCM_FORMAT_U16_LE:
 		return 0x0080008000800080ULL;
+	case SNDRV_PCM_FORMAT_U20_LE:
+		return 0x0000080000000800ULL;
 	case SNDRV_PCM_FORMAT_U24_LE:
 		return 0x0000800000008000ULL;
 	case SNDRV_PCM_FORMAT_U32_LE:
 		return 0x0000008000000080ULL;
 	case SNDRV_PCM_FORMAT_U16_BE:
 		return 0x8000800080008000ULL;
+	case SNDRV_PCM_FORMAT_U20_BE:
+		return 0x0008000000080000ULL;
 	case SNDRV_PCM_FORMAT_U24_BE:
 		return 0x0080000000800000ULL;
 	case SNDRV_PCM_FORMAT_U32_BE:
@@ -653,11 +683,13 @@ int snd_pcm_format_set_silence(snd_pcm_format_t format, void *data, unsigned int
 	return 0;
 }
 
-static const int linear_formats[4][2][2] = {
+static const int linear_formats[5][2][2] = {
 	{ { SNDRV_PCM_FORMAT_S8, SNDRV_PCM_FORMAT_S8 },
 	  { SNDRV_PCM_FORMAT_U8, SNDRV_PCM_FORMAT_U8 } },
 	{ { SNDRV_PCM_FORMAT_S16_LE, SNDRV_PCM_FORMAT_S16_BE },
 	  { SNDRV_PCM_FORMAT_U16_LE, SNDRV_PCM_FORMAT_U16_BE } },
+	{ { SNDRV_PCM_FORMAT_S20_LE, SNDRV_PCM_FORMAT_S20_BE },
+	  { SNDRV_PCM_FORMAT_U20_LE, SNDRV_PCM_FORMAT_U20_BE } },
 	{ { SNDRV_PCM_FORMAT_S24_LE, SNDRV_PCM_FORMAT_S24_BE },
 	  { SNDRV_PCM_FORMAT_U24_LE, SNDRV_PCM_FORMAT_U24_BE } },
 	{ { SNDRV_PCM_FORMAT_S32_LE, SNDRV_PCM_FORMAT_S32_BE },
@@ -706,11 +738,14 @@ snd_pcm_format_t snd_pcm_build_linear_format(int width, int pwidth, int unsignd,
 		case 16:
 			width = 1;
 			break;
-		case 24:
+		case 20:
 			width = 2;
 			break;
-		case 32:
+		case 24:
 			width = 3;
+			break;
+		case 32:
+			width = 4;
 			break;
 		default:
 			return SND_PCM_FORMAT_UNKNOWN;
