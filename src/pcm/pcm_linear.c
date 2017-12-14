@@ -100,8 +100,11 @@ int snd_pcm_linear_get_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_f
 		default:
 			width = 2; break;
 		}
-		return width * 4 + endian * 2 + sign + 16;
+		return width * 4 + endian * 2 + sign + 20;
 	} else {
+		if (width == 20)
+			width = 40;
+
 		width = width / 8 - 1;
 		return width * 4 + endian * 2 + sign;
 	}
@@ -131,8 +134,11 @@ int snd_pcm_linear_put_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_f
 		default:
 			width = 2; break;
 		}
-		return width * 4 + endian * 2 + sign + 16;
+		return width * 4 + endian * 2 + sign + 20;
 	} else {
+		if (width == 20)
+			width = 40;
+
 		width = width / 8 - 1;
 		return width * 4 + endian * 2 + sign;
 	}
@@ -303,7 +309,9 @@ static int snd_pcm_linear_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	if (err < 0)
 		return err;
 	linear->use_getput = (snd_pcm_format_physical_width(format) == 24 ||
-			      snd_pcm_format_physical_width(linear->sformat) == 24);
+			      snd_pcm_format_physical_width(linear->sformat) == 24 ||
+			      snd_pcm_format_width(format) == 20 ||
+			      snd_pcm_format_width(linear->sformat) == 20);
 	if (linear->use_getput) {
 		if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 			linear->get_idx = snd_pcm_linear_get_index(format, SND_PCM_FORMAT_S32);
