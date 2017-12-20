@@ -649,47 +649,6 @@ put32_1234_329_18: _put_triple_s(dst, (sample ^ 0x80000000) >> 14); goto PUT32_E
 #undef PUT32_END
 #endif
 
-#ifdef GETU_LABELS
-/* width endswap sign_toggle */
-static void *const getu_labels[4 * 2 * 2] = {
-	&&getu_1_1,		/*  8h ->  8h */
-	&&getu_1_9,		/*  8h ^>  8h */
-	&&getu_1_1,		/*  8s ->  8h */
-	&&getu_1_9,		/*  8s ^>  8h */
-	&&getu_12_12,		/* 16h -> 16h */
-	&&getu_12_92,		/* 16h ^> 16h */
-	&&getu_12_21,		/* 16s -> 16h */
-	&&getu_12_A1,		/* 16s ^> 16h */
-	&&getu_0123_0123,	/* 24h -> 24h */
-	&&getu_0123_0923,	/* 24h ^> 24h */
-	&&getu_1230_0321,	/* 24s -> 24h */
-	&&getu_1230_0B21,	/* 24s ^> 24h */
-	&&getu_1234_1234,	/* 32h -> 32h */
-	&&getu_1234_9234,	/* 32h ^> 32h */
-	&&getu_1234_4321,	/* 32s -> 32h */
-	&&getu_1234_C321,	/* 32s ^> 32h */
-};
-#endif
-
-#ifdef GETU_END
-while (0) {
-getu_1_1: sample = as_u8c(src); goto GETU_END;
-getu_1_9: sample = as_u8c(src) ^ 0x80; goto GETU_END;
-getu_12_12: sample = as_u16c(src); goto GETU_END;
-getu_12_92: sample = as_u16c(src) ^ 0x8000; goto GETU_END;
-getu_12_21: sample = bswap_16(as_u16c(src)); goto GETU_END;
-getu_12_A1: sample = bswap_16(as_u16c(src) ^ 0x80); goto GETU_END;
-getu_0123_0123: sample = sx24(as_u32c(src)); goto GETU_END;
-getu_0123_0923: sample = sx24(as_u32c(src) ^ 0x800000); goto GETU_END;
-getu_1230_0321: sample = sx24(bswap_32(as_u32c(src))); goto GETU_END;
-getu_1230_0B21: sample = sx24(bswap_32(as_u32c(src) ^ 0x8000)); goto GETU_END;
-getu_1234_1234: sample = as_u32c(src); goto GETU_END;
-getu_1234_9234: sample = as_u32c(src) ^ 0x80000000; goto GETU_END;
-getu_1234_4321: sample = bswap_32(as_u32c(src)); goto GETU_END;
-getu_1234_C321: sample = bswap_32(as_u32c(src) ^ 0x80); goto GETU_END;
-}
-#endif
-
 #ifdef PUT32F_LABELS
 /* type (0 = float, 1 = float64), endswap */
 static void *const put32float_labels[2 * 2] = {
