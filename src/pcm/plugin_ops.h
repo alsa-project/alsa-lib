@@ -92,26 +92,6 @@ static inline uint32_t sx24s(uint32_t x)
 #define _put_triple_s(ptr,val) _put_triple_le(ptr,val)
 #endif
 
-#ifdef COPY_LABELS
-static void *copy_labels[5] = {
-	&&copy_8,
-	&&copy_16,
-	&&copy_24
-	&&copy_32,
-	&&copy_64
-};
-#endif
-
-#ifdef COPY_END
-while(0) {
-copy_8: as_s8(dst) = as_s8c(src); goto COPY_END;
-copy_16: as_s16(dst) = as_s16c(src); goto COPY_END;
-copy_24: memcpy(dst,src,3); goto COPY_END;
-copy_32: as_s32(dst) = as_s32c(src); goto COPY_END;
-copy_64: as_s64(dst) = as_s64c(src); goto COPY_END;
-}
-#endif
-
 #ifdef CONV_LABELS
 /* src_wid src_endswap sign_toggle dst_wid dst_endswap */
 static void *const conv_labels[4 * 2 * 2 * 4 * 2] = {
