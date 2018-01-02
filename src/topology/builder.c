@@ -95,6 +95,10 @@ static int write_elem_block(snd_tplg_t *tplg,
 	list_for_each(pos, base) {
 		/* find elems with the same index to make a block */
 		elem = list_entry(pos, struct tplg_elem, list);
+
+		if (elem->compound_elem)
+			continue;
+
 		elem_next = list_entry(pos->next, struct tplg_elem, list);
 		block_size += elem->size;
 		count++;
