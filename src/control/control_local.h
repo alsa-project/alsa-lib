@@ -100,3 +100,8 @@ int snd_ctl_shm_open(snd_ctl_t **handlep, const char *name, const char *sockname
 int snd_ctl_async(snd_ctl_t *ctl, int sig, pid_t pid);
 
 #define CTLINABORT(x) ((x)->nonblock == 2)
+
+#ifdef INTERNAL
+int INTERNAL(snd_ctl_elem_info_get_dimensions)(const snd_ctl_elem_info_t *obj);
+int INTERNAL(snd_ctl_elem_info_get_dimension)(const snd_ctl_elem_info_t *obj, unsigned int idx);
+#endif /* INTERNAL */
