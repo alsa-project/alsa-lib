@@ -459,7 +459,7 @@ static int snd_pcm_hw_change_timer(snd_pcm_t *pcm, int enable)
 		}
 		snd_timer_params_set_auto_start(&params, 1);
 		snd_timer_params_set_ticks(&params, 1);
-		snd_timer_params_set_filter(&params, (1<<SND_TIMER_EVENT_TICK) |
+		INTERNAL(snd_timer_params_set_filter)(&params, (1<<SND_TIMER_EVENT_TICK) |
 					    suspend | resume);
 		err = snd_timer_params(hw->period_timer, &params);
 		if (err < 0) {

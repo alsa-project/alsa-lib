@@ -1589,7 +1589,7 @@ int snd_pcm_direct_set_timer_params(snd_pcm_direct_t *dmix)
 	if (dmix->tread) {
 		filter = (1<<SND_TIMER_EVENT_TICK) |
 			 dmix->timer_events;
-		snd_timer_params_set_filter(&params, filter);
+		INTERNAL(snd_timer_params_set_filter)(&params, filter);
 	}
 	ret = snd_timer_params(dmix->timer, &params);
 	if (ret < 0) {

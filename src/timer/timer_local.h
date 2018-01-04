@@ -73,3 +73,13 @@ int snd_timer_hw_open(snd_timer_t **handle, const char *name, int dev_class, int
 int snd_timer_query_hw_open(snd_timer_query_t **handle, const char *name, int mode);
 
 int snd_timer_async(snd_timer_t *timer, int sig, pid_t pid);
+
+#ifdef INTERNAL
+int INTERNAL(snd_timer_params_set_exclusive)(snd_timer_params_t * params, int exclusive);
+int INTERNAL(snd_timer_params_get_exclusive)(snd_timer_params_t * params);
+void INTERNAL(snd_timer_params_set_filter)(snd_timer_params_t * params, unsigned int filter);
+unsigned int INTERNAL(snd_timer_params_get_filter)(snd_timer_params_t * params);
+int INTERNAL(snd_timer_query_info)(snd_timer_query_t *timer, snd_timer_ginfo_t *info);
+int INTERNAL(snd_timer_query_params)(snd_timer_query_t *timer, snd_timer_gparams_t *params);
+int INTERNAL(snd_timer_query_status)(snd_timer_query_t *timer, snd_timer_gstatus_t *status);
+#endif /* INTERNAL */

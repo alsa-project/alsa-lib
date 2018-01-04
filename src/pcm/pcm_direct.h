@@ -20,6 +20,7 @@
  */
 
 #include "pcm_local.h"  
+#include "../timer/timer_local.h"
 
 #define DIRECT_IPC_SEMS         1
 #define DIRECT_IPC_SEM_CLIENT   0
