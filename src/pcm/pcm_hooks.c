@@ -424,7 +424,7 @@ static int snd_pcm_hook_add_conf(snd_pcm_t *pcm, snd_config_t *root, snd_config_
 		install = buf;
 		snprintf(buf, sizeof(buf), "_snd_pcm_hook_%s_install", str);
 	}
-	h = snd_dlopen(lib, RTLD_NOW, errbuf, sizeof(errbuf));
+	h = INTERNAL(snd_dlopen)(lib, RTLD_NOW, errbuf, sizeof(errbuf));
 	install_func = h ? snd_dlsym(h, install, SND_DLSYM_VERSION(SND_PCM_DLSYM_VERSION)) : NULL;
 	err = 0;
 	if (!h) {

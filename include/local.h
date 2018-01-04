@@ -361,4 +361,8 @@ int _snd_conf_generic_id(const char *id);
 	 const typeof( ((type *)0)->member ) *__mptr = (ptr);    \
 	(type *)( (char *)__mptr - offsetof(type,member) );})
 
+#ifdef INTERNAL
+void *INTERNAL(snd_dlopen)(const char *name, int mode, char *errbuf, size_t errbuflen);
+#endif
+
 #endif

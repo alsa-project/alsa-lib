@@ -116,7 +116,7 @@ static int snd_hwdep_open_conf(snd_hwdep_t **hwdep,
 #ifndef PIC
 	snd_hwdep_open_symbols();
 #endif
-	h = snd_dlopen(lib, RTLD_NOW, errbuf, sizeof(errbuf));
+	h = INTERNAL(snd_dlopen)(lib, RTLD_NOW, errbuf, sizeof(errbuf));
 	if (h)
 		open_func = snd_dlsym(h, open_name, SND_DLSYM_VERSION(SND_HWDEP_DLSYM_VERSION));
 	err = 0;

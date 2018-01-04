@@ -35,8 +35,7 @@
 #include <sys/ioctl.h>
 #include <math.h>
 #include <dlfcn.h>
-#include "config.h"
-#include "asoundlib.h"
+#include "mixer_local.h"
 #include "mixer_simple.h"
 
 #ifndef DOC_HIDDEN
@@ -81,7 +80,7 @@ static int try_open(snd_mixer_class_t *class, const char *lib)
 	strcpy(xlib, path);
 	strcat(xlib, "/");
 	strcat(xlib, lib);
-	h = snd_dlopen(xlib, RTLD_NOW, errbuf, sizeof(errbuf));
+	h = INTERNAL(snd_dlopen)(xlib, RTLD_NOW, errbuf, sizeof(errbuf));
 	if (h == NULL) {
 		SNDERR("Unable to open library '%s' (%s)", xlib, errbuf);
 		free(xlib);
@@ -128,7 +127,7 @@ static int try_open_full(snd_mixer_class_t *class, snd_mixer_t *mixer,
 	strcat(xlib, "/");
 	strcat(xlib, lib);
 	/* note python modules requires RTLD_GLOBAL */
-	h = snd_dlopen(xlib, RTLD_NOW|RTLD_GLOBAL, errbuf, sizeof(errbuf));
+	h = INTERNAL(snd_dlopen)(xlib, RTLD_NOW|RTLD_GLOBAL, errbuf, sizeof(errbuf));
 	if (h == NULL) {
 		SNDERR("Unable to open library '%s'", xlib);
 		free(xlib);

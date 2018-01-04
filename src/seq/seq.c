@@ -899,7 +899,7 @@ static int snd_seq_open_conf(snd_seq_t **seqp, const char *name,
 #ifndef PIC
 	snd_seq_open_symbols();
 #endif
-	h = snd_dlopen(lib, RTLD_NOW, errbuf, sizeof(errbuf));
+	h = INTERNAL(snd_dlopen)(lib, RTLD_NOW, errbuf, sizeof(errbuf));
 	if (h)
 		open_func = snd_dlsym(h, open_name, SND_DLSYM_VERSION(SND_SEQ_DLSYM_VERSION));
 	err = 0;

@@ -239,7 +239,7 @@ static int snd_rawmidi_open_conf(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp
 #ifndef PIC
 	snd_rawmidi_open_symbols();
 #endif
-	h = snd_dlopen(lib, RTLD_NOW, errbuf, sizeof(errbuf));
+	h = INTERNAL(snd_dlopen)(lib, RTLD_NOW, errbuf, sizeof(errbuf));
 	if (h)
 		open_func = snd_dlsym(h, open_name, SND_DLSYM_VERSION(SND_RAWMIDI_DLSYM_VERSION));
 	err = 0;

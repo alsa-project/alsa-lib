@@ -108,7 +108,7 @@ static int snd_timer_query_open_conf(snd_timer_query_t **timer,
 #ifndef PIC
 	snd_timer_query_open_symbols();
 #endif
-	h = snd_dlopen(lib, RTLD_NOW, errbuf, sizeof(errbuf));
+	h = INTERNAL(snd_dlopen)(lib, RTLD_NOW, errbuf, sizeof(errbuf));
 	if (h)
 		open_func = snd_dlsym(h, open_name, SND_DLSYM_VERSION(SND_TIMER_QUERY_DLSYM_VERSION));
 	err = 0;

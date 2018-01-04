@@ -277,7 +277,7 @@ void *snd_dlobj_cache_get(const char *lib, const char *name,
 	}
 
 	errbuf[0] = '\0';
-	dlobj = snd_dlopen(lib, RTLD_NOW,
+	dlobj = INTERNAL(snd_dlopen)(lib, RTLD_NOW,
 	                   verbose ? errbuf : 0,
 	                   verbose ? sizeof(errbuf) : 0);
 	if (dlobj == NULL) {
