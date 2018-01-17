@@ -657,6 +657,21 @@ playback devices.
 #include "pcm_local.h"
 
 #ifndef DOC_HIDDEN
+/* return specific error codes for known bad PCM states */
+static int pcm_state_to_error(snd_pcm_state_t state)
+{
+	switch (state) {
+	case SND_PCM_STATE_XRUN:
+		return -EPIPE;
+	case SND_PCM_STATE_SUSPENDED:
+		return -ESTRPIPE;
+	case SND_PCM_STATE_DISCONNECTED:
+		return -ENODEV;
+	default:
+		return 0;
+	}
+}
+
 #define P_STATE(x)	(1U << SND_PCM_STATE_ ## x)
 #define P_STATE_RUNNABLE (P_STATE(PREPARED) | \
 			  P_STATE(RUNNING) | \
@@ -667,9 +682,18 @@ playback devices.
 /* check whether the PCM is in the unexpected state */
 static int bad_pcm_state(snd_pcm_t *pcm, unsigned int supported_states)
 {
+	snd_pcm_state_t state;
+	int err;
+
 	if (pcm->own_state_check)
 		return 0; /* don't care, the plugin checks by itself */
-	return !(supported_states & (1U << snd_pcm_state(pcm)));
+	state = snd_pcm_state(pcm);
+	if (supported_states & (1U << state))
+		return 0; /* OK */
+	err = pcm_state_to_error(state);
+	if (err < 0)
+		return err;
+	return -EBADFD;
 }
 #endif
 
@@ -1143,8 +1167,9 @@ int snd_pcm_prepare(snd_pcm_t *pcm)
 		SNDMSG("PCM not set up");
 		return -EIO;
 	}
-	if (bad_pcm_state(pcm, ~P_STATE(DISCONNECTED)))
-		return -EBADFD;
+	err = bad_pcm_state(pcm, ~P_STATE(DISCONNECTED));
+	if (err < 0)
+		return err;
 	snd_pcm_lock(pcm);
 	err = pcm->fast_ops->prepare(pcm->fast_op_arg);
 	snd_pcm_unlock(pcm);
@@ -1191,8 +1216,9 @@ int snd_pcm_start(snd_pcm_t *pcm)
 		SNDMSG("PCM not set up");
 		return -EIO;
 	}
-	if (bad_pcm_state(pcm, P_STATE(PREPARED)))
-		return -EBADFD;
+	err = bad_pcm_state(pcm, P_STATE(PREPARED));
+	if (err < 0)
+		return err;
 	snd_pcm_lock(pcm);
 	err = __snd_pcm_start(pcm);
 	snd_pcm_unlock(pcm);
@@ -1221,9 +1247,10 @@ int snd_pcm_drop(snd_pcm_t *pcm)
 		SNDMSG("PCM not set up");
 		return -EIO;
 	}
-	if (bad_pcm_state(pcm, P_STATE_RUNNABLE | P_STATE(SETUP) |
-			     P_STATE(SUSPENDED)))
-		return -EBADFD;
+	err = bad_pcm_state(pcm, P_STATE_RUNNABLE | P_STATE(SETUP) |
+			    P_STATE(SUSPENDED));
+	if (err < 0)
+		return err;
 	snd_pcm_lock(pcm);
 	err = pcm->fast_ops->drop(pcm->fast_op_arg);
 	snd_pcm_unlock(pcm);
@@ -1247,13 +1274,16 @@ int snd_pcm_drop(snd_pcm_t *pcm)
  */
 int snd_pcm_drain(snd_pcm_t *pcm)
 {
+	int err;
+
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
 		SNDMSG("PCM not set up");
 		return -EIO;
 	}
-	if (bad_pcm_state(pcm, P_STATE_RUNNABLE))
-		return -EBADFD;
+	err = bad_pcm_state(pcm, P_STATE_RUNNABLE);
+	if (err < 0)
+		return err;
 	/* lock handled in the callback */
 	return pcm->fast_ops->drain(pcm->fast_op_arg);
 }
@@ -1279,8 +1309,9 @@ int snd_pcm_pause(snd_pcm_t *pcm, int enable)
 		SNDMSG("PCM not set up");
 		return -EIO;
 	}
-	if (bad_pcm_state(pcm, P_STATE_RUNNABLE))
-		return -EBADFD;
+	err = bad_pcm_state(pcm, P_STATE_RUNNABLE);
+	if (err < 0)
+		return err;
 	snd_pcm_lock(pcm);
 	err = pcm->fast_ops->pause(pcm->fast_op_arg, enable);
 	snd_pcm_unlock(pcm);
@@ -1301,14 +1332,16 @@ int snd_pcm_pause(snd_pcm_t *pcm, int enable)
 snd_pcm_sframes_t snd_pcm_rewindable(snd_pcm_t *pcm)
 {
 	snd_pcm_sframes_t result;
+	int err;
 
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
 		SNDMSG("PCM not set up");
 		return -EIO;
 	}
-	if (bad_pcm_state(pcm, P_STATE_RUNNABLE))
-		return -EBADFD;
+	err = bad_pcm_state(pcm, P_STATE_RUNNABLE);
+	if (err < 0)
+		return err;
 	snd_pcm_lock(pcm);
 	result = pcm->fast_ops->rewindable(pcm->fast_op_arg);
 	snd_pcm_unlock(pcm);
@@ -1327,6 +1360,7 @@ snd_pcm_sframes_t snd_pcm_rewindable(snd_pcm_t *pcm)
 snd_pcm_sframes_t snd_pcm_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_sframes_t result;
+	int err;
 
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
@@ -1335,8 +1369,9 @@ snd_pcm_sframes_t snd_pcm_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 	}
 	if (frames == 0)
 		return 0;
-	if (bad_pcm_state(pcm, P_STATE_RUNNABLE))
-		return -EBADFD;
+	err = bad_pcm_state(pcm, P_STATE_RUNNABLE);
+	if (err < 0)
+		return err;
 	snd_pcm_lock(pcm);
 	result = pcm->fast_ops->rewind(pcm->fast_op_arg, frames);
 	snd_pcm_unlock(pcm);
@@ -1357,14 +1392,16 @@ snd_pcm_sframes_t snd_pcm_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 snd_pcm_sframes_t snd_pcm_forwardable(snd_pcm_t *pcm)
 {
 	snd_pcm_sframes_t result;
+	int err;
 
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
 		SNDMSG("PCM not set up");
 		return -EIO;
 	}
-	if (bad_pcm_state(pcm, P_STATE_RUNNABLE))
-		return -EBADFD;
+	err = bad_pcm_state(pcm, P_STATE_RUNNABLE);
+	if (err < 0)
+		return err;
 	snd_pcm_lock(pcm);
 	result = pcm->fast_ops->forwardable(pcm->fast_op_arg);
 	snd_pcm_unlock(pcm);
@@ -1387,6 +1424,7 @@ snd_pcm_sframes_t snd_pcm_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 #endif
 {
 	snd_pcm_sframes_t result;
+	int err;
 
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
@@ -1395,8 +1433,9 @@ snd_pcm_sframes_t snd_pcm_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 	}
 	if (frames == 0)
 		return 0;
-	if (bad_pcm_state(pcm, P_STATE_RUNNABLE))
-		return -EBADFD;
+	err = bad_pcm_state(pcm, P_STATE_RUNNABLE);
+	if (err < 0)
+		return err;
 	snd_pcm_lock(pcm);
 	result = pcm->fast_ops->forward(pcm->fast_op_arg, frames);
 	snd_pcm_unlock(pcm);
@@ -1425,6 +1464,8 @@ use_default_symbol_version(__snd_pcm_forward, snd_pcm_forward, ALSA_0.9.0rc8);
  */ 
 snd_pcm_sframes_t snd_pcm_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size)
 {
+	int err;
+
 	assert(pcm);
 	assert(size == 0 || buffer);
 	if (CHECK_SANITY(! pcm->setup)) {
@@ -1435,8 +1476,9 @@ snd_pcm_sframes_t snd_pcm_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_ufr
 		SNDMSG("invalid access type %s", snd_pcm_access_name(pcm->access));
 		return -EINVAL;
 	}
-	if (bad_pcm_state(pcm, P_STATE_RUNNABLE))
-		return -EBADFD;
+	err = bad_pcm_state(pcm, P_STATE_RUNNABLE);
+	if (err < 0)
+		return err;
 	return _snd_pcm_writei(pcm, buffer, size);
 }
 
@@ -1461,6 +1503,8 @@ snd_pcm_sframes_t snd_pcm_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_ufr
  */ 
 snd_pcm_sframes_t snd_pcm_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
+	int err;
+
 	assert(pcm);
 	assert(size == 0 || bufs);
 	if (CHECK_SANITY(! pcm->setup)) {
@@ -1471,8 +1515,9 @@ snd_pcm_sframes_t snd_pcm_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t 
 		SNDMSG("invalid access type %s", snd_pcm_access_name(pcm->access));
 		return -EINVAL;
 	}
-	if (bad_pcm_state(pcm, P_STATE_RUNNABLE))
-		return -EBADFD;
+	err = bad_pcm_state(pcm, P_STATE_RUNNABLE);
+	if (err < 0)
+		return err;
 	return _snd_pcm_writen(pcm, bufs, size);
 }
 
@@ -1497,6 +1542,8 @@ snd_pcm_sframes_t snd_pcm_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t 
  */ 
 snd_pcm_sframes_t snd_pcm_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t size)
 {
+	int err;
+
 	assert(pcm);
 	assert(size == 0 || buffer);
 	if (CHECK_SANITY(! pcm->setup)) {
@@ -1507,8 +1554,9 @@ snd_pcm_sframes_t snd_pcm_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t 
 		SNDMSG("invalid access type %s", snd_pcm_access_name(pcm->access));
 		return -EINVAL;
 	}
-	if (bad_pcm_state(pcm, P_STATE_RUNNABLE))
-		return -EBADFD;
+	err = bad_pcm_state(pcm, P_STATE_RUNNABLE);
+	if (err < 0)
+		return err;
 	return _snd_pcm_readi(pcm, buffer, size);
 }
 
@@ -1533,6 +1581,8 @@ snd_pcm_sframes_t snd_pcm_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t 
  */ 
 snd_pcm_sframes_t snd_pcm_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
+	int err;
+
 	assert(pcm);
 	assert(size == 0 || bufs);
 	if (CHECK_SANITY(! pcm->setup)) {
@@ -1543,8 +1593,9 @@ snd_pcm_sframes_t snd_pcm_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t s
 		SNDMSG("invalid access type %s", snd_pcm_access_name(pcm->access));
 		return -EINVAL;
 	}
-	if (bad_pcm_state(pcm, P_STATE_RUNNABLE))
-		return -EBADFD;
+	err = bad_pcm_state(pcm, P_STATE_RUNNABLE);
+	if (err < 0)
+		return err;
 	return _snd_pcm_readn(pcm, bufs, size);
 }
 
@@ -2695,18 +2746,12 @@ int snd_pcm_wait(snd_pcm_t *pcm, int timeout)
 /* locked version */
 int __snd_pcm_wait_in_lock(snd_pcm_t *pcm, int timeout)
 {
+	int err;
+
 	if (!snd_pcm_may_wait_for_avail_min(pcm, snd_pcm_mmap_avail(pcm))) {
 		/* check more precisely */
-		switch (__snd_pcm_state(pcm)) {
-		case SND_PCM_STATE_XRUN:
-			return -EPIPE;
-		case SND_PCM_STATE_SUSPENDED:
-			return -ESTRPIPE;
-		case SND_PCM_STATE_DISCONNECTED:
-			return -ENODEV;
-		default:
-			return 1;
-		}
+		err = pcm_state_to_error(__snd_pcm_state(pcm));
+		return err < 0 ? err : 1;
 	}
 	return snd_pcm_wait_nocheck(pcm, timeout);
 }
@@ -2753,16 +2798,8 @@ int snd_pcm_wait_nocheck(snd_pcm_t *pcm, int timeout)
 			return err;
 		if (revents & (POLLERR | POLLNVAL)) {
 			/* check more precisely */
-			switch (__snd_pcm_state(pcm)) {
-			case SND_PCM_STATE_XRUN:
-				return -EPIPE;
-			case SND_PCM_STATE_SUSPENDED:
-				return -ESTRPIPE;
-			case SND_PCM_STATE_DISCONNECTED:
-				return -ENODEV;
-			default:
-				return -EIO;
-			}
+			err = pcm_state_to_error(__snd_pcm_state(pcm));
+			return err < 0 ? err : -EIO;
 		}
 	} while (!(revents & (POLLIN | POLLOUT)));
 #if 0 /* very useful code to test poll related problems */
@@ -7010,8 +7047,9 @@ int snd_pcm_mmap_begin(snd_pcm_t *pcm,
 {
 	int err;
 
-	if (bad_pcm_state(pcm, P_STATE_RUNNABLE))
-		return -EBADFD;
+	err = bad_pcm_state(pcm, P_STATE_RUNNABLE);
+	if (err < 0)
+		return err;
 	snd_pcm_lock(pcm);
 	err = __snd_pcm_mmap_begin(pcm, areas, offset, frames);
 	snd_pcm_unlock(pcm);
@@ -7106,9 +7144,11 @@ snd_pcm_sframes_t snd_pcm_mmap_commit(snd_pcm_t *pcm,
 				      snd_pcm_uframes_t frames)
 {
 	snd_pcm_sframes_t result;
+	int err;
 
-	if (bad_pcm_state(pcm, P_STATE_RUNNABLE))
-		return -EBADFD;
+	err = bad_pcm_state(pcm, P_STATE_RUNNABLE);
+	if (err < 0)
+		return err;
 	snd_pcm_lock(pcm);
 	result = __snd_pcm_mmap_commit(pcm, offset, frames);
 	snd_pcm_unlock(pcm);
@@ -7204,17 +7244,10 @@ snd_pcm_sframes_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_
 		case SND_PCM_STATE_DRAINING:
 		case SND_PCM_STATE_PAUSED:
 			break;
-		case SND_PCM_STATE_XRUN:
-			err = -EPIPE;
-			goto _end;
-		case SND_PCM_STATE_SUSPENDED:
-			err = -ESTRPIPE;
-			goto _end;
-		case SND_PCM_STATE_DISCONNECTED:
-			err = -ENODEV;
-			goto _end;
 		default:
-			err = -EBADFD;
+			err = pcm_state_to_error(state);
+			if (!err)
+				err = -EBADFD;
 			goto _end;
 		}
 		avail = __snd_pcm_avail_update(pcm);
@@ -7280,17 +7313,10 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 			if (err < 0)
 				goto _end;
 			break;
-		case SND_PCM_STATE_XRUN:
-			err = -EPIPE;
-			goto _end;
-		case SND_PCM_STATE_SUSPENDED:
-			err = -ESTRPIPE;
-			goto _end;
-		case SND_PCM_STATE_DISCONNECTED:
-			err = -ENODEV;
-			goto _end;
 		default:
-			err = -EBADFD;
+			err = pcm_state_to_error(state);
+			if (!err)
+				err = -EBADFD;
 			goto _end;
 		}
 		avail = __snd_pcm_avail_update(pcm);
