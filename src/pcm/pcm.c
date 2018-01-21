@@ -2955,6 +2955,7 @@ int snd_pcm_area_silence(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes
 			*dstp++ = silence;
 		if (samples == 0)
 			return 0;
+		dst = (char *)dstp;
 	}
 	dst_step = dst_area->step / 8;
 	switch (width) {
@@ -2996,16 +2997,20 @@ int snd_pcm_area_silence(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes
 		}
 		break;
 	}
-	case 24:
+	case 24: {
+		while (samples-- > 0) {
 #ifdef SNDRV_LITTLE_ENDIAN
-		*(dst + 0) = silence >> 0;
-		*(dst + 1) = silence >> 8;
-		*(dst + 2) = silence >> 16;
+			*(dst + 0) = silence >> 0;
+			*(dst + 1) = silence >> 8;
+			*(dst + 2) = silence >> 16;
 #else
-		*(dst + 2) = silence >> 0;
-		*(dst + 1) = silence >> 8;
-		*(dst + 0) = silence >> 16;
+			*(dst + 2) = silence >> 0;
+			*(dst + 1) = silence >> 8;
+			*(dst + 0) = silence >> 16;
 #endif
+			dst += dst_step;
+		}
+	}
 		break;
 	case 32: {
 		uint32_t sil = silence;
