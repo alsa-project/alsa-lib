@@ -2947,7 +2947,11 @@ int snd_pcm_area_silence(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes
 	dst = snd_pcm_channel_area_addr(dst_area, dst_offset);
 	width = snd_pcm_format_physical_width(format);
 	silence = snd_pcm_format_silence_64(format);
-	if (dst_area->step == (unsigned int) width) {
+        /*
+         * Iterate copying silent sample for sample data aligned to 64 bit.
+         * This is a fast path.
+         */
+        if (dst_area->step == (unsigned int) width && (64 % width) == 0) {
 		unsigned int dwords = samples * width / 64;
 		uint64_t *dstp = (uint64_t *)dst;
 		samples -= dwords * 64 / width;
