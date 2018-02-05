@@ -2951,7 +2951,9 @@ int snd_pcm_area_silence(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes
          * Iterate copying silent sample for sample data aligned to 64 bit.
          * This is a fast path.
          */
-        if (dst_area->step == (unsigned int) width && (64 % width) == 0) {
+        if (dst_area->step == (unsigned int) width &&
+            width != 24 &&
+            ((intptr_t)dst & 7) == 0) {
 		unsigned int dwords = samples * width / 64;
 		uint64_t *dstp = (uint64_t *)dst;
 		samples -= dwords * 64 / width;
