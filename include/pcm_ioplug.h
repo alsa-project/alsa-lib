@@ -65,6 +65,8 @@ typedef snd_pcm_ioplug_callback snd_pcm_ioplug_callback_t;
  */
 #define SND_PCM_IOPLUG_FLAG_LISTED	(1<<0)		/**< list up this PCM */
 #define SND_PCM_IOPLUG_FLAG_MONOTONIC	(1<<1)		/**< monotonic timestamps */
+/** hw pointer wrap around at boundary instead of buffer_size */
+#define SND_PCM_IOPLUG_FLAG_BOUNDARY_WA	(1<<2)
 
 /*
  * Protocol version
@@ -133,6 +135,9 @@ struct snd_pcm_ioplug_callback {
 	int (*stop)(snd_pcm_ioplug_t *io);
 	/**
 	 * get the current DMA position; required, called inside mutex lock
+	 * \return buffer position up to buffer_size or
+	 * when #SND_PCM_IOPLUG_FLAG_BOUNDARY_WA flag is set up to boundary or
+	 * a negative error code for Xrun
 	 */
 	snd_pcm_sframes_t (*pointer)(snd_pcm_ioplug_t *io);
 	/**

@@ -42,7 +42,7 @@ const char *_snd_module_pcm_ioplug = "";
 typedef struct snd_pcm_ioplug_priv {
 	snd_pcm_ioplug_t *data;
 	struct snd_ext_parm params[SND_PCM_IOPLUG_HW_PARAMS];
-	unsigned int last_hw;
+	snd_pcm_uframes_t last_hw;
 	snd_pcm_uframes_t avail_max;
 	snd_htimestamp_t trigger_tstamp;
 } ioplug_priv_t;
@@ -56,13 +56,18 @@ static void snd_pcm_ioplug_hw_ptr_update(snd_pcm_t *pcm)
 
 	hw = io->data->callback->pointer(io->data);
 	if (hw >= 0) {
-		unsigned int delta;
-		if ((unsigned int)hw >= io->last_hw)
+		snd_pcm_uframes_t delta;
+
+		if ((snd_pcm_uframes_t)hw >= io->last_hw)
 			delta = hw - io->last_hw;
-		else
-			delta = pcm->buffer_size + hw - io->last_hw;
+		else {
+			const snd_pcm_uframes_t wrap_point =
+				(io->data->flags & SND_PCM_IOPLUG_FLAG_BOUNDARY_WA) ?
+					pcm->boundary : pcm->buffer_size;
+			delta = wrap_point + hw - io->last_hw;
+		}
 		snd_pcm_mmap_hw_forward(io->data->pcm, delta);
-		io->last_hw = hw;
+		io->last_hw = (snd_pcm_uframes_t)hw;
 	} else
 		io->data->state = SNDRV_PCM_STATE_XRUN;
 }
