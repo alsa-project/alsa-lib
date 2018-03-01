@@ -823,8 +823,11 @@ int snd_pcm_async(snd_pcm_t *pcm, int sig, pid_t pid)
 		sig = SIGIO;
 	if (pid == 0)
 		pid = getpid();
+
+#ifdef THREAD_SAFE_API
 	/* async handler may lead to a deadlock; suppose no multi thread */
 	pcm->lock_enabled = 0;
+#endif
 	return pcm->ops->async(pcm->op_arg, sig, pid);
 }
 #endif
