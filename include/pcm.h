@@ -1147,6 +1147,15 @@ int snd_pcm_area_copy(const snd_pcm_channel_area_t *dst_channel, snd_pcm_uframes
 int snd_pcm_areas_copy(const snd_pcm_channel_area_t *dst_channels, snd_pcm_uframes_t dst_offset,
 		       const snd_pcm_channel_area_t *src_channels, snd_pcm_uframes_t src_offset,
 		       unsigned int channels, snd_pcm_uframes_t frames, snd_pcm_format_t format);
+int snd_pcm_areas_copy_wrap(const snd_pcm_channel_area_t *dst_channels,
+			    snd_pcm_uframes_t dst_offset,
+			    const snd_pcm_uframes_t dst_size,
+			    const snd_pcm_channel_area_t *src_channels,
+			    snd_pcm_uframes_t src_offset,
+			    const snd_pcm_uframes_t src_size,
+			    const unsigned int channels,
+			    snd_pcm_uframes_t frames,
+			    const snd_pcm_format_t format);
 
 /** \} */
 

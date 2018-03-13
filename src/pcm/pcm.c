@@ -3289,6 +3289,55 @@ int snd_pcm_areas_copy(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_
 	return 0;
 }
 
+/**
+ * \brief Copy one or more areas
+ * \param dst_areas destination areas specification (one for each channel)
+ * \param dst_offset offset in frames inside destination area
+ * \param dst_size size in frames of the destination buffer
+ * \param src_areas source areas specification (one for each channel)
+ * \param src_offset offset in frames inside source area
+ * \param dst_size size in frames of the source buffer
+ * \param channels channels count
+ * \param frames frames to copy
+ * \param format PCM sample format
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_pcm_areas_copy_wrap(const snd_pcm_channel_area_t *dst_channels,
+			    snd_pcm_uframes_t dst_offset,
+			    const snd_pcm_uframes_t dst_size,
+			    const snd_pcm_channel_area_t *src_channels,
+			    snd_pcm_uframes_t src_offset,
+			    const snd_pcm_uframes_t src_size,
+			    const unsigned int channels,
+			    snd_pcm_uframes_t frames,
+			    const snd_pcm_format_t format)
+{
+	while (frames > 0) {
+		int err;
+		snd_pcm_uframes_t xfer = frames;
+		/* do not write above the destination buffer */
+		if ((dst_offset + xfer) > dst_size)
+			xfer = dst_size - dst_offset;
+		/* do not read from above the source buffer */
+		if ((src_offset + xfer) > src_size)
+			xfer = src_size - src_offset;
+		err = snd_pcm_areas_copy(dst_channels, dst_offset, src_channels,
+					 src_offset, channels, xfer, format);
+		if (err < 0)
+			return err;
+
+		dst_offset += xfer;
+		if (dst_offset >= dst_size)
+			dst_offset = 0;
+		src_offset += xfer;
+		if (src_offset >= src_size)
+			src_offset = 0;
+		frames -= xfer;
+	}
+
+	return 0;
+}
+
 static void dump_one_param(snd_pcm_hw_params_t *params, unsigned int k, snd_output_t *out)
 {
 	snd_output_printf(out, "%s: ", snd_pcm_hw_param_name(k));
