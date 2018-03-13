@@ -467,10 +467,12 @@ static inline int snd_pcm_check_error(snd_pcm_t *pcm, int err)
 	return err;
 }
 
-static inline snd_pcm_uframes_t snd_pcm_mmap_playback_avail(snd_pcm_t *pcm)
+static inline snd_pcm_uframes_t __snd_pcm_playback_avail(snd_pcm_t *pcm,
+							 const snd_pcm_uframes_t hw_ptr,
+							 const snd_pcm_uframes_t appl_ptr)
 {
 	snd_pcm_sframes_t avail;
-	avail = *pcm->hw.ptr + pcm->buffer_size - *pcm->appl.ptr;
+	avail = hw_ptr + pcm->buffer_size - appl_ptr;
 	if (avail < 0)
 		avail += pcm->boundary;
 	else if ((snd_pcm_uframes_t) avail >= pcm->boundary)
@@ -478,21 +480,40 @@ static inline snd_pcm_uframes_t snd_pcm_mmap_playback_avail(snd_pcm_t *pcm)
 	return avail;
 }
 
-static inline snd_pcm_uframes_t snd_pcm_mmap_capture_avail(snd_pcm_t *pcm)
+static inline snd_pcm_uframes_t snd_pcm_mmap_playback_avail(snd_pcm_t *pcm)
+{
+	return __snd_pcm_playback_avail(pcm, *pcm->hw.ptr, *pcm->appl.ptr);
+}
+
+static inline snd_pcm_uframes_t __snd_pcm_capture_avail(snd_pcm_t *pcm,
+							const snd_pcm_uframes_t hw_ptr,
+							const snd_pcm_uframes_t appl_ptr)
 {
 	snd_pcm_sframes_t avail;
-	avail = *pcm->hw.ptr - *pcm->appl.ptr;
+	avail = hw_ptr - appl_ptr;
 	if (avail < 0)
 		avail += pcm->boundary;
 	return avail;
 }
 
-static inline snd_pcm_uframes_t snd_pcm_mmap_avail(snd_pcm_t *pcm)
+static inline snd_pcm_uframes_t snd_pcm_mmap_capture_avail(snd_pcm_t *pcm)
+{
+	return __snd_pcm_capture_avail(pcm, *pcm->hw.ptr, *pcm->appl.ptr);
+}
+
+static inline snd_pcm_uframes_t __snd_pcm_avail(snd_pcm_t *pcm,
+						const snd_pcm_uframes_t hw_ptr,
+						const snd_pcm_uframes_t appl_ptr)
 {
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
-		return snd_pcm_mmap_playback_avail(pcm);
+		return __snd_pcm_playback_avail(pcm, hw_ptr, appl_ptr);
 	else
-		return snd_pcm_mmap_capture_avail(pcm);
+		return __snd_pcm_capture_avail(pcm, hw_ptr, appl_ptr);
+}
+
+static inline snd_pcm_uframes_t snd_pcm_mmap_avail(snd_pcm_t *pcm)
+{
+	return __snd_pcm_avail(pcm, *pcm->hw.ptr, *pcm->appl.ptr);
 }
 
 static inline snd_pcm_sframes_t snd_pcm_mmap_playback_hw_avail(snd_pcm_t *pcm)

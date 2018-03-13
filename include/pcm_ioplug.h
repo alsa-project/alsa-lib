@@ -234,6 +234,11 @@ int snd_pcm_ioplug_set_param_list(snd_pcm_ioplug_t *io, int type, unsigned int n
 /* change PCM status */
 int snd_pcm_ioplug_set_state(snd_pcm_ioplug_t *ioplug, snd_pcm_state_t state);
 
+/* calucalte the available frames */
+snd_pcm_uframes_t snd_pcm_ioplug_hw_avail(const snd_pcm_ioplug_t * const ioplug,
+					  const snd_pcm_uframes_t hw_ptr,
+					  const snd_pcm_uframes_t appl_ptr);
+
 /** \} */
 
 #endif /* __ALSA_PCM_IOPLUG_H */
