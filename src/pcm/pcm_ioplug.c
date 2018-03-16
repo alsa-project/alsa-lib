@@ -146,13 +146,16 @@ static int snd_pcm_ioplug_prepare(snd_pcm_t *pcm)
 	ioplug_priv_t *io = pcm->private_data;
 	int err = 0;
 
-	io->data->state = SND_PCM_STATE_PREPARED;
 	snd_pcm_ioplug_reset(pcm);
 	if (io->data->callback->prepare) {
 		snd_pcm_unlock(pcm); /* to avoid deadlock */
 		err = io->data->callback->prepare(io->data);
 		snd_pcm_lock(pcm);
 	}
+	if (err < 0)
+		return err;
+
+	io->data->state = SND_PCM_STATE_PREPARED;
 	return err;
 }
 
@@ -493,6 +496,8 @@ static int snd_pcm_ioplug_drain(snd_pcm_t *pcm)
 
 	if (io->data->state == SND_PCM_STATE_OPEN)
 		return -EBADFD;
+
+	io->data->state = SND_PCM_STATE_DRAINING;
 	if (io->data->callback->drain)
 		io->data->callback->drain(io->data);
 	snd_pcm_lock(pcm);
