@@ -882,6 +882,7 @@ static int parse_hw_config_refs(snd_tplg_t *tplg, snd_config_t *cfg,
 	/* refer to a list of HW configs */
 	snd_config_for_each(i, next, cfg) {
 		const char *val;
+		int err;
 
 		n = snd_config_iterator_entry(i);
 		if (snd_config_get_string(n, &val) < 0)
@@ -893,7 +894,9 @@ static int parse_hw_config_refs(snd_tplg_t *tplg, snd_config_t *cfg,
 		}
 
 		link->num_hw_configs++;
-		return tplg_ref_add(elem, SND_TPLG_TYPE_HW_CONFIG, val);
+		err = tplg_ref_add(elem, SND_TPLG_TYPE_HW_CONFIG, val);
+		if (err < 0)
+			return err;
 	}
 
 	return 0;
