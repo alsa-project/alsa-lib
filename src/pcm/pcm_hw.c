@@ -1004,16 +1004,28 @@ static int map_status_and_control_data(snd_pcm_t *pcm, bool force_fallback)
 		hw->sync_ptr = NULL;
 	}
 
-	/* Initialize the data. */
-	hw->mmap_control->appl_ptr = 0;
-	hw->mmap_control->avail_min = 1;
+	/* do not initialize in case of append and keep the values from the
+	 * kernel
+	 */
+	if (!(pcm->mode & SND_PCM_APPEND)) {
+		/* Initialize the data. */
+		hw->mmap_control->appl_ptr = 0;
+		hw->mmap_control->avail_min = 1;
+	}
 	snd_pcm_set_hw_ptr(pcm, &hw->mmap_status->hw_ptr, hw->fd,
 			   SNDRV_PCM_MMAP_OFFSET_STATUS +
 				offsetof(struct snd_pcm_mmap_status, hw_ptr));
 	snd_pcm_set_appl_ptr(pcm, &hw->mmap_control->appl_ptr, hw->fd,
 			     SNDRV_PCM_MMAP_OFFSET_CONTROL);
 	if (hw->mmap_control_fallbacked) {
-		err = sync_ptr1(hw, 0);
+		unsigned int flags;
+		/* read appl_ptr and avail_min from kernel when device opened
+		 * with SND_PCM_APPEND flag
+		 */
+		if (pcm->mode & SND_PCM_APPEND)
+			flags = SNDRV_PCM_SYNC_PTR_APPL |
+				SNDRV_PCM_SYNC_PTR_AVAIL_MIN;
+		err = sync_ptr1(hw, flags);
 		if (err < 0)
 			return err;
 	}
@@ -1539,6 +1551,8 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name, int fd,
 		mode |= SND_PCM_NONBLOCK;
 	if (fmode & O_ASYNC)
 		mode |= SND_PCM_ASYNC;
+	if (fmode & O_APPEND)
+		mode |= SND_PCM_APPEND;
 
 	if (ioctl(fd, SNDRV_PCM_IOCTL_PVERSION, &ver) < 0) {
 		ret = -errno;
