@@ -413,11 +413,19 @@ AC_ARG_ENABLE(mixer-pymods,
 AC_ARG_ENABLE(python,
   AS_HELP_STRING([--disable-python], [disable the python components]),
   [build_python="$enableval"], [build_python="yes"])
+
+AC_ARG_ENABLE(python2,
+  AS_HELP_STRING([--enable-python2], [prefer python2]),
+  [build_python2="$enableval"], [build_python2="no"])
 PYTHON_LIBS=""
 PYTHON_INCLUDES=""
 if test "$build_python" = "yes" -a "$build_mixer_pymodules" = "yes"; then
-  pythonlibs0=$(python3-config --libs)
-  pythoninc0=$(python3-config --includes)
+  pythonlibs0=
+  pythoninc0=
+  if test "$build_python2" != "yes"; then
+    pythonlibs0=$(python3-config --libs)
+    pythoninc0=$(python3-config --includes)
+  fi
   if test -z "$pythonlibs0"; then
     pythonlibs0=$(python-config --libs)
     pythoninc0=$(python-config --includes)

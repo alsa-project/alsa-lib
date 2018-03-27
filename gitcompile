@@ -21,6 +21,10 @@ if [ $# -ne 0 ]; then
       alisp=yes
       echo "Forced alisp code build..."
       shift ;;
+    python2)
+      python2=yes
+      echo "Forced python2 interpreter build..."
+      shift ;;
     *)
       endloop=yes
       ;;
@@ -53,11 +57,15 @@ fi
 
 if [ "$modules" = "yes" ]; then
   args="$args --enable-mixer-modules"
-  args="$args --enable-mixer-pymodules"
+  args="$args --enable-mixer-pymods"
 fi
 
 if [ "$alisp" = "yes" ]; then
   args="$args --enable-alisp"
+fi
+
+if [ "$python2" = "yes" ]; then
+  args="$args --enable-python2"
 fi
 
 touch ltconfig
