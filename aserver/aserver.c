@@ -490,6 +490,7 @@ static int pcm_shm_cmd(client_t *client)
 	case SND_PCM_IOCTL_MMAP:
 	{
 		ctrl->result = snd_pcm_mmap(pcm);
+		break;
 	}
 	case SND_PCM_IOCTL_MUNMAP:
 	{

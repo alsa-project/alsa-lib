@@ -62,7 +62,7 @@ struct tplg_elem *lookup_pcm_dai_stream(struct list_head *base, const char* id)
 }
 
 /* copy referenced caps to the parent (pcm or be dai) */
-static void copy_stream_caps(const char *id,
+static void copy_stream_caps(const char *id ATTRIBUTE_UNUSED,
 	struct snd_soc_tplg_stream_caps *caps, struct tplg_elem *ref_elem)
 {
 	struct snd_soc_tplg_stream_caps *ref_caps = ref_elem->stream_caps;
@@ -852,7 +852,8 @@ int tplg_parse_dai(snd_tplg_t *tplg,
 }
 
 /* parse physical link runtime supported HW configs in text conf file */
-static int parse_hw_config_refs(snd_tplg_t *tplg, snd_config_t *cfg,
+static int parse_hw_config_refs(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
+				snd_config_t *cfg,
 				struct tplg_elem *elem)
 {
 	struct snd_soc_tplg_link_config *link = elem->link;
@@ -1370,7 +1371,7 @@ int tplg_add_pcm_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 static int set_link_hw_config(struct snd_soc_tplg_hw_config *cfg,
 			struct snd_tplg_hw_config_template *tpl)
 {
-	int i;
+	unsigned int i;
 
 	cfg->size = sizeof(*cfg);
 	cfg->id = tpl->id;
@@ -1413,7 +1414,7 @@ int tplg_add_link_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 	struct snd_tplg_link_template *link_tpl = t->link;
 	struct snd_soc_tplg_link_config *link, *_link;
 	struct tplg_elem *elem;
-	int i;
+	unsigned int i;
 
 	if (t->type != SND_TPLG_TYPE_LINK && t->type != SND_TPLG_TYPE_BE
 	    && t->type != SND_TPLG_TYPE_CC)

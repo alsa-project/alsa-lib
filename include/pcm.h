@@ -307,7 +307,9 @@ typedef enum _snd_pcm_state {
 	SND_PCM_STATE_SUSPENDED,
 	/** Hardware is disconnected */
 	SND_PCM_STATE_DISCONNECTED,
-	SND_PCM_STATE_LAST = SND_PCM_STATE_DISCONNECTED
+	SND_PCM_STATE_LAST = SND_PCM_STATE_DISCONNECTED,
+	/** Private - used internally in the library - do not use*/
+	SND_PCM_STATE_PRIVATE1 = 1024
 } snd_pcm_state_t;
 
 /** PCM start mode */

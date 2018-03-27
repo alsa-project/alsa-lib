@@ -75,7 +75,7 @@ autoheader
 automake --foreign --copy --add-missing
 touch depcomp		# seems to be missing for old automake
 autoconf
-export CFLAGS='-O2 -Wall -W -pipe -g'
+export CFLAGS='-O2 -Wall -W -Wunused-const-variable=0 -pipe -g'
 echo "CFLAGS=$CFLAGS"
 echo "./configure $args"
 ./configure $args || exit 1

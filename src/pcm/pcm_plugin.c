@@ -587,7 +587,7 @@ int snd_pcm_plugin_may_wait_for_avail_min(snd_pcm_t *pcm,
 		if (available < 0)
 			return 0;
 
-		if (available >= pcm->avail_min)
+		if ((snd_pcm_uframes_t)available >= pcm->avail_min)
 			/* don't wait at all. As we can't configure avail_min
 			 * of slave to 0 return here
 			 */

@@ -417,7 +417,7 @@ int snd_pcm_mmap(snd_pcm_t *pcm)
 			case SND_PCM_AREA_SHM:
 				if (i1->u.shm.shmid != i->u.shm.shmid)
 					continue;
-				/* follow thru */
+				/* fall through */
 			case SND_PCM_AREA_LOCAL:
 				if (pcm->access != SND_PCM_ACCESS_MMAP_INTERLEAVED &&
 				    pcm->access != SND_PCM_ACCESS_RW_INTERLEAVED)

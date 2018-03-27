@@ -888,7 +888,7 @@ int tplg_add_enum(snd_tplg_t *tplg, struct snd_tplg_enum_template *enum_ctl,
 
 	if (enum_ctl->values != NULL) {
 		for (i = 0; i < num_items; i++) {
-			if (enum_ctl->values[i])
+			if (enum_ctl->values[i] == NULL)
 				continue;
 
 			memcpy(&ec->values[i * sizeof(int) * ENUM_VAL_SIZE],
