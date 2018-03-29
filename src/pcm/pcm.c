@@ -2751,7 +2751,9 @@ int __snd_pcm_wait_in_lock(snd_pcm_t *pcm, int timeout)
 {
 	int err;
 
-	if (!snd_pcm_may_wait_for_avail_min(pcm, snd_pcm_mmap_avail(pcm))) {
+	/* NOTE: avail_min check can be skipped during draining */
+	if (__snd_pcm_state(pcm) != SND_PCM_STATE_DRAINING &&
+	    !snd_pcm_may_wait_for_avail_min(pcm, snd_pcm_mmap_avail(pcm))) {
 		/* check more precisely */
 		err = pcm_state_to_error(__snd_pcm_state(pcm));
 		return err < 0 ? err : 1;
