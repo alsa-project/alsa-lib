@@ -1,4 +1,4 @@
-SUBDIRS=cards pcm alsa.conf.d
+SUBDIRS=cards pcm
 
 if BUILD_UCM
 SUBDIRS += ucm
