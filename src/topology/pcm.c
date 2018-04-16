@@ -1141,8 +1141,19 @@ int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
 			if (snd_config_get_string(n, &val) < 0)
 				return -EINVAL;
 
-			if (!strcmp(val, "master"))
-				hw_cfg->bclk_master = true;
+			if (!strcmp(val, "master")) {
+				/* For backwards capability,
+				 * "master" == "codec is slave"
+				 */
+				SNDERR("warning: deprecated bclk value '%s'\n",
+				       val);
+
+				hw_cfg->bclk_master = SND_SOC_TPLG_BCLK_CS;
+			} else if (!strcmp(val, "codec_slave")) {
+				hw_cfg->bclk_master = SND_SOC_TPLG_BCLK_CS;
+			} else if (!strcmp(val, "codec_master")) {
+				hw_cfg->bclk_master = SND_SOC_TPLG_BCLK_CM;
+			}
 			continue;
 		}
 
@@ -1167,8 +1178,19 @@ int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
 			if (snd_config_get_string(n, &val) < 0)
 				return -EINVAL;
 
-			if (!strcmp(val, "master"))
-				hw_cfg->fsync_master = true;
+			if (!strcmp(val, "master")) {
+				/* For backwards capability,
+				 * "master" == "codec is slave"
+				 */
+				SNDERR("warning: deprecated fsync value '%s'\n",
+				       val);
+
+				hw_cfg->fsync_master = SND_SOC_TPLG_FSYNC_CS;
+			} else if (!strcmp(val, "codec_slave")) {
+				hw_cfg->fsync_master = SND_SOC_TPLG_FSYNC_CS;
+			} else if (!strcmp(val, "codec_master")) {
+				hw_cfg->fsync_master = SND_SOC_TPLG_FSYNC_CM;
+			}
 			continue;
 		}
 

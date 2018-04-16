@@ -1000,8 +1000,8 @@ struct snd_tplg_hw_config_template {
 	unsigned char clock_gated;      /* 1 if clock can be gated to save power */
 	unsigned char  invert_bclk;     /* 1 for inverted BCLK, 0 for normal */
 	unsigned char  invert_fsync;    /* 1 for inverted frame clock, 0 for normal */
-	unsigned char  bclk_master;     /* 1 for master of BCLK, 0 for slave */
-	unsigned char  fsync_master;    /* 1 for master of FSYNC, 0 for slave */
+	unsigned char  bclk_master;     /* SND_SOC_TPLG_BCLK_ value */
+	unsigned char  fsync_master;    /* SND_SOC_TPLG_FSYNC_ value */
 	unsigned char  mclk_direction;  /* 0 for input, 1 for output */
 	unsigned short reserved;        /* for 32bit alignment */
 	unsigned int mclk_rate;	        /* MCLK or SYSCLK freqency in Hz */
