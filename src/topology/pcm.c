@@ -1126,7 +1126,8 @@ int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
 			continue;
 		}
 
-		if (strcmp(id, "format") == 0) {
+		if (strcmp(id, "format") == 0 ||
+		    strcmp(id, "fmt") == 0) {
 			if (snd_config_get_string(n, &val) < 0)
 				return -EINVAL;
 
@@ -1137,7 +1138,8 @@ int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
 			continue;
 		}
 
-		if (strcmp(id, "bclk") == 0) {
+		if (strcmp(id, "bclk") == 0 ||
+		    strcmp(id, "bclk_master") == 0) {
 			if (snd_config_get_string(n, &val) < 0)
 				return -EINVAL;
 
@@ -1157,7 +1159,8 @@ int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
 			continue;
 		}
 
-		if (strcmp(id, "bclk_freq") == 0) {
+		if (strcmp(id, "bclk_freq") == 0 ||
+		    strcmp(id, "bclk_rate") == 0) {
 			if (snd_config_get_string(n, &val) < 0)
 				return -EINVAL;
 
@@ -1165,7 +1168,8 @@ int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
 			continue;
 		}
 
-		if (strcmp(id, "bclk_invert") == 0) {
+		if (strcmp(id, "bclk_invert") == 0 ||
+		    strcmp(id, "invert_bclk") == 0) {
 			if (snd_config_get_string(n, &val) < 0)
 				return -EINVAL;
 
@@ -1174,7 +1178,8 @@ int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
 			continue;
 		}
 
-		if (strcmp(id, "fsync") == 0) {
+		if (strcmp(id, "fsync") == 0 ||
+		    strcmp(id, "fsync_master") == 0) {
 			if (snd_config_get_string(n, &val) < 0)
 				return -EINVAL;
 
@@ -1194,7 +1199,8 @@ int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
 			continue;
 		}
 
-		if (strcmp(id, "fsync_invert") == 0) {
+		if (strcmp(id, "fsync_invert") == 0 ||
+		    strcmp(id, "invert_fsync") == 0) {
 			if (snd_config_get_string(n, &val) < 0)
 				return -EINVAL;
 
@@ -1203,7 +1209,8 @@ int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
 			continue;
 		}
 
-		if (strcmp(id, "fsync_freq") == 0) {
+		if (strcmp(id, "fsync_freq") == 0 ||
+		    strcmp(id, "fsync_rate") == 0) {
 			if (snd_config_get_string(n, &val) < 0)
 				return -EINVAL;
 
@@ -1211,7 +1218,8 @@ int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
 			continue;
 		}
 
-		if (strcmp(id, "mclk_freq") == 0) {
+		if (strcmp(id, "mclk_freq") == 0 ||
+		    strcmp(id, "mclk_rate") == 0) {
 			if (snd_config_get_string(n, &val) < 0)
 				return -EINVAL;
 
@@ -1219,7 +1227,8 @@ int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
 			continue;
 		}
 
-		if (strcmp(id, "mclk") == 0) {
+		if (strcmp(id, "mclk") == 0 ||
+		    strcmp(id, "mclk_direction") == 0) {
 			if (snd_config_get_string(n, &val) < 0)
 				return -EINVAL;
 
@@ -1239,7 +1248,8 @@ int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
 			continue;
 		}
 
-		if (strcmp(id, "pm_gate_clocks") == 0) {
+		if (strcmp(id, "pm_gate_clocks") == 0 ||
+		    strcmp(id, "clock_gated") == 0) {
 			if (snd_config_get_string(n, &val) < 0)
 				return -EINVAL;
 
