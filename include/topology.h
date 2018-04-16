@@ -997,7 +997,7 @@ struct snd_tplg_pcm_template {
 struct snd_tplg_hw_config_template {
 	int id;                         /* unique ID - - used to match */
 	unsigned int fmt;               /* SND_SOC_DAI_FORMAT_ format value */
-	unsigned char clock_gated;      /* 1 if clock can be gated to save power */
+	unsigned char clock_gated;      /* SND_SOC_TPLG_DAI_CLK_GATE_ value */
 	unsigned char  invert_bclk;     /* 1 for inverted BCLK, 0 for normal */
 	unsigned char  invert_fsync;    /* 1 for inverted frame clock, 0 for normal */
 	unsigned char  bclk_master;     /* SND_SOC_TPLG_BCLK_ value */

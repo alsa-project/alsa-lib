@@ -1233,7 +1233,11 @@ int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
 				return -EINVAL;
 
 			if (!strcmp(val, "true"))
-				hw_cfg->clock_gated = true;
+				hw_cfg->clock_gated =
+					SND_SOC_TPLG_DAI_CLK_GATE_GATED;
+			else
+				hw_cfg->clock_gated =
+					SND_SOC_TPLG_DAI_CLK_GATE_CONT;
 			continue;
 		}
 
