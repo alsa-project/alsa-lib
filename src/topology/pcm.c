@@ -1223,8 +1223,19 @@ int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
 			if (snd_config_get_string(n, &val) < 0)
 				return -EINVAL;
 
-			if (!strcmp(val, "master"))
-				hw_cfg->mclk_direction = true;
+			if (!strcmp(val, "master")) {
+				/* For backwards capability,
+				 * "master" == "for codec, mclk is input"
+				 */
+				SNDERR("warning: deprecated mclk value '%s'\n",
+				       val);
+
+				hw_cfg->mclk_direction = SND_SOC_TPLG_MCLK_CI;
+			} else if (!strcmp(val, "codec_mclk_in")) {
+				hw_cfg->mclk_direction = SND_SOC_TPLG_MCLK_CI;
+			} else if (!strcmp(val, "codec_mclk_out")) {
+				hw_cfg->mclk_direction = SND_SOC_TPLG_MCLK_CO;
+			}
 			continue;
 		}
 
