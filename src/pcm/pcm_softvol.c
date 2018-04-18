@@ -59,7 +59,11 @@ typedef struct {
 #define PRESET_RESOLUTION	256
 #define PRESET_MIN_DB		-51.0
 #define ZERO_DB                  0.0
-#define MAX_DB_UPPER_LIMIT      50
+/*
+ * The gain algorithm as it stands supports gain factors up to 32767, which
+ * is a fraction more than 90 dB, so set 90 dB as the maximum possible gain.
+ */
+#define MAX_DB_UPPER_LIMIT      90
 
 static const unsigned int preset_dB_value[PRESET_RESOLUTION] = {
 	0x00b8, 0x00bd, 0x00c1, 0x00c5, 0x00ca, 0x00cf, 0x00d4, 0x00d9,
