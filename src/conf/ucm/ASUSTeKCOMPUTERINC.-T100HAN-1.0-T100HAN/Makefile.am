@@ -1,0 +1,4 @@
+alsaconfigdir = @ALSA_CONFIG_DIR@
+ucmdir = $(alsaconfigdir)/ucm/ASUSTeKCOMPUTERINC.-T100HAN-1.0-T100HAN
+ucm_DATA = ASUSTeKCOMPUTERINC.-T100HAN-1.0-T100HAN.conf HiFi.conf
+EXTRA_DIST = $(ucm_DATA)

@@ -1,4 +1,5 @@
 SUBDIRS=\
+ASUSTeKCOMPUTERINC.-T100HAN-1.0-T100HAN \
 broadwell-rt286 \
 broxton-rt298 \
 bytcr-rt5651 \

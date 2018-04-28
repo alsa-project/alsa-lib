@@ -717,6 +717,7 @@ AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile doc/doxygen.cfg \
 	  src/conf/cards/Makefile \
 	  src/conf/pcm/Makefile \
 	  src/conf/ucm/Makefile \
+	  src/conf/ucm/ASUSTeKCOMPUTERINC.-T100HAN-1.0-T100HAN/Makefile \
 	  src/conf/ucm/broadwell-rt286/Makefile \
 	  src/conf/ucm/broxton-rt298/Makefile \
 	  src/conf/ucm/bytcr-rt5651/Makefile \
