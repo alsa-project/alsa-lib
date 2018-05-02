@@ -7,6 +7,7 @@ chtrt5645 \
 chtrt5645-mono-speaker-analog-mic \
 DAISY-I2S \
 DB410c \
+Dell-WD15-Dock \
 GoogleNyan \
 gpd-win-pocket-rt5645 \
 HDAudio-Gigabyte-ALC1220DualCodecs \
