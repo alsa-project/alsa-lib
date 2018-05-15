@@ -870,7 +870,7 @@ int snd_hctl_elem_tlv_write(snd_hctl_elem_t *elem, const unsigned int *tlv)
 {
 	assert(elem);
 	assert(tlv);
-	assert(tlv[1] >= 4);
+	assert(tlv[SNDRV_CTL_TLVO_LEN] >= 4);
 	return snd_ctl_elem_tlv_write(elem->hctl->ctl, &elem->id, tlv);
 }
 
@@ -886,7 +886,7 @@ int snd_hctl_elem_tlv_command(snd_hctl_elem_t *elem, const unsigned int *tlv)
 {
 	assert(elem);
 	assert(tlv);
-	assert(tlv[1] >= 4);
+	assert(tlv[SNDRV_CTL_TLVO_LEN] >= 4);
 	return snd_ctl_elem_tlv_command(elem->hctl->ctl, &elem->id, tlv);
 }
 
