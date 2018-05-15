@@ -65,8 +65,8 @@ int snd_tlv_parse_dB_info(unsigned int *tlv,
 	int err;
 
 	*db_tlvp = NULL;
-	type = tlv[0];
-	size = tlv[1];
+	type = tlv[SNDRV_CTL_TLVO_TYPE];
+	size = tlv[SNDRV_CTL_TLVO_LEN];
 	tlv_size -= 2 * sizeof(int);
 	if (size > tlv_size) {
 		SNDERR("TLV size error");
@@ -83,7 +83,7 @@ int snd_tlv_parse_dB_info(unsigned int *tlv,
 				return err; /* error */
 			if (err > 0)
 				return err; /* found */
-			len = int_index(tlv[1]) + 2;
+			len = int_index(tlv[SNDRV_CTL_TLVO_LEN]) + 2;
 			size -= len * sizeof(int);
 			tlv += len;
 		}
@@ -131,10 +131,10 @@ int snd_tlv_get_dB_range(unsigned int *tlv, long rangemin, long rangemax,
 {
 	int err;
 
-	switch (tlv[0]) {
+	switch (tlv[SNDRV_CTL_TLVO_TYPE]) {
 	case SND_CTL_TLVT_DB_RANGE: {
 		unsigned int pos, len;
-		len = int_index(tlv[1]);
+		len = int_index(tlv[SNDRV_CTL_TLVO_LEN]);
 		if (len > MAX_TLV_RANGE_SIZE)
 			return -EINVAL;
 		pos = 2;
@@ -167,22 +167,23 @@ int snd_tlv_get_dB_range(unsigned int *tlv, long rangemin, long rangemax,
 	}
 	case SND_CTL_TLVT_DB_SCALE: {
 		int step;
-		if (tlv[3] & 0x10000)
+		if (tlv[SNDRV_CTL_TLVO_DB_SCALE_MUTE_AND_STEP] & 0x10000)
 			*min = SND_CTL_TLV_DB_GAIN_MUTE;
 		else
-			*min = (int)tlv[2];
-		step = (tlv[3] & 0xffff);
-		*max = (int)tlv[2] + step * (rangemax - rangemin);
+			*min = (int)tlv[SNDRV_CTL_TLVO_DB_SCALE_MIN];
+		step = (tlv[SNDRV_CTL_TLVO_DB_SCALE_MUTE_AND_STEP] & 0xffff);
+		*max = (int)tlv[SNDRV_CTL_TLVO_DB_SCALE_MIN] +
+						step * (rangemax - rangemin);
 		return 0;
 	}
 	case SND_CTL_TLVT_DB_MINMAX:
 	case SND_CTL_TLVT_DB_LINEAR:
-		*min = (int)tlv[2];
-		*max = (int)tlv[3];
+		*min = (int)tlv[SNDRV_CTL_TLVO_DB_LINEAR_MIN];
+		*max = (int)tlv[SNDRV_CTL_TLVO_DB_LINEAR_MAX];
 		return 0;
 	case SND_CTL_TLVT_DB_MINMAX_MUTE:
 		*min = SND_CTL_TLV_DB_GAIN_MUTE;
-		*max = (int)tlv[3];
+		*max = (int)tlv[SNDRV_CTL_TLVO_DB_MINMAX_MAX];
 		return 0;
 	}
 	return -EINVAL;
@@ -200,10 +201,12 @@ int snd_tlv_get_dB_range(unsigned int *tlv, long rangemin, long rangemax,
 int snd_tlv_convert_to_dB(unsigned int *tlv, long rangemin, long rangemax,
 			  long volume, long *db_gain)
 {
-	switch (tlv[0]) {
+	unsigned int type = tlv[SNDRV_CTL_TLVO_TYPE];
+
+	switch (type) {
 	case SND_CTL_TLVT_DB_RANGE: {
 		unsigned int pos, len;
-		len = int_index(tlv[1]);
+		len = int_index(tlv[SNDRV_CTL_TLVO_LEN]);
 		if (len > MAX_TLV_RANGE_SIZE)
 			return -EINVAL;
 		pos = 2;
@@ -220,9 +223,9 @@ int snd_tlv_convert_to_dB(unsigned int *tlv, long rangemin, long rangemax,
 	}
 	case SND_CTL_TLVT_DB_SCALE: {
 		int min, step, mute;
-		min = tlv[2];
-		step = (tlv[3] & 0xffff);
-		mute = (tlv[3] >> 16) & 1;
+		min = tlv[SNDRV_CTL_TLVO_DB_SCALE_MIN];
+		step = (tlv[SNDRV_CTL_TLVO_DB_SCALE_MUTE_AND_STEP] & 0xffff);
+		mute = (tlv[SNDRV_CTL_TLVO_DB_SCALE_MUTE_AND_STEP] >> 16) & 1;
 		if (mute && volume <= rangemin)
 			*db_gain = SND_CTL_TLV_DB_GAIN_MUTE;
 		else
@@ -232,10 +235,10 @@ int snd_tlv_convert_to_dB(unsigned int *tlv, long rangemin, long rangemax,
 	case SND_CTL_TLVT_DB_MINMAX:
 	case SND_CTL_TLVT_DB_MINMAX_MUTE: {
 		int mindb, maxdb;
-		mindb = tlv[2];
-		maxdb = tlv[3];
+		mindb = tlv[SNDRV_CTL_TLVO_DB_MINMAX_MIN];
+		maxdb = tlv[SNDRV_CTL_TLVO_DB_MINMAX_MAX];
 		if (volume <= rangemin || rangemax <= rangemin) {
-			if (tlv[0] == SND_CTL_TLVT_DB_MINMAX_MUTE)
+			if (type == SND_CTL_TLVT_DB_MINMAX_MUTE)
 				*db_gain = SND_CTL_TLV_DB_GAIN_MUTE;
 			else
 				*db_gain = mindb;
@@ -248,8 +251,8 @@ int snd_tlv_convert_to_dB(unsigned int *tlv, long rangemin, long rangemax,
 	}
 #ifndef HAVE_SOFT_FLOAT
 	case SND_CTL_TLVT_DB_LINEAR: {
-		int mindb = tlv[2];
-		int maxdb = tlv[3];
+		int mindb = tlv[SNDRV_CTL_TLVO_DB_LINEAR_MIN];
+		int maxdb = tlv[SNDRV_CTL_TLVO_DB_LINEAR_MAX];
 		if (volume <= rangemin || rangemax <= rangemin)
 			*db_gain = mindb;
 		else if (volume >= rangemax)
@@ -289,11 +292,13 @@ int snd_tlv_convert_to_dB(unsigned int *tlv, long rangemin, long rangemax,
 int snd_tlv_convert_from_dB(unsigned int *tlv, long rangemin, long rangemax,
 			    long db_gain, long *value, int xdir)
 {
-	switch (tlv[0]) {
+	unsigned int type = tlv[SNDRV_CTL_TLVO_TYPE];
+
+	switch (type) {
 	case SND_CTL_TLVT_DB_RANGE: {
 		long dbmin, dbmax, prev_submax;
 		unsigned int pos, len;
-		len = int_index(tlv[1]);
+		len = int_index(tlv[SNDRV_CTL_TLVO_LEN]);
 		if (len < 6 || len > MAX_TLV_RANGE_SIZE)
 			return -EINVAL;
 		pos = 2;
@@ -324,13 +329,14 @@ int snd_tlv_convert_from_dB(unsigned int *tlv, long rangemin, long rangemax,
 		return 0;
 	}
 	case SND_CTL_TLVT_DB_SCALE: {
-		int min, step, max;
-		min = tlv[2];
-		step = (tlv[3] & 0xffff);
+		int min, step, max, mute;
+		min = tlv[SNDRV_CTL_TLVO_DB_SCALE_MIN];
+		step = tlv[SNDRV_CTL_TLVO_DB_SCALE_MUTE_AND_STEP] & 0xffff;
+		mute = tlv[SNDRV_CTL_TLVO_DB_SCALE_MUTE_AND_STEP] & 0x10000;
 		max = min + (int)(step * (rangemax - rangemin));
 		if (db_gain <= min)
 			if (db_gain > SND_CTL_TLV_DB_GAIN_MUTE && xdir > 0 &&
-			    (tlv[3] & 0x10000))
+			    mute)
 				*value = rangemin + 1;
 			else
 				*value = rangemin;
@@ -348,11 +354,11 @@ int snd_tlv_convert_from_dB(unsigned int *tlv, long rangemin, long rangemax,
 	case SND_CTL_TLVT_DB_MINMAX:
 	case SND_CTL_TLVT_DB_MINMAX_MUTE: {
 		int min, max;
-		min = tlv[2];
-		max = tlv[3];
+		min = tlv[SNDRV_CTL_TLVO_DB_MINMAX_MIN];
+		max = tlv[SNDRV_CTL_TLVO_DB_MINMAX_MAX];
 		if (db_gain <= min)
 			if (db_gain > SND_CTL_TLV_DB_GAIN_MUTE && xdir > 0 &&
-			    tlv[0] == SND_CTL_TLVT_DB_MINMAX_MUTE)
+			    type == SND_CTL_TLVT_DB_MINMAX_MUTE)
 				*value = rangemin + 1;
 			else
 				*value = rangemin;
@@ -370,8 +376,8 @@ int snd_tlv_convert_from_dB(unsigned int *tlv, long rangemin, long rangemax,
 #ifndef HAVE_SOFT_FLOAT
 	case SND_CTL_TLVT_DB_LINEAR: {
 		int min, max;
-		min = tlv[2];
-		max = tlv[3];
+		min = tlv[SNDRV_CTL_TLVO_DB_LINEAR_MIN];
+		max = tlv[SNDRV_CTL_TLVO_DB_LINEAR_MAX];
 		if (db_gain <= min)
 			*value = rangemin;
 		else if (db_gain >= max)

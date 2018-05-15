@@ -938,10 +938,10 @@ int snd_ctl_elem_tlv_read(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
 	 * and compare the returned value after ioctl for checking
 	 * the validity of TLV.
 	 */
-	tlv[0] = -1;
-	tlv[1] = 0;
+	tlv[SNDRV_CTL_TLVO_TYPE] = -1;
+	tlv[SNDRV_CTL_TLVO_LEN] = 0;
 	err = snd_ctl_tlv_do(ctl, 0, id, tlv, tlv_size);
-	if (err >= 0 && tlv[0] == (unsigned int)-1)
+	if (err >= 0 && tlv[SNDRV_CTL_TLVO_TYPE] == (unsigned int)-1)
 		err = -ENXIO;
 	return err;
 }
@@ -967,7 +967,8 @@ int snd_ctl_elem_tlv_write(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
 			   const unsigned int *tlv)
 {
 	assert(ctl && id && (id->name[0] || id->numid) && tlv);
-	return snd_ctl_tlv_do(ctl, 1, id, (unsigned int *)tlv, tlv[1] + 2 * sizeof(unsigned int));
+	return snd_ctl_tlv_do(ctl, 1, id, (unsigned int *)tlv,
+			tlv[SNDRV_CTL_TLVO_LEN] + 2 * sizeof(unsigned int));
 }
 
 /**
@@ -991,7 +992,8 @@ int snd_ctl_elem_tlv_command(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
 			     const unsigned int *tlv)
 {
 	assert(ctl && id && (id->name[0] || id->numid) && tlv);
-	return snd_ctl_tlv_do(ctl, -1, id, (unsigned int *)tlv, tlv[1] + 2 * sizeof(unsigned int));
+	return snd_ctl_tlv_do(ctl, -1, id, (unsigned int *)tlv,
+			tlv[SNDRV_CTL_TLVO_LEN] + 2 * sizeof(unsigned int));
 }
 
 /**

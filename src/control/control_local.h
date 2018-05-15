@@ -20,6 +20,7 @@
  */
 
 #include "local.h"
+#include <sound/tlv.h>
 
 typedef struct _snd_ctl_ops {
 	int (*close)(snd_ctl_t *handle);
