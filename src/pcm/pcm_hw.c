@@ -1199,6 +1199,7 @@ snd_pcm_query_chmaps_from_hw(int card, int dev, int subdev,
 	snd_ctl_t *ctl;
 	snd_ctl_elem_id_t id = {0};
 	unsigned int tlv[2048], *start;
+	unsigned int type;
 	snd_pcm_chmap_query_t **map;
 	int i, ret, nums;
 
@@ -1223,9 +1224,10 @@ snd_pcm_query_chmaps_from_hw(int card, int dev, int subdev,
 	/* FIXME: the parser below assumes that the TLV only contains
 	 * chmap-related blocks
 	 */
-	if (tlv[0] != SND_CTL_TLVT_CONTAINER) {
-		if (!is_chmap_type(tlv[0])) {
-			SYSMSG("Invalid TLV type %d\n", tlv[0]);
+	type = tlv[SNDRV_CTL_TLVO_TYPE];
+	if (type != SND_CTL_TLVT_CONTAINER) {
+		if (!is_chmap_type(type)) {
+			SYSMSG("Invalid TLV type %d\n", type);
 			return NULL;
 		}
 		start = tlv;
@@ -1234,7 +1236,7 @@ snd_pcm_query_chmaps_from_hw(int card, int dev, int subdev,
 		unsigned int *p;
 		int size;
 		start = tlv + 2;
-		size = tlv[1];
+		size = tlv[SNDRV_CTL_TLVO_LEN];
 		nums = 0;
 		for (p = start; size > 0; ) {
 			if (!is_chmap_type(p[0])) {
