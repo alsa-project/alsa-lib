@@ -660,7 +660,7 @@ static int check_tlv(struct elem_set_trial *trial)
 	if (err < 0)
 		return err;
 
-	len = tlv[1] + sizeof(unsigned int) * 2;
+	len = tlv[SNDRV_CTL_TLVO_LEN] + sizeof(unsigned int) * 2;
 	curr = malloc(len);
 	if (curr == NULL) {
 		free(tlv);
