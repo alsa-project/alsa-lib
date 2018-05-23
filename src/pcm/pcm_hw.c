@@ -1018,7 +1018,7 @@ static int map_status_and_control_data(snd_pcm_t *pcm, bool force_fallback)
 	snd_pcm_set_appl_ptr(pcm, &hw->mmap_control->appl_ptr, hw->fd,
 			     SNDRV_PCM_MMAP_OFFSET_CONTROL);
 	if (hw->mmap_control_fallbacked) {
-		unsigned int flags;
+		unsigned int flags = 0;
 		/* read appl_ptr and avail_min from kernel when device opened
 		 * with SND_PCM_APPEND flag
 		 */
