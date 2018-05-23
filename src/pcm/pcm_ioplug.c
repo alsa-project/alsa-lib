@@ -533,6 +533,7 @@ static int snd_pcm_ioplug_drain(snd_pcm_t *pcm)
 	case SND_PCM_STATE_OPEN:
 	case SND_PCM_STATE_DISCONNECTED:
 	case SND_PCM_STATE_SUSPENDED:
+		snd_pcm_unlock(pcm);
 		return -EBADFD;
 	case SND_PCM_STATE_PREPARED:
 		if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
@@ -544,6 +545,8 @@ static int snd_pcm_ioplug_drain(snd_pcm_t *pcm)
 		break;
 	case SND_PCM_STATE_RUNNING:
 		io->data->state = SND_PCM_STATE_DRAINING;
+		break;
+	default:
 		break;
 	}
 
