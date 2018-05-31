@@ -14,6 +14,7 @@ bytcr-rt5651 \
 chtnau8824 \
 chtrt5645 \
 chtrt5645-mono-speaker-analog-mic \
+cube-i1_TF-Defaultstring-CherryTrailCR \
 DAISY-I2S \
 DB410c \
 Dell-WD15-Dock \
@@ -26,6 +27,7 @@ nau8824 \
 PandaBoard \
 PandaBoardES \
 PAZ00 \
+PIPO-W2S-Defaultstring-CherryTrailCR \
 rt5640 \
 SDP4430 \
 skylake-rt286 \
