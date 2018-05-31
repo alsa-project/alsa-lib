@@ -4,6 +4,12 @@ broadwell-rt286 \
 broxton-rt298 \
 bytcr \
 bytcr-rt5640 \
+bytcr-rt5640-mono-spk-dmic1-mic \
+bytcr-rt5640-mono-spk-in1-mic \
+bytcr-rt5640-mono-spk-in3-mic \
+bytcr-rt5640-stereo-spk-dmic1-mic \
+bytcr-rt5640-stereo-spk-in1-mic \
+bytcr-rt5640-stereo-spk-in3-mic \
 bytcr-rt5651 \
 chtrt5645 \
 chtrt5645-mono-speaker-analog-mic \
