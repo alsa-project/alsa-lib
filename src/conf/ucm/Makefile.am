@@ -2,6 +2,8 @@ SUBDIRS=\
 ASUSTeKCOMPUTERINC.-T100HAN-1.0-T100HAN \
 broadwell-rt286 \
 broxton-rt298 \
+bytcr \
+bytcr-rt5640 \
 bytcr-rt5651 \
 chtrt5645 \
 chtrt5645-mono-speaker-analog-mic \
@@ -16,6 +18,7 @@ LENOVO-80XF-LenovoMIIX320_10ICR-LNVNB161216 \
 PandaBoard \
 PandaBoardES \
 PAZ00 \
+rt5640 \
 SDP4430 \
 skylake-rt286 \
 TECLAST-X80Pro-Defaultstring-CherryTrailCR \
