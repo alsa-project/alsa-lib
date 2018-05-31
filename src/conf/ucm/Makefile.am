@@ -11,6 +11,7 @@ bytcr-rt5640-stereo-spk-dmic1-mic \
 bytcr-rt5640-stereo-spk-in1-mic \
 bytcr-rt5640-stereo-spk-in3-mic \
 bytcr-rt5651 \
+chtnau8824 \
 chtrt5645 \
 chtrt5645-mono-speaker-analog-mic \
 DAISY-I2S \
@@ -21,6 +22,7 @@ gpd-win-pocket-rt5645 \
 HDAudio-Gigabyte-ALC1220DualCodecs \
 HDAudio-Lenovo-DualCodecs \
 LENOVO-80XF-LenovoMIIX320_10ICR-LNVNB161216 \
+nau8824 \
 PandaBoard \
 PandaBoardES \
 PAZ00 \
