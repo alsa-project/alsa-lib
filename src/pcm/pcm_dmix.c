@@ -398,7 +398,7 @@ static int snd_pcm_dmix_sync_ptr0(snd_pcm_t *pcm, snd_pcm_uframes_t slave_hw_ptr
 	snd_pcm_sframes_t diff;
 	
 	old_slave_hw_ptr = dmix->slave_hw_ptr;
-	dmix->slave_hw_ptr = *dmix->spcm->hw.ptr;
+	dmix->slave_hw_ptr = slave_hw_ptr;
 	diff = slave_hw_ptr - old_slave_hw_ptr;
 	if (diff == 0)		/* fast path */
 		return 0;
