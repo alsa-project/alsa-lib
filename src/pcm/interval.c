@@ -200,27 +200,33 @@ int snd_interval_refine(snd_interval_t *i, const snd_interval_t *v)
 
 int snd_interval_refine_first(snd_interval_t *i)
 {
+	const unsigned int last_max = i->max;
+
 	if (snd_interval_empty(i))
 		return -ENOENT;
 	if (snd_interval_single(i))
 		return 0;
 	i->max = i->min;
-	i->openmax = i->openmin;
-	if (i->openmax)
+	if (i->openmin)
 		i->max++;
+	/* only exclude max value if also excluded before refine */
+	i->openmax = (i->openmax && i->max >= last_max);
 	return 1;
 }
 
 int snd_interval_refine_last(snd_interval_t *i)
 {
+	const unsigned int last_min = i->min;
+
 	if (snd_interval_empty(i))
 		return -ENOENT;
 	if (snd_interval_single(i))
 		return 0;
 	i->min = i->max;
-	i->openmin = i->openmax;
-	if (i->openmin)
+	if (i->openmax)
 		i->min--;
+	/* only exclude min value if also excluded before refine */
+	i->openmin = (i->openmin && i->min <= last_min);
 	return 1;
 }
 
