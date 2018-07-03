@@ -1221,6 +1221,21 @@ int snd_pcm_ioplug_set_state(snd_pcm_ioplug_t *ioplug, snd_pcm_state_t state)
  * \param ioplug the ioplug handle
  * \param hw_ptr hardware pointer in frames
  * \param appl_ptr application pointer in frames
+ * \return available frames for the application
+ */
+snd_pcm_uframes_t snd_pcm_ioplug_avail(const snd_pcm_ioplug_t * const ioplug,
+				       const snd_pcm_uframes_t hw_ptr,
+				       const snd_pcm_uframes_t appl_ptr)
+{
+	return __snd_pcm_avail(ioplug->pcm, hw_ptr, appl_ptr);
+}
+
+/**
+ * \brief Get the available frames. This function can be used to calculate the
+ * the available frames before calling #snd_pcm_avail_update()
+ * \param ioplug the ioplug handle
+ * \param hw_ptr hardware pointer in frames
+ * \param appl_ptr application pointer in frames
  * \return available frames for the hardware
  */
 snd_pcm_uframes_t snd_pcm_ioplug_hw_avail(const snd_pcm_ioplug_t * const ioplug,
@@ -1230,8 +1245,9 @@ snd_pcm_uframes_t snd_pcm_ioplug_hw_avail(const snd_pcm_ioplug_t * const ioplug,
 	/* available data/space which can be transferred by the user
 	 * application
 	 */
-	const snd_pcm_uframes_t user_avail = __snd_pcm_avail(ioplug->pcm,
-							     hw_ptr, appl_ptr);
+	const snd_pcm_uframes_t user_avail = snd_pcm_ioplug_avail(ioplug,
+								  hw_ptr,
+								  appl_ptr);
 
 	if (user_avail > ioplug->pcm->buffer_size) {
 		/* there was an Xrun */
