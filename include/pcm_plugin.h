@@ -30,6 +30,7 @@
  */
 
 #ifndef __ALSA_PCM_PLUGIN_H
+#define __ALSA_PCM_PLUGIN_H
 
 /**
  * \defgroup PCM_Plugins PCM Plugins
