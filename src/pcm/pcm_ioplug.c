@@ -716,6 +716,8 @@ static snd_pcm_sframes_t snd_pcm_ioplug_avail_update(snd_pcm_t *pcm)
 	snd_pcm_ioplug_hw_ptr_update(pcm);
 	if (io->data->state == SND_PCM_STATE_XRUN)
 		return -EPIPE;
+
+	avail = snd_pcm_mmap_avail(pcm);
 	if (pcm->stream == SND_PCM_STREAM_CAPTURE &&
 	    pcm->access != SND_PCM_ACCESS_RW_INTERLEAVED &&
 	    pcm->access != SND_PCM_ACCESS_RW_NONINTERLEAVED) {
@@ -728,9 +730,19 @@ static snd_pcm_sframes_t snd_pcm_ioplug_avail_update(snd_pcm_t *pcm)
 			result = io->data->callback->transfer(io->data, areas, offset, size);
 			if (result < 0)
 				return result;
+
+			/* If the available data doesn't fit in the
+			   contiguous area at the end of the mmap we
+			   must transfer the remaining data to the
+			   beginning of the mmap. */
+			if (size < avail) {
+				result = io->data->callback->transfer(io->data, areas,
+								      0, avail - size);
+				if (result < 0)
+					return result;
+			}
 		}
 	}
-	avail = snd_pcm_mmap_avail(pcm);
 	if (avail > io->avail_max)
 		io->avail_max = avail;
 	return (snd_pcm_sframes_t)avail;
