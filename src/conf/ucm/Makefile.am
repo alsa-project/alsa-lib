@@ -13,6 +13,7 @@ bytcr-rt5640-stereo-spk-in3-mic \
 bytcr-rt5651 \
 bytcr-rt5651-mono-spk-in1-mic \
 bytcr-rt5651-mono-spk-in2-mic \
+bytcr-rt5651-mono-spk-in2-mic-hp-swapped \
 bytcr-rt5651-stereo-spk-in1-mic \
 bytcr-rt5651-stereo-spk-in2-mic \
 bytcr-rt5651-stereo-spk-in12-mic \

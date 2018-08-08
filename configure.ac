@@ -731,6 +731,7 @@ AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile doc/doxygen.cfg \
 	  src/conf/ucm/bytcr-rt5651/Makefile \
 	  src/conf/ucm/bytcr-rt5651-mono-spk-in1-mic/Makefile \
 	  src/conf/ucm/bytcr-rt5651-mono-spk-in2-mic/Makefile \
+	  src/conf/ucm/bytcr-rt5651-mono-spk-in2-mic-hp-swapped/Makefile \
 	  src/conf/ucm/bytcr-rt5651-stereo-spk-in1-mic/Makefile \
 	  src/conf/ucm/bytcr-rt5651-stereo-spk-in2-mic/Makefile \
 	  src/conf/ucm/bytcr-rt5651-stereo-spk-in12-mic/Makefile \
