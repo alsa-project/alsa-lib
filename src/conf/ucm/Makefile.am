@@ -29,6 +29,7 @@ PandaBoardES \
 PAZ00 \
 PIPO-W2S-Defaultstring-CherryTrailCR \
 rt5640 \
+rt5651 \
 SDP4430 \
 skylake-rt286 \
 TECLAST-X80Pro-Defaultstring-CherryTrailCR \
