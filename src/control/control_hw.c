@@ -215,7 +215,7 @@ static int snd_ctl_hw_elem_tlv(snd_ctl_t *handle, int op_flag,
 			       unsigned int numid,
 			       unsigned int *tlv, unsigned int tlv_size)
 {
-	int inum;
+	unsigned int inum;
 	snd_ctl_hw_t *hw = handle->private_data;
 	struct snd_ctl_tlv *xtlv;
 	
