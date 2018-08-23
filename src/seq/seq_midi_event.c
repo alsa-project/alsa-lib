@@ -35,7 +35,7 @@
 
 /* midi status */
 struct snd_midi_event {
-	size_t qlen;	/* queue length */
+	ssize_t qlen;	/* queue length */
 	size_t read;	/* chars read */
 	int type;	/* current event type */
 	unsigned char lastcmd;
@@ -606,6 +606,8 @@ long snd_midi_event_decode(snd_midi_event_t *dev, unsigned char *buf, long count
 				status_event[type].decode(ev, xbuf + 0);
 			qlen = status_event[type].qlen;
 		}
+		if (qlen <= 0)
+			return 0;
 		if (count < qlen)
 			return -ENOMEM;
 		memcpy(buf, xbuf, qlen);
