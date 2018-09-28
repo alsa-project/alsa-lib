@@ -105,7 +105,7 @@ struct snd_pcm_ioplug {
 	 */
 	void *private_data;
 	/**
-	 * PCM handle filled by #snd_pcm_extplug_create()
+	 * PCM handle filled by #snd_pcm_ioplug_create()
 	 */
 	snd_pcm_t *pcm;
 
