@@ -51,12 +51,14 @@ INTERVAL_INLINE int snd_interval_single(const snd_interval_t *i)
 {
 	assert(!snd_interval_empty(i));
 	return (i->min == i->max || 
-		(i->min + 1 == i->max && i->openmax));
+		(i->min + 1 == i->max && (i->openmin || i->openmax)));
 }
 
 INTERVAL_INLINE int snd_interval_value(const snd_interval_t *i)
 {
 	assert(snd_interval_single(i));
+	if (i->openmin && !i->openmax)
+		return i->max;
 	return i->min;
 }
 
