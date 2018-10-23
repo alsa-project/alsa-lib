@@ -3,11 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sched.h>
-#include <sys/time.h>
-
-#ifndef __builtin_expect
-#include <linux/compiler.h>
-#endif
+#include <time.h>
 
 #define rdtscll(val) \
      __asm__ __volatile__("rdtsc" : "=A" (val))
@@ -72,21 +68,21 @@ static inline void atomic_add(volatile int *dst, int v)
 
 static double detect_cpu_clock()
 {
-	struct timeval tm_begin, tm_end;
+	struct timespec tm_begin, tm_end;
 	unsigned long long tsc_begin, tsc_end;
 
 	/* Warm cache */
-	gettimeofday(&tm_begin, 0);
+	clock_gettime(CLOCK_MONOTONIC, &tm_begin);
 
 	rdtscll(tsc_begin);
-	gettimeofday(&tm_begin, 0);
+	clock_gettime(CLOCK_MONOTONIC, &tm_begin);
 
 	usleep(1000000);
 
 	rdtscll(tsc_end);
-	gettimeofday(&tm_end, 0);
+	clock_gettime(CLOCK_MONOTONIC, &tm_end);
 
-	return (tsc_end - tsc_begin) / (tm_end.tv_sec - tm_begin.tv_sec + (tm_end.tv_usec - tm_begin.tv_usec) / 1e6);
+	return (tsc_end - tsc_begin) / (tm_end.tv_sec - tm_begin.tv_sec + (tm_end.tv_nsec - tm_begin.tv_nsec) / 1e9);
 }
 
 void mix_areas_srv(unsigned int size,
@@ -146,11 +142,17 @@ void mix_areas0(unsigned int size,
 	}
 }
 
-#define MIX_AREAS1 mix_areas1
-#define MIX_AREAS1_MMX mix_areas1_mmx
+#define MIX_AREAS_16 mix_areas1
+#define MIX_AREAS_16_MMX mix_areas1_mmx
+#define MIX_AREAS_32 mix_areas1_32
+#define MIX_AREAS_24 mix_areas1_24
+#define MIX_AREAS_24_CMOV mix_areas1_24_cmov
+#define XADD "addl"
+#define XSUB "subl"
 #include "../src/pcm/pcm_dmix_i386.h"
-#undef MIX_AREAS1
-#undef MIX_AREAS1_MMX
+static void *ptr_mix_areas1_32 __attribute__((unused)) = &mix_areas1_32;
+static void *ptr_mix_areas1_24 __attribute__((unused)) = &mix_areas1_24;
+static void *ptr_mix_areas1_24_cmov __attribute__((unused)) = &mix_areas1_24_cmov;
 
 void mix_areas2(unsigned int size,
 		volatile s16 *dst, const s16 *src,
@@ -319,11 +321,11 @@ int main(int argc, char **argv)
 
 	printf("                                                                           \r");
 	printf("Summary (the best times):\n");
-	printf("mix_areas_srv : %lld %f%%\n", diffS, 100*2*44100.0*diffS/(size*n*cpu_clock));
-	printf("mix_areas0    : %lld %f%%\n", diff0, 100*2*44100.0*diff0/(size*n*cpu_clock));
-	printf("mix_areas1    : %lld %f%%\n", diff1, 100*2*44100.0*diff1/(size*n*cpu_clock));
-	printf("mix_areas1_mmx: %lld %f%%\n", diff1_mmx, 100*2*44100.0*diff1_mmx/(size*n*cpu_clock));
-	printf("mix_areas2    : %lld %f%%\n", diff2, 100*2*44100.0*diff2/(size*n*cpu_clock));
+	printf("mix_areas_srv  : %8lld %f%%\n", diffS, 100*2*44100.0*diffS/(size*n*cpu_clock));
+	printf("mix_areas0     : %8lld %f%%\n", diff0, 100*2*44100.0*diff0/(size*n*cpu_clock));
+	printf("mix_areas1     : %8lld %f%%\n", diff1, 100*2*44100.0*diff1/(size*n*cpu_clock));
+	printf("mix_areas1_mmx : %8lld %f%%\n", diff1_mmx, 100*2*44100.0*diff1_mmx/(size*n*cpu_clock));
+	printf("mix_areas2     : %8lld %f%%\n", diff2, 100*2*44100.0*diff2/(size*n*cpu_clock));
 
 	printf("\n");
 	printf("areas1/srv ratio     : %f\n", (double)diff1 / diffS);
