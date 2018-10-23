@@ -115,9 +115,7 @@ int main(int argc, char *argv[])
 	snd_pcm_sw_params_t *swparams_p;
 	snd_pcm_sw_params_t *swparams_c;
 
-	snd_pcm_uframes_t curr_count_c;
 	snd_pcm_uframes_t frame_count_c = 0;
-	snd_pcm_uframes_t curr_count_p;
 	snd_pcm_uframes_t frame_count_p = 0;
 
 	snd_pcm_sframes_t delay_p, delay_c;
