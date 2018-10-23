@@ -1,0 +1,5 @@
+sudo: required
+language: c
+script:
+  - sed 's/-Wunused-const-variable=0//g' < gitcompile > gitcompile.travis
+  - bash gitcompile.travis

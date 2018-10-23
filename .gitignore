@@ -1,4 +1,5 @@
 .*
+!.travis.yml
 configure
 config.log
 config.cache
