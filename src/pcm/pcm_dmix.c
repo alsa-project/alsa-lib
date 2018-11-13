@@ -55,6 +55,9 @@ const char *_snd_module_pcm_dmix = "";
 #define STATE_RUN_PENDING	1024
 #endif
 
+#define SEC_TO_MS	1000			/* Seconds representing in Milli seconds */
+#define LOW_LATENCY_PERIOD_TIME	10	/* slave_period time for low latency requirements in ms */
+
 /*
  *
  */
@@ -560,14 +563,19 @@ static int snd_pcm_dmix_hwsync(snd_pcm_t *pcm)
 static void reset_slave_ptr(snd_pcm_t *pcm, snd_pcm_direct_t *dmix)
 {
 	dmix->slave_appl_ptr = dmix->slave_hw_ptr = *dmix->spcm->hw.ptr;
-	if (pcm->buffer_size > pcm->period_size * 2)
-		return;
-	/* If we have too litte periods, better to align the start position
-	 * to the period boundary so that the interrupt can be handled properly
-	 * at the right time.
-	 */
-	dmix->slave_appl_ptr = ((dmix->slave_appl_ptr + dmix->slave_period_size - 1)
-				/ dmix->slave_period_size) * dmix->slave_period_size;
+
+	if (dmix->hw_ptr_alignment == SND_PCM_HW_PTR_ALIGNMENT_ROUNDUP ||
+	    (dmix->hw_ptr_alignment == SND_PCM_HW_PTR_ALIGNMENT_AUTO &&
+	     pcm->buffer_size <= pcm->period_size * 2))
+		dmix->slave_appl_ptr =
+			((dmix->slave_appl_ptr + dmix->slave_period_size - 1)
+			 / dmix->slave_period_size) * dmix->slave_period_size;
+	else if (dmix->hw_ptr_alignment == SND_PCM_HW_PTR_ALIGNMENT_ROUNDDOWN ||
+		 (dmix->hw_ptr_alignment == SND_PCM_HW_PTR_ALIGNMENT_AUTO &&
+		  (dmix->slave_period_size * SEC_TO_MS) / pcm->rate < LOW_LATENCY_PERIOD_TIME))
+		dmix->slave_appl_ptr = dmix->slave_hw_ptr =
+			((dmix->slave_hw_ptr / dmix->slave_period_size) *
+			 dmix->slave_period_size);
 }
 
 static int snd_pcm_dmix_reset(snd_pcm_t *pcm)
@@ -1086,6 +1094,7 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 	dmix->slowptr = opts->slowptr;
 	dmix->max_periods = opts->max_periods;
 	dmix->var_periodsize = opts->var_periodsize;
+	dmix->hw_ptr_alignment = opts->hw_ptr_alignment;
 	dmix->sync_ptr = snd_pcm_dmix_sync_ptr;
 	dmix->direct_memory_access = opts->direct_memory_access;
 
@@ -1241,6 +1250,12 @@ pcm.name {
 	ipc_key INT		# unique IPC key
 	ipc_key_add_uid BOOL	# add current uid to unique IPC key
 	ipc_perm INT		# IPC permissions (octal, default 0600)
+	hw_ptr_alignment STR	# Slave application and hw pointer alignment type
+				# STR can be one of the below strings :
+				# no
+				# roundup
+				# rounddown
+				# auto (default)
 	slave STR
 	# or
 	slave {			# Slave definition
@@ -1272,6 +1287,27 @@ When <code>ipc_key_add_uid</code> is set true, the uid value is
 added to the value set in <code>ipc_key</code>.  This will
 avoid the confliction of the same IPC key with different users
 concurrently.
+
+<code>hw_ptr_alignment</code> specifies slave application and hw
+pointer alignment type. By default hw_ptr_alignment is auto. Below are
+the possible configurations:
+- no: minimal latency with minimal frames dropped at startup. But
+  wakeup of application (return from snd_pcm_wait() or poll()) can
+  take up to 2 * period.
+- roundup: It is guaranteed that all frames will be played at
+  startup. But the latency will increase upto period-1 frames.
+- rounddown: It is guaranteed that a wakeup will happen for each
+  period and frames can be written from application. But on startup
+  upto period-1 frames will be dropped.
+- auto: Selects the best approach depending on the used period and
+  buffer size.
+  If the application buffer size is < 2 * application period,
+  "roundup" will be selected to avoid under runs. If the slave_period
+  is < 10ms we could expect that there are low latency
+  requirements. Therefore "rounddown" will be chosen to avoid long
+  wakeup times. Such wakeup delay could otherwise end up with Xruns in
+  case of a dependency to another sound device (e.g. forwarding of
+  microphone to speaker). Else "no" will be chosen.
 
 Note that the dmix plugin itself supports only a single configuration.
 That is, it supports only the fixed rate (default 48000), format

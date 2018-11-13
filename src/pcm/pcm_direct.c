@@ -1877,6 +1877,7 @@ int snd_pcm_direct_parse_open_conf(snd_config_t *root, snd_config_t *conf,
 	rec->max_periods = 0;
 	rec->var_periodsize = 0;
 	rec->direct_memory_access = 1;
+	rec->hw_ptr_alignment = SND_PCM_HW_PTR_ALIGNMENT_AUTO;
 
 	/* read defaults */
 	if (snd_config_search(root, "defaults.pcm.dmix_max_periods", &n) >= 0) {
@@ -1916,6 +1917,28 @@ int snd_pcm_direct_parse_open_conf(snd_config_t *root, snd_config_t *conf,
 				return -EINVAL;
 			}
 			rec->ipc_perm = perm;
+			continue;
+		}
+		if (strcmp(id, "hw_ptr_alignment") == 0) {
+			const char *str;
+			err = snd_config_get_string(n, &str);
+			if (err < 0) {
+				SNDERR("Invalid type for %s", id);
+				return -EINVAL;
+			}
+			if (strcmp(str, "no") == 0)
+				rec->hw_ptr_alignment = SND_PCM_HW_PTR_ALIGNMENT_NO;
+			else if (strcmp(str, "roundup") == 0)
+				rec->hw_ptr_alignment = SND_PCM_HW_PTR_ALIGNMENT_ROUNDUP;
+			else if (strcmp(str, "rounddown") == 0)
+				rec->hw_ptr_alignment = SND_PCM_HW_PTR_ALIGNMENT_ROUNDDOWN;
+			else if (strcmp(str, "auto") == 0)
+				rec->hw_ptr_alignment = SND_PCM_HW_PTR_ALIGNMENT_AUTO;
+			else {
+				SNDERR("The field hw_ptr_alignment is invalid : %s", str);
+				return -EINVAL;
+			}
+
 			continue;
 		}
 		if (strcmp(id, "ipc_gid") == 0) {
