@@ -67,7 +67,9 @@ static void do_silence(snd_pcm_t *pcm)
 	format = dshare->shmptr->s.format;
 	for (chn = 0; chn < channels; chn++) {
 		dchn = dshare->bindings ? dshare->bindings[chn] : chn;
-		snd_pcm_area_silence(&dst_areas[dchn], 0, dshare->shmptr->s.buffer_size, format);
+		if (dchn != UINT_MAX)
+			snd_pcm_area_silence(&dst_areas[dchn], 0,
+					     dshare->shmptr->s.buffer_size, format);
 	}
 }
 
@@ -91,7 +93,9 @@ static void share_areas(snd_pcm_direct_t *dshare,
 	} else {
 		for (chn = 0; chn < channels; chn++) {
 			dchn = dshare->bindings ? dshare->bindings[chn] : chn;
-			snd_pcm_area_copy(&dst_areas[dchn], dst_ofs, &src_areas[chn], src_ofs, size, format);
+			if (dchn != UINT_MAX)
+				snd_pcm_area_copy(&dst_areas[dchn], dst_ofs,
+						  &src_areas[chn], src_ofs, size, format);
 
 		}
 	}
@@ -834,8 +838,11 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 		dshare->spcm = spcm;
 	}
 
-	for (chn = 0; chn < dshare->channels; chn++)
-		dshare->u.dshare.chn_mask |= (1ULL<<dshare->bindings[chn]);
+	for (chn = 0; chn < dshare->channels; chn++) {
+		unsigned int dchn = dshare->bindings ? dshare->bindings[chn] : chn;
+		if (dchn != UINT_MAX)
+			dshare->u.dshare.chn_mask |= (1ULL << dchn);
+	}
 	if (dshare->shmptr->u.dshare.chn_mask & dshare->u.dshare.chn_mask) {
 		SNDERR("destination channel specified in bindings is already used");
 		dshare->u.dshare.chn_mask = 0;
