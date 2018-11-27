@@ -1,8 +1,9 @@
 SUBDIRS=\
+codecs \
+platforms \
 ASUSTeKCOMPUTERINC.-T100HAN-1.0-T100HAN \
 broadwell-rt286 \
 broxton-rt298 \
-bytcr \
 bytcr-rt5640 \
 bytcr-rt5640-mono-spk-dmic1-mic \
 bytcr-rt5640-mono-spk-in1-mic \
@@ -29,13 +30,10 @@ gpd-win-pocket-rt5645 \
 HDAudio-Gigabyte-ALC1220DualCodecs \
 HDAudio-Lenovo-DualCodecs \
 LENOVO-80XF-LenovoMIIX320_10ICR-LNVNB161216 \
-nau8824 \
 PandaBoard \
 PandaBoardES \
 PAZ00 \
 PIPO-W2S-Defaultstring-CherryTrailCR \
-rt5640 \
-rt5651 \
 SDP4430 \
 skylake-rt286 \
 TECLAST-X80Pro-Defaultstring-CherryTrailCR \

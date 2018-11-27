@@ -53,6 +53,7 @@
 static const char * const component_dir[] = {
 	"codecs",	/* for off-soc codecs */
 	"dsps",		/* for DSPs embedded in SoC */
+	"platforms",	/* for common platform implementations */
 	NULL,		/* terminator */
 };
 

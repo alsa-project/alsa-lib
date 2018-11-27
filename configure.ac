@@ -720,7 +720,6 @@ AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile doc/doxygen.cfg \
 	  src/conf/ucm/ASUSTeKCOMPUTERINC.-T100HAN-1.0-T100HAN/Makefile \
 	  src/conf/ucm/broadwell-rt286/Makefile \
 	  src/conf/ucm/broxton-rt298/Makefile \
-	  src/conf/ucm/bytcr/Makefile \
 	  src/conf/ucm/bytcr-rt5640/Makefile \
 	  src/conf/ucm/bytcr-rt5640-mono-spk-dmic1-mic/Makefile \
 	  src/conf/ucm/bytcr-rt5640-mono-spk-in1-mic/Makefile \
@@ -747,18 +746,21 @@ AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile doc/doxygen.cfg \
 	  src/conf/ucm/HDAudio-Gigabyte-ALC1220DualCodecs/Makefile \
 	  src/conf/ucm/HDAudio-Lenovo-DualCodecs/Makefile \
 	  src/conf/ucm/LENOVO-80XF-LenovoMIIX320_10ICR-LNVNB161216/Makefile \
-	  src/conf/ucm/nau8824/Makefile \
 	  src/conf/ucm/PandaBoard/Makefile \
 	  src/conf/ucm/PandaBoardES/Makefile \
 	  src/conf/ucm/PAZ00/Makefile \
 	  src/conf/ucm/PIPO-W2S-Defaultstring-CherryTrailCR/Makefile \
-	  src/conf/ucm/rt5640/Makefile \
-	  src/conf/ucm/rt5651/Makefile \
 	  src/conf/ucm/SDP4430/Makefile \
 	  src/conf/ucm/skylake-rt286/Makefile \
 	  src/conf/ucm/TECLAST-X80Pro-Defaultstring-CherryTrailCR/Makefile \
 	  src/conf/ucm/tegraalc5632/Makefile \
 	  src/conf/ucm/VEYRON-I2S/Makefile \
+	  src/conf/ucm/codecs/Makefile \
+	  src/conf/ucm/codecs/nau8824/Makefile \
+	  src/conf/ucm/codecs/rt5640/Makefile \
+	  src/conf/ucm/codecs/rt5651/Makefile \
+	  src/conf/ucm/platforms/Makefile \
+	  src/conf/ucm/platforms/bytcr/Makefile \
 	  src/conf/topology/Makefile \
 	  src/conf/topology/broadwell/Makefile \
 	  modules/Makefile modules/mixer/Makefile modules/mixer/simple/Makefile \
