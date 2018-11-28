@@ -243,3 +243,6 @@ void uc_mgr_free_sequence_element(struct sequence_element *seq);
 void uc_mgr_free_transition_element(struct transition_sequence *seq);
 void uc_mgr_free_verb(snd_use_case_mgr_t *uc_mgr);
 void uc_mgr_free(snd_use_case_mgr_t *uc_mgr);
+
+/** The name of the environment variable containing the UCM directory */
+#define ALSA_CONFIG_UCM_VAR "ALSA_CONFIG_UCM"

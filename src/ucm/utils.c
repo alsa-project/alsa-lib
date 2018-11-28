@@ -54,6 +54,7 @@ int uc_mgr_config_load(const char *file, snd_config_t **cfg)
 	FILE *fp;
 	snd_input_t *in;
 	snd_config_t *top;
+	const char *default_path;
 	int err;
 
 	fp = fopen(file, "r");
@@ -70,7 +71,11 @@ int uc_mgr_config_load(const char *file, snd_config_t **cfg)
 	err = snd_config_top(&top);
 	if (err < 0)
 		return err;
-	err = snd_config_load(top, in);
+
+	default_path = getenv(ALSA_CONFIG_UCM_VAR);
+	if (!default_path || !*default_path)
+		default_path = ALSA_CONFIG_DIR "/ucm";
+	err = _snd_config_load_with_include(top, in, default_path);
 	if (err < 0) {
 		uc_error("could not load configuration file %s", file);
 		snd_config_delete(top);
