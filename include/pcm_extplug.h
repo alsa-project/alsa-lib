@@ -184,6 +184,8 @@ int snd_pcm_extplug_set_param_list(snd_pcm_extplug_t *extplug, int type, unsigne
 int snd_pcm_extplug_set_param_minmax(snd_pcm_extplug_t *extplug, int type, unsigned int min, unsigned int max);
 int snd_pcm_extplug_set_slave_param_list(snd_pcm_extplug_t *extplug, int type, unsigned int num_list, const unsigned int *list);
 int snd_pcm_extplug_set_slave_param_minmax(snd_pcm_extplug_t *extplug, int type, unsigned int min, unsigned int max);
+int snd_pcm_extplug_set_param_link(snd_pcm_extplug_t *extplug, int type,
+				   int keep_link);
 
 /**
  * set the parameter constraint with a single value

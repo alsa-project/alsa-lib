@@ -5,6 +5,7 @@ struct snd_ext_parm {
 	unsigned int *list;
 	unsigned int active: 1;
 	unsigned int integer: 1;
+	unsigned int keep_link: 1;
 };
 
 static inline snd_mask_t *hw_param_mask(snd_pcm_hw_params_t *params,

@@ -249,7 +249,7 @@ static unsigned int get_links(struct snd_ext_parm *params)
 			      SND_PCM_HW_PARBIT_TICK_TIME);
 
 	for (i = 0; i < SND_PCM_EXTPLUG_HW_PARAMS; i++) {
-		if (params[i].active)
+		if (params[i].active && !params[i].keep_link)
 			links &= ~excl_parbits[i];
 	}
 	return links;
@@ -642,6 +642,17 @@ as former functions.
 To clear the parameter constraints, call #snd_pcm_extplug_params_reset()
 function. 
 
+When using snd_pcm_extplug_set_param_*() or snd_pcm_extplug_set_slave_param_*()
+for any parameter. This parameter is no longer linked between the client and
+slave PCM. Therefore it could differ and the extplug has to support conversion
+between all valid parameter configurations. To keep the client and slave
+parameter linked #snd_pcm_extplug_set_param_link() can be used for the
+corresponding parameter. For example if the extplug does not support channel nor
+format conversion the supported client parameters can be limited with
+snd_pcm_extplug_set_param_*() and afterwards
+#snd_pcm_extplug_set_param_link(ext, SND_PCM_EXTPLUG_HW_FORMAT, 1) and
+#snd_pcm_extplug_set_param_link(ext, SND_PCM_EXTPLUG_HW_CHANNELS, 1) should be
+called to keep the client and slave parameters the same.
 */
 
 /**
@@ -849,3 +860,26 @@ int snd_pcm_extplug_set_param_minmax(snd_pcm_extplug_t *extplug, int type, unsig
 	return snd_ext_parm_set_minmax(&ext->params[type], min, max);
 }
 
+/**
+ * @brief Keep the client and slave format/channels the same if requested. This
+ * is for example useful if this extplug does not support any channel
+ * conversion.
+ * @param extplug the extplug handle
+ * @param type parameter type
+ * @param keep_link if 1 the parameter identified by type will be kept the same
+ * for the client and slave PCM of this extplug
+ * @return 0 if successful, or a negative error code
+ */
+int snd_pcm_extplug_set_param_link(snd_pcm_extplug_t *extplug, int type,
+				   int keep_link)
+{
+	extplug_priv_t *ext = extplug->pcm->private_data;
+
+	if (type < 0 || type >= SND_PCM_EXTPLUG_HW_PARAMS) {
+		SNDERR("EXTPLUG: invalid parameter type %d", type);
+		return -EINVAL;
+	}
+	ext->params[type].keep_link = keep_link ? 1 : 0;
+	ext->sparams[type].keep_link = keep_link ? 1 : 0;
+	return 0;
+}
