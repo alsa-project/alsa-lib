@@ -537,9 +537,11 @@ static int snd_pcm_ioplug_drain(snd_pcm_t *pcm)
 		return -EBADFD;
 	case SND_PCM_STATE_PREPARED:
 		if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
-			err = snd_pcm_ioplug_start(pcm);
-			if (err < 0)
-				goto unlock;
+			if (!io->data->callback->drain) {
+				err = snd_pcm_ioplug_start(pcm);
+				if (err < 0)
+					goto unlock;
+			}
 			io->data->state = SND_PCM_STATE_DRAINING;
 		}
 		break;
