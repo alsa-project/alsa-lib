@@ -21,6 +21,7 @@ bytcr-rt5651-stereo-spk-in12-mic \
 chtnau8824 \
 chtrt5645 \
 chtrt5645-mono-speaker-analog-mic \
+chtrt5650 \
 cube-i1_TF-Defaultstring-CherryTrailCR \
 DAISY-I2S \
 DB410c \
