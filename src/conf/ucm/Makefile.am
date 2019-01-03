@@ -5,6 +5,10 @@ ASUSTeKCOMPUTERINC.-T100HAN-1.0-T100HAN \
 broadwell-rt286 \
 broxton-rt298 \
 bytcht-es8316 \
+bytcht-es8316-mono-spk-in1-mic \
+bytcht-es8316-mono-spk-in2-mic \
+bytcht-es8316-stereo-spk-in1-mic \
+bytcht-es8316-stereo-spk-in2-mic \
 bytcr-rt5640 \
 bytcr-rt5640-mono-spk-dmic1-mic \
 bytcr-rt5640-mono-spk-in1-mic \

@@ -721,6 +721,10 @@ AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile doc/doxygen.cfg \
 	  src/conf/ucm/broadwell-rt286/Makefile \
 	  src/conf/ucm/broxton-rt298/Makefile \
 	  src/conf/ucm/bytcht-es8316/Makefile \
+	  src/conf/ucm/bytcht-es8316-mono-spk-in1-mic/Makefile \
+	  src/conf/ucm/bytcht-es8316-mono-spk-in2-mic/Makefile \
+	  src/conf/ucm/bytcht-es8316-stereo-spk-in1-mic/Makefile \
+	  src/conf/ucm/bytcht-es8316-stereo-spk-in2-mic/Makefile \
 	  src/conf/ucm/bytcr-rt5640/Makefile \
 	  src/conf/ucm/bytcr-rt5640-mono-spk-dmic1-mic/Makefile \
 	  src/conf/ucm/bytcr-rt5640-mono-spk-in1-mic/Makefile \
