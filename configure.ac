@@ -720,6 +720,7 @@ AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile doc/doxygen.cfg \
 	  src/conf/ucm/ASUSTeKCOMPUTERINC.-T100HAN-1.0-T100HAN/Makefile \
 	  src/conf/ucm/broadwell-rt286/Makefile \
 	  src/conf/ucm/broxton-rt298/Makefile \
+	  src/conf/ucm/bytcht-es8316/Makefile \
 	  src/conf/ucm/bytcr-rt5640/Makefile \
 	  src/conf/ucm/bytcr-rt5640-mono-spk-dmic1-mic/Makefile \
 	  src/conf/ucm/bytcr-rt5640-mono-spk-in1-mic/Makefile \
@@ -759,6 +760,7 @@ AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile doc/doxygen.cfg \
 	  src/conf/ucm/tegraalc5632/Makefile \
 	  src/conf/ucm/VEYRON-I2S/Makefile \
 	  src/conf/ucm/codecs/Makefile \
+	  src/conf/ucm/codecs/es8316/Makefile \
 	  src/conf/ucm/codecs/nau8824/Makefile \
 	  src/conf/ucm/codecs/rt5640/Makefile \
 	  src/conf/ucm/codecs/rt5645/Makefile \
