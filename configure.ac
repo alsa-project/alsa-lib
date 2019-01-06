@@ -761,6 +761,7 @@ AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile doc/doxygen.cfg \
 	  src/conf/ucm/codecs/Makefile \
 	  src/conf/ucm/codecs/nau8824/Makefile \
 	  src/conf/ucm/codecs/rt5640/Makefile \
+	  src/conf/ucm/codecs/rt5645/Makefile \
 	  src/conf/ucm/codecs/rt5651/Makefile \
 	  src/conf/ucm/platforms/Makefile \
 	  src/conf/ucm/platforms/bytcr/Makefile \
