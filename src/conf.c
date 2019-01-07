@@ -1832,16 +1832,19 @@ int snd_config_top(snd_config_t **config)
 	return _snd_config_make(config, 0, SND_CONFIG_TYPE_COMPOUND);
 }
 
-static int snd_config_load1(snd_config_t *config, snd_input_t *in, int override,
-			    char *default_include_path)
+#ifndef DOC_HIDDEN
+int _snd_config_load_with_include(snd_config_t *config, snd_input_t *in,
+                                  int override, char *default_include_path)
 {
 	int err;
 	input_t input;
 	struct filedesc *fd, *fd_next;
 	assert(config && in);
 	fd = malloc(sizeof(*fd));
-	if (!fd)
-		return -ENOMEM;
+	if (!fd) {
+		err = -ENOMEM;
+		goto _end_inc;
+	}
 	fd->name = NULL;
 	fd->in = in;
 	fd->line = 1;
@@ -1852,6 +1855,7 @@ static int snd_config_load1(snd_config_t *config, snd_input_t *in, int override,
 		err = add_include_path(fd, default_include_path);
 		if (err < 0)
 			goto _end;
+		default_include_path = NULL;
 	}
 	input.current = fd;
 	input.unget = 0;
@@ -1900,8 +1904,11 @@ static int snd_config_load1(snd_config_t *config, snd_input_t *in, int override,
 
 	free_include_paths(fd);
 	free(fd);
+ _end_inc:
+	free(default_include_path);
 	return err;
 }
+#endif
 
 /**
  * \brief Loads a configuration tree.
@@ -1921,28 +1928,8 @@ static int snd_config_load1(snd_config_t *config, snd_input_t *in, int override,
  */
 int snd_config_load(snd_config_t *config, snd_input_t *in)
 {
-	return snd_config_load1(config, in, 0, NULL);
+	return _snd_config_load_with_include(config, in, 0, NULL);
 }
-
-#ifndef DOC_HIDDEN
-/* load config with the default include path; used internally for UCM parser */
-int _snd_config_load_with_include(snd_config_t *config, snd_input_t *in,
-				  const char *default_include_path)
-{
-	int err;
-	char *s = NULL;
-
-	if (default_include_path) {
-		s = strdup(default_include_path);
-		if (!s)
-			return -ENOMEM;
-	}
-	err = snd_config_load1(config, in, 0, s);
-	if (err < 0)
-		free(s);
-	return err;
-}
-#endif
 
 /**
  * \brief Loads a configuration tree and overrides existing configuration nodes.
@@ -1956,7 +1943,7 @@ int _snd_config_load_with_include(snd_config_t *config, snd_input_t *in,
  */
 int snd_config_load_override(snd_config_t *config, snd_input_t *in)
 {
-	return snd_config_load1(config, in, 1, NULL);
+	return _snd_config_load_with_include(config, in, 1, NULL);
 }
 
 /**

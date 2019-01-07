@@ -54,17 +54,12 @@ int uc_mgr_config_load(const char *file, snd_config_t **cfg)
 	FILE *fp;
 	snd_input_t *in;
 	snd_config_t *top;
-	const char *default_path;
+	char *default_path;
 	int err;
 
 	fp = fopen(file, "r");
-	if (fp == NULL) {
-		err = -errno;
-		goto __err;
-	}
-	err = snd_input_stdio_attach(&in, fp, 1);
+	err = fp == NULL ? -errno : snd_input_stdio_attach(&in, fp, 1);
 	if (err < 0) {
-	      __err:
 		uc_error("could not open configuration file %s", file);
 		return err;
 	}
@@ -75,19 +70,25 @@ int uc_mgr_config_load(const char *file, snd_config_t **cfg)
 	default_path = getenv(ALSA_CONFIG_UCM_VAR);
 	if (!default_path || !*default_path)
 		default_path = ALSA_CONFIG_DIR "/ucm";
-	err = _snd_config_load_with_include(top, in, default_path);
+	default_path = strdup(default_path);
+	if (!default_path) {
+		err = -ENOMEM;
+		goto __err2;
+	}
+	err = _snd_config_load_with_include(top, in, 0, default_path);
 	if (err < 0) {
 		uc_error("could not load configuration file %s", file);
-		snd_config_delete(top);
-		return err;
+		goto __err2;
 	}
 	err = snd_input_close(in);
-	if (err < 0) {
-		snd_config_delete(top);
-		return err;
-	}
+	if (err < 0)
+		goto __err2;
 	*cfg = top;
 	return 0;
+
+ __err2:
+        snd_config_delete(top);
+	return err;
 }
 
 void uc_mgr_free_value(struct list_head *base)
