@@ -496,7 +496,7 @@ static int snd_pcm_hw_hw_free(snd_pcm_t *pcm)
 static int snd_pcm_hw_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
-	int fd = hw->fd, err;
+	int fd = hw->fd, err = 0;
 	int old_period_event = sw_get_period_event(params);
 	sw_set_period_event(params, 0);
 	if ((snd_pcm_tstamp_t) params->tstamp_mode == pcm->tstamp_mode &&
@@ -508,22 +508,25 @@ static int snd_pcm_hw_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 	    params->silence_size == pcm->silence_size &&
 	    old_period_event == hw->period_event) {
 		hw->mmap_control->avail_min = params->avail_min;
-		return issue_avail_min(hw);
+		err = issue_avail_min(hw);
+		goto out;
 	}
 	if (params->tstamp_type == SND_PCM_TSTAMP_TYPE_MONOTONIC_RAW &&
 	    hw->version < SNDRV_PROTOCOL_VERSION(2, 0, 12)) {
 		SYSMSG("Kernel doesn't support SND_PCM_TSTAMP_TYPE_MONOTONIC_RAW");
-		return -EINVAL;
+		err = -EINVAL;
+		goto out;
 	}
 	if (params->tstamp_type == SND_PCM_TSTAMP_TYPE_MONOTONIC &&
 	    hw->version < SNDRV_PROTOCOL_VERSION(2, 0, 5)) {
 		SYSMSG("Kernel doesn't support SND_PCM_TSTAMP_TYPE_MONOTONIC");
-		return -EINVAL;
+		err = -EINVAL;
+		goto out;
 	}
 	if (ioctl(fd, SNDRV_PCM_IOCTL_SW_PARAMS, params) < 0) {
 		err = -errno;
 		SYSMSG("SNDRV_PCM_IOCTL_SW_PARAMS failed (%i)", err);
-		return err;
+		goto out;
 	}
 	if ((snd_pcm_tstamp_type_t) params->tstamp_type != pcm->tstamp_type) {
 		if (hw->version < SNDRV_PROTOCOL_VERSION(2, 0, 12)) {
@@ -532,20 +535,21 @@ static int snd_pcm_hw_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 			if (ioctl(fd, SNDRV_PCM_IOCTL_TSTAMP, &on) < 0) {
 				err = -errno;
 				SNDMSG("TSTAMP failed\n");
-				return err;
+				goto out;
 			}
 		}
 		pcm->tstamp_type = params->tstamp_type;
 	}
-	sw_set_period_event(params, old_period_event);
 	hw->mmap_control->avail_min = params->avail_min;
 	if (hw->period_event != old_period_event) {
 		err = snd_pcm_hw_change_timer(pcm, old_period_event);
 		if (err < 0)
-			return err;
+			goto out;
 		hw->period_event = old_period_event;
 	}
-	return 0;
+ out:
+	sw_set_period_event(params, old_period_event);
+	return err;
 }
 
 static int snd_pcm_hw_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info)
