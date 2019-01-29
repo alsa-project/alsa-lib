@@ -1,0 +1,37 @@
+# Use case configuration for DB820c board.
+# Author: Srinivas Kandagatla <srinivas.kandagatla@linaro.org>
+
+SectionVerb {
+        EnableSequence [
+			cdev "hw:0"
+			cset "name='HDMI Mixer MultiMedia1' 1"
+        ]
+
+        DisableSequence [
+			cdev "hw:0"
+			cset "name='HDMI Mixer MultiMedia1' 0"
+		]
+        Value {
+                TQ "HiFi"
+                PlaybackPCM "plughw:0,0"
+        }
+}
+
+SectionDevice."HDMI-stereo" {
+        #Name "HDMI-stereo"
+        Comment "HDMI Digital Stereo Output"
+
+        EnableSequence [
+			cdev "hw:0"
+			cset "name='HDMI Mixer MultiMedia1' 1"
+        ]
+
+        DisableSequence [
+			cdev "hw:0"
+			cset "name='HDMI Mixer MultiMedia1' 0"
+        ]
+
+        Value {
+                PlaybackChannels "2"
+        }
+}

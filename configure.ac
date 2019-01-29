@@ -747,6 +747,7 @@ AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile doc/doxygen.cfg \
 	  src/conf/ucm/cube-i1_TF-Defaultstring-CherryTrailCR/Makefile \
 	  src/conf/ucm/DAISY-I2S/Makefile \
 	  src/conf/ucm/DB410c/Makefile \
+	  src/conf/ucm/DB820c/Makefile \
 	  src/conf/ucm/Dell-WD15-Dock/Makefile \
 	  src/conf/ucm/GoogleNyan/Makefile \
 	  src/conf/ucm/gpd-win-pocket-rt5645/Makefile \

@@ -31,6 +31,7 @@ chtrt5650 \
 cube-i1_TF-Defaultstring-CherryTrailCR \
 DAISY-I2S \
 DB410c \
+DB820c \
 Dell-WD15-Dock \
 GoogleNyan \
 gpd-win-pocket-rt5645 \
