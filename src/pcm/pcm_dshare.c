@@ -121,7 +121,7 @@ static void snd_pcm_dshare_sync_area(snd_pcm_t *pcm)
 	 */
 	slave_hw_ptr -= slave_hw_ptr % dshare->slave_period_size;
 	slave_hw_ptr += dshare->slave_buffer_size;
-	if (dshare->slave_hw_ptr > dshare->slave_boundary)
+	if (slave_hw_ptr >= dshare->slave_boundary)
 		slave_hw_ptr -= dshare->slave_boundary;
 	if (slave_hw_ptr < dshare->slave_appl_ptr)
 		slave_size = slave_hw_ptr + (dshare->slave_boundary - dshare->slave_appl_ptr);
