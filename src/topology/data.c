@@ -121,6 +121,12 @@ static int tplg_parse_data_file(snd_config_t *cfg, struct tplg_elem *elem)
 	elem->data = priv;
 	priv->size = size;
 	elem->size = sizeof(*priv) + size;
+
+	if (fclose(fp) == EOF) {
+		SNDERR("Cannot close data file.");
+		ret = -errno;
+		goto err;
+	}
 	return 0;
 
 err:
