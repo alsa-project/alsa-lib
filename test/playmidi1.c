@@ -265,7 +265,7 @@ static void do_noteon(int chan, int pitch, int vol)
 	snd_seq_event_t ev;
 
 	if (verbose >= VERB_EVENT)
-		printf("%ld: NoteOn (%d) %d %d\n", Mf_currtime, chan, pitch, vol);
+		printf("%lu: NoteOn (%d) %d %d\n", Mf_currtime, chan, pitch, vol);
 	set_event_header(&ev);
 	snd_seq_ev_set_noteon(&ev, chan, pitch, vol);
 	write_ev(&ev);
@@ -277,7 +277,7 @@ static void do_noteoff(int chan, int pitch, int vol)
 	snd_seq_event_t ev;
 
 	if (verbose >= VERB_EVENT)
-		printf("%ld: NoteOff (%d) %d %d\n", Mf_currtime, chan, pitch, vol);
+		printf("%lu: NoteOff (%d) %d %d\n", Mf_currtime, chan, pitch, vol);
 	set_event_header(&ev);
 	snd_seq_ev_set_noteoff(&ev, chan, pitch, vol);
 	write_ev(&ev);
@@ -289,7 +289,7 @@ static void do_program(int chan, int program)
 	snd_seq_event_t ev;
 
 	if (verbose >= VERB_EVENT)
-		printf("%ld: Program (%d) %d\n", Mf_currtime, chan, program);
+		printf("%lu: Program (%d) %d\n", Mf_currtime, chan, program);
 	set_event_header(&ev);
 	snd_seq_ev_set_pgmchange(&ev, chan, program);
 	write_ev(&ev);
@@ -301,7 +301,7 @@ static void do_parameter(int chan, int control, int value)
 	snd_seq_event_t ev;
 
 	if (verbose >= VERB_EVENT)
-		printf("%ld: Control (%d) %d %d\n", Mf_currtime, chan, control, value);
+		printf("%lu: Control (%d) %d %d\n", Mf_currtime, chan, control, value);
 	set_event_header(&ev);
 	snd_seq_ev_set_controller(&ev, chan, control, value);
 	write_ev(&ev);
@@ -313,7 +313,7 @@ static void do_pitchbend(int chan, int lsb, int msb)
 	snd_seq_event_t ev;
 
 	if (verbose >= VERB_EVENT)
-		printf("%ld: Pitchbend (%d) %d %d\n", Mf_currtime, chan, lsb, msb);
+		printf("%lu: Pitchbend (%d) %d %d\n", Mf_currtime, chan, lsb, msb);
 	set_event_header(&ev);
 	snd_seq_ev_set_pitchbend(&ev, chan, (lsb + (msb << 7)) - 8192);
 	write_ev(&ev);
@@ -324,7 +324,7 @@ static void do_pressure(int chan, int pitch, int pressure)
 	snd_seq_event_t ev;
 
 	if (verbose >= VERB_EVENT)
-		printf("%ld: KeyPress (%d) %d %d\n", Mf_currtime, chan, pitch, pressure);
+		printf("%lu: KeyPress (%d) %d %d\n", Mf_currtime, chan, pitch, pressure);
 	set_event_header(&ev);
 	snd_seq_ev_set_keypress(&ev, chan, pitch, pressure);
 	write_ev(&ev);
@@ -335,7 +335,7 @@ static void do_chanpressure(int chan, int pressure)
 	snd_seq_event_t ev;
 
 	if (verbose >= VERB_EVENT)
-		printf("%ld: ChanPress (%d) %d\n", Mf_currtime, chan, pressure);
+		printf("%lu: ChanPress (%d) %d\n", Mf_currtime, chan, pressure);
 	set_event_header(&ev);
 	snd_seq_ev_set_chanpress(&ev, chan, pressure);
 	write_ev(&ev);
@@ -347,7 +347,7 @@ static void do_sysex(int len, char *msg)
 
 	if (verbose >= VERB_MUCH) {
 		int c;
-		printf("%ld: Sysex, len=%d\n", Mf_currtime, len);
+		printf("%lu: Sysex, len=%d\n", Mf_currtime, len);
 		for (c = 0; c < len; c++) {
 			printf(" %02x", (unsigned char)msg[c]);
 			if (c % 16 == 15)
