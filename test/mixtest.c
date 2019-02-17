@@ -264,7 +264,7 @@ int main(int argc, char **argv)
 		diff = end - begin;
 		if (diff < diffS)
 			diffS = diff;
-		printf("mix_areas_srv : %lld               \r", diff); fflush(stdout);
+		printf("mix_areas_srv : %llu               \r", diff); fflush(stdout);
 	}
 
 	for (t = 0, diff0 = -1; t < LOOP; t++) {
@@ -277,7 +277,7 @@ int main(int argc, char **argv)
 		diff = end - begin;
 		if (diff < diff0)
 			diff0 = diff;
-		printf("mix_areas0    : %lld               \r", diff); fflush(stdout);
+		printf("mix_areas0    : %llu               \r", diff); fflush(stdout);
 	}
 
 	for (t = 0, diff1 = -1; t < LOOP; t++) {
@@ -290,7 +290,7 @@ int main(int argc, char **argv)
 		diff = end - begin;
 		if (diff < diff1)
 			diff1 = diff;
-		printf("mix_areas1    : %lld              \r", diff); fflush(stdout);
+		printf("mix_areas1    : %llu              \r", diff); fflush(stdout);
 	}
 
 	for (t = 0, diff1_mmx = -1; t < LOOP; t++) {
@@ -303,7 +303,7 @@ int main(int argc, char **argv)
 		diff = end - begin;
 		if (diff < diff1_mmx)
 			diff1_mmx = diff;
-		printf("mix_areas1_mmx: %lld              \r", diff); fflush(stdout);
+		printf("mix_areas1_mmx: %llu              \r", diff); fflush(stdout);
 	}
 
 	for (t = 0, diff2 = -1; t < LOOP; t++) {
@@ -316,16 +316,16 @@ int main(int argc, char **argv)
 		diff = end - begin;
 		if (diff < diff2)
 			diff2 = diff;
-		printf("mix_areas2    : %lld              \r", diff); fflush(stdout);
+		printf("mix_areas2    : %llu              \r", diff); fflush(stdout);
 	}
 
 	printf("                                                                           \r");
 	printf("Summary (the best times):\n");
-	printf("mix_areas_srv  : %8lld %f%%\n", diffS, 100*2*44100.0*diffS/(size*n*cpu_clock));
-	printf("mix_areas0     : %8lld %f%%\n", diff0, 100*2*44100.0*diff0/(size*n*cpu_clock));
-	printf("mix_areas1     : %8lld %f%%\n", diff1, 100*2*44100.0*diff1/(size*n*cpu_clock));
-	printf("mix_areas1_mmx : %8lld %f%%\n", diff1_mmx, 100*2*44100.0*diff1_mmx/(size*n*cpu_clock));
-	printf("mix_areas2     : %8lld %f%%\n", diff2, 100*2*44100.0*diff2/(size*n*cpu_clock));
+	printf("mix_areas_srv  : %8llu %f%%\n", diffS, 100*2*44100.0*diffS/(size*n*cpu_clock));
+	printf("mix_areas0     : %8llu %f%%\n", diff0, 100*2*44100.0*diff0/(size*n*cpu_clock));
+	printf("mix_areas1     : %8llu %f%%\n", diff1, 100*2*44100.0*diff1/(size*n*cpu_clock));
+	printf("mix_areas1_mmx : %8llu %f%%\n", diff1_mmx, 100*2*44100.0*diff1_mmx/(size*n*cpu_clock));
+	printf("mix_areas2     : %8llu %f%%\n", diff2, 100*2*44100.0*diff2/(size*n*cpu_clock));
 
 	printf("\n");
 	printf("areas1/srv ratio     : %f\n", (double)diff1 / diffS);
