@@ -126,17 +126,17 @@ char *snd_ctl_ascii_elem_id_get(snd_ctl_elem_id_t *id)
 	device = snd_ctl_elem_id_get_device(id);
 	subdevice = snd_ctl_elem_id_get_subdevice(id);
 	if (index) {
-		snprintf(buf1, sizeof(buf1), ",index=%i", index);
+		snprintf(buf1, sizeof(buf1), ",index=%u", index);
 		if (strlen(buf) + strlen(buf1) < sizeof(buf))
 			strcat(buf, buf1);
 	}
 	if (device) {
-		snprintf(buf1, sizeof(buf1), ",device=%i", device);
+		snprintf(buf1, sizeof(buf1), ",device=%u", device);
 		if (strlen(buf) + strlen(buf1) < sizeof(buf))
 			strcat(buf, buf1);
 	}
 	if (subdevice) {
-		snprintf(buf1, sizeof(buf1), ",subdevice=%i", subdevice);
+		snprintf(buf1, sizeof(buf1), ",subdevice=%u", subdevice);
 		if (strlen(buf) + strlen(buf1) < sizeof(buf))
 			strcat(buf, buf1);
 	}
