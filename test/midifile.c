@@ -295,14 +295,14 @@ find_tempo()
   }
   if (i > tempo_history_count || tempo_history_time[i] > Mf_currtime) {
 #ifdef DEBUG_TIMES
-printf("[past %d, old_tempo %d]\n", tempo_history_time[i], old_tempo);
+printf("[past %lu, old_tempo %lu]\n", tempo_history_time[i], old_tempo);
 #endif
     revised_time = Mf_currtime;
     return(old_tempo);
   }
   tempo_change_time = revised_time = tempo_history_time[i];
 #ifdef DEBUG_TIMES
-printf("[revised_time %d, new_tempo %d]\n", revised_time, new_tempo);
+printf("[revised_time %lu, new_tempo %lu]\n", revised_time, new_tempo);
 #endif
   return(new_tempo);
 }
@@ -376,13 +376,13 @@ readtrack ()			/* read a track chunk */
 	      }
 	    delta_secs = mf_ticks2sec (revised_time-old_currtime, Mf_division, save_tempo);
 #ifdef DEBUG_TIMES
-printf("d(rev %d - old %d, div %d, tempo %d) = %.3f\n",
+printf("d(rev %lu - old %lu, div %d, tempo %lu) = %.3f\n",
 revised_time, old_currtime, Mf_division, save_tempo, delta_secs * 1600.0);
 #endif
 	    Mf_f_realtime = old_f_realtime + delta_secs * 1600.0;
 	    Mf_realtime = (unsigned long)(0.5 + Mf_f_realtime);
 #ifdef DEBUG_TIMES
-printf("\tt=%d ticks ( = %d csec/16 < old %.2f + %.2f)\n", Mf_currtime, Mf_realtime, 
+printf("\tt=%lu ticks ( = %lu csec/16 < old %.2f + %.2f)\n", Mf_currtime, Mf_realtime,
 old_f_realtime, delta_secs * 1600.0);
 #endif
 	      if (revised_time == tempo_change_time) {
@@ -393,13 +393,13 @@ old_f_realtime, delta_secs * 1600.0);
 	    else {
 	    delta_secs = mf_ticks2sec (revised_time-old_currtime, Mf_division, Mf_currtempo);
 #ifdef DEBUG_TIMES
-printf("d(rev %d - old %d, div %d, tempo %d) = %.3f\n",
+printf("d(rev %lu - old %lu, div %d, tempo %lu) = %.3f\n",
 revised_time, old_currtime, Mf_division, Mf_currtempo, delta_secs * 1600.0);
 #endif
 	    Mf_f_realtime = old_f_realtime + delta_secs * 1600.0;
 	    Mf_realtime = (unsigned long)(0.5 + Mf_f_realtime);
 #ifdef DEBUG_TIMES
-printf("\tt=%d ticks ( = %d csec/16 < old %.2f + %.2f)\n", Mf_currtime, Mf_realtime, 
+printf("\tt=%lu ticks ( = %lu csec/16 < old %.2f + %.2f)\n", Mf_currtime, Mf_realtime,
 old_f_realtime, delta_secs * 1600.0);
 #endif
 	    }
