@@ -587,7 +587,7 @@ int main(int argc, char *argv[])
 	printf("Capture device is %s\n", cdevice);
 	printf("Parameters are %iHz, %s, %i channels, %s mode\n", rate, snd_pcm_format_name(format), channels, block ? "blocking" : "non-blocking");
 	printf("Poll mode: %s\n", use_poll ? "yes" : "no");
-	printf("Loop limit is %li frames, minimum latency = %i, maximum latency = %i\n", loop_limit, latency_min * 2, latency_max * 2);
+	printf("Loop limit is %lu frames, minimum latency = %i, maximum latency = %i\n", loop_limit, latency_min * 2, latency_max * 2);
 
 	if ((err = snd_pcm_open(&phandle, pdevice, SND_PCM_STREAM_PLAYBACK, block ? 0 : SND_PCM_NONBLOCK)) < 0) {
 		printf("Playback open error: %s\n", snd_strerror(err));
