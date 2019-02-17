@@ -49,12 +49,12 @@ static void generate_sine(const snd_pcm_channel_area_t *areas,
 	/* verify and prepare the contents of areas */
 	for (chn = 0; chn < channels; chn++) {
 		if ((areas[chn].first % 8) != 0) {
-			printf("areas[%i].first == %i, aborting...\n", chn, areas[chn].first);
+			printf("areas[%u].first == %u, aborting...\n", chn, areas[chn].first);
 			exit(EXIT_FAILURE);
 		}
 		samples[chn] = /*(signed short *)*/(((unsigned char *)areas[chn].addr) + (areas[chn].first / 8));
 		if ((areas[chn].step % 16) != 0) {
-			printf("areas[%i].step == %i, aborting...\n", chn, areas[chn].step);
+			printf("areas[%u].step == %u, aborting...\n", chn, areas[chn].step);
 			exit(EXIT_FAILURE);
 		}
 		steps[chn] = areas[chn].step / 8;
@@ -127,24 +127,24 @@ static int set_hwparams(snd_pcm_t *handle,
 	/* set the count of channels */
 	err = snd_pcm_hw_params_set_channels(handle, params, channels);
 	if (err < 0) {
-		printf("Channels count (%i) not available for playbacks: %s\n", channels, snd_strerror(err));
+		printf("Channels count (%u) not available for playbacks: %s\n", channels, snd_strerror(err));
 		return err;
 	}
 	/* set the stream rate */
 	rrate = rate;
 	err = snd_pcm_hw_params_set_rate_near(handle, params, &rrate, 0);
 	if (err < 0) {
-		printf("Rate %iHz not available for playback: %s\n", rate, snd_strerror(err));
+		printf("Rate %uHz not available for playback: %s\n", rate, snd_strerror(err));
 		return err;
 	}
 	if (rrate != rate) {
-		printf("Rate doesn't match (requested %iHz, get %iHz)\n", rate, err);
+		printf("Rate doesn't match (requested %uHz, get %iHz)\n", rate, err);
 		return -EINVAL;
 	}
 	/* set the buffer time */
 	err = snd_pcm_hw_params_set_buffer_time_near(handle, params, &buffer_time, &dir);
 	if (err < 0) {
-		printf("Unable to set buffer time %i for playback: %s\n", buffer_time, snd_strerror(err));
+		printf("Unable to set buffer time %u for playback: %s\n", buffer_time, snd_strerror(err));
 		return err;
 	}
 	err = snd_pcm_hw_params_get_buffer_size(params, &size);
@@ -156,7 +156,7 @@ static int set_hwparams(snd_pcm_t *handle,
 	/* set the period time */
 	err = snd_pcm_hw_params_set_period_time_near(handle, params, &period_time, &dir);
 	if (err < 0) {
-		printf("Unable to set period time %i for playback: %s\n", period_time, snd_strerror(err));
+		printf("Unable to set period time %u for playback: %s\n", period_time, snd_strerror(err));
 		return err;
 	}
 	err = snd_pcm_hw_params_get_period_size(params, &size, &dir);
@@ -875,7 +875,7 @@ int main(int argc, char *argv[])
 	}
 
 	printf("Playback device is %s\n", device);
-	printf("Stream parameters are %iHz, %s, %i channels\n", rate, snd_pcm_format_name(format), channels);
+	printf("Stream parameters are %uHz, %s, %u channels\n", rate, snd_pcm_format_name(format), channels);
 	printf("Sine wave rate is %.4fHz\n", freq);
 	printf("Using transfer method: %s\n", transfer_methods[method].name);
 
