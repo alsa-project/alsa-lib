@@ -374,6 +374,7 @@ long readbuf(snd_pcm_t *handle, char *buf, long len, size_t *frames, size_t *max
 long writebuf(snd_pcm_t *handle, char *buf, long len, size_t *frames)
 {
 	long r;
+	int frame_bytes = (snd_pcm_format_width(format) / 8) * channels;
 
 	while (len > 0) {
 		r = snd_pcm_writei(handle, buf, len);
@@ -383,7 +384,7 @@ long writebuf(snd_pcm_t *handle, char *buf, long len, size_t *frames)
 		if (r < 0)
 			return r;
 		// showstat(handle, 0);
-		buf += r * 4;
+		buf += r * frame_bytes;
 		len -= r;
 		*frames += r;
 	}
