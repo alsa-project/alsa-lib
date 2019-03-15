@@ -19,6 +19,8 @@
  *
  */
 
+#include "../control/control_local.h"
+
 struct acall_table {
 	const char *name;
 	struct alisp_object * (*func) (struct alisp_instance *instance, struct acall_table * item, struct alisp_object * args);
