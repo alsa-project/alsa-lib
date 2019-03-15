@@ -3750,7 +3750,7 @@ int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t 
 			int n;
 
 #ifndef DOC_HIDDEN
-#if defined(_GNU_SOURCE) && !defined(__NetBSD__) && !defined(__FreeBSD__) && !defined(__sun)
+#if defined(_GNU_SOURCE) && !defined(__NetBSD__) && !defined(__FreeBSD__) && !defined(__sun) && !defined(ANDROID)
 #define SORTFUNC	versionsort
 #else
 #define SORTFUNC	alphasort

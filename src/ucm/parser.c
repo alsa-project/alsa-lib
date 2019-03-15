@@ -1532,7 +1532,7 @@ int uc_mgr_scan_master_configs(const char **_list[])
 			 snd_config_topdir());
 	filename[MAX_FILE-1] = '\0';
 
-#if defined(_GNU_SOURCE) && !defined(__NetBSD__) && !defined(__FreeBSD__) && !defined(__sun)
+#if defined(_GNU_SOURCE) && !defined(__NetBSD__) && !defined(__FreeBSD__) && !defined(__sun) && !defined(ANDROID)
 #define SORTFUNC	versionsort
 #else
 #define SORTFUNC	alphasort
