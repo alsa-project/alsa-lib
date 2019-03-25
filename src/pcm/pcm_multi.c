@@ -775,11 +775,15 @@ static int snd_pcm_multi_mmap(snd_pcm_t *pcm)
 	return 0;
 }
 
-static int snd_pcm_multi_may_wait_for_avail_min(snd_pcm_t *pcm, snd_pcm_uframes_t avail ATTRIBUTE_UNUSED)
+static int snd_pcm_multi_may_wait_for_avail_min(snd_pcm_t *pcm, snd_pcm_uframes_t avail)
 {
 	snd_pcm_multi_t *multi = pcm->private_data;
-	snd_pcm_t *slave = multi->slaves[multi->master_slave].pcm;
-	return snd_pcm_may_wait_for_avail_min(slave, snd_pcm_mmap_avail(slave));
+	unsigned int i;
+	for (i = 0; i < multi->slaves_count; ++i) {
+		if (snd_pcm_may_wait_for_avail_min(multi->slaves[i].pcm, avail))
+			return 1;
+	}
+	return 0;
 }
 
 static snd_pcm_chmap_query_t **snd_pcm_multi_query_chmaps(snd_pcm_t *pcm)
