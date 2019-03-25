@@ -282,15 +282,6 @@ struct tplg_elem *tplg_elem_lookup(struct list_head *base,
 struct tplg_elem* tplg_elem_new_common(snd_tplg_t *tplg,
 	snd_config_t *cfg, const char *name, enum snd_tplg_type type);
 
-static inline void elem_copy_text(char *dest, const char *src, int len)
-{
-	if (!dest || !src || !len)
-		return;
-
-	strncpy(dest, src, len);
-	dest[len - 1] = 0;
-}
-
 int tplg_parse_channel(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 	snd_config_t *cfg, void *private);
 

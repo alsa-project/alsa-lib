@@ -348,7 +348,7 @@ static int tplg_parse_line(const char *text,
 	unsigned int len, i;
 	const char *source = NULL, *sink = NULL, *control = NULL;
 
-	elem_copy_text(buf, text, LINE_SIZE);
+	snd_strlcpy(buf, text, LINE_SIZE);
 
 	len = strlen(buf);
 	if (len <= 2) {
@@ -488,7 +488,7 @@ int tplg_parse_dapm_widget(snd_tplg_t *tplg,
 	tplg_dbg(" Widget: %s\n", elem->id);
 
 	widget = elem->widget;
-	elem_copy_text(widget->name, elem->id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+	snd_strlcpy(widget->name, elem->id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 	widget->size = elem->size;
 
 	snd_config_for_each(i, next, cfg) {
@@ -523,7 +523,7 @@ int tplg_parse_dapm_widget(snd_tplg_t *tplg,
 			if (snd_config_get_string(n, &val) < 0)
 				return -EINVAL;
 
-			elem_copy_text(widget->sname, val,
+			snd_strlcpy(widget->sname, val,
 				       SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 			tplg_dbg("\t%s: %s\n", id, val);
 			continue;
@@ -642,11 +642,11 @@ int tplg_add_route(snd_tplg_t *tplg, struct snd_tplg_graph_elem *t)
 		return -ENOMEM;
 
 	line = elem->route;
-	elem_copy_text(line->source, t->src, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+	snd_strlcpy(line->source, t->src, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 	if (t->ctl)
-		elem_copy_text(line->control, t->ctl,
+		snd_strlcpy(line->control, t->ctl,
 			SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
-	elem_copy_text(line->sink, t->sink, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+	snd_strlcpy(line->sink, t->sink, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 
 	return 0;
 }
@@ -684,9 +684,9 @@ int tplg_add_widget_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 	w->size = elem->size;
 
 	w->id = wt->id;
-	elem_copy_text(w->name, wt->name, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+	snd_strlcpy(w->name, wt->name, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 	if (wt->sname)
-		elem_copy_text(w->sname, wt->sname, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+		snd_strlcpy(w->sname, wt->sname, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 	w->reg = wt->reg;
 	w->shift = wt->shift;
 	w->mask = wt->mask;

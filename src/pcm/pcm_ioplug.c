@@ -94,9 +94,9 @@ static int snd_pcm_ioplug_info(snd_pcm_t *pcm, snd_pcm_info_t *info)
 	info->stream = pcm->stream;
 	info->card = -1;
 	if (pcm->name) {
-		strncpy((char *)info->id, pcm->name, sizeof(info->id));
-		strncpy((char *)info->name, pcm->name, sizeof(info->name));
-		strncpy((char *)info->subname, pcm->name, sizeof(info->subname));
+		snd_strlcpy((char *)info->id, pcm->name, sizeof(info->id));
+		snd_strlcpy((char *)info->name, pcm->name, sizeof(info->name));
+		snd_strlcpy((char *)info->subname, pcm->name, sizeof(info->subname));
 	}
 	info->subdevices_count = 1;
 	return 0;

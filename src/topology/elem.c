@@ -47,7 +47,7 @@ int tplg_ref_add_elem(struct tplg_elem *elem, struct tplg_elem *elem_ref)
 
 	ref->type = elem_ref->type;
 	ref->elem = elem_ref;
-	elem_copy_text(ref->id,  elem_ref->id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+	snd_strlcpy(ref->id, elem_ref->id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 
 	list_add_tail(&ref->list, &elem->ref_list);
 	return 0;
@@ -169,7 +169,7 @@ struct tplg_elem* tplg_elem_new_common(snd_tplg_t *tplg,
 	/* do we get name from cfg */
 	if (cfg) {
 		snd_config_get_id(cfg, &id);
-		elem_copy_text(elem->id, id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+		snd_strlcpy(elem->id, id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 		elem->id[SNDRV_CTL_ELEM_ID_NAME_MAXLEN - 1] = 0;
 		/* as we insert new elem based on the index value, move index
 		   parsing here */
@@ -186,7 +186,7 @@ struct tplg_elem* tplg_elem_new_common(snd_tplg_t *tplg,
 			}
 		}
 	} else if (name != NULL)
-		elem_copy_text(elem->id, name, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+		snd_strlcpy(elem->id, name, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 
 	switch (type) {
 	case SND_TPLG_TYPE_DATA:

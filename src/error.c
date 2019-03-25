@@ -177,3 +177,25 @@ static void snd_err_msg_default(const char *file, int line, const char *function
 snd_lib_error_handler_t snd_err_msg = snd_err_msg_default;
 
 #endif
+
+/**
+ * \brief Copy a C-string into a sized buffer
+ * \param dst Where to copy the string to
+ * \param src Where to copy the string from
+ * \param size Size of destination buffer
+ * \retval The source string length
+ *
+ * The result is always a valid NUL-terminated string that fits
+ * in the buffer (unless, of course, the buffer size is zero).
+ * It does not pad out the result like strncpy() does.
+ */
+size_t snd_strlcpy(char *dst, const char *src, size_t size)
+{
+  size_t ret = strlen(src);
+  if (size) {
+    size_t len = ret >= size ? size - 1 : ret;
+    memcpy(dst, src, len);
+    dst[len] = '\0';
+  }
+  return ret;
+}

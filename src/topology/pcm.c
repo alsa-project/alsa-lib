@@ -383,7 +383,7 @@ int tplg_parse_stream_caps(snd_tplg_t *tplg,
 
 	sc = elem->stream_caps;
 	sc->size = elem->size;
-	elem_copy_text(sc->name, elem->id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+	snd_strlcpy(sc->name, elem->id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 
 	tplg_dbg(" PCM Capabilities: %s\n", elem->id);
 
@@ -562,7 +562,7 @@ static int tplg_parse_streams(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 			/* store stream caps name, to find and merge
 			 * the caps in building phase.
 			 */
-			elem_copy_text(caps[stream].name, value,
+			snd_strlcpy(caps[stream].name, value,
 				SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 
 			tplg_dbg("\t\t%s\n\t\t\t%s\n", id, value);
@@ -586,7 +586,7 @@ static int tplg_parse_fe_dai(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 
 	snd_config_get_id(cfg, &id);
 	tplg_dbg("\t\tFE DAI %s:\n", id);
-	elem_copy_text(pcm->dai_name, id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+	snd_strlcpy(pcm->dai_name, id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 
 	snd_config_for_each(i, next, cfg) {
 
@@ -653,7 +653,7 @@ int tplg_parse_pcm(snd_tplg_t *tplg,
 
 	pcm = elem->pcm;
 	pcm->size = elem->size;
-	elem_copy_text(pcm->pcm_name, elem->id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+	snd_strlcpy(pcm->pcm_name, elem->id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 
 	tplg_dbg(" PCM: %s\n", elem->id);
 
@@ -754,7 +754,7 @@ int tplg_parse_dai(snd_tplg_t *tplg,
 
 	dai = elem->dai;
 	dai->size = elem->size;
-	elem_copy_text(dai->dai_name, elem->id,
+	snd_strlcpy(dai->dai_name, elem->id,
 		SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 
 	tplg_dbg(" DAI: %s\n", elem->id);
@@ -920,7 +920,7 @@ int tplg_parse_link(snd_tplg_t *tplg,
 
 	link = elem->link;
 	link->size = elem->size;
-	elem_copy_text(link->name, elem->id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+	snd_strlcpy(link->name, elem->id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 
 	tplg_dbg(" Link: %s\n", elem->id);
 
@@ -949,7 +949,7 @@ int tplg_parse_link(snd_tplg_t *tplg,
 			if (snd_config_get_string(n, &val) < 0)
 				return -EINVAL;
 
-			elem_copy_text(link->stream_name, val,
+			snd_strlcpy(link->stream_name, val,
 				       SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 			tplg_dbg("\t%s: %s\n", id, val);
 			continue;
@@ -1319,7 +1319,7 @@ int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
 static void tplg_add_stream_object(struct snd_soc_tplg_stream *strm,
 				struct snd_tplg_stream_template *strm_tpl)
 {
-	elem_copy_text(strm->name, strm_tpl->name,
+	snd_strlcpy(strm->name, strm_tpl->name,
 		SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 	strm->format = strm_tpl->format;
 	strm->rate = strm_tpl->rate;
@@ -1331,7 +1331,7 @@ static void tplg_add_stream_object(struct snd_soc_tplg_stream *strm,
 static void tplg_add_stream_caps(struct snd_soc_tplg_stream_caps *caps,
 	struct snd_tplg_stream_caps_template *caps_tpl)
 {
-	elem_copy_text(caps->name, caps_tpl->name,
+	snd_strlcpy(caps->name, caps_tpl->name,
 		SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 
 	caps->formats = caps_tpl->formats;
@@ -1370,9 +1370,9 @@ int tplg_add_pcm_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 	pcm = elem->pcm;
 	pcm->size = elem->size;
 
-	elem_copy_text(pcm->pcm_name, pcm_tpl->pcm_name,
+	snd_strlcpy(pcm->pcm_name, pcm_tpl->pcm_name,
 		SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
-	elem_copy_text(pcm->dai_name, pcm_tpl->dai_name,
+	snd_strlcpy(pcm->dai_name, pcm_tpl->dai_name,
 		SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 	pcm->pcm_id = pcm_tpl->pcm_id;
 	pcm->dai_id = pcm_tpl->dai_id;
@@ -1478,9 +1478,9 @@ int tplg_add_link_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 
 	/* ID and names */
 	link->id = link_tpl->id;
-	elem_copy_text(link->name, link_tpl->name,
+	snd_strlcpy(link->name, link_tpl->name,
 		       SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
-	elem_copy_text(link->stream_name, link_tpl->stream_name,
+	snd_strlcpy(link->stream_name, link_tpl->stream_name,
 		       SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 
 	/* stream configs */
@@ -1540,7 +1540,7 @@ int tplg_add_dai_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 	dai = elem->dai;
 	dai->size = elem->size;
 
-	elem_copy_text(dai->dai_name, dai_tpl->dai_name,
+	snd_strlcpy(dai->dai_name, dai_tpl->dai_name,
 		SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 	dai->dai_id = dai_tpl->dai_id;
 

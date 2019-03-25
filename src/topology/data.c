@@ -473,7 +473,7 @@ static int copy_tuples(struct tplg_elem *elem,
 			case SND_SOC_TPLG_TUPLE_TYPE_STRING:
 				string = &array->string[j];
 				string->token = token_val;
-				elem_copy_text(string->string, tuple->string,
+				snd_strlcpy(string->string, tuple->string,
 					SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 				break;
 
@@ -587,7 +587,7 @@ static int parse_tuple_set(snd_config_t *cfg,
 			continue;
 
 		tuple = &set->tuple[set->num_tuples];
-		elem_copy_text(tuple->token, id,
+		snd_strlcpy(tuple->token, id,
 				SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 
 		switch (type) {
@@ -597,7 +597,7 @@ static int parse_tuple_set(snd_config_t *cfg,
 			break;
 
 		case SND_SOC_TPLG_TUPLE_TYPE_STRING:
-			elem_copy_text(tuple->string, value,
+			snd_strlcpy(tuple->string, value,
 				SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 			tplg_dbg("\t\t%s = %s\n", tuple->token, tuple->string);
 			break;
@@ -818,7 +818,7 @@ int tplg_parse_tokens(snd_tplg_t *tplg, snd_config_t *cfg,
 		if (snd_config_get_string(n, &value) < 0)
 			continue;
 
-		elem_copy_text(tokens->token[tokens->num_tokens].id, id,
+		snd_strlcpy(tokens->token[tokens->num_tokens].id, id,
 				SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 		tokens->token[tokens->num_tokens].value = atoi(value);
 		tplg_dbg("\t\t %s : %d\n", tokens->token[tokens->num_tokens].id,

@@ -1805,7 +1805,7 @@ void snd_ctl_elem_id_set_subdevice(snd_ctl_elem_id_t *obj, unsigned int val)
 void snd_ctl_elem_id_set_name(snd_ctl_elem_id_t *obj, const char *val)
 {
 	assert(obj);
-	strncpy((char *)obj->name, val, sizeof(obj->name));
+	snd_strlcpy((char *)obj->name, val, sizeof(obj->name));
 }
 
 /**
@@ -2723,7 +2723,7 @@ void snd_ctl_elem_info_set_subdevice(snd_ctl_elem_info_t *obj, unsigned int val)
 void snd_ctl_elem_info_set_name(snd_ctl_elem_info_t *obj, const char *val)
 {
 	assert(obj);
-	strncpy((char *)obj->id.name, val, sizeof(obj->id.name));
+	snd_strlcpy((char *)obj->id.name, val, sizeof(obj->id.name));
 }
 
 /**
@@ -2945,7 +2945,7 @@ void snd_ctl_elem_value_set_subdevice(snd_ctl_elem_value_t *obj, unsigned int va
 void snd_ctl_elem_value_set_name(snd_ctl_elem_value_t *obj, const char *val)
 {
 	assert(obj);
-	strncpy((char *)obj->id.name, val, sizeof(obj->id.name));
+	snd_strlcpy((char *)obj->id.name, val, sizeof(obj->id.name));
 }
 
 /**

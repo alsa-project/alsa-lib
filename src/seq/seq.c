@@ -1744,7 +1744,7 @@ void snd_seq_client_info_set_client(snd_seq_client_info_t *info, int client)
 void snd_seq_client_info_set_name(snd_seq_client_info_t *info, const char *name)
 {
 	assert(info && name);
-	strncpy(info->name, name, sizeof(info->name));
+	snd_strlcpy(info->name, name, sizeof(info->name));
 }
 
 /**
@@ -2177,7 +2177,7 @@ void snd_seq_port_info_set_addr(snd_seq_port_info_t *info, const snd_seq_addr_t 
 void snd_seq_port_info_set_name(snd_seq_port_info_t *info, const char *name)
 {
 	assert(info && name);
-	strncpy(info->name, name, sizeof(info->name));
+	snd_strlcpy(info->name, name, sizeof(info->name));
 }
 
 /**
@@ -3122,7 +3122,7 @@ unsigned int snd_seq_queue_info_get_flags(const snd_seq_queue_info_t *info)
 void snd_seq_queue_info_set_name(snd_seq_queue_info_t *info, const char *name)
 {
 	assert(info && name);
-	strncpy(info->name, name, sizeof(info->name));
+	snd_strlcpy(info->name, name, sizeof(info->name));
 }
 
 /**
@@ -3198,7 +3198,7 @@ int snd_seq_alloc_named_queue(snd_seq_t *seq, const char *name)
 	memset(&info, 0, sizeof(info));
 	info.locked = 1;
 	if (name)
-		strncpy(info.name, name, sizeof(info.name) - 1);
+		snd_strlcpy(info.name, name, sizeof(info.name));
 	return snd_seq_create_queue(seq, &info);
 }
 
@@ -3279,7 +3279,7 @@ int snd_seq_query_named_queue(snd_seq_t *seq, const char *name)
 	int err;
 	snd_seq_queue_info_t info;
 	assert(seq && name);
-	strncpy(info.name, name, sizeof(info.name));
+	snd_strlcpy(info.name, name, sizeof(info.name));
 	err = seq->ops->get_named_queue(seq, &info);
 	if (err < 0)
 		return err;

@@ -380,7 +380,7 @@ int tplg_parse_control_bytes(snd_tplg_t *tplg,
 
 	be = elem->bytes_ext;
 	be->size = elem->size;
-	elem_copy_text(be->hdr.name, elem->id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+	snd_strlcpy(be->hdr.name, elem->id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 	be->hdr.type = SND_SOC_TPLG_TYPE_BYTES;
 
 	tplg_dbg(" Control Bytes: %s\n", elem->id);
@@ -505,7 +505,7 @@ int tplg_parse_control_enum(snd_tplg_t *tplg, snd_config_t *cfg,
 		return -ENOMEM;
 
 	ec = elem->enum_ctrl;
-	elem_copy_text(ec->hdr.name, elem->id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+	snd_strlcpy(ec->hdr.name, elem->id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 	ec->hdr.type = SND_SOC_TPLG_TYPE_ENUM;
 	ec->size = elem->size;
 	tplg->channel_idx = 0;
@@ -606,7 +606,7 @@ int tplg_parse_control_mixer(snd_tplg_t *tplg,
 
 	/* init new mixer */
 	mc = elem->mixer_ctrl;
-	elem_copy_text(mc->hdr.name, elem->id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+	snd_strlcpy(mc->hdr.name, elem->id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 	mc->hdr.type = SND_SOC_TPLG_TYPE_MIXER;
 	mc->size = elem->size;
 	tplg->channel_idx = 0;
@@ -721,8 +721,7 @@ static int init_ctl_hdr(struct snd_soc_tplg_ctl_hdr *hdr,
 	hdr->size = sizeof(struct snd_soc_tplg_ctl_hdr);
 	hdr->type = t->type;
 
-	elem_copy_text(hdr->name, t->name,
-		SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+	snd_strlcpy(hdr->name, t->name, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 
 	/* clean up access flag */
 	if (t->access == 0)
