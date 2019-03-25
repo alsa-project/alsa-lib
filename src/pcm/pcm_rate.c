@@ -988,7 +988,7 @@ static snd_pcm_sframes_t snd_pcm_rate_avail_update(snd_pcm_t *pcm)
 	size = pcm->buffer_size - xfer;
 	hw_offset = snd_pcm_mmap_hw_offset(pcm);
 	while (size >= pcm->period_size &&
-	       slave_size >= rate->gen.slave->period_size) {
+	       (snd_pcm_uframes_t)slave_size >= rate->gen.slave->period_size) {
 		int err = snd_pcm_rate_grab_next_period(pcm, hw_offset);
 		if (err < 0)
 			return err;
