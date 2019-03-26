@@ -96,3 +96,4 @@ AM_CPPFLAGS=-I$(top_srcdir)/include
 install-data-hook:
 	test -d $(DESTDIR)$(sysincludedir) || mkdir -p $(DESTDIR)$(sysincludedir)
 	$(INSTALL_DATA) $(srcdir)/sys.h $(DESTDIR)$(sysincludedir)/asoundlib.h
+	$(INSTALL_DATA) $(srcdir)/sys.h $(DESTDIR)$(includedir)/asoundlib.h
