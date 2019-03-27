@@ -929,6 +929,15 @@ int tplg_parse_pcm(snd_tplg_t *tplg, snd_config_t *cfg,
 			continue;
 		}
 
+		if (strcmp(id, "ignore_suspend") == 0) {
+			err = parse_flag(n,
+				SND_SOC_TPLG_LNK_FLGBIT_VOICE_WAKEUP,
+				&pcm->flag_mask, &pcm->flags);
+			if (err < 0)
+				return err;
+			continue;
+		}
+
 		/* private data */
 		if (strcmp(id, "data") == 0) {
 			err = tplg_parse_refs(n, elem, SND_TPLG_TYPE_DATA);
@@ -1060,6 +1069,15 @@ int tplg_parse_dai(snd_tplg_t *tplg, snd_config_t *cfg,
 		if (strcmp(id, "symmetric_sample_bits") == 0) {
 			err = parse_flag(n,
 				SND_SOC_TPLG_DAI_FLGBIT_SYMMETRIC_SAMPLEBITS,
+				&dai->flag_mask, &dai->flags);
+			if (err < 0)
+				return err;
+			continue;
+		}
+
+		if (strcmp(id, "ignore_suspend") == 0) {
+			err = parse_flag(n,
+				SND_SOC_TPLG_LNK_FLGBIT_VOICE_WAKEUP,
 				&dai->flag_mask, &dai->flags);
 			if (err < 0)
 				return err;
@@ -1214,6 +1232,15 @@ int tplg_parse_link(snd_tplg_t *tplg, snd_config_t *cfg,
 		if (strcmp(id, "symmetric_sample_bits") == 0) {
 			err = parse_flag(n,
 				SND_SOC_TPLG_LNK_FLGBIT_SYMMETRIC_SAMPLEBITS,
+				&link->flag_mask, &link->flags);
+			if (err < 0)
+				return err;
+			continue;
+		}
+
+		if (strcmp(id, "ignore_suspend") == 0) {
+			err = parse_flag(n,
+				SND_SOC_TPLG_LNK_FLGBIT_VOICE_WAKEUP,
 				&link->flag_mask, &link->flags);
 			if (err < 0)
 				return err;
