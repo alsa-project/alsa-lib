@@ -501,6 +501,7 @@ static int snd_pcm_multi_prepare(snd_pcm_t *pcm)
 		if (err < 0)
 			result = err;
 	}
+	multi->hw_ptr = multi->appl_ptr = 0;
 	return result;
 }
 
@@ -515,6 +516,7 @@ static int snd_pcm_multi_reset(snd_pcm_t *pcm)
 		if (err < 0) 
 			result = err;
 	}
+	multi->hw_ptr = multi->appl_ptr = 0;
 	return result;
 }
 
