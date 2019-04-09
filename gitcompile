@@ -5,6 +5,7 @@ set -e
 bit32=
 modules=
 alisp=
+lto=
 if [ $# -ne 0 ]; then
   endloop=
   while [ -z "$endloop" ]; do
@@ -24,6 +25,10 @@ if [ $# -ne 0 ]; then
     python2)
       python2=yes
       echo "Forced python2 interpreter build..."
+      shift ;;
+    lto)
+      lto="-flto -flto-partition=none"
+      echo "Forced lto build..."
       shift ;;
     *)
       endloop=yes
@@ -75,7 +80,11 @@ autoheader
 automake --foreign --copy --add-missing
 touch depcomp		# seems to be missing for old automake
 autoconf
-export CFLAGS='-O2 -Wall -W -Wunused-const-variable=0 -pipe -g'
+export CFLAGS="-O2 -Wall -W -Wunused-const-variable=0 -pipe -g $lto"
+if [ -n "$lto" ]; then
+  export AR="gcc-ar"
+  export RANLIB="gcc-ranlib"
+fi
 echo "CFLAGS=$CFLAGS"
 echo "./configure $args"
 ./configure $args || exit 1

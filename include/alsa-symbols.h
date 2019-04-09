@@ -29,10 +29,12 @@
 #define INTERNAL_CONCAT2_2(Pre, Post) Pre##Post
 #define INTERNAL(Name) INTERNAL_CONCAT2_2(__, Name)
 
-# define symbol_version(real, name, version) \
+#define symbol_version(real, name, version) \
 	__asm__ (".symver " ASM_NAME(#real) "," ASM_NAME(#name) "@" #version)
-# define default_symbol_version(real, name, version) \
+#define default_symbol_version(real, name, version) \
 	__asm__ (".symver " ASM_NAME(#real) "," ASM_NAME(#name) "@@" #version)
+
+#define EXPORT_SYMBOL __attribute__((visibility("default"),externally_visible))
 
 #ifdef USE_VERSIONED_SYMBOLS
 #define use_symbol_version(real, name, version) \

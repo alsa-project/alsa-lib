@@ -51,7 +51,7 @@ struct snd_dlsym_link *snd_dlsym_start = NULL;
  * the alsa-lib library. In that case, \p name is set to \c NULL.
  */
 #ifndef DOXYGEN
-void *INTERNAL(snd_dlopen)(const char *name, int mode, char *errbuf, size_t errbuflen)
+EXPORT_SYMBOL void *INTERNAL(snd_dlopen)(const char *name, int mode, char *errbuf, size_t errbuflen)
 #else
 void *snd_dlopen(const char *name, int mode, char *errbuf, size_t errbuflen)
 #endif

@@ -1038,6 +1038,8 @@ snd_pcm_state_t snd_pcm_state(snd_pcm_t *pcm)
  * have to be called before any mmap begin+commit operation.
  *
  * The function is thread-safe when built with the proper option.
+ *
+ * This function is deprecated. Use #snd_pcm_avail_update() instead.
  */
 int snd_pcm_hwsync(snd_pcm_t *pcm)
 {
@@ -1053,9 +1055,6 @@ int snd_pcm_hwsync(snd_pcm_t *pcm)
 	snd_pcm_unlock(pcm);
 	return err;
 }
-#ifndef DOC_HIDDEN
-link_warning(snd_pcm_hwsync, "Warning: snd_pcm_hwsync() is deprecated, consider to use snd_pcm_avail()");
-#endif
 
 /**
  * \brief Obtain delay for a running PCM handle
@@ -1421,7 +1420,7 @@ snd_pcm_sframes_t snd_pcm_forwardable(snd_pcm_t *pcm)
  * The function is thread-safe when built with the proper option.
  */
 #ifndef DOXYGEN
-snd_pcm_sframes_t INTERNAL(snd_pcm_forward)(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
+EXPORT_SYMBOL snd_pcm_sframes_t INTERNAL(snd_pcm_forward)(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 #else
 snd_pcm_sframes_t snd_pcm_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 #endif
@@ -2166,7 +2165,7 @@ const char *snd_pcm_state_name(snd_pcm_state_t state)
  * \return ascii name of PCM type
  */
 #ifndef DOXYGEN
-const char *INTERNAL(snd_pcm_type_name)(snd_pcm_type_t type)
+EXPORT_SYMBOL const char *INTERNAL(snd_pcm_type_name)(snd_pcm_type_t type)
 #else
 const char *snd_pcm_type_name(snd_pcm_type_t type)
 #endif
@@ -4087,7 +4086,7 @@ void snd_pcm_hw_params_copy(snd_pcm_hw_params_t *dst, const snd_pcm_hw_params_t 
  * \return access type otherwise a negative error code if the configuration space does not contain a single value
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_get_access)(const snd_pcm_hw_params_t *params, snd_pcm_access_t *access)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_get_access)(const snd_pcm_hw_params_t *params, snd_pcm_access_t *access)
 #else
 int snd_pcm_hw_params_get_access(const snd_pcm_hw_params_t *params, snd_pcm_access_t *access)
 #endif
@@ -4131,7 +4130,7 @@ int snd_pcm_hw_params_set_access(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, sn
  * \return 0 otherwise a negative error code
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_set_access_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_t *access)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_set_access_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_t *access)
 #else
 int snd_pcm_hw_params_set_access_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_t *access)
 #endif
@@ -4147,7 +4146,7 @@ int snd_pcm_hw_params_set_access_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *para
  * \return 0 otherwise a negative error code
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_set_access_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_t *access)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_set_access_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_t *access)
 #else
 int snd_pcm_hw_params_set_access_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_t *access)
 #endif
@@ -4188,7 +4187,7 @@ int snd_pcm_hw_params_get_access_mask(snd_pcm_hw_params_t *params, snd_pcm_acces
  * \return format otherwise a negative error code if the configuration space does not contain a single value
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_get_format)(const snd_pcm_hw_params_t *params, snd_pcm_format_t *format)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_get_format)(const snd_pcm_hw_params_t *params, snd_pcm_format_t *format)
 #else
 int snd_pcm_hw_params_get_format(const snd_pcm_hw_params_t *params, snd_pcm_format_t *format)
 #endif
@@ -4228,7 +4227,7 @@ int snd_pcm_hw_params_set_format(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, sn
  * \return 0 otherwise a negative error code
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_set_format_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_format_t *format)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_set_format_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_format_t *format)
 #else
 int snd_pcm_hw_params_set_format_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_format_t *format)
 #endif
@@ -4244,7 +4243,7 @@ int snd_pcm_hw_params_set_format_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *para
  * \return 0 otherwise a negative error code
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_set_format_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_format_t *format)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_set_format_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_format_t *format)
 #else
 int snd_pcm_hw_params_set_format_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_format_t *format)
 #endif
@@ -4282,7 +4281,7 @@ void snd_pcm_hw_params_get_format_mask(snd_pcm_hw_params_t *params, snd_pcm_form
  * \return subformat otherwise a negative error code if the configuration space does not contain a single value
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_get_subformat)(const snd_pcm_hw_params_t *params, snd_pcm_subformat_t *subformat)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_get_subformat)(const snd_pcm_hw_params_t *params, snd_pcm_subformat_t *subformat)
 #else
 int snd_pcm_hw_params_get_subformat(const snd_pcm_hw_params_t *params, snd_pcm_subformat_t *subformat)
 #endif
@@ -4322,7 +4321,7 @@ int snd_pcm_hw_params_set_subformat(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
  * \return 0 otherwise a negative error code
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_set_subformat_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_subformat_t *subformat)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_set_subformat_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_subformat_t *subformat)
 #else
 int snd_pcm_hw_params_set_subformat_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_subformat_t *subformat)
 #endif
@@ -4338,7 +4337,7 @@ int snd_pcm_hw_params_set_subformat_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
  * \return 0 otherwise a negative error code
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_set_subformat_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_subformat_t *subformat)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_set_subformat_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_subformat_t *subformat)
 #else
 int snd_pcm_hw_params_set_subformat_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_subformat_t *subformat)
 #endif
@@ -4376,7 +4375,7 @@ void snd_pcm_hw_params_get_subformat_mask(snd_pcm_hw_params_t *params, snd_pcm_s
  * \return 0 otherwise a negative error code if the configuration space does not contain a single value
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_get_channels)(const snd_pcm_hw_params_t *params, unsigned int *val)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_get_channels)(const snd_pcm_hw_params_t *params, unsigned int *val)
 #else
 int snd_pcm_hw_params_get_channels(const snd_pcm_hw_params_t *params, unsigned int *val)
 #endif
@@ -4391,7 +4390,7 @@ int snd_pcm_hw_params_get_channels(const snd_pcm_hw_params_t *params, unsigned i
  * \return 0 otherwise a negative error code
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_get_channels_min)(const snd_pcm_hw_params_t *params, unsigned int *val)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_get_channels_min)(const snd_pcm_hw_params_t *params, unsigned int *val)
 #else
 int snd_pcm_hw_params_get_channels_min(const snd_pcm_hw_params_t *params, unsigned int *val)
 #endif
@@ -4406,7 +4405,7 @@ int snd_pcm_hw_params_get_channels_min(const snd_pcm_hw_params_t *params, unsign
  * \return 0 otherwise a negative error code
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_get_channels_max)(const snd_pcm_hw_params_t *params, unsigned int *val)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_get_channels_max)(const snd_pcm_hw_params_t *params, unsigned int *val)
 #else
 int snd_pcm_hw_params_get_channels_max(const snd_pcm_hw_params_t *params, unsigned int *val)
 #endif
@@ -4483,7 +4482,7 @@ int snd_pcm_hw_params_set_channels_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
  * \return 0 otherwise a negative error code if configuration space is empty
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_set_channels_near)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_set_channels_near)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val)
 #else
 int snd_pcm_hw_params_set_channels_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val)
 #endif
@@ -4499,7 +4498,7 @@ int snd_pcm_hw_params_set_channels_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *par
  * \return 0 otherwise a negative error code
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_set_channels_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_set_channels_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val)
 #else
 int snd_pcm_hw_params_set_channels_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val)
 #endif
@@ -4515,7 +4514,7 @@ int snd_pcm_hw_params_set_channels_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *pa
  * \return 0 otherwise a negative error code
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_set_channels_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_set_channels_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val)
 #else
 int snd_pcm_hw_params_set_channels_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val)
 #endif
@@ -4534,7 +4533,7 @@ int snd_pcm_hw_params_set_channels_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *par
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_get_rate)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_get_rate)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #else
 int snd_pcm_hw_params_get_rate(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #endif
@@ -4552,7 +4551,7 @@ int snd_pcm_hw_params_get_rate(const snd_pcm_hw_params_t *params, unsigned int *
  * Exact value is <,=,> the returned one following dir (-1,0,1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_get_rate_min)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_get_rate_min)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #else
 int snd_pcm_hw_params_get_rate_min(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #endif
@@ -4570,7 +4569,7 @@ int snd_pcm_hw_params_get_rate_min(const snd_pcm_hw_params_t *params, unsigned i
  * Exact value is <,=,> the returned one following dir (-1,0,1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_get_rate_max)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_get_rate_max)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #else
 int snd_pcm_hw_params_get_rate_max(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #endif
@@ -4666,7 +4665,7 @@ int snd_pcm_hw_params_set_rate_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *param
  * target/chosen exact value is <,=,> val following dir (-1,0,1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_set_rate_near)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_set_rate_near)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #else
 int snd_pcm_hw_params_set_rate_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #endif
@@ -4685,7 +4684,7 @@ int snd_pcm_hw_params_set_rate_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_set_rate_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_set_rate_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #else
 int snd_pcm_hw_params_set_rate_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #endif
@@ -4704,7 +4703,7 @@ int snd_pcm_hw_params_set_rate_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_set_rate_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_set_rate_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #else
 int snd_pcm_hw_params_set_rate_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #endif
@@ -4837,7 +4836,7 @@ int snd_pcm_hw_params_get_period_wakeup(snd_pcm_t *pcm, snd_pcm_hw_params_t *par
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_get_period_time)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_get_period_time)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #else
 int snd_pcm_hw_params_get_period_time(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #endif
@@ -4855,7 +4854,7 @@ int snd_pcm_hw_params_get_period_time(const snd_pcm_hw_params_t *params, unsigne
  * Exact value is <,=,> the returned one following dir (-1,0,1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_get_period_time_min)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_get_period_time_min)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #else
 int snd_pcm_hw_params_get_period_time_min(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #endif
@@ -4873,7 +4872,7 @@ int snd_pcm_hw_params_get_period_time_min(const snd_pcm_hw_params_t *params, uns
  * Exact value is <,=,> the returned one following dir (-1,0,1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_get_period_time_max)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_get_period_time_max)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #else
 int snd_pcm_hw_params_get_period_time_max(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #endif
@@ -4970,7 +4969,7 @@ int snd_pcm_hw_params_set_period_time_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t
  * target/chosen exact value is <,=,> val following dir (-1,0,1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_set_period_time_near)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_set_period_time_near)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #else
 int snd_pcm_hw_params_set_period_time_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #endif
@@ -4989,7 +4988,7 @@ int snd_pcm_hw_params_set_period_time_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_set_period_time_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_set_period_time_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #else
 int snd_pcm_hw_params_set_period_time_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #endif
@@ -5006,7 +5005,7 @@ int snd_pcm_hw_params_set_period_time_first(snd_pcm_t *pcm, snd_pcm_hw_params_t 
  * \return approximate period duration in us
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_set_period_time_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_set_period_time_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #else
 int snd_pcm_hw_params_set_period_time_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #endif
@@ -5025,7 +5024,7 @@ int snd_pcm_hw_params_set_period_time_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_get_period_size)(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_get_period_size)(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
 #else
 int snd_pcm_hw_params_get_period_size(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
 #endif
@@ -5047,7 +5046,7 @@ int snd_pcm_hw_params_get_period_size(const snd_pcm_hw_params_t *params, snd_pcm
  * Exact value is <,=,> the returned one following dir (-1,0,1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_get_period_size_min)(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_get_period_size_min)(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
 #else
 int snd_pcm_hw_params_get_period_size_min(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
 #endif
@@ -5069,7 +5068,7 @@ int snd_pcm_hw_params_get_period_size_min(const snd_pcm_hw_params_t *params, snd
  * Exact value is <,=,> the returned one following dir (-1,0,1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_get_period_size_max)(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_get_period_size_max)(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
 #else
 int snd_pcm_hw_params_get_period_size_max(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
 #endif
@@ -5182,7 +5181,7 @@ int snd_pcm_hw_params_set_period_size_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t
  * target/chosen exact value is <,=,> val following dir (-1,0,1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_set_period_size_near)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_set_period_size_near)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
 #else
 int snd_pcm_hw_params_set_period_size_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
 #endif
@@ -5205,7 +5204,7 @@ int snd_pcm_hw_params_set_period_size_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_set_period_size_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_set_period_size_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
 #else
 int snd_pcm_hw_params_set_period_size_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
 #endif
@@ -5228,7 +5227,7 @@ int snd_pcm_hw_params_set_period_size_first(snd_pcm_t *pcm, snd_pcm_hw_params_t 
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_set_period_size_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_set_period_size_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
 #else
 int snd_pcm_hw_params_set_period_size_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
 #endif
@@ -5262,7 +5261,7 @@ int snd_pcm_hw_params_set_period_size_integer(snd_pcm_t *pcm, snd_pcm_hw_params_
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_get_periods)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_get_periods)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #else
 int snd_pcm_hw_params_get_periods(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #endif
@@ -5280,7 +5279,7 @@ int snd_pcm_hw_params_get_periods(const snd_pcm_hw_params_t *params, unsigned in
  * Exact value is <,=,> the returned one following dir (-1,0,1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_get_periods_min)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_get_periods_min)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #else
 int snd_pcm_hw_params_get_periods_min(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #endif
@@ -5298,7 +5297,7 @@ int snd_pcm_hw_params_get_periods_min(const snd_pcm_hw_params_t *params, unsigne
  * Exact value is <,=,> the returned one following dir (-1,0,1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_get_periods_max)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_get_periods_max)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #else
 int snd_pcm_hw_params_get_periods_max(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #endif
@@ -5394,7 +5393,7 @@ int snd_pcm_hw_params_set_periods_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *pa
  * target/chosen exact value is <,=,> val following dir (-1,0,1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_set_periods_near)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_set_periods_near)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #else
 int snd_pcm_hw_params_set_periods_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #endif
@@ -5413,7 +5412,7 @@ int snd_pcm_hw_params_set_periods_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *para
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_set_periods_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_set_periods_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #else
 int snd_pcm_hw_params_set_periods_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #endif
@@ -5432,7 +5431,7 @@ int snd_pcm_hw_params_set_periods_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *par
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_set_periods_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_set_periods_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #else
 int snd_pcm_hw_params_set_periods_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #endif
@@ -5462,7 +5461,7 @@ int snd_pcm_hw_params_set_periods_integer(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_get_buffer_time)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_get_buffer_time)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #else
 int snd_pcm_hw_params_get_buffer_time(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #endif
@@ -5480,7 +5479,7 @@ int snd_pcm_hw_params_get_buffer_time(const snd_pcm_hw_params_t *params, unsigne
  * Exact value is <,=,> the returned one following dir (-1,0,1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_get_buffer_time_min)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_get_buffer_time_min)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #else
 int snd_pcm_hw_params_get_buffer_time_min(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #endif
@@ -5498,7 +5497,7 @@ int snd_pcm_hw_params_get_buffer_time_min(const snd_pcm_hw_params_t *params, uns
  * Exact value is <,=,> the returned one following dir (-1,0,1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_get_buffer_time_max)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_get_buffer_time_max)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #else
 int snd_pcm_hw_params_get_buffer_time_max(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #endif
@@ -5594,7 +5593,7 @@ int snd_pcm_hw_params_set_buffer_time_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t
  * target/chosen exact value is <,=,> val following dir (-1,0,1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_set_buffer_time_near)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_set_buffer_time_near)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #else
 int snd_pcm_hw_params_set_buffer_time_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #endif
@@ -5613,7 +5612,7 @@ int snd_pcm_hw_params_set_buffer_time_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_set_buffer_time_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_set_buffer_time_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #else
 int snd_pcm_hw_params_set_buffer_time_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #endif
@@ -5632,7 +5631,7 @@ int snd_pcm_hw_params_set_buffer_time_first(snd_pcm_t *pcm, snd_pcm_hw_params_t 
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_set_buffer_time_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_set_buffer_time_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #else
 int snd_pcm_hw_params_set_buffer_time_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #endif
@@ -5648,7 +5647,7 @@ int snd_pcm_hw_params_set_buffer_time_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *
  * \return 0 otherwise a negative error code if the configuration space does not contain a single value
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_get_buffer_size)(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_get_buffer_size)(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
 #else
 int snd_pcm_hw_params_get_buffer_size(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
 #endif
@@ -5667,7 +5666,7 @@ int snd_pcm_hw_params_get_buffer_size(const snd_pcm_hw_params_t *params, snd_pcm
  * \return 0 otherwise a negative error code
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_get_buffer_size_min)(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_get_buffer_size_min)(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
 #else
 int snd_pcm_hw_params_get_buffer_size_min(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
 #endif
@@ -5688,7 +5687,7 @@ int snd_pcm_hw_params_get_buffer_size_min(const snd_pcm_hw_params_t *params, snd
  * Exact value is <,=,> the returned one following dir (-1,0,1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_get_buffer_size_max)(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_get_buffer_size_max)(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
 #else
 int snd_pcm_hw_params_get_buffer_size_max(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
 #endif
@@ -5786,7 +5785,7 @@ int snd_pcm_hw_params_set_buffer_size_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t
  * \return 0 otherwise a negative error code if configuration space is empty
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_set_buffer_size_near)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_set_buffer_size_near)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
 #else
 int snd_pcm_hw_params_set_buffer_size_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
 #endif
@@ -5806,7 +5805,7 @@ int snd_pcm_hw_params_set_buffer_size_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *
  * \return buffer size in frames
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_set_buffer_size_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_set_buffer_size_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
 #else
 int snd_pcm_hw_params_set_buffer_size_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
 #endif
@@ -5826,7 +5825,7 @@ int snd_pcm_hw_params_set_buffer_size_first(snd_pcm_t *pcm, snd_pcm_hw_params_t 
  * \return 0 otherwise a negative error code
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_set_buffer_size_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_set_buffer_size_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
 #else
 int snd_pcm_hw_params_set_buffer_size_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
 #endif
@@ -5849,7 +5848,7 @@ int snd_pcm_hw_params_set_buffer_size_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_get_tick_time)(const snd_pcm_hw_params_t *params ATTRIBUTE_UNUSED, unsigned int *val, int *dir ATTRIBUTE_UNUSED)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_get_tick_time)(const snd_pcm_hw_params_t *params ATTRIBUTE_UNUSED, unsigned int *val, int *dir ATTRIBUTE_UNUSED)
 #else
 int snd_pcm_hw_params_get_tick_time(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #endif
@@ -5868,7 +5867,7 @@ int snd_pcm_hw_params_get_tick_time(const snd_pcm_hw_params_t *params, unsigned 
  * Exact value is <,=,> the returned one following dir (-1,0,1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_get_tick_time_min)(const snd_pcm_hw_params_t *params ATTRIBUTE_UNUSED, unsigned int *val, int *dir ATTRIBUTE_UNUSED)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_get_tick_time_min)(const snd_pcm_hw_params_t *params ATTRIBUTE_UNUSED, unsigned int *val, int *dir ATTRIBUTE_UNUSED)
 #else
 int snd_pcm_hw_params_get_tick_time_min(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #endif
@@ -5887,7 +5886,7 @@ int snd_pcm_hw_params_get_tick_time_min(const snd_pcm_hw_params_t *params, unsig
  * Exact value is <,=,> the returned one following dir (-1,0,1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_get_tick_time_max)(const snd_pcm_hw_params_t *params ATTRIBUTE_UNUSED, unsigned int *val, int *dir ATTRIBUTE_UNUSED)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_get_tick_time_max)(const snd_pcm_hw_params_t *params ATTRIBUTE_UNUSED, unsigned int *val, int *dir ATTRIBUTE_UNUSED)
 #else
 int snd_pcm_hw_params_get_tick_time_max(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #endif
@@ -5984,7 +5983,7 @@ int snd_pcm_hw_params_set_tick_time_minmax(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_
  * target/chosen exact value is <,=,> val following dir (-1,0,1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_set_tick_time_near)(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params ATTRIBUTE_UNUSED, unsigned int *val ATTRIBUTE_UNUSED, int *dir ATTRIBUTE_UNUSED)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_set_tick_time_near)(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params ATTRIBUTE_UNUSED, unsigned int *val ATTRIBUTE_UNUSED, int *dir ATTRIBUTE_UNUSED)
 #else
 int snd_pcm_hw_params_set_tick_time_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #endif
@@ -6003,7 +6002,7 @@ int snd_pcm_hw_params_set_tick_time_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *pa
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_set_tick_time_first)(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params ATTRIBUTE_UNUSED, unsigned int *val ATTRIBUTE_UNUSED, int *dir ATTRIBUTE_UNUSED)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_set_tick_time_first)(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params ATTRIBUTE_UNUSED, unsigned int *val ATTRIBUTE_UNUSED, int *dir ATTRIBUTE_UNUSED)
 #else
 int snd_pcm_hw_params_set_tick_time_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #endif
@@ -6022,7 +6021,7 @@ int snd_pcm_hw_params_set_tick_time_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_set_tick_time_last)(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params ATTRIBUTE_UNUSED, unsigned int *val ATTRIBUTE_UNUSED, int *dir ATTRIBUTE_UNUSED)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_hw_params_set_tick_time_last)(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params ATTRIBUTE_UNUSED, unsigned int *val ATTRIBUTE_UNUSED, int *dir ATTRIBUTE_UNUSED)
 #else
 int snd_pcm_hw_params_set_tick_time_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #endif
@@ -6289,7 +6288,7 @@ int snd_pcm_sw_params_set_tstamp_mode(snd_pcm_t *pcm, snd_pcm_sw_params_t *param
  * \return 0 otherwise a negative error code
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_sw_params_get_tstamp_mode)(const snd_pcm_sw_params_t *params, snd_pcm_tstamp_t *val)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_sw_params_get_tstamp_mode)(const snd_pcm_sw_params_t *params, snd_pcm_tstamp_t *val)
 #else
 int snd_pcm_sw_params_get_tstamp_mode(const snd_pcm_sw_params_t *params, snd_pcm_tstamp_t *val)
 #endif
@@ -6353,7 +6352,7 @@ int snd_pcm_sw_params_set_sleep_min(snd_pcm_t *pcm, snd_pcm_sw_params_t *params,
  * \return 0 otherwise a negative error code
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_sw_params_get_sleep_min)(const snd_pcm_sw_params_t *params ATTRIBUTE_UNUSED, unsigned int *val)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_sw_params_get_sleep_min)(const snd_pcm_sw_params_t *params ATTRIBUTE_UNUSED, unsigned int *val)
 #else
 int snd_pcm_sw_params_get_sleep_min(const snd_pcm_sw_params_t *params, unsigned int *val)
 #endif
@@ -6377,7 +6376,7 @@ int snd_pcm_sw_params_get_sleep_min(const snd_pcm_sw_params_t *params, unsigned 
  * interrupt.
  */
 #ifndef DOXYGEN
-int snd_pcm_sw_params_set_avail_min(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
+EXPORT_SYMBOL int snd_pcm_sw_params_set_avail_min(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
 #else
 int snd_pcm_sw_params_set_avail_min(snd_pcm_t *pcm, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
 #endif
@@ -6400,7 +6399,7 @@ int snd_pcm_sw_params_set_avail_min(snd_pcm_t *pcm, snd_pcm_sw_params_t *params,
  * \return 0 otherwise a negative error code
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_sw_params_get_avail_min)(const snd_pcm_sw_params_t *params, snd_pcm_uframes_t *val)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_sw_params_get_avail_min)(const snd_pcm_sw_params_t *params, snd_pcm_uframes_t *val)
 #else
 int snd_pcm_sw_params_get_avail_min(const snd_pcm_sw_params_t *params, snd_pcm_uframes_t *val)
 #endif
@@ -6447,7 +6446,7 @@ int snd_pcm_sw_params_get_period_event(const snd_pcm_sw_params_t *params, int *v
  * \return 0 otherwise a negative error code
  */
 #ifndef DOXYGEN
-int snd_pcm_sw_params_set_xfer_align(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params ATTRIBUTE_UNUSED, snd_pcm_uframes_t val ATTRIBUTE_UNUSED)
+EXPORT_SYMBOL int snd_pcm_sw_params_set_xfer_align(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params ATTRIBUTE_UNUSED, snd_pcm_uframes_t val ATTRIBUTE_UNUSED)
 #else
 int snd_pcm_sw_params_set_xfer_align(snd_pcm_t *pcm, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
 #endif
@@ -6462,7 +6461,7 @@ int snd_pcm_sw_params_set_xfer_align(snd_pcm_t *pcm, snd_pcm_sw_params_t *params
  * \return 0 otherwise a negative error code
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_sw_params_get_xfer_align)(const snd_pcm_sw_params_t *params ATTRIBUTE_UNUSED, snd_pcm_uframes_t *val)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_sw_params_get_xfer_align)(const snd_pcm_sw_params_t *params ATTRIBUTE_UNUSED, snd_pcm_uframes_t *val)
 #else
 int snd_pcm_sw_params_get_xfer_align(const snd_pcm_sw_params_t *params, snd_pcm_uframes_t *val)
 #endif
@@ -6482,7 +6481,7 @@ int snd_pcm_sw_params_get_xfer_align(const snd_pcm_sw_params_t *params, snd_pcm_
  * are >= threshold or when requested capture frames are >= threshold
  */
 #ifndef DOXYGEN
-int snd_pcm_sw_params_set_start_threshold(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
+EXPORT_SYMBOL int snd_pcm_sw_params_set_start_threshold(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
 #else
 int snd_pcm_sw_params_set_start_threshold(snd_pcm_t *pcm, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
 #endif
@@ -6502,7 +6501,7 @@ int snd_pcm_sw_params_set_start_threshold(snd_pcm_t *pcm, snd_pcm_sw_params_t *p
  * are >= threshold or when requested capture frames are >= threshold
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_sw_params_get_start_threshold)(const snd_pcm_sw_params_t *params, snd_pcm_uframes_t *val)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_sw_params_get_start_threshold)(const snd_pcm_sw_params_t *params, snd_pcm_uframes_t *val)
 #else
 int snd_pcm_sw_params_get_start_threshold(const snd_pcm_sw_params_t *params, snd_pcm_uframes_t *val)
 #endif
@@ -6526,7 +6525,7 @@ int snd_pcm_sw_params_get_start_threshold(const snd_pcm_sw_params_t *params, snd
  * (thus device will do the endless loop in the ring buffer).
  */
 #ifndef DOXYGEN
-int snd_pcm_sw_params_set_stop_threshold(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
+EXPORT_SYMBOL int snd_pcm_sw_params_set_stop_threshold(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
 #else
 int snd_pcm_sw_params_set_stop_threshold(snd_pcm_t *pcm, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
 #endif
@@ -6548,7 +6547,7 @@ int snd_pcm_sw_params_set_stop_threshold(snd_pcm_t *pcm, snd_pcm_sw_params_t *pa
  * (thus device will do the endless loop in the ring buffer).
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_sw_params_get_stop_threshold)(const snd_pcm_sw_params_t *params, snd_pcm_uframes_t *val)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_sw_params_get_stop_threshold)(const snd_pcm_sw_params_t *params, snd_pcm_uframes_t *val)
 #else
 int snd_pcm_sw_params_get_stop_threshold(const snd_pcm_sw_params_t *params, snd_pcm_uframes_t *val)
 #endif
@@ -6571,7 +6570,7 @@ int snd_pcm_sw_params_get_stop_threshold(const snd_pcm_sw_params_t *params, snd_
  * than silence threshold.
  */
 #ifndef DOXYGEN
-int snd_pcm_sw_params_set_silence_threshold(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
+EXPORT_SYMBOL int snd_pcm_sw_params_set_silence_threshold(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
 #else
 int snd_pcm_sw_params_set_silence_threshold(snd_pcm_t *pcm, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
 #endif
@@ -6597,7 +6596,7 @@ int snd_pcm_sw_params_set_silence_threshold(snd_pcm_t *pcm, snd_pcm_sw_params_t 
  * than silence threshold.
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_sw_params_get_silence_threshold)(const snd_pcm_sw_params_t *params, snd_pcm_uframes_t *val)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_sw_params_get_silence_threshold)(const snd_pcm_sw_params_t *params, snd_pcm_uframes_t *val)
 #else
 int snd_pcm_sw_params_get_silence_threshold(const snd_pcm_sw_params_t *params, snd_pcm_uframes_t *val)
 #endif
@@ -6625,7 +6624,7 @@ int snd_pcm_sw_params_get_silence_threshold(const snd_pcm_sw_params_t *params, s
  * sample area is filled with silence. Note: silence_threshold must be set to zero.
  */
 #ifndef DOXYGEN
-int snd_pcm_sw_params_set_silence_size(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
+EXPORT_SYMBOL int snd_pcm_sw_params_set_silence_size(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
 #else
 int snd_pcm_sw_params_set_silence_size(snd_pcm_t *pcm, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
 #endif
@@ -6651,7 +6650,7 @@ int snd_pcm_sw_params_set_silence_size(snd_pcm_t *pcm, snd_pcm_sw_params_t *para
  * #snd_pcm_sw_params_set_silence_threshold)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_sw_params_get_silence_size)(const snd_pcm_sw_params_t *params, snd_pcm_uframes_t *val)
+EXPORT_SYMBOL int INTERNAL(snd_pcm_sw_params_get_silence_size)(const snd_pcm_sw_params_t *params, snd_pcm_uframes_t *val)
 #else
 int snd_pcm_sw_params_get_silence_size(const snd_pcm_sw_params_t *params, snd_pcm_uframes_t *val)
 #endif
@@ -6742,7 +6741,7 @@ void snd_pcm_status_get_trigger_tstamp(const snd_pcm_status_t *obj, snd_timestam
  * timestamp contains time when stream started or when it was stopped.
  */
 #ifndef DOXYGEN
-void INTERNAL(snd_pcm_status_get_trigger_htstamp)(const snd_pcm_status_t *obj, snd_htimestamp_t *ptr)
+EXPORT_SYMBOL void INTERNAL(snd_pcm_status_get_trigger_htstamp)(const snd_pcm_status_t *obj, snd_htimestamp_t *ptr)
 #else
 void snd_pcm_status_get_trigger_htstamp(const snd_pcm_status_t *obj, snd_htimestamp_t *ptr)
 #endif
@@ -6770,7 +6769,7 @@ void snd_pcm_status_get_tstamp(const snd_pcm_status_t *obj, snd_timestamp_t *ptr
  * \param ptr Pointer to returned timestamp
  */
 #ifndef DOXYGEN
-void INTERNAL(snd_pcm_status_get_htstamp)(const snd_pcm_status_t *obj, snd_htimestamp_t *ptr)
+EXPORT_SYMBOL void INTERNAL(snd_pcm_status_get_htstamp)(const snd_pcm_status_t *obj, snd_htimestamp_t *ptr)
 #else
 void snd_pcm_status_get_htstamp(const snd_pcm_status_t *obj, snd_htimestamp_t *ptr)
 #endif

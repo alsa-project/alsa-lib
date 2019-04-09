@@ -631,7 +631,7 @@ int snd_timer_params_get_auto_start(snd_timer_params_t * params)
  * \param exclusive The boolean value to set
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_timer_params_set_exclusive)(snd_timer_params_t * params, int exclusive)
+EXPORT_SYMBOL int INTERNAL(snd_timer_params_set_exclusive)(snd_timer_params_t * params, int exclusive)
 #else
 int snd_timer_params_set_exclusive(snd_timer_params_t * params, int exclusive)
 #endif
@@ -651,7 +651,7 @@ use_default_symbol_version(__snd_timer_params_set_exclusive, snd_timer_params_se
  * \return nonzero if timer has exclusive flag
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_timer_params_get_exclusive)(snd_timer_params_t * params)
+EXPORT_SYMBOL int INTERNAL(snd_timer_params_get_exclusive)(snd_timer_params_t * params)
 #else
 int snd_timer_params_get_exclusive(snd_timer_params_t * params)
 #endif
@@ -737,7 +737,7 @@ long snd_timer_params_get_queue_size(snd_timer_params_t * params)
  * \param filter The event filter bits to set
  */
 #ifndef DOXYGEN
-void INTERNAL(snd_timer_params_set_filter)(snd_timer_params_t * params, unsigned int filter)
+EXPORT_SYMBOL void INTERNAL(snd_timer_params_set_filter)(snd_timer_params_t * params, unsigned int filter)
 #else
 void snd_timer_params_set_filter(snd_timer_params_t * params, unsigned int filter)
 #endif
@@ -753,7 +753,7 @@ use_default_symbol_version(__snd_timer_params_set_filter, snd_timer_params_set_f
  * \return timer event filter
  */
 #ifndef DOXYGEN
-unsigned int INTERNAL(snd_timer_params_get_filter)(snd_timer_params_t * params)
+EXPORT_SYMBOL unsigned int INTERNAL(snd_timer_params_get_filter)(snd_timer_params_t * params)
 #else
 unsigned int snd_timer_params_get_filter(snd_timer_params_t * params)
 #endif

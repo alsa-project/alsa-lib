@@ -384,7 +384,7 @@ unsigned int snd_timer_ginfo_get_clients(snd_timer_ginfo_t *obj)
  * \return 0 on success otherwise a negative error code
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_timer_query_info)(snd_timer_query_t *timer, snd_timer_ginfo_t *info)
+EXPORT_SYMBOL int INTERNAL(snd_timer_query_info)(snd_timer_query_t *timer, snd_timer_ginfo_t *info)
 #else
 int snd_timer_query_info(snd_timer_query_t *timer, snd_timer_ginfo_t *info)
 #endif
@@ -402,7 +402,7 @@ use_default_symbol_version(__snd_timer_query_info, snd_timer_query_info, ALSA_0.
  * \return 0 on success otherwise a negative error code
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_timer_query_params)(snd_timer_query_t *timer, snd_timer_gparams_t *params)
+EXPORT_SYMBOL int INTERNAL(snd_timer_query_params)(snd_timer_query_t *timer, snd_timer_gparams_t *params)
 #else
 int snd_timer_query_params(snd_timer_query_t *timer, snd_timer_gparams_t *params)
 #endif
@@ -420,7 +420,7 @@ use_default_symbol_version(__snd_timer_query_params, snd_timer_query_params, ALS
  * \return 0 on success otherwise a negative error code
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_timer_query_status)(snd_timer_query_t *timer, snd_timer_gstatus_t *status)
+EXPORT_SYMBOL int INTERNAL(snd_timer_query_status)(snd_timer_query_t *timer, snd_timer_gstatus_t *status)
 #else
 int snd_timer_query_status(snd_timer_query_t *timer, snd_timer_gstatus_t *status)
 #endif
