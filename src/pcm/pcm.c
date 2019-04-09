@@ -7389,18 +7389,27 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 			err = avail;
 			goto _end;
 		}
-		if ((state == SND_PCM_STATE_RUNNING &&
-		     size > (snd_pcm_uframes_t)avail &&
-		     snd_pcm_may_wait_for_avail_min(pcm, avail))) {
-			if (pcm->mode & SND_PCM_NONBLOCK) {
-				err = -EAGAIN;
+		if (state == SND_PCM_STATE_RUNNING &&
+		    size > (snd_pcm_uframes_t)avail) {
+			if (snd_pcm_may_wait_for_avail_min(pcm, avail)) {
+				if (pcm->mode & SND_PCM_NONBLOCK) {
+					err = -EAGAIN;
+					goto _end;
+				}
+
+				err = snd_pcm_wait_nocheck(pcm, -1);
+				if (err < 0)
+					break;
+				goto _again;
+			}
+			/* the snd_pcm_may_wait_for_avail_min may check against the
+			 * updated hw.ptr (slaves), get the avail again here
+			 */
+			avail = __snd_pcm_avail_update(pcm);
+			if (avail < 0) {
+				err = avail;
 				goto _end;
 			}
-
-			err = snd_pcm_wait_nocheck(pcm, -1);
-			if (err < 0)
-				break;
-			goto _again;			
 		}
 		frames = size;
 		if (frames > (snd_pcm_uframes_t) avail)
