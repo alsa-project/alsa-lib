@@ -54,6 +54,7 @@ typedef struct {
 } snd_pcm_multi_channel_t;
 
 typedef struct {
+	snd_pcm_uframes_t appl_ptr, hw_ptr;
 	unsigned int slaves_count;
 	unsigned int master_slave;
 	snd_pcm_multi_slave_t *slaves;
@@ -401,18 +402,65 @@ static snd_pcm_state_t snd_pcm_multi_state(snd_pcm_t *pcm)
 	return snd_pcm_state(slave);
 }
 
+static void snd_pcm_multi_hwptr_update(snd_pcm_t *pcm)
+{
+	snd_pcm_multi_t *multi = pcm->private_data;
+	snd_pcm_uframes_t hw_ptr = 0, slave_hw_ptr, avail, last_avail;
+	unsigned int i;
+	/* the logic is really simple, choose the lowest hw_ptr from slaves */
+	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
+		last_avail = 0;
+		for (i = 0; i < multi->slaves_count; ++i) {
+			slave_hw_ptr = *multi->slaves[i].pcm->hw.ptr;
+			avail = __snd_pcm_playback_avail(pcm, multi->hw_ptr, slave_hw_ptr);
+			if (avail > last_avail) {
+				hw_ptr = slave_hw_ptr;
+				last_avail = avail;
+			}
+		}
+	} else {
+		last_avail = LONG_MAX;
+		for (i = 0; i < multi->slaves_count; ++i) {
+			slave_hw_ptr = *multi->slaves[i].pcm->hw.ptr;
+			avail = __snd_pcm_capture_avail(pcm, multi->hw_ptr, slave_hw_ptr);
+			if (avail < last_avail) {
+				hw_ptr = slave_hw_ptr;
+				last_avail = avail;
+			}
+		}
+	}
+	multi->hw_ptr = hw_ptr;
+}
+
 static int snd_pcm_multi_hwsync(snd_pcm_t *pcm)
 {
 	snd_pcm_multi_t *multi = pcm->private_data;
-	snd_pcm_t *slave = multi->slaves[multi->master_slave].pcm;
-	return snd_pcm_hwsync(slave);
+	unsigned int i;
+	int err;
+	for (i = 0; i < multi->slaves_count; ++i) {
+		err = snd_pcm_hwsync(multi->slaves[i].pcm);
+		if (err < 0)
+			return err;
+	}
+	snd_pcm_multi_hwptr_update(pcm);
+	return 0;
 }
 
 static int snd_pcm_multi_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
 	snd_pcm_multi_t *multi = pcm->private_data;
-	snd_pcm_t *slave = multi->slaves[multi->master_slave].pcm;
-	return snd_pcm_delay(slave, delayp);
+	snd_pcm_sframes_t d, dr = 0;
+	unsigned int i;
+	int err;
+	for (i = 0; i < multi->slaves_count; ++i) {
+		err = snd_pcm_delay(multi->slaves[i].pcm, &d);
+		if (err < 0)
+			return err;
+		if (dr < d)
+			dr = d;
+	}
+	*delayp = dr;
+	return 0;
 }
 
 static snd_pcm_sframes_t snd_pcm_multi_avail_update(snd_pcm_t *pcm)
@@ -428,6 +476,7 @@ static snd_pcm_sframes_t snd_pcm_multi_avail_update(snd_pcm_t *pcm)
 		if (ret > avail)
 			ret = avail;
 	}
+	snd_pcm_multi_hwptr_update(pcm);
 	return ret;
 }
 
@@ -731,6 +780,8 @@ static snd_pcm_sframes_t snd_pcm_multi_mmap_commit(snd_pcm_t *pcm,
 		if ((snd_pcm_uframes_t)result != size)
 			return -EIO;
 	}
+	multi->appl_ptr += size;
+	multi->appl_ptr %= pcm->boundary;
 	return size;
 }
 
@@ -1081,8 +1132,8 @@ int snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 	pcm->poll_fd = multi->slaves[master_slave].pcm->poll_fd;
 	pcm->poll_events = multi->slaves[master_slave].pcm->poll_events;
 	pcm->tstamp_type = multi->slaves[master_slave].pcm->tstamp_type;
-	snd_pcm_link_hw_ptr(pcm, multi->slaves[master_slave].pcm);
-	snd_pcm_link_appl_ptr(pcm, multi->slaves[master_slave].pcm);
+	snd_pcm_set_hw_ptr(pcm, &multi->hw_ptr, -1, 0);
+	snd_pcm_set_appl_ptr(pcm, &multi->appl_ptr, -1, 0);
 	*pcmp = pcm;
 	return 0;
 }
