@@ -1,4 +1,5 @@
 SUBDIRS=\
+cx2072x \
 es8316 \
 rt5640 \
 rt5645 \
