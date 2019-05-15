@@ -278,6 +278,7 @@ static int snd_pcm_dsnoop_reset(snd_pcm_t *pcm)
 	dsnoop->hw_ptr %= pcm->period_size;
 	dsnoop->appl_ptr = dsnoop->hw_ptr;
 	dsnoop->slave_appl_ptr = dsnoop->slave_hw_ptr;
+	snd_pcm_direct_reset_slave_ptr(pcm, dsnoop);
 	return 0;
 }
 
@@ -285,12 +286,13 @@ static int snd_pcm_dsnoop_start(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dsnoop = pcm->private_data;
 	int err;
-	
+
 	if (dsnoop->state != SND_PCM_STATE_PREPARED)
 		return -EBADFD;
 	snd_pcm_hwsync(dsnoop->spcm);
 	snoop_timestamp(pcm);
 	dsnoop->slave_appl_ptr = dsnoop->slave_hw_ptr;
+	snd_pcm_direct_reset_slave_ptr(pcm, dsnoop);
 	err = snd_timer_start(dsnoop->timer);
 	if (err < 0)
 		return err;
@@ -627,6 +629,7 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 	dsnoop->max_periods = opts->max_periods;
 	dsnoop->var_periodsize = opts->var_periodsize;
 	dsnoop->sync_ptr = snd_pcm_dsnoop_sync_ptr;
+	dsnoop->hw_ptr_alignment = opts->hw_ptr_alignment;
 
  retry:
 	if (first_instance) {
@@ -771,6 +774,12 @@ pcm.name {
 	ipc_key INT		# unique IPC key
 	ipc_key_add_uid BOOL	# add current uid to unique IPC key
 	ipc_perm INT		# IPC permissions (octal, default 0600)
+	hw_ptr_alignment STR	# Slave application and hw pointer alignment type
+		# STR can be one of the below strings :
+		# no
+		# roundup
+		# rounddown
+		# auto (default)
 	slave STR
 	# or
 	slave {			# Slave definition
@@ -794,6 +803,25 @@ pcm.name {
 	slowptr BOOL		# slow but more precise pointer updates
 }
 \endcode
+
+<code>hw_ptr_alignment</code> specifies slave application and hw
+pointer alignment type. By default hw_ptr_alignment is auto. Below are
+the possible configurations:
+- no: minimal latency with minimal frames dropped at startup. But
+  wakeup of application (return from snd_pcm_wait() or poll()) can
+  take up to 2 * period.
+- roundup: It is guaranteed that all frames will be played at
+  startup. But the latency will increase upto period-1 frames.
+- rounddown: It is guaranteed that a wakeup will happen for each
+  period and frames can be written from application. But on startup
+  upto period-1 frames will be dropped.
+- auto: Selects the best approach depending on the used period and
+  buffer size.
+  If the application buffer size is < 2 * application period,
+  "roundup" will be selected to avoid over runs. If the slave_period
+  is < 10ms we could expect that there are low latency
+  requirements. Therefore "rounddown" will be chosen to avoid long
+  wakeup times. Else "no" will be chosen.
 
 \subsection pcm_plugins_dsnoop_funcref Function reference
 
