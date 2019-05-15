@@ -55,9 +55,6 @@ const char *_snd_module_pcm_dmix = "";
 #define STATE_RUN_PENDING	1024
 #endif
 
-#define SEC_TO_MS	1000			/* Seconds representing in Milli seconds */
-#define LOW_LATENCY_PERIOD_TIME	10	/* slave_period time for low latency requirements in ms */
-
 /*
  *
  */
@@ -560,30 +557,12 @@ static int snd_pcm_dmix_hwsync(snd_pcm_t *pcm)
 	}
 }
 
-static void reset_slave_ptr(snd_pcm_t *pcm, snd_pcm_direct_t *dmix)
-{
-	dmix->slave_appl_ptr = dmix->slave_hw_ptr = *dmix->spcm->hw.ptr;
-
-	if (dmix->hw_ptr_alignment == SND_PCM_HW_PTR_ALIGNMENT_ROUNDUP ||
-	    (dmix->hw_ptr_alignment == SND_PCM_HW_PTR_ALIGNMENT_AUTO &&
-	     pcm->buffer_size <= pcm->period_size * 2))
-		dmix->slave_appl_ptr =
-			((dmix->slave_appl_ptr + dmix->slave_period_size - 1)
-			 / dmix->slave_period_size) * dmix->slave_period_size;
-	else if (dmix->hw_ptr_alignment == SND_PCM_HW_PTR_ALIGNMENT_ROUNDDOWN ||
-		 (dmix->hw_ptr_alignment == SND_PCM_HW_PTR_ALIGNMENT_AUTO &&
-		  (dmix->slave_period_size * SEC_TO_MS) / pcm->rate < LOW_LATENCY_PERIOD_TIME))
-		dmix->slave_appl_ptr = dmix->slave_hw_ptr =
-			((dmix->slave_hw_ptr / dmix->slave_period_size) *
-			 dmix->slave_period_size);
-}
-
 static int snd_pcm_dmix_reset(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dmix = pcm->private_data;
 	dmix->hw_ptr %= pcm->period_size;
 	dmix->appl_ptr = dmix->last_appl_ptr = dmix->hw_ptr;
-	reset_slave_ptr(pcm, dmix);
+	snd_pcm_direct_reset_slave_ptr(pcm, dmix);
 	return 0;
 }
 
@@ -592,7 +571,7 @@ static int snd_pcm_dmix_start_timer(snd_pcm_t *pcm, snd_pcm_direct_t *dmix)
 	int err;
 
 	snd_pcm_hwsync(dmix->spcm);
-	reset_slave_ptr(pcm, dmix);
+	snd_pcm_direct_reset_slave_ptr(pcm, dmix);
 	err = snd_timer_start(dmix->timer);
 	if (err < 0)
 		return err;

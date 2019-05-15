@@ -24,6 +24,11 @@
 
 #define DIRECT_IPC_SEMS         1
 #define DIRECT_IPC_SEM_CLIENT   0
+/* Seconds representing in Milli seconds */
+#define SEC_TO_MS               1000
+/* slave_period time for low latency requirements in ms */
+#define LOW_LATENCY_PERIOD_TIME 10
+
 
 typedef void (mix_areas_t)(unsigned int size,
 			   volatile void *dst, void *src,
@@ -257,6 +262,8 @@ struct snd_pcm_direct {
 	snd1_pcm_direct_get_chmap
 #define snd_pcm_direct_set_chmap \
 	snd1_pcm_direct_set_chmap
+#define snd_pcm_direct_reset_slave_ptr \
+	snd1_pcm_direct_reset_slave_ptr
 
 int snd_pcm_direct_semaphore_create_or_connect(snd_pcm_direct_t *dmix);
 
@@ -341,6 +348,7 @@ int snd_pcm_direct_slave_recover(snd_pcm_direct_t *direct);
 int snd_pcm_direct_client_chk_xrun(snd_pcm_direct_t *direct, snd_pcm_t *pcm);
 int snd_timer_async(snd_timer_t *timer, int sig, pid_t pid);
 struct timespec snd_pcm_hw_fast_tstamp(snd_pcm_t *pcm);
+void snd_pcm_direct_reset_slave_ptr(snd_pcm_t *pcm, snd_pcm_direct_t *dmix);
 
 struct snd_pcm_direct_open_conf {
 	key_t ipc_key;

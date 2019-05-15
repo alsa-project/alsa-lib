@@ -2040,3 +2040,22 @@ int snd_pcm_direct_parse_open_conf(snd_config_t *root, snd_config_t *conf,
 
 	return 0;
 }
+
+void snd_pcm_direct_reset_slave_ptr(snd_pcm_t *pcm, snd_pcm_direct_t *dmix)
+{
+	dmix->slave_appl_ptr = dmix->slave_hw_ptr = *dmix->spcm->hw.ptr;
+
+	if (dmix->hw_ptr_alignment == SND_PCM_HW_PTR_ALIGNMENT_ROUNDUP ||
+		(dmix->hw_ptr_alignment == SND_PCM_HW_PTR_ALIGNMENT_AUTO &&
+		pcm->buffer_size <= pcm->period_size * 2))
+		dmix->slave_appl_ptr =
+			((dmix->slave_appl_ptr + dmix->slave_period_size - 1) /
+			dmix->slave_period_size) * dmix->slave_period_size;
+	else if (dmix->hw_ptr_alignment == SND_PCM_HW_PTR_ALIGNMENT_ROUNDDOWN ||
+		(dmix->hw_ptr_alignment == SND_PCM_HW_PTR_ALIGNMENT_AUTO &&
+		(dmix->slave_period_size * SEC_TO_MS) /
+		pcm->rate < LOW_LATENCY_PERIOD_TIME))
+		dmix->slave_appl_ptr = dmix->slave_hw_ptr =
+			((dmix->slave_hw_ptr / dmix->slave_period_size) *
+			dmix->slave_period_size);
+}
