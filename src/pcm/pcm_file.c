@@ -77,6 +77,7 @@ typedef struct {
 	snd_pcm_uframes_t appl_ptr;
 	snd_pcm_uframes_t file_ptr_bytes;
 	snd_pcm_uframes_t wbuf_size;
+	snd_pcm_uframes_t rbuf_size;
 	size_t wbuf_size_bytes;
 	size_t wbuf_used_bytes;
 	char *wbuf;
@@ -264,6 +265,39 @@ static int snd_pcm_file_open_output_file(snd_pcm_file_t *file)
 	}
 	file->fd = fd;
 	return 0;
+}
+
+/* fill areas with data from input file, return bytes red */
+static int snd_pcm_file_areas_read_infile(snd_pcm_t *pcm,
+					  const snd_pcm_channel_area_t *areas,
+					  snd_pcm_uframes_t offset,
+					  snd_pcm_uframes_t frames)
+{
+	snd_pcm_file_t *file = pcm->private_data;
+	snd_pcm_channel_area_t areas_if[pcm->channels];
+	ssize_t bytes;
+
+	if (file->ifd < 0)
+		return -EBADF;
+
+	if (file->rbuf == NULL)
+		return -ENOMEM;
+
+	if (file->rbuf_size < frames) {
+		SYSERR("requested more frames than pcm buffer");
+		return -ENOMEM;
+	}
+
+	bytes = read(file->ifd, file->rbuf, snd_pcm_frames_to_bytes(pcm, frames));
+	if (bytes < 0) {
+		SYSERR("read from file failed, error: %d", bytes);
+		return bytes;
+	}
+
+	snd_pcm_areas_from_buf(pcm, areas_if, file->rbuf);
+	snd_pcm_areas_copy(areas, offset, areas_if, 0, pcm->channels, snd_pcm_bytes_to_frames(pcm, bytes), pcm->format);
+
+	return bytes;
 }
 
 static void setup_wav_header(snd_pcm_t *pcm, struct wav_fmt *fmt)
@@ -568,19 +602,19 @@ static snd_pcm_sframes_t snd_pcm_file_readn(snd_pcm_t *pcm, void **bufs, snd_pcm
 {
 	snd_pcm_file_t *file = pcm->private_data;
 	snd_pcm_channel_area_t areas[pcm->channels];
-	snd_pcm_sframes_t n;
+	snd_pcm_sframes_t frames;
 
-	if (file->ifd >= 0) {
-		SNDERR("DEBUG: Noninterleaved read not yet implemented.\n");
-		return 0;	/* TODO: Noninterleaved read */
-	}
+	__snd_pcm_lock(pcm);
+	frames = _snd_pcm_readn(file->gen.slave, bufs, size);
+	if (frames <= 0)
+		return frames;
 
-	n = _snd_pcm_readn(file->gen.slave, bufs, size);
-	if (n > 0) {
-		snd_pcm_areas_from_bufs(pcm, areas, bufs);
-		snd_pcm_file_add_frames(pcm, areas, 0, n);
-	}
-	return n;
+	snd_pcm_areas_from_bufs(pcm, areas, bufs);
+	snd_pcm_file_areas_read_infile(pcm, areas, 0, frames);
+	snd_pcm_file_add_frames(pcm, areas, 0, frames);
+
+	__snd_pcm_unlock(pcm);
+	return frames;
 }
 
 static snd_pcm_sframes_t snd_pcm_file_mmap_commit(snd_pcm_t *pcm,
@@ -609,9 +643,11 @@ static int snd_pcm_file_hw_free(snd_pcm_t *pcm)
 	free(file->wbuf);
 	free(file->wbuf_areas);
 	free(file->final_fname);
+	free(file->rbuf);
 	file->wbuf = NULL;
 	file->wbuf_areas = NULL;
 	file->final_fname = NULL;
+	file->rbuf = NULL;
 	return snd_pcm_hw_free(file->gen.slave);
 }
 
@@ -635,6 +671,15 @@ static int snd_pcm_file_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	}
 	file->wbuf_areas = malloc(sizeof(*file->wbuf_areas) * slave->channels);
 	if (file->wbuf_areas == NULL) {
+		snd_pcm_file_hw_free(pcm);
+		return -ENOMEM;
+	}
+	assert(!file->rbuf);
+	file->rbuf_size = slave->buffer_size;
+	file->rbuf_size_bytes = snd_pcm_frames_to_bytes(slave, file->rbuf_size);
+	file->rbuf_used_bytes = 0;
+	file->rbuf = malloc(file->rbuf_size_bytes);
+	if (file->rbuf == NULL) {
 		snd_pcm_file_hw_free(pcm);
 		return -ENOMEM;
 	}
