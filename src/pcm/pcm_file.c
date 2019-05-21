@@ -579,22 +579,21 @@ static snd_pcm_sframes_t snd_pcm_file_readi(snd_pcm_t *pcm, void *buffer, snd_pc
 {
 	snd_pcm_file_t *file = pcm->private_data;
 	snd_pcm_channel_area_t areas[pcm->channels];
-	snd_pcm_sframes_t n;
+	snd_pcm_sframes_t frames;
 
-	n = _snd_pcm_readi(file->gen.slave, buffer, size);
-	if (n <= 0)
-		return n;
-	if (file->ifd >= 0) {
-		__snd_pcm_lock(pcm);
-		n = read(file->ifd, buffer, n * pcm->frame_bits / 8);
-		__snd_pcm_unlock(pcm);
-		if (n < 0)
-			return n;
-		n = n * 8 / pcm->frame_bits;
-	}
+	__snd_pcm_lock(pcm);
+
+	frames = _snd_pcm_readi(file->gen.slave, buffer, size);
+	if (frames <= 0)
+		return frames;
+
 	snd_pcm_areas_from_buf(pcm, areas, buffer);
-	snd_pcm_file_add_frames(pcm, areas, 0, n);
-	return n;
+	snd_pcm_file_areas_read_infile(pcm, areas, 0, frames);
+	snd_pcm_file_add_frames(pcm, areas, 0, frames);
+
+	__snd_pcm_unlock(pcm);
+
+	return frames;
 }
 
 /* locking */
