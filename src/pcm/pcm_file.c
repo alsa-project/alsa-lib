@@ -584,8 +584,10 @@ static snd_pcm_sframes_t snd_pcm_file_readi(snd_pcm_t *pcm, void *buffer, snd_pc
 	__snd_pcm_lock(pcm);
 
 	frames = _snd_pcm_readi(file->gen.slave, buffer, size);
-	if (frames <= 0)
+	if (frames <= 0) {
+		__snd_pcm_unlock(pcm);
 		return frames;
+	}
 
 	snd_pcm_areas_from_buf(pcm, areas, buffer);
 	snd_pcm_file_areas_read_infile(pcm, areas, 0, frames);
@@ -605,8 +607,10 @@ static snd_pcm_sframes_t snd_pcm_file_readn(snd_pcm_t *pcm, void **bufs, snd_pcm
 
 	__snd_pcm_lock(pcm);
 	frames = _snd_pcm_readn(file->gen.slave, bufs, size);
-	if (frames <= 0)
+	if (frames <= 0) {
+		__snd_pcm_unlock(pcm);
 		return frames;
+	}
 
 	snd_pcm_areas_from_bufs(pcm, areas, bufs);
 	snd_pcm_file_areas_read_infile(pcm, areas, 0, frames);
