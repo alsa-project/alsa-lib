@@ -4747,8 +4747,11 @@ static int parse_string(const char **ptr, char **val)
 			return -EINVAL;
 		case '\\':
 			c = parse_char(ptr);
-			if (c < 0)
+			if (c < 0) {
+				if (alloc > bufsize)
+					free(buf);
 				return c;
+			}
 			break;
 		default:
 			(*ptr)++;
@@ -4768,12 +4771,17 @@ static int parse_string(const char **ptr, char **val)
 			alloc *= 2;
 			if (old_alloc == bufsize) {
 				buf = malloc(alloc);
+				if (!buf)
+					return -ENOMEM;
 				memcpy(buf, _buf, old_alloc);
 			} else {
-				buf = realloc(buf, alloc);
+				char *buf2 = realloc(buf, alloc);
+				if (!buf2) {
+					free(buf);
+					return -ENOMEM;
+				}
+				buf = buf2;
 			}
-			if (!buf)
-				return -ENOMEM;
 		}
 		buf[idx++] = c;
 	}
