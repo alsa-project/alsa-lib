@@ -75,6 +75,7 @@ static int make_local_socket(const char *filename)
 	if (bind(sock, (struct sockaddr *) addr, size) < 0) {
 		int result = -errno;
 		SYSERROR("bind failed");
+		close(sock);
 		return result;
 	}
 
@@ -101,6 +102,7 @@ static int make_inet_socket(int port)
 	if (bind(sock, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
 		int result = -errno;
 		SYSERROR("bind failed");
+		close(sock);
 		return result;
 	}
 
@@ -916,10 +918,9 @@ static int inet_handler(waiter_t *waiter, unsigned short events ATTRIBUTE_UNUSED
 
 static int server(const char *sockname, int port)
 {
-	int err;
+	int err, result, sockn = -1, socki = -1;
 	unsigned int k;
 	long open_max;
-	int result;
 
 	if (!sockname && port < 0)
 		return -EINVAL;
@@ -933,36 +934,36 @@ static int server(const char *sockname, int port)
 	waiters = calloc((size_t) open_max, sizeof(*waiters));
 
 	if (sockname) {
-		int sock = make_local_socket(sockname);
-		if (sock < 0)
-			return sock;
-		if (fcntl(sock, F_SETFL, O_NONBLOCK) < 0) {
+		sockn = make_local_socket(sockname);
+		if (sockn < 0)
+			return sockn;
+		if (fcntl(sockn, F_SETFL, O_NONBLOCK) < 0) {
 			result = -errno;
 			SYSERROR("fcntl O_NONBLOCK failed");
 			goto _end;
 		}
-		if (listen(sock, 4) < 0) {
+		if (listen(sockn, 4) < 0) {
 			result = -errno;
 			SYSERROR("listen failed");
 			goto _end;
 		}
-		add_waiter(sock, POLLIN, local_handler, NULL);
+		add_waiter(sockn, POLLIN, local_handler, NULL);
 	}
 	if (port >= 0) {
-		int sock = make_inet_socket(port);
-		if (sock < 0)
-			return sock;
-		if (fcntl(sock, F_SETFL, O_NONBLOCK) < 0) {
+		socki = make_inet_socket(port);
+		if (socki < 0)
+			return socki;
+		if (fcntl(socki, F_SETFL, O_NONBLOCK) < 0) {
 			result = -errno;
 			SYSERROR("fcntl failed");
 			goto _end;
 		}
-		if (listen(sock, 4) < 0) {
+		if (listen(socki, 4) < 0) {
 			result = -errno;
 			SYSERROR("listen failed");
 			goto _end;
 		}
-		add_waiter(sock, POLLIN, inet_handler, NULL);
+		add_waiter(socki, POLLIN, inet_handler, NULL);
 	}
 
 	while (1) {
@@ -991,6 +992,10 @@ static int server(const char *sockname, int port)
 		}
 	}
  _end:
+	if (sockn >= 0)
+		close(sockn);
+	if (socki >= 0)
+		close(socki);
 	free(pollfds);
 	free(waiters);
 	return result;
