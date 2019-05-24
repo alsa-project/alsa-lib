@@ -227,7 +227,14 @@ static int snd_pcm_file_open_output_file(snd_pcm_file_t *file)
 					file->final_fname);
 			return -errno;
 		}
-		fd = fileno(pipe);
+		fd = dup(fileno(pipe));
+		err = -errno;
+		pclose(pipe);
+		if (fd < 0) {
+			SYSERR("unable to dup pipe file handle for command %s",
+					file->final_fname);
+			return err;
+		}
 	} else {
 		if (file->trunc)
 			fd = open(file->final_fname, O_WRONLY|O_CREAT|O_TRUNC,
