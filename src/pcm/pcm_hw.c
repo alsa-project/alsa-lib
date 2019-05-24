@@ -1724,12 +1724,15 @@ int snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 		}
 		if (info.subdevice != (unsigned int) subdevice) {
 			close(fd);
+			fd = -1;
 			goto __again;
 		}
 	}
 	snd_ctl_close(ctl);
 	return snd_pcm_hw_open_fd(pcmp, name, fd, sync_ptr_ioctl);
        _err:
+	if (fd >= 0)
+		close(fd);
 	snd_ctl_close(ctl);
 	return ret;
 }
