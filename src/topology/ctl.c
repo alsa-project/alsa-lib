@@ -880,8 +880,8 @@ int tplg_add_enum(snd_tplg_t *tplg, struct snd_tplg_enum_template *enum_ctl,
 	if (enum_ctl->texts != NULL) {
 		for (i = 0; i < num_items; i++) {
 			if (enum_ctl->texts[i] != NULL)
-				strncpy(ec->texts[i], enum_ctl->texts[i],
-					SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+				snd_strlcpy(ec->texts[i], enum_ctl->texts[i],
+					    SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 		}
 	}
 

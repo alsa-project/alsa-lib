@@ -124,12 +124,12 @@ static int tplg_parse_data_file(snd_config_t *cfg, struct tplg_elem *elem)
 
 	if (fclose(fp) == EOF) {
 		SNDERR("Cannot close data file.");
-		ret = -errno;
-		goto err;
+		return -errno;
 	}
 	return 0;
 
 err:
+	fclose(fp);
 	if (priv)
 		free(priv);
 	return ret;
@@ -422,7 +422,7 @@ static unsigned int get_tuple_size(int type)
 static int copy_tuples(struct tplg_elem *elem,
 	struct tplg_vendor_tuples *tuples, struct tplg_vendor_tokens *tokens)
 {
-	struct snd_soc_tplg_private *priv = elem->data;
+	struct snd_soc_tplg_private *priv = elem->data, *priv2;
 	struct tplg_tuple_set *tuple_set;
 	struct tplg_tuple *tuple;
 	struct snd_soc_tplg_vendor_array *array;
@@ -447,10 +447,17 @@ static int copy_tuples(struct tplg_elem *elem,
 			return -EINVAL;
 		}
 
-		if (priv != NULL)
-			priv = realloc(priv, sizeof(*priv) + size);
-		else
+		if (priv != NULL) {
+			priv2 = realloc(priv, sizeof(*priv) + size);
+			if (priv2 == NULL) {
+				free(priv);
+				priv = NULL;
+			} else {
+				priv = priv2;
+			}
+		} else {
 			priv = calloc(1, sizeof(*priv) + size);
+		}
 		if (!priv)
 			return -ENOMEM;
 
