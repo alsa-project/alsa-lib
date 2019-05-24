@@ -3034,8 +3034,10 @@ int snd_config_save(snd_config_t *config, snd_output_t *out)
 		if (!k) \
 			break; \
 		err = fcn(config, k, &n); \
-		if (err < 0) \
+		if (err < 0) { \
+			va_end(arg); \
 			return err; \
+		} \
 		config = n; \
 	} \
 	va_end(arg); \
@@ -3056,8 +3058,10 @@ int snd_config_save(snd_config_t *config, snd_output_t *out)
 		if (!k) \
 			break; \
 		err = fcn(root, config, k, &n); \
-		if (err < 0) \
+		if (err < 0) { \
+			va_end(arg); \
 			return err; \
+		} \
 		config = n; \
 	} \
 	va_end(arg); \
