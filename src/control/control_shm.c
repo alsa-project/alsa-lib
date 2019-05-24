@@ -302,13 +302,9 @@ static int snd_ctl_shm_pcm_prefer_subdevice(snd_ctl_t *ctl, int subdev)
 {
 	snd_ctl_shm_t *shm = ctl->private_data;
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
-	int err;
 	ctrl->u.pcm_prefer_subdevice = subdev;
 	ctrl->cmd = SNDRV_CTL_IOCTL_PCM_PREFER_SUBDEVICE;
-	err = snd_ctl_shm_action(ctl);
-	if (err < 0)
-		return err;
-	return err;
+	return snd_ctl_shm_action(ctl);
 }
 
 static int snd_ctl_shm_rawmidi_next_device(snd_ctl_t *ctl, int * device)
@@ -343,26 +339,18 @@ static int snd_ctl_shm_rawmidi_prefer_subdevice(snd_ctl_t *ctl, int subdev)
 {
 	snd_ctl_shm_t *shm = ctl->private_data;
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
-	int err;
 	ctrl->u.rawmidi_prefer_subdevice = subdev;
 	ctrl->cmd = SNDRV_CTL_IOCTL_RAWMIDI_PREFER_SUBDEVICE;
-	err = snd_ctl_shm_action(ctl);
-	if (err < 0)
-		return err;
-	return err;
+	return snd_ctl_shm_action(ctl);
 }
 
 static int snd_ctl_shm_set_power_state(snd_ctl_t *ctl, unsigned int state)
 {
 	snd_ctl_shm_t *shm = ctl->private_data;
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
-	int err;
 	ctrl->u.power_state = state;
 	ctrl->cmd = SNDRV_CTL_IOCTL_POWER;
-	err = snd_ctl_shm_action(ctl);
-	if (err < 0)
-		return err;
-	return err;
+	return snd_ctl_shm_action(ctl);
 }
 
 static int snd_ctl_shm_get_power_state(snd_ctl_t *ctl, unsigned int *state)
