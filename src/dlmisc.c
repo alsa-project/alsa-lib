@@ -251,15 +251,15 @@ static inline void snd_dlobj_unlock(void) {}
 
 static LIST_HEAD(pcm_dlobj_list);
 
-void *snd_dlobj_cache_get(const char *lib, const char *name,
-			  const char *version, int verbose)
+static struct dlobj_cache *
+snd_dlobj_cache_get0(const char *lib, const char *name,
+		     const char *version, int verbose)
 {
 	struct list_head *p;
 	struct dlobj_cache *c;
 	void *func, *dlobj;
 	char errbuf[256];
 
-	snd_dlobj_lock();
 	list_for_each(p, &pcm_dlobj_list) {
 		c = list_entry(p, struct dlobj_cache, list);
 		if (c->lib && lib && strcmp(c->lib, lib) != 0)
@@ -270,9 +270,7 @@ void *snd_dlobj_cache_get(const char *lib, const char *name,
 			continue;
 		if (strcmp(c->name, name) == 0) {
 			c->refcnt++;
-			func = c->func;
-			snd_dlobj_unlock();
-			return func;
+			return c;
 		}
 	}
 
@@ -285,7 +283,6 @@ void *snd_dlobj_cache_get(const char *lib, const char *name,
 			SNDERR("Cannot open shared library %s (%s)",
 						lib ? lib : "[builtin]",
 						errbuf);
-		snd_dlobj_unlock();
 		return NULL;
 	}
 
@@ -314,6 +311,36 @@ void *snd_dlobj_cache_get(const char *lib, const char *name,
 	c->dlobj = dlobj;
 	c->func = func;
 	list_add_tail(&c->list, &pcm_dlobj_list);
+	return c;
+}
+
+void *snd_dlobj_cache_get(const char *lib, const char *name,
+			  const char *version, int verbose)
+{
+	struct dlobj_cache *c;
+	void *func = NULL;
+
+	snd_dlobj_lock();
+	c = snd_dlobj_cache_get0(lib, name, version, verbose);
+	if (c)
+		func = c->func;
+	snd_dlobj_unlock();
+	return func;
+}
+
+void *snd_dlobj_cache_get2(const char *lib, const char *name,
+			   const char *version, int verbose)
+{
+	struct dlobj_cache *c;
+	void *func = NULL;
+
+	snd_dlobj_lock();
+	c = snd_dlobj_cache_get0(lib, name, version, verbose);
+	if (c) {
+		func = c->func;
+		/* double reference */
+		c->refcnt++;
+	}
 	snd_dlobj_unlock();
 	return func;
 }

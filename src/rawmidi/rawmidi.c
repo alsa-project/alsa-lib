@@ -162,7 +162,7 @@ static int snd_rawmidi_open_conf(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp
 				 snd_config_t *rawmidi_conf, int mode)
 {
 	const char *str;
-	char buf[256], errbuf[256];
+	char buf[256];
 	int err;
 	snd_config_t *conf, *type_conf = NULL;
 	snd_config_iterator_t i, next;
@@ -174,7 +174,6 @@ static int snd_rawmidi_open_conf(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp
 #ifndef PIC
 	extern void *snd_rawmidi_open_symbols(void);
 #endif
-	void *h = NULL;
 	if (snd_config_get_type(rawmidi_conf) != SND_CONFIG_TYPE_COMPOUND) {
 		if (name)
 			SNDERR("Invalid type for RAWMIDI %s definition", name);
@@ -239,41 +238,37 @@ static int snd_rawmidi_open_conf(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp
 #ifndef PIC
 	snd_rawmidi_open_symbols();
 #endif
-	h = INTERNAL(snd_dlopen)(lib, RTLD_NOW, errbuf, sizeof(errbuf));
-	if (h)
-		open_func = snd_dlsym(h, open_name, SND_DLSYM_VERSION(SND_RAWMIDI_DLSYM_VERSION));
-	err = 0;
-	if (!h) {
-		SNDERR("Cannot open shared library %s (%s)", lib, errbuf);
-		err = -ENOENT;
-	} else if (!open_func) {
-		SNDERR("symbol %s is not defined inside %s", open_name, lib);
-		snd_dlclose(h);
+	open_func = snd_dlobj_cache_get2(lib, open_name,
+			SND_DLSYM_VERSION(SND_RAWMIDI_DLSYM_VERSION), 1);
+	if (!open_func) {
 		err = -ENXIO;
+		goto _err;
 	}
-       _err:
 	if (type_conf)
 		snd_config_delete(type_conf);
-	if (err >= 0)
-		err = open_func(inputp, outputp, name, rawmidi_root, rawmidi_conf, mode);
-	if (err < 0) {
-		if (h)
-			snd_dlclose(h);
-		return err;
-	}
+	err = open_func(inputp, outputp, name, rawmidi_root, rawmidi_conf, mode);
+	if (err < 0)
+		goto _err;
 	if (inputp) {
-		(*inputp)->dl_handle = h; h = NULL;
+		(*inputp)->open_func = open_func;
 		snd_rawmidi_params_default(*inputp, &params);
 		err = snd_rawmidi_params(*inputp, &params);
 		assert(err >= 0);
 	}
 	if (outputp) {
-		(*outputp)->dl_handle = h;
+		(*outputp)->open_func = open_func;
 		snd_rawmidi_params_default(*outputp, &params);
 		err = snd_rawmidi_params(*outputp, &params);
 		assert(err >= 0);
 	}
 	return 0;
+
+       _err:
+	if (open_func)
+		snd_dlobj_cache_put(open_func);
+	if (type_conf)
+		snd_config_delete(type_conf);
+	return err;
 }
 
 static int snd_rawmidi_open_noupdate(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
@@ -350,8 +345,8 @@ int snd_rawmidi_close(snd_rawmidi_t *rawmidi)
   	assert(rawmidi);
 	err = rawmidi->ops->close(rawmidi);
 	free(rawmidi->name);
-	if (rawmidi->dl_handle)
-		snd_dlclose(rawmidi->dl_handle);
+	if (rawmidi->open_func)
+		snd_dlobj_cache_put(rawmidi->open_func);
 	free(rawmidi);
 	return err;
 }

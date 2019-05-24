@@ -328,6 +328,8 @@ static inline int snd_open_device(const char *filename, int fmode)
 /* make local functions really local */
 #define snd_dlobj_cache_get \
 	snd1_dlobj_cache_get
+#define snd_dlobj_cache_get2 \
+	snd1_dlobj_cache_get2
 #define snd_dlobj_cache_put \
 	snd1_dlobj_cache_put
 #define snd_dlobj_cache_cleanup \
@@ -341,6 +343,7 @@ static inline int snd_open_device(const char *filename, int fmode)
 
 /* dlobj cache */
 void *snd_dlobj_cache_get(const char *lib, const char *name, const char *version, int verbose);
+void *snd_dlobj_cache_get2(const char *lib, const char *name, const char *version, int verbose);
 int snd_dlobj_cache_put(void *open_func);
 void snd_dlobj_cache_cleanup(void);
 
