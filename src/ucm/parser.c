@@ -1114,7 +1114,7 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 			if (err < 0) {
 				uc_error("error: %s failed to parse verb",
 						file);
-				return err;
+				goto _err;
 			}
 			continue;
 		}
@@ -1126,7 +1126,7 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 			if (err < 0) {
 				uc_error("error: %s failed to parse device",
 						file);
-				return err;
+				goto _err;
 			}
 			continue;
 		}
@@ -1138,11 +1138,13 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 			if (err < 0) {
 				uc_error("error: %s failed to parse modifier",
 						file);
-				return err;
+				goto _err;
 			}
 			continue;
 		}
 	}
+
+	snd_config_delete(cfg);
 
 	/* use case verb must have at least 1 device */
 	if (list_empty(&verb->device_list)) {
@@ -1150,6 +1152,10 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 		return -EINVAL;
 	}
 	return 0;
+
+       _err:
+	snd_config_delete(cfg);
+	return err;
 }
 
 /*
@@ -1399,6 +1405,7 @@ next_card:
 
 	return -1;
 }
+
 static int load_master_config(const char *card_name, snd_config_t **cfg)
 {
 	char filename[MAX_FILE];
@@ -1610,8 +1617,11 @@ int uc_mgr_scan_master_configs(const char **_list[])
 	}
 	free(namelist);
 
-	if (err >= 0)
+	if (err >= 0) {
 		*_list = list;
+	} else {
+		free(list);
+	}
 
 	return err;
 }

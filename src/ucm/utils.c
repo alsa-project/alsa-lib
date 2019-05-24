@@ -58,14 +58,18 @@ int uc_mgr_config_load(const char *file, snd_config_t **cfg)
 	int err;
 
 	fp = fopen(file, "r");
-	err = fp == NULL ? -errno : snd_input_stdio_attach(&in, fp, 1);
-	if (err < 0) {
+	if (!fp) {
+		err = -errno;
+  __err0:
 		uc_error("could not open configuration file %s", file);
 		return err;
 	}
+	err = snd_input_stdio_attach(&in, fp, 1);
+	if (err < 0)
+		goto __err0;
 	err = snd_config_top(&top);
 	if (err < 0)
-		return err;
+		goto __err1;
 
 	default_path = getenv(ALSA_CONFIG_UCM_VAR);
 	if (!default_path || !*default_path)
@@ -88,6 +92,8 @@ int uc_mgr_config_load(const char *file, snd_config_t **cfg)
 
  __err2:
         snd_config_delete(top);
+ __err1:
+	snd_input_close(in);
 	return err;
 }
 
