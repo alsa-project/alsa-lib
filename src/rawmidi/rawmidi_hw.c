@@ -186,6 +186,8 @@ int snd_rawmidi_hw_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 		*inputp = NULL;
 	if (outputp)
 		*outputp = NULL;
+	if (!inputp && !outputp)
+		return -EINVAL;
 	
 	if ((ret = snd_ctl_hw_open(&ctl, NULL, card, 0)) < 0)
 		return ret;
