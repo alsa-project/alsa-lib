@@ -424,8 +424,10 @@ static int make_local_socket(const char *filename)
 	addr->sun_family = AF_LOCAL;
 	memcpy(addr->sun_path, filename, l);
 
-	if (connect(sock, (struct sockaddr *) addr, size) < 0)
+	if (connect(sock, (struct sockaddr *) addr, size) < 0) {
+		close(sock);
 		return -errno;
+	}
 	return sock;
 }
 
