@@ -8391,6 +8391,7 @@ _snd_pcm_parse_config_chmaps(snd_config_t *conf)
 			free(chmap);
 			goto error;
 		}
+		free(chmap);
 		nums++;
 	}
 	return maps;
