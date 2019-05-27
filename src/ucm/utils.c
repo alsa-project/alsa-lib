@@ -85,15 +85,18 @@ int uc_mgr_config_load(const char *file, snd_config_t **cfg)
 		goto __err2;
 	}
 	err = snd_input_close(in);
-	if (err < 0)
+	if (err < 0) {
+		in = NULL;
 		goto __err2;
+	}
 	*cfg = top;
 	return 0;
 
  __err2:
-        snd_config_delete(top);
+	snd_config_delete(top);
  __err1:
-	snd_input_close(in);
+	if (in)
+		snd_input_close(in);
 	return err;
 }
 
