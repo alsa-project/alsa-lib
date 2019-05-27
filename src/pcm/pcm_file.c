@@ -296,7 +296,10 @@ static int snd_pcm_file_areas_read_infile(snd_pcm_t *pcm,
 		return -ENOMEM;
 	}
 
-	bytes = read(file->ifd, file->rbuf, snd_pcm_frames_to_bytes(pcm, frames));
+	bytes = snd_pcm_frames_to_bytes(pcm, frames);
+	if (bytes < 0)
+		return bytes;
+	bytes = read(file->ifd, file->rbuf, bytes);
 	if (bytes < 0) {
 		SYSERR("read from file failed, error: %d", bytes);
 		return bytes;
@@ -589,18 +592,14 @@ static snd_pcm_sframes_t snd_pcm_file_readi(snd_pcm_t *pcm, void *buffer, snd_pc
 	snd_pcm_channel_area_t areas[pcm->channels];
 	snd_pcm_sframes_t frames;
 
-	__snd_pcm_lock(pcm);
-
 	frames = _snd_pcm_readi(file->gen.slave, buffer, size);
-	if (frames <= 0) {
-		__snd_pcm_unlock(pcm);
+	if (frames <= 0)
 		return frames;
-	}
 
 	snd_pcm_areas_from_buf(pcm, areas, buffer);
 	snd_pcm_file_areas_read_infile(pcm, areas, 0, frames);
+	__snd_pcm_lock(pcm);
 	snd_pcm_file_add_frames(pcm, areas, 0, frames);
-
 	__snd_pcm_unlock(pcm);
 
 	return frames;
@@ -654,9 +653,6 @@ static int snd_pcm_file_mmap_begin(snd_pcm_t *pcm, const snd_pcm_channel_area_t 
 	snd_pcm_uframes_t *offset, snd_pcm_uframes_t *frames)
 {
 	snd_pcm_file_t *file = pcm->private_data;
-	snd_pcm_channel_area_t areas_if[pcm->channels];
-	snd_pcm_uframes_t frames_if;
-	void *buffer = NULL;
 	int result;
 
 	result = snd_pcm_mmap_begin(file->gen.slave, areas, offset, frames);
