@@ -612,18 +612,16 @@ static snd_pcm_sframes_t snd_pcm_file_readn(snd_pcm_t *pcm, void **bufs, snd_pcm
 	snd_pcm_channel_area_t areas[pcm->channels];
 	snd_pcm_sframes_t frames;
 
-	__snd_pcm_lock(pcm);
 	frames = _snd_pcm_readn(file->gen.slave, bufs, size);
-	if (frames <= 0) {
-		__snd_pcm_unlock(pcm);
+	if (frames <= 0)
 		return frames;
-	}
 
 	snd_pcm_areas_from_bufs(pcm, areas, bufs);
 	snd_pcm_file_areas_read_infile(pcm, areas, 0, frames);
+	__snd_pcm_lock(pcm);
 	snd_pcm_file_add_frames(pcm, areas, 0, frames);
-
 	__snd_pcm_unlock(pcm);
+
 	return frames;
 }
 
