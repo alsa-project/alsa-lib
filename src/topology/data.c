@@ -88,8 +88,7 @@ static int tplg_parse_data_file(snd_config_t *cfg, struct tplg_elem *elem)
 	if (fp == NULL) {
 		SNDERR("error: invalid data file path '%s'\n",
 			filename);
-		ret = -errno;
-		goto err;
+		return -errno;
 	}
 
 	fseek(fp, 0L, SEEK_END);
@@ -463,6 +462,7 @@ static int copy_tuples(struct tplg_elem *elem,
 
 		off = priv->size;
 		priv->size = size; /* update private data size */
+		elem->data = priv;
 
 		array = (struct snd_soc_tplg_vendor_array *)(priv->data + off);
 		array->size = set_size;
@@ -499,7 +499,6 @@ static int copy_tuples(struct tplg_elem *elem,
 		}
 	}
 
-	elem->data = priv;
 	return 0;
 }
 
