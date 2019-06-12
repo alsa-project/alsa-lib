@@ -300,10 +300,10 @@ static int snd_pcm_rate_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	rate->sareas = rate->pareas + channels;
 	rate->sareas[0].addr = (char *)rate->pareas[0].addr + ((cwidth * channels * cinfo->period_size) / 8);
 	for (chn = 0; chn < channels; chn++) {
-		rate->pareas[chn].addr = rate->pareas[0].addr + (cwidth * chn * cinfo->period_size) / 8;
+		rate->pareas[chn].addr = (char *)rate->pareas[0].addr + (cwidth * chn * cinfo->period_size) / 8;
 		rate->pareas[chn].first = 0;
 		rate->pareas[chn].step = cwidth;
-		rate->sareas[chn].addr = rate->sareas[0].addr + (swidth * chn * sinfo->period_size) / 8;
+		rate->sareas[chn].addr = (char *)rate->sareas[0].addr + (swidth * chn * sinfo->period_size) / 8;
 		rate->sareas[chn].first = 0;
 		rate->sareas[chn].step = swidth;
 	}
@@ -513,14 +513,14 @@ static void do_convert(const snd_pcm_channel_area_t *dst_areas,
 		const int16_t *src;
 		int16_t *dst;
 		if (! rate->src_buf)
-			src = src_areas->addr + src_offset * 2 * channels;
+			src = (int16_t *)src_areas->addr + src_offset * channels;
 		else {
 			convert_to_s16(rate, rate->src_buf, src_areas, src_offset,
 				       src_frames, channels);
 			src = rate->src_buf;
 		}
 		if (! rate->dst_buf)
-			dst = dst_areas->addr + dst_offset * 2 * channels;
+			dst = (int16_t *)dst_areas->addr + dst_offset * channels;
 		else
 			dst = rate->dst_buf;
 		rate->ops.convert_s16(rate->obj, dst, dst_frames, src, src_frames);
