@@ -61,11 +61,11 @@ extern snd_lib_error_handler_t snd_lib_error;
 extern int snd_lib_error_set_handler(snd_lib_error_handler_t handler);
 
 #if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ > 95)
-#define SNDERR(...) snd_lib_error(__FILE__, __LINE__, __FUNCTION__, 0, __VA_ARGS__) /**< Shows a sound error message. */
-#define SYSERR(...) snd_lib_error(__FILE__, __LINE__, __FUNCTION__, errno, __VA_ARGS__) /**< Shows a system error message (related to \c errno). */
+#define SNDERR(...) snd_lib_error(__FILE__, __LINE__, __func__, 0, __VA_ARGS__) /**< Shows a sound error message. */
+#define SYSERR(...) snd_lib_error(__FILE__, __LINE__, __func__, errno, __VA_ARGS__) /**< Shows a system error message (related to \c errno). */
 #else
-#define SNDERR(args...) snd_lib_error(__FILE__, __LINE__, __FUNCTION__, 0, ##args) /**< Shows a sound error message. */
-#define SYSERR(args...) snd_lib_error(__FILE__, __LINE__, __FUNCTION__, errno, ##args) /**< Shows a system error message (related to \c errno). */
+#define SNDERR(args...) snd_lib_error(__FILE__, __LINE__, __func__, 0, ##args) /**< Shows a sound error message. */
+#define SYSERR(args...) snd_lib_error(__FILE__, __LINE__, __func__, errno, ##args) /**< Shows a system error message (related to \c errno). */
 #endif
 
 /** \} */

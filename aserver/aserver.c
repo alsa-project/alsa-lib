@@ -39,13 +39,13 @@ char *command;
 
 #if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95)
 #define ERROR(...) do {\
-	fprintf(stderr, "%s %s:%i:(%s) ", command, __FILE__, __LINE__, __FUNCTION__); \
+	fprintf(stderr, "%s %s:%i:(%s) ", command, __FILE__, __LINE__, __func__); \
 	fprintf(stderr, __VA_ARGS__); \
 	putc('\n', stderr); \
 } while (0)
 #else
 #define ERROR(args...) do {\
-	fprintf(stderr, "%s %s:%i:(%s) ", command, __FILE__, __LINE__, __FUNCTION__); \
+	fprintf(stderr, "%s %s:%i:(%s) ", command, __FILE__, __LINE__, __func__); \
 	fprintf(stderr, ##args); \
 	putc('\n', stderr); \
 } while (0)

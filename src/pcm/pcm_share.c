@@ -54,11 +54,11 @@ char *snd_pcm_share_slaves_mutex_holder;
 do { \
 	int err = pthread_mutex_trylock(mutex); \
 	if (err < 0) { \
-		fprintf(stderr, "lock " #mutex " is busy (%s): waiting in " __FUNCTION__ "\n", *(mutex##_holder)); \
+		fprintf(stderr, "lock " #mutex " is busy (%s): waiting in " __func__ "\n", *(mutex##_holder)); \
 		pthread_mutex_lock(mutex); \
 		fprintf(stderr, "... got\n"); \
 	} \
-	*(mutex##_holder) = __FUNCTION__; \
+	*(mutex##_holder) = __func__; \
 } while (0)
 
 #define Pthread_mutex_unlock(mutex) \
