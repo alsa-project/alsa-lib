@@ -1171,7 +1171,7 @@ static void __fill_chmap_ctl_id(snd_ctl_elem_id_t *id, int dev, int subdev,
 static void fill_chmap_ctl_id(snd_pcm_t *pcm, snd_ctl_elem_id_t *id)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
-	return __fill_chmap_ctl_id(id, hw->device, hw->subdevice, pcm->stream);
+	__fill_chmap_ctl_id(id, hw->device, hw->subdevice, pcm->stream);
 }
 
 static int is_chmap_type(int type)
