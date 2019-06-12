@@ -187,8 +187,6 @@ struct snd_pcm_direct {
 			mix_areas_u8_t *remix_areas_u8;
 		} dmix;
 		struct {
-		} dsnoop;
-		struct {
 			unsigned long long chn_mask;
 		} dshare;
 	} u;
