@@ -572,7 +572,10 @@ static snd_pcm_sframes_t snd_pcm_file_writei(snd_pcm_t *pcm, const void *buffer,
 	if (n > 0) {
 		snd_pcm_areas_from_buf(pcm, areas, (void*) buffer);
 		__snd_pcm_lock(pcm);
-		snd_pcm_file_add_frames(pcm, areas, 0, n);
+		if (snd_pcm_file_add_frames(pcm, areas, 0, n) < 0) {
+			__snd_pcm_unlock(pcm);
+			return -EPIPE;
+		}
 		__snd_pcm_unlock(pcm);
 	}
 	return n;
@@ -587,7 +590,10 @@ static snd_pcm_sframes_t snd_pcm_file_writen(snd_pcm_t *pcm, void **bufs, snd_pc
 	if (n > 0) {
 		snd_pcm_areas_from_bufs(pcm, areas, bufs);
 		__snd_pcm_lock(pcm);
-		snd_pcm_file_add_frames(pcm, areas, 0, n);
+		if (snd_pcm_file_add_frames(pcm, areas, 0, n) < 0) {
+			__snd_pcm_unlock(pcm);
+			return -EPIPE;
+		}
 		__snd_pcm_unlock(pcm);
 	}
 	return n;
@@ -608,6 +614,11 @@ static snd_pcm_sframes_t snd_pcm_file_readi(snd_pcm_t *pcm, void *buffer, snd_pc
 	snd_pcm_file_areas_read_infile(pcm, areas, 0, frames);
 	__snd_pcm_lock(pcm);
 	snd_pcm_file_add_frames(pcm, areas, 0, frames);
+	if (snd_pcm_file_add_frames(pcm, areas, 0, frames) < 0) {
+		__snd_pcm_unlock(pcm);
+		return -EPIPE;
+	}
+
 	__snd_pcm_unlock(pcm);
 
 	return frames;
@@ -627,7 +638,11 @@ static snd_pcm_sframes_t snd_pcm_file_readn(snd_pcm_t *pcm, void **bufs, snd_pcm
 	snd_pcm_areas_from_bufs(pcm, areas, bufs);
 	snd_pcm_file_areas_read_infile(pcm, areas, 0, frames);
 	__snd_pcm_lock(pcm);
-	snd_pcm_file_add_frames(pcm, areas, 0, frames);
+	if (snd_pcm_file_add_frames(pcm, areas, 0, frames) < 0) {
+		__snd_pcm_unlock(pcm);
+		return -EPIPE;
+	}
+
 	__snd_pcm_unlock(pcm);
 
 	return frames;
@@ -649,8 +664,10 @@ static snd_pcm_sframes_t snd_pcm_file_mmap_commit(snd_pcm_t *pcm,
 	if (result >= 0) {
 		assert(ofs == offset && siz == size);
 		result = snd_pcm_mmap_commit(file->gen.slave, ofs, siz);
-		if (result > 0)
-			snd_pcm_file_add_frames(pcm, areas, ofs, result);
+		if (result > 0) {
+			if (snd_pcm_file_add_frames(pcm, areas, ofs, result) < 0)
+				return -EPIPE;
+		}
 	}
 	return result;
 }
