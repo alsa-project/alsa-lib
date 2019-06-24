@@ -613,7 +613,6 @@ static snd_pcm_sframes_t snd_pcm_file_readi(snd_pcm_t *pcm, void *buffer, snd_pc
 	snd_pcm_areas_from_buf(pcm, areas, buffer);
 	snd_pcm_file_areas_read_infile(pcm, areas, 0, frames);
 	__snd_pcm_lock(pcm);
-	snd_pcm_file_add_frames(pcm, areas, 0, frames);
 	if (snd_pcm_file_add_frames(pcm, areas, 0, frames) < 0) {
 		__snd_pcm_unlock(pcm);
 		return -EPIPE;
