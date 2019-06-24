@@ -402,6 +402,7 @@ static int snd_pcm_file_write_bytes(snd_pcm_t *pcm, size_t bytes)
 			n = cont;
 		err = write(file->fd, file->wbuf + file->file_ptr_bytes, n);
 		if (err < 0) {
+			err = -errno;
 			SYSERR("%s write failed, file data may be corrupt", file->fname);
 			return err;
 		}
