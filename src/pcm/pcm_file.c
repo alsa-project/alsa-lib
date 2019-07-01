@@ -391,8 +391,11 @@ static int snd_pcm_file_write_bytes(snd_pcm_t *pcm, size_t bytes)
 	if (file->format == SND_PCM_FILE_FORMAT_WAV &&
 	    !file->wav_header.fmt) {
 		err = write_wav_header(pcm);
-		if (err < 0)
+		if (err < 0) {
+			file->wbuf_used_bytes = 0;
+			file->file_ptr_bytes = 0;
 			return err;
+		}
 	}
 
 	while (bytes > 0) {
@@ -403,6 +406,8 @@ static int snd_pcm_file_write_bytes(snd_pcm_t *pcm, size_t bytes)
 		err = write(file->fd, file->wbuf + file->file_ptr_bytes, n);
 		if (err < 0) {
 			err = -errno;
+			file->wbuf_used_bytes = 0;
+			file->file_ptr_bytes = 0;
 			SYSERR("%s write failed, file data may be corrupt", file->fname);
 			return err;
 		}
