@@ -575,7 +575,7 @@ static snd_pcm_sframes_t snd_pcm_file_writei(snd_pcm_t *pcm, const void *buffer,
 		__snd_pcm_lock(pcm);
 		if (snd_pcm_file_add_frames(pcm, areas, 0, n) < 0) {
 			__snd_pcm_unlock(pcm);
-			return -EPIPE;
+			return -EIO;
 		}
 		__snd_pcm_unlock(pcm);
 	}
@@ -593,7 +593,7 @@ static snd_pcm_sframes_t snd_pcm_file_writen(snd_pcm_t *pcm, void **bufs, snd_pc
 		__snd_pcm_lock(pcm);
 		if (snd_pcm_file_add_frames(pcm, areas, 0, n) < 0) {
 			__snd_pcm_unlock(pcm);
-			return -EPIPE;
+			return -EIO;
 		}
 		__snd_pcm_unlock(pcm);
 	}
@@ -616,7 +616,7 @@ static snd_pcm_sframes_t snd_pcm_file_readi(snd_pcm_t *pcm, void *buffer, snd_pc
 	__snd_pcm_lock(pcm);
 	if (snd_pcm_file_add_frames(pcm, areas, 0, frames) < 0) {
 		__snd_pcm_unlock(pcm);
-		return -EPIPE;
+		return -EIO;
 	}
 
 	__snd_pcm_unlock(pcm);
@@ -640,7 +640,7 @@ static snd_pcm_sframes_t snd_pcm_file_readn(snd_pcm_t *pcm, void **bufs, snd_pcm
 	__snd_pcm_lock(pcm);
 	if (snd_pcm_file_add_frames(pcm, areas, 0, frames) < 0) {
 		__snd_pcm_unlock(pcm);
-		return -EPIPE;
+		return -EIO;
 	}
 
 	__snd_pcm_unlock(pcm);
@@ -666,7 +666,7 @@ static snd_pcm_sframes_t snd_pcm_file_mmap_commit(snd_pcm_t *pcm,
 		result = snd_pcm_mmap_commit(file->gen.slave, ofs, siz);
 		if (result > 0) {
 			if (snd_pcm_file_add_frames(pcm, areas, ofs, result) < 0)
-				return -EPIPE;
+				return -EIO;
 		}
 	}
 	return result;
