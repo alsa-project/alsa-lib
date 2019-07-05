@@ -327,6 +327,8 @@ static void setup_wav_header(snd_pcm_t *pcm, struct wav_fmt *fmt)
 static int write_wav_header(snd_pcm_t *pcm)
 {
 	snd_pcm_file_t *file = pcm->private_data;
+	ssize_t res;
+
 	static const char header[] = {
 		'R', 'I', 'F', 'F',
 		0x24, 0, 0, 0,
@@ -341,15 +343,35 @@ static int write_wav_header(snd_pcm_t *pcm)
 	
 	setup_wav_header(pcm, &file->wav_header);
 
-	if (write(file->fd, header, sizeof(header)) != sizeof(header) ||
-	    write(file->fd, &file->wav_header, sizeof(file->wav_header)) !=
-	    sizeof(file->wav_header) ||
-	    write(file->fd, header2, sizeof(header2)) != sizeof(header2)) {
-		int err = errno;
-		SYSERR("%s write header failed, file data may be corrupt", file->fname);
-		return -err;
-	}
+	res = write(file->fd, header, sizeof(header));
+	if (res != sizeof(header))
+		goto write_error;
+
+	res = write(file->fd, &file->wav_header, sizeof(file->wav_header));
+	if (res != sizeof(file->wav_header))
+		goto write_error;
+
+	res = write(file->fd, header2, sizeof(header2));
+	if (res != sizeof(header2))
+		goto write_error;
+
 	return 0;
+
+write_error:
+	/*
+	 * print real errno if available and return EIO, reason for this is
+	 * to block possible EPIPE in case file->fd is a pipe. EPIPE from
+	 * file->fd conflicts with EPIPE from playback stream which should
+	 * be used to signal XRUN on playback device
+	 */
+	if (res < 0)
+		SYSERR("%s write header failed, file data may be corrupt", file->fname);
+	else
+		SNDERR("%s write header incomplete, file data may be corrupt", file->fname);
+
+	memset(&file->wav_header, 0, sizeof(struct wav_fmt));
+
+	return -EIO;
 }
 
 /* fix up the length fields in WAV header */
