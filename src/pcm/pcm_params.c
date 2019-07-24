@@ -2356,7 +2356,10 @@ int snd_pcm_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	snd_output_printf(log, "REFINE called:\n");
 	snd_pcm_hw_params_dump(params, log);
 #endif
-	res = pcm->ops->hw_refine(pcm->op_arg, params);
+	if (pcm->ops->hw_refine)
+		res = pcm->ops->hw_refine(pcm->op_arg, params);
+	else
+		res = -ENOSYS;
 #ifdef REFINE_DEBUG
 	snd_output_printf(log, "refine done - result = %i\n", res);
 	snd_pcm_hw_params_dump(params, log);
@@ -2391,7 +2394,10 @@ int _snd_pcm_hw_params_internal(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 		if (err < 0)
 			return err;
 	}
-	err = pcm->ops->hw_params(pcm->op_arg, params);
+	if (pcm->ops->hw_params)
+		err = pcm->ops->hw_params(pcm->op_arg, params);
+	else
+		err = -ENOSYS;
 	if (err < 0)
 		return err;
 

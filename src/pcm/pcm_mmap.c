@@ -269,7 +269,10 @@ int snd_pcm_mmap(snd_pcm_t *pcm)
 		SNDMSG("Already mmapped");
 		return -EBUSY;
 	}
-	err = pcm->ops->mmap(pcm);
+	if (pcm->ops->mmap)
+		err = pcm->ops->mmap(pcm);
+	else
+		err = -ENOSYS;
 	if (err < 0)
 		return err;
 	if (pcm->mmap_shadow)
@@ -445,7 +448,10 @@ int snd_pcm_munmap(snd_pcm_t *pcm)
 		return -ENXIO;
 	}
 	if (pcm->mmap_shadow)
-		return pcm->ops->munmap(pcm);
+		if (pcm->ops->munmap)
+			return pcm->ops->munmap(pcm);
+		else
+			return -ENOSYS;
 	for (c = 0; c < pcm->channels; ++c) {
 		snd_pcm_channel_info_t *i = &pcm->mmap_channels[c];
 		unsigned int c1;
@@ -503,7 +509,10 @@ int snd_pcm_munmap(snd_pcm_t *pcm)
 		}
 		i->addr = NULL;
 	}
-	err = pcm->ops->munmap(pcm);
+	if (pcm->ops->munmap)
+		err = pcm->ops->munmap(pcm);
+	else
+		err = -ENOSYS;
 	if (err < 0)
 		return err;
 	free(pcm->mmap_channels);

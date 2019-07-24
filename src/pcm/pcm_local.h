@@ -410,6 +410,8 @@ snd_pcm_sframes_t snd_pcm_write_mmap(snd_pcm_t *pcm, snd_pcm_uframes_t offset,
 				     snd_pcm_uframes_t size);
 static inline int snd_pcm_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info)
 {
+	if (!pcm->ops->channel_info)
+		return -ENOSYS;
 	return pcm->ops->channel_info(pcm, info);
 }
 int snd_pcm_channel_info_shm(snd_pcm_t *pcm, snd_pcm_channel_info_t *info, int shmid);
@@ -427,26 +429,36 @@ int __snd_pcm_wait_in_lock(snd_pcm_t *pcm, int timeout);
 
 static inline snd_pcm_sframes_t __snd_pcm_avail_update(snd_pcm_t *pcm)
 {
+	if (!pcm->fast_ops->avail_update)
+		return -ENOSYS;
 	return pcm->fast_ops->avail_update(pcm->fast_op_arg);
 }
 
 static inline int __snd_pcm_start(snd_pcm_t *pcm)
 {
+	if (!pcm->fast_ops->start)
+		return -ENOSYS;
 	return pcm->fast_ops->start(pcm->fast_op_arg);
 }
 
 static inline snd_pcm_state_t __snd_pcm_state(snd_pcm_t *pcm)
 {
+	if (!pcm->fast_ops->state)
+		return -ENOSYS;
 	return pcm->fast_ops->state(pcm->fast_op_arg);
 }
 
 static inline int __snd_pcm_hwsync(snd_pcm_t *pcm)
 {
+	if (!pcm->fast_ops->hwsync)
+		return -ENOSYS;
 	return pcm->fast_ops->hwsync(pcm->fast_op_arg);
 }
 
 static inline int __snd_pcm_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
+	if (!pcm->fast_ops->delay)
+		return -ENOSYS;
 	return pcm->fast_ops->delay(pcm->fast_op_arg, delayp);
 }
 
@@ -604,24 +616,32 @@ static inline unsigned int snd_pcm_channel_area_step(const snd_pcm_channel_area_
 static inline snd_pcm_sframes_t _snd_pcm_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size)
 {
 	/* lock handled in the callback */
+	if (!pcm->fast_ops->writei)
+		return -ENOSYS;
 	return pcm->fast_ops->writei(pcm->fast_op_arg, buffer, size);
 }
 
 static inline snd_pcm_sframes_t _snd_pcm_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
 	/* lock handled in the callback */
+	if (!pcm->fast_ops->writen)
+		return -ENOSYS;
 	return pcm->fast_ops->writen(pcm->fast_op_arg, bufs, size);
 }
 
 static inline snd_pcm_sframes_t _snd_pcm_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t size)
 {
 	/* lock handled in the callback */
+	if (!pcm->fast_ops->readi)
+		return -ENOSYS;
 	return pcm->fast_ops->readi(pcm->fast_op_arg, buffer, size);
 }
 
 static inline snd_pcm_sframes_t _snd_pcm_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
 	/* lock handled in the callback */
+	if (!pcm->fast_ops->readn)
+		return -ENOSYS;
 	return pcm->fast_ops->readn(pcm->fast_op_arg, bufs, size);
 }
 
