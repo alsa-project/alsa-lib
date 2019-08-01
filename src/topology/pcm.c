@@ -732,6 +732,14 @@ int tplg_parse_pcm(snd_tplg_t *tplg,
 				return err;
 			continue;
 		}
+
+		/* private data */
+		if (strcmp(id, "data") == 0) {
+			err = tplg_parse_data_refs(n, elem);
+			if (err < 0)
+				return err;
+			continue;
+		}
 	}
 
 	return 0;
