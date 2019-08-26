@@ -321,7 +321,7 @@ static int split_format(struct snd_soc_tplg_stream_caps *caps, char *str)
 			return -EINVAL;
 		}
 
-		caps->formats |= 1 << format;
+		caps->formats |= 1ull << format;
 		s = strtok(NULL, ", ");
 		i++;
 	}
