@@ -8100,8 +8100,13 @@ snd_pcm_chmap_t *snd_pcm_get_chmap(snd_pcm_t *pcm)
 int snd_pcm_set_chmap(snd_pcm_t *pcm, const snd_pcm_chmap_t *map)
 {
 	const snd_pcm_chmap_t *oldmap = snd_pcm_get_chmap(pcm);
-	if (oldmap && chmap_equal(oldmap, map))
+	if (oldmap && chmap_equal(oldmap, map)) {
+		free(oldmap);
 		return 0;
+	}
+
+	if (oldmap)
+		free(oldmap);
 
 	if (!pcm->ops->set_chmap)
 		return -ENXIO;
