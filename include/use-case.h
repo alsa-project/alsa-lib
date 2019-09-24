@@ -349,6 +349,9 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
  *   - CoupledMixers
  *      - Mixer controls that should be changed together.
  *        E.g. "Left Master,Right Master".
+ *   - EchoReferencePCM
+ *      - If userspace wants an echo reference channel this value identifies
+ *        the pcm to be used.
  *   - EDIDFile
  *      - Path to EDID file for HDMI devices
  *   - JackCTL
