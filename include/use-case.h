@@ -346,6 +346,9 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
  *      - Remap channels using ALSA PCM channel mapping API notation
  *        E.g. "2 3 0 1 -1 -1 -1 -1 -1 -1 -1" means, FL takes channel 2,
  *        FR takes channel 3, RL takes channel 0, RL takes channel 1.
+ *   - CoupledMixers
+ *      - Mixer controls that should be changed together.
+ *        E.g. "Left Master,Right Master".
  *   - EDIDFile
  *      - Path to EDID file for HDMI devices
  *   - JackCTL
