@@ -342,6 +342,10 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
  *   - CaptureMasterType
  *      - type of the master volume control
  *      - Valid values: "soft" (software attenuation)
+ *   - CaptureChannelMap
+ *      - Remap channels using ALSA PCM channel mapping API notation
+ *        E.g. "2 3 0 1 -1 -1 -1 -1 -1 -1 -1" means, FL takes channel 2,
+ *        FR takes channel 3, RL takes channel 0, RL takes channel 1.
  *   - EDIDFile
  *      - Path to EDID file for HDMI devices
  *   - JackCTL
