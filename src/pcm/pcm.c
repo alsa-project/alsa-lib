@@ -789,7 +789,7 @@ int snd_pcm_nonblock(snd_pcm_t *pcm, int nonblock)
 	/* FIXME: __snd_pcm_lock() call below is commented out because of the
 	 * the possible deadlock in signal handler calling snd_pcm_abort()
 	 */
-	/* __snd_pcm_lock(pcm); */ /* forced lock due to pcm field change */
+	/* __snd_pcm_lock(pcm->op_arg); */ /* forced lock due to pcm field change */
 	if (pcm->ops->nonblock)
 		err = pcm->ops->nonblock(pcm->op_arg, nonblock);
 	else
@@ -809,7 +809,7 @@ int snd_pcm_nonblock(snd_pcm_t *pcm, int nonblock)
 			pcm->mode &= ~SND_PCM_NONBLOCK;
 	}
  unlock:
-	/* __snd_pcm_unlock(pcm); */ /* FIXME: see above */
+	/* __snd_pcm_unlock(pcm->op_arg); */ /* FIXME: see above */
 	return err;
 }
 
@@ -989,13 +989,13 @@ int snd_pcm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 		return -EINVAL;
 	}
 #endif
-	__snd_pcm_lock(pcm); /* forced lock due to pcm field change */
+	__snd_pcm_lock(pcm->op_arg); /* forced lock due to pcm field change */
 	if (pcm->ops->sw_params)
 		err = pcm->ops->sw_params(pcm->op_arg, params);
 	else
 		err = -ENOSYS;
 	if (err < 0) {
-		__snd_pcm_unlock(pcm);
+		__snd_pcm_unlock(pcm->op_arg);
 		return err;
 	}
 	pcm->tstamp_mode = params->tstamp_mode;
@@ -1008,7 +1008,7 @@ int snd_pcm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 	pcm->silence_threshold = params->silence_threshold;
 	pcm->silence_size = params->silence_size;
 	pcm->boundary = params->boundary;
-	__snd_pcm_unlock(pcm);
+	__snd_pcm_unlock(pcm->op_arg);
 	return 0;
 }
 
@@ -1025,12 +1025,12 @@ int snd_pcm_status(snd_pcm_t *pcm, snd_pcm_status_t *status)
 	int err;
 
 	assert(pcm && status);
-	snd_pcm_lock(pcm);
+	snd_pcm_lock(pcm->fast_op_arg);
 	if (pcm->fast_ops->status)
 		err = pcm->fast_ops->status(pcm->fast_op_arg, status);
 	else
 		err = -ENOSYS;
-	snd_pcm_unlock(pcm);
+	snd_pcm_unlock(pcm->fast_op_arg);
 
 	return err;
 }
@@ -1050,9 +1050,9 @@ snd_pcm_state_t snd_pcm_state(snd_pcm_t *pcm)
 	snd_pcm_state_t state;
 
 	assert(pcm);
-	snd_pcm_lock(pcm);
+	snd_pcm_lock(pcm->fast_op_arg);
 	state = __snd_pcm_state(pcm);
-	snd_pcm_unlock(pcm);
+	snd_pcm_unlock(pcm->fast_op_arg);
 	return state;
 }
 
@@ -1078,9 +1078,9 @@ int snd_pcm_hwsync(snd_pcm_t *pcm)
 		SNDMSG("PCM not set up");
 		return -EIO;
 	}
-	snd_pcm_lock(pcm);
+	snd_pcm_lock(pcm->fast_op_arg);
 	err = __snd_pcm_hwsync(pcm);
-	snd_pcm_unlock(pcm);
+	snd_pcm_unlock(pcm->fast_op_arg);
 	return err;
 }
 
@@ -1123,9 +1123,9 @@ int snd_pcm_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 		SNDMSG("PCM not set up");
 		return -EIO;
 	}
-	snd_pcm_lock(pcm);
+	snd_pcm_lock(pcm->fast_op_arg);
 	err = __snd_pcm_delay(pcm, delayp);
-	snd_pcm_unlock(pcm);
+	snd_pcm_unlock(pcm->fast_op_arg);
 	return err;
 }
 
@@ -1181,12 +1181,12 @@ int snd_pcm_htimestamp(snd_pcm_t *pcm, snd_pcm_uframes_t *avail, snd_htimestamp_
 		SNDMSG("PCM not set up");
 		return -EIO;
 	}
-	snd_pcm_lock(pcm);
+	snd_pcm_lock(pcm->fast_op_arg);
 	if (pcm->fast_ops->htimestamp)
 		err = pcm->fast_ops->htimestamp(pcm->fast_op_arg, avail, tstamp);
 	else
 		err = -ENOSYS;
-	snd_pcm_unlock(pcm);
+	snd_pcm_unlock(pcm->fast_op_arg);
 	return err;
 }
 
@@ -1209,12 +1209,12 @@ int snd_pcm_prepare(snd_pcm_t *pcm)
 	err = bad_pcm_state(pcm, ~P_STATE(DISCONNECTED));
 	if (err < 0)
 		return err;
-	snd_pcm_lock(pcm);
+	snd_pcm_lock(pcm->fast_op_arg);
 	if (pcm->fast_ops->prepare)
 		err = pcm->fast_ops->prepare(pcm->fast_op_arg);
 	else
 		err = -ENOSYS;
-	snd_pcm_unlock(pcm);
+	snd_pcm_unlock(pcm->fast_op_arg);
 	return err;
 }
 
@@ -1236,12 +1236,12 @@ int snd_pcm_reset(snd_pcm_t *pcm)
 		SNDMSG("PCM not set up");
 		return -EIO;
 	}
-	snd_pcm_lock(pcm);
+	snd_pcm_lock(pcm->fast_op_arg);
 	if (pcm->fast_ops->reset)
 		err = pcm->fast_ops->reset(pcm->fast_op_arg);
 	else
 		err = -ENOSYS;
-	snd_pcm_unlock(pcm);
+	snd_pcm_unlock(pcm->fast_op_arg);
 	return err;
 }
 
@@ -1264,9 +1264,9 @@ int snd_pcm_start(snd_pcm_t *pcm)
 	err = bad_pcm_state(pcm, P_STATE(PREPARED));
 	if (err < 0)
 		return err;
-	snd_pcm_lock(pcm);
+	snd_pcm_lock(pcm->fast_op_arg);
 	err = __snd_pcm_start(pcm);
-	snd_pcm_unlock(pcm);
+	snd_pcm_unlock(pcm->fast_op_arg);
 	return err;
 }
 
@@ -1296,12 +1296,12 @@ int snd_pcm_drop(snd_pcm_t *pcm)
 			    P_STATE(SUSPENDED));
 	if (err < 0)
 		return err;
-	snd_pcm_lock(pcm);
+	snd_pcm_lock(pcm->fast_op_arg);
 	if (pcm->fast_ops->drop)
 		err = pcm->fast_ops->drop(pcm->fast_op_arg);
 	else
 		err = -ENOSYS;
-	snd_pcm_unlock(pcm);
+	snd_pcm_unlock(pcm->fast_op_arg);
 	return err;
 }
 
@@ -1364,12 +1364,12 @@ int snd_pcm_pause(snd_pcm_t *pcm, int enable)
 	err = bad_pcm_state(pcm, P_STATE_RUNNABLE);
 	if (err < 0)
 		return err;
-	snd_pcm_lock(pcm);
+	snd_pcm_lock(pcm->fast_op_arg);
 	if (pcm->fast_ops->pause)
 		err = pcm->fast_ops->pause(pcm->fast_op_arg, enable);
 	else
 		err = -ENOSYS;
-	snd_pcm_unlock(pcm);
+	snd_pcm_unlock(pcm->fast_op_arg);
 	return err;
 }
 
@@ -1397,12 +1397,12 @@ snd_pcm_sframes_t snd_pcm_rewindable(snd_pcm_t *pcm)
 	err = bad_pcm_state(pcm, P_STATE_RUNNABLE);
 	if (err < 0)
 		return err;
-	snd_pcm_lock(pcm);
+	snd_pcm_lock(pcm->fast_op_arg);
 	if (pcm->fast_ops->rewindable)
 		result = pcm->fast_ops->rewindable(pcm->fast_op_arg);
 	else
 		result = -ENOSYS;
-	snd_pcm_unlock(pcm);
+	snd_pcm_unlock(pcm->fast_op_arg);
 	return result;
 }
 
@@ -1430,12 +1430,12 @@ snd_pcm_sframes_t snd_pcm_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 	err = bad_pcm_state(pcm, P_STATE_RUNNABLE);
 	if (err < 0)
 		return err;
-	snd_pcm_lock(pcm);
+	snd_pcm_lock(pcm->fast_op_arg);
 	if (pcm->fast_ops->rewind)
 		result = pcm->fast_ops->rewind(pcm->fast_op_arg, frames);
 	else
 		result = -ENOSYS;
-	snd_pcm_unlock(pcm);
+	snd_pcm_unlock(pcm->fast_op_arg);
 	return result;
 }
 
@@ -1463,12 +1463,12 @@ snd_pcm_sframes_t snd_pcm_forwardable(snd_pcm_t *pcm)
 	err = bad_pcm_state(pcm, P_STATE_RUNNABLE);
 	if (err < 0)
 		return err;
-	snd_pcm_lock(pcm);
+	snd_pcm_lock(pcm->fast_op_arg);
 	if (pcm->fast_ops->forwardable)
 		result = pcm->fast_ops->forwardable(pcm->fast_op_arg);
 	else
 		result = -ENOSYS;
-	snd_pcm_unlock(pcm);
+	snd_pcm_unlock(pcm->fast_op_arg);
 	return result;
 }
 
@@ -1500,12 +1500,12 @@ snd_pcm_sframes_t snd_pcm_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 	err = bad_pcm_state(pcm, P_STATE_RUNNABLE);
 	if (err < 0)
 		return err;
-	snd_pcm_lock(pcm);
+	snd_pcm_lock(pcm->fast_op_arg);
 	if (pcm->fast_ops->forward)
 		result = pcm->fast_ops->forward(pcm->fast_op_arg, frames);
 	else
 		result = -ENOSYS;
-	snd_pcm_unlock(pcm);
+	snd_pcm_unlock(pcm->fast_op_arg);
 	return result;
 }
 use_default_symbol_version(__snd_pcm_forward, snd_pcm_forward, ALSA_0.9.0rc8);
@@ -1724,9 +1724,9 @@ int snd_pcm_poll_descriptors_count(snd_pcm_t *pcm)
 	int count;
 
 	assert(pcm);
-	snd_pcm_lock(pcm);
+	snd_pcm_lock(pcm->fast_op_arg);
 	count = __snd_pcm_poll_descriptors_count(pcm);
-	snd_pcm_unlock(pcm);
+	snd_pcm_unlock(pcm->fast_op_arg);
 	return count;
 }
 
@@ -1782,9 +1782,9 @@ int snd_pcm_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int s
 	int err;
 
 	assert(pcm && pfds);
-	snd_pcm_lock(pcm);
+	snd_pcm_lock(pcm->fast_op_arg);
 	err = __snd_pcm_poll_descriptors(pcm, pfds, space);
-	snd_pcm_unlock(pcm);
+	snd_pcm_unlock(pcm->fast_op_arg);
 	return err;
 }
 
@@ -1817,9 +1817,9 @@ int snd_pcm_poll_descriptors_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsign
 	int err;
 
 	assert(pcm && pfds && revents);
-	snd_pcm_lock(pcm);
+	snd_pcm_lock(pcm->fast_op_arg);
 	err = __snd_pcm_poll_revents(pcm, pfds, nfds, revents);
-	snd_pcm_unlock(pcm);
+	snd_pcm_unlock(pcm->fast_op_arg);
 	return err;
 }
 
@@ -2816,9 +2816,9 @@ int snd_pcm_wait(snd_pcm_t *pcm, int timeout)
 {
 	int err;
 
-	__snd_pcm_lock(pcm); /* forced lock */
+	__snd_pcm_lock(pcm->fast_op_arg); /* forced lock */
 	err = __snd_pcm_wait_in_lock(pcm, timeout);
-	__snd_pcm_unlock(pcm);
+	__snd_pcm_unlock(pcm->fast_op_arg);
 	return err;
 }
 
@@ -2865,9 +2865,9 @@ int snd_pcm_wait_nocheck(snd_pcm_t *pcm, int timeout)
 		return -EIO;
 	}
 	do {
-		__snd_pcm_unlock(pcm);
+		__snd_pcm_unlock(pcm->fast_op_arg);
 		err_poll = poll(pfd, npfds, timeout);
-		__snd_pcm_lock(pcm);
+		__snd_pcm_lock(pcm->fast_op_arg);
 		if (err_poll < 0) {
 		        if (errno == EINTR && !PCMINABORT(pcm))
 		                continue;
@@ -2926,9 +2926,9 @@ snd_pcm_sframes_t snd_pcm_avail_update(snd_pcm_t *pcm)
 {
 	snd_pcm_sframes_t result;
 
-	snd_pcm_lock(pcm);
+	snd_pcm_lock(pcm->fast_op_arg);
 	result = __snd_pcm_avail_update(pcm);
-	snd_pcm_unlock(pcm);
+	snd_pcm_unlock(pcm->fast_op_arg);
 	return result;
 }
 
@@ -2956,13 +2956,13 @@ snd_pcm_sframes_t snd_pcm_avail(snd_pcm_t *pcm)
 		SNDMSG("PCM not set up");
 		return -EIO;
 	}
-	snd_pcm_lock(pcm);
+	snd_pcm_lock(pcm->fast_op_arg);
 	err = __snd_pcm_hwsync(pcm);
 	if (err < 0)
 		result = err;
 	else
 		result = __snd_pcm_avail_update(pcm);
-	snd_pcm_unlock(pcm);
+	snd_pcm_unlock(pcm->fast_op_arg);
 	return result;
 }
 
@@ -2989,7 +2989,7 @@ int snd_pcm_avail_delay(snd_pcm_t *pcm,
 		SNDMSG("PCM not set up");
 		return -EIO;
 	}
-	snd_pcm_lock(pcm);
+	snd_pcm_lock(pcm->fast_op_arg);
 	err = __snd_pcm_hwsync(pcm);
 	if (err < 0)
 		goto unlock;
@@ -3004,7 +3004,7 @@ int snd_pcm_avail_delay(snd_pcm_t *pcm,
 	*availp = sf;
 	err = 0;
  unlock:
-	snd_pcm_unlock(pcm);
+	snd_pcm_unlock(pcm->fast_op_arg);
 	return err;
 }
 
@@ -7192,9 +7192,9 @@ int snd_pcm_mmap_begin(snd_pcm_t *pcm,
 	err = bad_pcm_state(pcm, P_STATE_RUNNABLE);
 	if (err < 0)
 		return err;
-	snd_pcm_lock(pcm);
+	snd_pcm_lock(pcm->fast_op_arg);
 	err = __snd_pcm_mmap_begin(pcm, areas, offset, frames);
-	snd_pcm_unlock(pcm);
+	snd_pcm_unlock(pcm->fast_op_arg);
 	return err;
 }
 
@@ -7297,9 +7297,9 @@ snd_pcm_sframes_t snd_pcm_mmap_commit(snd_pcm_t *pcm,
 	err = bad_pcm_state(pcm, P_STATE_RUNNABLE);
 	if (err < 0)
 		return err;
-	snd_pcm_lock(pcm);
+	snd_pcm_lock(pcm->fast_op_arg);
 	result = __snd_pcm_mmap_commit(pcm, offset, frames);
-	snd_pcm_unlock(pcm);
+	snd_pcm_unlock(pcm->fast_op_arg);
 	return result;
 }
 
@@ -7375,7 +7375,7 @@ snd_pcm_sframes_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_
 	if (size == 0)
 		return 0;
 
-	__snd_pcm_lock(pcm); /* forced lock */
+	__snd_pcm_lock(pcm->fast_op_arg); /* forced lock */
 	while (size > 0) {
 		snd_pcm_uframes_t frames;
 		snd_pcm_sframes_t avail;
@@ -7434,7 +7434,7 @@ snd_pcm_sframes_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_
 		xfer += frames;
 	}
  _end:
-	__snd_pcm_unlock(pcm);
+	__snd_pcm_unlock(pcm->fast_op_arg);
 	return xfer > 0 ? (snd_pcm_sframes_t) xfer : snd_pcm_check_error(pcm, err);
 }
 
@@ -7449,7 +7449,7 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 	if (size == 0)
 		return 0;
 
-	__snd_pcm_lock(pcm); /* forced lock */
+	__snd_pcm_lock(pcm->fast_op_arg); /* forced lock */
 	while (size > 0) {
 		snd_pcm_uframes_t frames;
 		snd_pcm_sframes_t avail;
@@ -7523,7 +7523,7 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 		xfer += frames;
 	}
  _end:
-	__snd_pcm_unlock(pcm);
+	__snd_pcm_unlock(pcm->fast_op_arg);
 	return xfer > 0 ? (snd_pcm_sframes_t) xfer : snd_pcm_check_error(pcm, err);
 }
 
