@@ -791,10 +791,10 @@ pcm.name {
 		channels INT
 		period_time INT	# in usec
 		# or
-		period_size INT	# in bytes
+		period_size INT	# in frames
 		buffer_time INT	# in usec
 		# or
-		buffer_size INT # in bytes
+		buffer_size INT # in frames
 		periods INT	# when buffer_size or buffer_time is not specified
 	}
 	bindings {		# note: this is client independent!!!
