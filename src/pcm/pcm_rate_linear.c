@@ -29,7 +29,7 @@
 #include "plugin_ops.h"
 
 
-/* LINEAR_DIV needs to be large enough to handle resampling from 192000 -> 8000 */
+/* LINEAR_DIV needs to be large enough to handle resampling from 768000 -> 8000 */
 #define LINEAR_DIV_SHIFT 19
 #define LINEAR_DIV (1<<LINEAR_DIV_SHIFT)
 

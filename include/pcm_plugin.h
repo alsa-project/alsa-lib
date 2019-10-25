@@ -40,7 +40,7 @@
  */
   
 #define SND_PCM_PLUGIN_RATE_MIN 4000	/**< minimal rate for the rate plugin */
-#define SND_PCM_PLUGIN_RATE_MAX 192000	/**< maximal rate for the rate plugin */
+#define SND_PCM_PLUGIN_RATE_MAX 768000	/**< maximal rate for the rate plugin */
 
 /* ROUTE_FLOAT should be set to 0 for machines without FP unit - like iPAQ */
 #ifdef HAVE_SOFT_FLOAT

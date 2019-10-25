@@ -170,7 +170,7 @@ int snd_spcm_init(snd_pcm_t *pcm,
 	unsigned int buffer_time;
 
 	assert(pcm);
-	assert(rate >= 5000 && rate <= 192000);
+	assert(rate >= 5000 && rate <= 786000);
 	assert(channels >= 1 && channels <= 512);
 
 	rrate = rate;
@@ -227,7 +227,7 @@ int snd_spcm_init_duplex(snd_pcm_t *playback_pcm,
 
 	assert(playback_pcm);
 	assert(capture_pcm);
-	assert(rate >= 5000 && rate <= 192000);
+	assert(rate >= 5000 && rate <= 768000);
 	assert(channels >= 1 && channels <= 512);
 
 	pcms[0] = playback_pcm;
