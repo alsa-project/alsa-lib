@@ -1388,8 +1388,8 @@ static int get_card_long_name(snd_use_case_mgr_t *mgr)
 		 */
 		_name = snd_ctl_card_info_get_name(info);
 		_long_name = snd_ctl_card_info_get_longname(info);
-		if (!strcmp(card_name, _name)
-		    || !strcmp(card_name, _long_name)) {
+		if (!strcmp(card_name, _name) ||
+		    !strcmp(card_name, _long_name)) {
 			strcpy(mgr->card_long_name, _long_name);
 			snd_ctl_close(handle);
 			return 0;
