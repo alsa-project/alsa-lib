@@ -1528,7 +1528,7 @@ int uc_mgr_scan_master_configs(const char **_list[])
 	char *env = getenv(ALSA_CONFIG_UCM_VAR);
 	const char **list;
 	snd_config_t *cfg, *c;
-	int i, cnt, err;
+	int i, j, cnt, err;
 	ssize_t ss;
 	struct dirent **namelist;
 
@@ -1573,7 +1573,7 @@ int uc_mgr_scan_master_configs(const char **_list[])
 		goto __err;
 	}
 
-	for (i = 0; i < cnt; i++) {
+	for (i = j = 0; i < cnt; i++) {
 
 		/* Skip the directories for component devices */
 		if (is_component_directory(namelist[i]->d_name))
@@ -1584,28 +1584,29 @@ int uc_mgr_scan_master_configs(const char **_list[])
 			goto __err;
 		err = snd_config_search(cfg, "Comment", &c);
 		if (err >= 0) {
-			err = parse_string(c, (char **)&list[i*2+1]);
+			err = parse_string(c, (char **)&list[j+1]);
 			if (err < 0) {
 				snd_config_delete(cfg);
 				goto __err;
 			}
 		}
 		snd_config_delete(cfg);
-		list[i * 2] = strdup(namelist[i]->d_name);
-		if (list[i * 2] == NULL) {
+		list[j] = strdup(namelist[i]->d_name);
+		if (list[j] == NULL) {
 			err = -ENOMEM;
 			goto __err;
 		}
-		if (strcmp(dfl, list[i * 2]) == 0) {
+		if (strcmp(dfl, list[j]) == 0) {
 			/* default to top */
-			const char *save1 = list[i * 2];
-			const char *save2 = list[i * 2 + 1];
-			memmove(list + 2, list, i * 2 * sizeof(char *));
+			const char *save1 = list[j];
+			const char *save2 = list[j + 1];
+			memmove(list + 2, list, j * sizeof(char *));
 			list[0] = save1;
 			list[1] = save2;
 		}
+		j += 2;
 	}
-	err = cnt * 2;
+	err = j;
 
       __err:
 	for (i = 0; i < cnt; i++) {
