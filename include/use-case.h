@@ -371,8 +371,25 @@ int snd_use_case_set(snd_use_case_mgr_t *uc_mgr,
  * \param uc_mgr Returned use case manager pointer
  * \param card_name Sound card name.
  * \return zero if success, otherwise a negative error code
+ *
+ * By default only first card is used when the driver card
+ * name or long name is passed in the card_name argument.
+ *
+ * The "strict:" prefix in the card_name defines that
+ * there is no driver name / long name matching. The straight
+ * configuration is used.
+ *
+ * The "hw:" prefix in the card_name will load the configuration
+ * for the ALSA card specified by the card index (value) or
+ * the card string identificator.
+ *
+ * The sound card might be also composed from several physical
+ * sound cards (for the default and strict card_name).
+ * The application cannot expect that the device names will refer
+ * only one ALSA sound card in this case.
  */
-int snd_use_case_mgr_open(snd_use_case_mgr_t **uc_mgr, const char *card_name);
+int snd_use_case_mgr_open(snd_use_case_mgr_t **uc_mgr,
+                          const char *card_name);
 
 
 /**
