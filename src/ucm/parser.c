@@ -1502,7 +1502,7 @@ static int get_by_card(snd_use_case_mgr_t *mgr, const char *ctl_name)
 }
 
 static int load_master_config(snd_use_case_mgr_t *uc_mgr,
-			      const char *card_name, snd_config_t **cfg)
+			      const char *card_name, snd_config_t **cfg, int fcheck)
 {
 	char filename[MAX_FILE];
 	int err;
@@ -1515,6 +1515,11 @@ static int load_master_config(snd_use_case_mgr_t *uc_mgr,
 
 	configuration_filename(uc_mgr, filename, sizeof(filename),
 			       card_name, ".conf");
+
+	/* if the configuration file does not exist, silently return */
+	if (fcheck && access(filename, R_OK) != 0)
+		return -ENOENT;
+
 	err = uc_mgr_config_load(uc_mgr->conf_format, filename, cfg);
 	if (err < 0) {
 		uc_error("error: could not parse configuration for card %s",
@@ -1555,9 +1560,10 @@ int uc_mgr_import_master_config(snd_use_case_mgr_t *uc_mgr)
 		goto __error;
 	} else if (strncmp(name, "strict:", 7)) {
 		err = get_card_long_name(uc_mgr);
+		if (err == 0) { /* load file that matches the card long name */
 __longname:
-		if (err == 0)	/* load file that matches the card long name */
-			err = load_master_config(uc_mgr, uc_mgr->card_long_name, &cfg);
+			err = load_master_config(uc_mgr, uc_mgr->card_long_name, &cfg, 1);
+		}
 
 		if (err == 0) {
 			/* got device-specific file that matches the card long name */
@@ -1567,7 +1573,7 @@ __longname:
 	}
 
 	/* standard path */
-	err = load_master_config(uc_mgr, uc_mgr->conf_file_name, &cfg);
+	err = load_master_config(uc_mgr, uc_mgr->conf_file_name, &cfg, 0);
 	if (err < 0)
 		goto __error;
 
@@ -1683,7 +1689,6 @@ int uc_mgr_scan_master_configs(const char **_list[])
 		/* Skip the directories for component devices */
 		if (is_component_directory(d_name))
 			continue;
-
 
 		configuration_filename2(filename, sizeof(filename), 2,
 					d_name, d_name, ".conf");
