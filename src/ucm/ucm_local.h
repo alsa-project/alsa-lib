@@ -105,6 +105,18 @@ struct dev_list {
 	struct list_head list;
 };
 
+struct ctl_dev {
+	struct list_head list;
+	char *device;
+};
+
+struct ctl_list {
+	struct list_head list;
+	struct list_head dev_list;
+	char *ctl_id;
+	snd_ctl_t *ctl;
+};
+
 /*
  * Describes a Use Case Modifier and it's enable and disable sequences.
  * A use case verb can have N modifiers.
@@ -214,9 +226,8 @@ struct snd_use_case_mgr {
 	/* locking */
 	pthread_mutex_t mutex;
 
-	/* change to list of ctl handles */
-	snd_ctl_t *ctl;
-	char *ctl_dev;
+	/* list of opened control devices */
+	struct list_head ctl_list;
 
 	/* Components don't define cdev, the card device. When executing
 	 * a sequence of a component device, ucm manager enters component
@@ -246,6 +257,12 @@ void uc_mgr_free_sequence_element(struct sequence_element *seq);
 void uc_mgr_free_transition_element(struct transition_sequence *seq);
 void uc_mgr_free_verb(snd_use_case_mgr_t *uc_mgr);
 void uc_mgr_free(snd_use_case_mgr_t *uc_mgr);
+
+int uc_mgr_open_ctl(snd_use_case_mgr_t *uc_mgr,
+                    snd_ctl_t **ctl,
+                    const char *device);
+
+void uc_mgr_free_ctl_list(snd_use_case_mgr_t *uc_mgr);
 
 /** The name of the environment variable containing the UCM directory */
 #define ALSA_CONFIG_UCM_VAR "ALSA_CONFIG_UCM"

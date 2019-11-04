@@ -138,37 +138,6 @@ int snd_use_case_free_list(const char *list[], int items)
 	return 0;
 }
 
-static int open_ctl(snd_use_case_mgr_t *uc_mgr,
-		    snd_ctl_t **ctl,
-		    const char *ctl_dev)
-{
-	int err;
-
-	/* FIXME: add a list of ctl devices to uc_mgr structure and
-           cache accesses for multiple opened ctl devices */
-	if (uc_mgr->ctl_dev != NULL && strcmp(ctl_dev, uc_mgr->ctl_dev) == 0) {
-		*ctl = uc_mgr->ctl;
-		return 0;
-	}
-	if (uc_mgr->ctl_dev) {
-		free(uc_mgr->ctl_dev);
-		uc_mgr->ctl_dev = NULL;
-		snd_ctl_close(uc_mgr->ctl);
-		uc_mgr->ctl = NULL;
-	
-	}
-	err = snd_ctl_open(ctl, ctl_dev, 0);
-	if (err < 0)
-		return err;
-	uc_mgr->ctl_dev = strdup(ctl_dev);
-	if (uc_mgr->ctl_dev == NULL) {
-		snd_ctl_close(*ctl);
-		return -ENOMEM;
-	}
-	uc_mgr->ctl = *ctl;
-	return 0;
-}
-
 static int read_tlv_file(unsigned int **res,
 			 const char *filepath)
 {
@@ -427,7 +396,7 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 					cdev = capture_ctl;
 			}
 			if (ctl == NULL) {
-				err = open_ctl(uc_mgr, &ctl, cdev);
+				err = uc_mgr_open_ctl(uc_mgr, &ctl, cdev);
 				if (err < 0) {
 					uc_error("unable to open ctl device '%s'", cdev);
 					goto __fail;
@@ -932,6 +901,7 @@ int snd_use_case_mgr_open(snd_use_case_mgr_t **uc_mgr,
 	INIT_LIST_HEAD(&mgr->value_list);
 	INIT_LIST_HEAD(&mgr->active_modifiers);
 	INIT_LIST_HEAD(&mgr->active_devices);
+	INIT_LIST_HEAD(&mgr->ctl_list);
 	pthread_mutex_init(&mgr->mutex, NULL);
 
 	mgr->card_name = strdup(card_name);

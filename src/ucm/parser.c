@@ -1412,22 +1412,27 @@ static int parse_master_file(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 }
 
 /* get the card info */
-static int get_card_info(const char *ctl_name, snd_ctl_card_info_t *info)
+static int get_card_info(snd_use_case_mgr_t *mgr,
+			 const char *ctl_name,
+			 snd_ctl_t **_handle,
+			 snd_ctl_card_info_t *info)
 {
 	snd_ctl_t *handle;
 	int err;
 
-	err = snd_ctl_open(&handle, ctl_name, 0);
-	if (err < 0) {
-		uc_error("control open (%s): %s", ctl_name, snd_strerror(err));
+	*_handle = NULL;
+
+	err = uc_mgr_open_ctl(mgr, &handle, ctl_name);
+	if (err < 0)
 		return err;
-	}
 
 	err = snd_ctl_card_info(handle, info);
-	if (err < 0)
+	if (err < 0) {
 		uc_error("control hardware info (%s): %s", ctl_name, snd_strerror(err));
+	} else {
+		*_handle = handle;
+	}
 
-	snd_ctl_close(handle);
 	return err;
 }
 
@@ -1436,6 +1441,7 @@ static int get_card_long_name(snd_use_case_mgr_t *mgr)
 {
 	const char *card_name = mgr->card_name;
 	int card, err;
+	snd_ctl_t *ctl;
 	snd_ctl_card_info_t *info;
 	const char *_name, *_long_name;
 
@@ -1451,7 +1457,7 @@ static int get_card_long_name(snd_use_case_mgr_t *mgr)
 		char name[32];
 
 		sprintf(name, "hw:%d", card);
-		err = get_card_info(name, info);
+		err = get_card_info(mgr, name, &ctl, info);
 
 		if (err == 0) {
 			_name = snd_ctl_card_info_get_name(info);
@@ -1475,13 +1481,14 @@ static int get_card_long_name(snd_use_case_mgr_t *mgr)
 /* set the driver name and long name by the card ctl name */
 static int get_by_card(snd_use_case_mgr_t *mgr, const char *ctl_name)
 {
+	snd_ctl_t *ctl;
 	snd_ctl_card_info_t *info;
 	const char *_name, *_long_name;
 	int err;
 
 	snd_ctl_card_info_alloca(&info);
 
-	err = get_card_info(ctl_name, info);
+	err = get_card_info(mgr, ctl_name, &ctl, info);
 	if (err)
 		return err;
 
@@ -1490,6 +1497,7 @@ static int get_by_card(snd_use_case_mgr_t *mgr, const char *ctl_name)
 
 	snd_strlcpy(mgr->card_long_name, _long_name, sizeof(mgr->card_long_name));
 	snd_strlcpy(mgr->conf_file_name, _name, sizeof(mgr->conf_file_name));
+
 	return 0;
 }
 
@@ -1572,6 +1580,7 @@ __parse:
 	return err;
 
 __error:
+	uc_mgr_free_ctl_list(uc_mgr);
 	uc_mgr->conf_file_name[0] = '\0';
 	return err;
 }

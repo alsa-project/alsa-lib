@@ -49,6 +49,177 @@ void uc_mgr_stdout(const char *fmt,...)
 	va_end(va);
 }
 
+static void uc_mgr_free_ctl(struct ctl_list *ctl_list)
+{
+	struct list_head *pos, *npos;
+	struct ctl_dev *ctl_dev;
+
+	list_for_each_safe(pos, npos, &ctl_list->dev_list) {
+		ctl_dev = list_entry(pos, struct ctl_dev, list);
+		free(ctl_dev->device);
+		free(ctl_dev);
+	}
+	free(ctl_list->ctl_id);
+	free(ctl_list);
+}
+
+void uc_mgr_free_ctl_list(snd_use_case_mgr_t *uc_mgr)
+{
+	struct list_head *pos, *npos;
+	struct ctl_list *ctl_list;
+
+	list_for_each_safe(pos, npos, &uc_mgr->ctl_list) {
+		ctl_list = list_entry(pos, struct ctl_list, list);
+		snd_ctl_close(ctl_list->ctl);
+		list_del(&ctl_list->list);
+		uc_mgr_free_ctl(ctl_list);
+	}
+}
+
+static int uc_mgr_ctl_add_dev(struct ctl_list *ctl_list, const char *device)
+{
+	struct list_head *pos;
+	struct ctl_dev *ctl_dev;
+
+	/* skip duplicates */
+	list_for_each(pos, &ctl_list->dev_list) {
+		ctl_dev = list_entry(pos, struct ctl_dev, list);
+		if (strcmp(ctl_dev->device, device) == 0)
+			return 0;
+	}
+
+	/* allocate new device name */
+	ctl_dev = malloc(sizeof(*ctl_dev));
+	if (ctl_dev == NULL)
+		return -ENOMEM;
+	ctl_dev->device = strdup(device);
+	if (ctl_dev->device == NULL) {
+		free(ctl_dev);
+		return -ENOMEM;
+	}
+	list_add_tail(&ctl_dev->list, &ctl_list->dev_list);
+	return 0;
+}
+
+static int uc_mgr_ctl_add(snd_use_case_mgr_t *uc_mgr,
+			  struct ctl_list *ctl_list,
+			  snd_ctl_t *ctl, int card, snd_ctl_card_info_t *info,
+			  const char *device)
+{
+	struct ctl_list *cl = NULL;
+	const char *id = snd_ctl_card_info_get_id(info);
+	char dev[MAX_CARD_LONG_NAME];
+	int err, hit = 0;
+
+	if (id == NULL || id[0] == '\0')
+		return -ENOENT;
+	if (!ctl_list) {
+		cl = malloc(sizeof(*cl));
+		if (cl == NULL)
+			return -ENOMEM;
+		INIT_LIST_HEAD(&cl->dev_list);
+		cl->ctl = ctl;
+		cl->ctl_id = strdup(id);
+		if (cl->ctl_id == NULL) {
+			free(cl);
+			return -ENOMEM;
+		}
+		ctl_list = cl;
+	}
+	if (card >= 0) {
+		snprintf(dev, sizeof(dev), "hw:%d", card);
+		hit |= !!(device && (strcmp(dev, device) == 0));
+		err = uc_mgr_ctl_add_dev(ctl_list, dev);
+		if (err < 0)
+			goto __nomem;
+	}
+	snprintf(dev, sizeof(dev), "hw:%s", id);
+	hit |= !!(device && (strcmp(dev, device) == 0));
+	err = uc_mgr_ctl_add_dev(ctl_list, dev);
+	if (err < 0)
+		goto __nomem;
+	/* the UCM name not based on the card name / id */
+	if (!hit && device) {
+		err = uc_mgr_ctl_add_dev(ctl_list, device);
+		if (err < 0)
+			goto __nomem;
+	}
+
+	list_add_tail(&ctl_list->list, &uc_mgr->ctl_list);
+	return 0;
+
+__nomem:
+	if (ctl_list == cl)
+		uc_mgr_free_ctl(cl);
+	return -ENOMEM;
+}
+
+int uc_mgr_open_ctl(snd_use_case_mgr_t *uc_mgr,
+		    snd_ctl_t **ctl,
+		    const char *device)
+{
+	struct list_head *pos1, *pos2;
+	struct ctl_list *ctl_list;
+	struct ctl_dev *ctl_dev;
+	snd_ctl_card_info_t *info;
+	const char *id;
+	int err, card;
+
+	snd_ctl_card_info_alloca(&info);
+
+	/* cache lookup */
+	list_for_each(pos1, &uc_mgr->ctl_list) {
+		ctl_list = list_entry(pos1, struct ctl_list, list);
+		list_for_each(pos2, &ctl_list->dev_list) {
+			ctl_dev = list_entry(pos2, struct ctl_dev, list);
+			if (strcmp(ctl_dev->device, device) == 0) {
+				*ctl = ctl_list->ctl;
+				return 0;
+			}
+		}
+	}
+
+	err = snd_ctl_open(ctl, device, 0);
+	if (err < 0)
+		return err;
+
+	id = NULL;
+	err = snd_ctl_card_info(*ctl, info);
+	if (err == 0)
+		id = snd_ctl_card_info_get_id(info);
+	if (err < 0 || id == NULL || id[0] == '\0') {
+		uc_error("control hardware info (%s): %s", device, snd_strerror(err));
+		snd_ctl_close(*ctl);
+		*ctl = NULL;
+		return err;
+	}
+
+	/* insert to cache, if just name differs */
+	list_for_each(pos1, &uc_mgr->ctl_list) {
+		ctl_list = list_entry(pos1, struct ctl_list, list);
+		if (strcmp(id, ctl_list->ctl_id) == 0) {
+			card = snd_card_get_index(id);
+			err = uc_mgr_ctl_add(uc_mgr, ctl_list, *ctl, card, info, device);
+			if (err < 0)
+				goto __nomem;
+			snd_ctl_close(*ctl);
+			*ctl = ctl_list->ctl;
+			return 0;
+		}
+	}
+
+	err = uc_mgr_ctl_add(uc_mgr, NULL, *ctl, -1, info, device);
+	if (err < 0)
+		goto __nomem;
+
+	return 0;
+
+__nomem:
+	snd_ctl_close(*ctl);
+	*ctl = NULL;
+	return -ENOMEM;
+}
+
 int uc_mgr_config_load(int format, const char *file, snd_config_t **cfg)
 {
 	FILE *fp;
@@ -241,17 +412,12 @@ void uc_mgr_free_verb(snd_use_case_mgr_t *uc_mgr)
 	uc_mgr->active_verb = NULL;
 	INIT_LIST_HEAD(&uc_mgr->active_devices);
 	INIT_LIST_HEAD(&uc_mgr->active_modifiers);
-	if (uc_mgr->ctl != NULL) {
-		snd_ctl_close(uc_mgr->ctl);
-		uc_mgr->ctl = NULL;
-	}
-	free(uc_mgr->ctl_dev);
-	uc_mgr->ctl_dev = NULL;
 }
 
 void uc_mgr_free(snd_use_case_mgr_t *uc_mgr)
 {
 	uc_mgr_free_verb(uc_mgr);
+	uc_mgr_free_ctl_list(uc_mgr);
 	free(uc_mgr->card_name);
 	free(uc_mgr);
 }
