@@ -307,7 +307,14 @@ void uc_mgr_free_sequence_element(struct sequence_element *seq)
 	if (seq == NULL)
 		return;
 	switch (seq->type) {
+	case SEQUENCE_ELEMENT_TYPE_CDEV:
+		free(seq->data.cdev);
+		break;
 	case SEQUENCE_ELEMENT_TYPE_CSET:
+	case SEQUENCE_ELEMENT_TYPE_CSET_BIN_FILE:
+	case SEQUENCE_ELEMENT_TYPE_CSET_TLV:
+		free(seq->data.cset);
+		break;
 	case SEQUENCE_ELEMENT_TYPE_EXEC:
 		free(seq->data.exec);
 		break;
