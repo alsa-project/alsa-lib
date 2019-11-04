@@ -1464,6 +1464,7 @@ static int get_card_long_name(snd_use_case_mgr_t *mgr)
 			_long_name = snd_ctl_card_info_get_longname(info);
 			if (!strcmp(card_name, _name) ||
 			    !strcmp(card_name, _long_name)) {
+				snd_strlcpy(mgr->card_short_name, _name, sizeof(mgr->card_short_name));
 				snd_strlcpy(mgr->card_long_name, _long_name, sizeof(mgr->card_long_name));
 				return 0;
 			}
@@ -1495,6 +1496,7 @@ static int get_by_card(snd_use_case_mgr_t *mgr, const char *ctl_name)
 	_name = snd_ctl_card_info_get_name(info);
 	_long_name = snd_ctl_card_info_get_longname(info);
 
+	snd_strlcpy(mgr->card_short_name, _name, sizeof(mgr->card_short_name));
 	snd_strlcpy(mgr->card_long_name, _long_name, sizeof(mgr->card_long_name));
 	snd_strlcpy(mgr->conf_file_name, _name, sizeof(mgr->conf_file_name));
 

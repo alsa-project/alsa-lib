@@ -41,9 +41,10 @@
  * misc
  */
 
-static int get_value1(char **value, struct list_head *value_list,
-                      const char *identifier);
-static int get_value3(char **value,
+static int get_value1(snd_use_case_mgr_t *uc_mgr, char **value,
+                      struct list_head *value_list, const char *identifier);
+static int get_value3(snd_use_case_mgr_t *uc_mgr,
+                      char **value,
 		      const char *identifier,
 		      struct list_head *value_list1,
 		      struct list_head *value_list2,
@@ -359,7 +360,7 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 				char *playback_ctl = NULL;
 				char *capture_ctl = NULL;
 
-				err = get_value3(&playback_ctl, "PlaybackCTL",
+				err = get_value3(uc_mgr, &playback_ctl, "PlaybackCTL",
 						 value_list1,
 						 value_list2,
 						 value_list3);
@@ -367,7 +368,7 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 					uc_error("cdev is not defined!");
 					return err;
 				}
-				err = get_value3(&capture_ctl, "CaptureCTL",
+				err = get_value3(uc_mgr, &capture_ctl, "CaptureCTL",
 						 value_list1,
 						 value_list2,
 						 value_list3);
@@ -1351,8 +1352,156 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
 	return err;
 }
 
-static int get_value1(char **value, struct list_head *value_list,
-                      const char *identifier)
+static char *rval_conf_name(snd_use_case_mgr_t *uc_mgr)
+{
+	if (uc_mgr->conf_file_name[0])
+		return strdup(uc_mgr->conf_file_name);
+	return NULL;
+}
+
+static char *rval_card_id(snd_use_case_mgr_t *uc_mgr)
+{
+	struct list_head *pos;
+	struct ctl_list *ctl_list = NULL;
+
+	list_for_each(pos, &uc_mgr->ctl_list) {
+		if (ctl_list) {
+			uc_error("multiple control device names were found!");
+			return NULL;
+		}
+		ctl_list = list_entry(pos, struct ctl_list, list);
+	}
+
+	if (ctl_list == NULL)
+		return NULL;
+
+	return strdup(ctl_list->ctl_id);
+}
+
+static char *rval_card_name(snd_use_case_mgr_t *uc_mgr)
+{
+	if (uc_mgr->card_short_name)
+		return strdup(uc_mgr->card_short_name);
+	return NULL;
+}
+
+static char *rval_card_longname(snd_use_case_mgr_t *uc_mgr)
+{
+	if (uc_mgr->card_long_name[0])
+		return strdup(uc_mgr->card_long_name);
+	return NULL;
+}
+
+static char *rval_env(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED, const char *id)
+{
+	char *e;
+
+	e = getenv(id);
+	if (e)
+		return strdup(e);
+	return NULL;
+}
+
+#define MATCH_VARIABLE(name, id, fcn)					\
+	if (strncmp((name), (id), sizeof(id) - 1) == 0) { 		\
+		rval = fcn(uc_mgr);					\
+		idsize = sizeof(id) - 1;				\
+		goto __rval;						\
+	}
+
+#define MATCH_VARIABLE2(name, id, fcn)					\
+	if (strncmp((name), (id), sizeof(id) - 1) == 0) {		\
+		idsize = sizeof(id) - 1;				\
+		tmp = strchr(value + idsize, '}');			\
+		if (tmp) {						\
+			rvalsize = tmp - (value + idsize);		\
+			if (rvalsize > sizeof(v2)) {			\
+				err = -ENOMEM;				\
+				goto __error;				\
+			}						\
+			strncpy(v2, value + idsize, rvalsize);		\
+			v2[rvalsize] = '\0';				\
+			idsize += rvalsize + 1;				\
+			rval = fcn(uc_mgr, v2);				\
+			goto __rval;					\
+		}							\
+	}
+
+static int get_substituted_value(snd_use_case_mgr_t *uc_mgr,
+				 char **_rvalue,
+				 const char *value)
+{
+	size_t size, nsize, idsize, rvalsize, dpos = 0;
+	const char *tmp;
+	char *r, *nr, *rval, v2[32];
+	int err;
+
+	if (value == NULL)
+		return -ENOENT;
+
+	size = strlen(value) + 1;
+	r = malloc(size);
+	if (r == NULL)
+		return -ENOMEM;
+
+	while (*value) {
+		if (*value == '$' && *(value+1) == '{') {
+			MATCH_VARIABLE(value, "${ConfName}", rval_conf_name);
+			MATCH_VARIABLE(value, "${CardId}", rval_card_id);
+			MATCH_VARIABLE(value, "${CardName}", rval_card_name);
+			MATCH_VARIABLE(value, "${CardLongName}", rval_card_longname);
+			MATCH_VARIABLE2(value, "${env:", rval_env);
+			err = -EINVAL;
+			tmp = strchr(value, '}');
+			if (tmp) {
+				strncpy(r, value, tmp + 1 - value);
+				r[tmp + 1 - value] = '\0';
+				uc_error("variable '%s' is not known!", r);
+			} else {
+				uc_error("variable reference '%s' is not complete", value);
+			}
+			goto __error;
+__rval:
+			if (rval == NULL || rval[0] == '\0') {
+				free(rval);
+				strncpy(r, value, idsize);
+				r[idsize] = '\0';
+				uc_error("variable '%s' is not defined in this context!", r);
+				err = -EINVAL;
+				goto __error;
+			}
+			value += idsize;
+			rvalsize = strlen(rval);
+			nsize = size + rvalsize - idsize;
+			if (nsize > size) {
+				nr = realloc(r, nsize);
+				if (nr == NULL) {
+					err = -ENOMEM;
+					goto __error;
+				}
+				size = nsize;
+				r = nr;
+			}
+			strcpy(r + dpos, rval);
+			dpos += rvalsize;
+			free(rval);
+		} else {
+			r[dpos++] = *value;
+			value++;
+		}
+	}
+	r[dpos] = '\0';
+
+	*_rvalue = r;
+	return 0;
+
+__error:
+	free(r);
+	return err;
+}
+
+static int get_value1(snd_use_case_mgr_t *uc_mgr, char **value,
+		      struct list_head *value_list, const char *identifier)
 {
         struct ucm_value *val;
         struct list_head *pos;
@@ -1361,18 +1510,22 @@ static int get_value1(char **value, struct list_head *value_list,
 		return -ENOENT;
 
         list_for_each(pos, value_list) {
-              val = list_entry(pos, struct ucm_value, list);
-              if (check_identifier(identifier, val->name)) {
-                      *value = strdup(val->data);
-                      if (*value == NULL)
-                              return -ENOMEM;
-                      return 0;
-              }
+		val = list_entry(pos, struct ucm_value, list);
+		if (check_identifier(identifier, val->name)) {
+			if (uc_mgr->conf_format < 2) {
+				*value = strdup(val->data);
+				if (*value == NULL)
+					return -ENOMEM;
+				return 0;
+			}
+			return get_substituted_value(uc_mgr, value, val->data);
+		}
         }
         return -ENOENT;
 }
 
-static int get_value3(char **value,
+static int get_value3(snd_use_case_mgr_t *uc_mgr,
+		      char **value,
 		      const char *identifier,
 		      struct list_head *value_list1,
 		      struct list_head *value_list2,
@@ -1380,13 +1533,13 @@ static int get_value3(char **value,
 {
 	int err;
 
-	err = get_value1(value, value_list1, identifier);
+	err = get_value1(uc_mgr, value, value_list1, identifier);
 	if (err >= 0 || err != -ENOENT)
 		return err;
-	err = get_value1(value, value_list2, identifier);
+	err = get_value1(uc_mgr, value, value_list2, identifier);
 	if (err >= 0 || err != -ENOENT)
 		return err;
-	err = get_value1(value, value_list3, identifier);
+	err = get_value1(uc_mgr, value, value_list3, identifier);
 	if (err >= 0 || err != -ENOENT)
 		return err;
 	return -ENOENT;
@@ -1423,7 +1576,7 @@ static int get_value(snd_use_case_mgr_t *uc_mgr,
 				mod = find_modifier(uc_mgr, verb,
 						    mod_dev_name, 0);
 				if (mod) {
-					err = get_value1(value,
+					err = get_value1(uc_mgr, value,
 							 &mod->value_list,
 							 identifier);
 					if (err >= 0 || err != -ENOENT)
@@ -1433,7 +1586,7 @@ static int get_value(snd_use_case_mgr_t *uc_mgr,
 				dev = find_device(uc_mgr, verb,
 						  mod_dev_name, 0);
 				if (dev) {
-					err = get_value1(value,
+					err = get_value1(uc_mgr, value,
 							 &dev->value_list,
 							 identifier);
 					if (err >= 0 || err != -ENOENT)
@@ -1444,7 +1597,7 @@ static int get_value(snd_use_case_mgr_t *uc_mgr,
 					return -ENOENT;
 			}
 
-			err = get_value1(value, &verb->value_list, identifier);
+			err = get_value1(uc_mgr, value, &verb->value_list, identifier);
 			if (err >= 0 || err != -ENOENT)
 				return err;
 		}
@@ -1453,7 +1606,7 @@ static int get_value(snd_use_case_mgr_t *uc_mgr,
 			return -ENOENT;
 	}
 
-	err = get_value1(value, &uc_mgr->value_list, identifier);
+	err = get_value1(uc_mgr, value, &uc_mgr->value_list, identifier);
 	if (err >= 0 || err != -ENOENT)
 		return err;
 

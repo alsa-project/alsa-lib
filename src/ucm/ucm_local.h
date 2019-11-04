@@ -43,6 +43,7 @@
 #define SYNTAX_VERSION_MAX	2
 
 #define MAX_FILE		256
+#define MAX_CARD_SHORT_NAME	32
 #define MAX_CARD_LONG_NAME	80
 
 #define SEQUENCE_ELEMENT_TYPE_CDEV	1
@@ -204,6 +205,7 @@ struct use_case_verb {
  */
 struct snd_use_case_mgr {
 	char *card_name;
+	char card_short_name[MAX_CARD_SHORT_NAME];
 	char card_long_name[MAX_CARD_LONG_NAME];
 	char conf_file_name[MAX_CARD_LONG_NAME];
 	char *comment;
