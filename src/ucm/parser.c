@@ -1453,6 +1453,9 @@ static int get_card_long_name(snd_use_case_mgr_t *mgr, char *longname)
 	while (card >= 0) {
 		char name[32];
 
+		/* most probably, we do not need to cache all CTL devices here */
+		uc_mgr_free_ctl_list(mgr);
+
 		sprintf(name, "hw:%d", card);
 		err = get_card_info(mgr, name, &ctl, info);
 
@@ -1471,6 +1474,8 @@ static int get_card_long_name(snd_use_case_mgr_t *mgr, char *longname)
 			break;
 		}
 	}
+
+	uc_mgr_free_ctl_list(mgr);
 
 	return -1;
 }
@@ -1577,8 +1582,10 @@ __longname:
 __parse:
 	err = parse_master_file(uc_mgr, cfg);
 	snd_config_delete(cfg);
-	if (err < 0)
+	if (err < 0) {
+		uc_mgr_free_ctl_list(uc_mgr);
 		uc_mgr_free_verb(uc_mgr);
+	}
 
 	return err;
 
