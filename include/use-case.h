@@ -440,6 +440,17 @@ static __inline__ int snd_use_case_verb_list(snd_use_case_mgr_t *uc_mgr,
 }
 
 /**
+ * \brief Parse control element identifier
+ * \param elem_id Element identifier
+ * \param ucm_id Use case identifier
+ * \param value String value to be parsed
+ * \return Zero if success, otherwise a negative error code
+ */
+int snd_use_case_parse_ctl_elem_id(snd_ctl_elem_id_t *dst,
+				   const char *ucm_id, char *value);
+
+
+/**
  *  \}
  */
 
