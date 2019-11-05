@@ -1920,3 +1920,26 @@ int snd_use_case_set(snd_use_case_mgr_t *uc_mgr,
 	pthread_mutex_unlock(&uc_mgr->mutex);
         return err;
 }
+
+/**
+ * \brief Parse control element identifier
+ * \param elem_id Element identifier
+ * \param ucm_id Use case identifier
+ * \param value String value to be parsed
+ * \return Zero if success, otherwise a negative error code
+ */
+int snd_use_case_parse_ctl_elem_id(snd_ctl_elem_id_t *dst,
+				   const char *ucm_id, char *value)
+{
+	snd_ctl_elem_iface_t iface;
+
+	snd_ctl_elem_id_clear(dst);
+	if (strcasestr(ucm_id, "name="))
+		return __snd_ctl_ascii_elem_id_parse(dst, value, NULL);
+	iface = SND_CTL_ELEM_IFACE_MIXER;
+	if (strcasecmp(ucm_id, "JackControl") == 0)
+		iface = SND_CTL_ELEM_IFACE_CARD;
+	snd_ctl_elem_id_set_interface(dst, iface);
+	snd_ctl_elem_id_set_name(dst, value);
+	return 0;
+}
