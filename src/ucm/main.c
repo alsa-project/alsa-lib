@@ -1361,35 +1361,32 @@ static char *rval_conf_name(snd_use_case_mgr_t *uc_mgr)
 
 static char *rval_card_id(snd_use_case_mgr_t *uc_mgr)
 {
-	struct list_head *pos;
-	struct ctl_list *ctl_list = NULL;
+	struct ctl_list *ctl_list;
 
-	list_for_each(pos, &uc_mgr->ctl_list) {
-		if (ctl_list) {
-			uc_error("multiple control device names were found!");
-			return NULL;
-		}
-		ctl_list = list_entry(pos, struct ctl_list, list);
-	}
-
+	ctl_list = uc_mgr_get_one_ctl(uc_mgr);
 	if (ctl_list == NULL)
 		return NULL;
-
-	return strdup(ctl_list->ctl_id);
+	return strdup(snd_ctl_card_info_get_id(ctl_list->ctl_info));
 }
 
 static char *rval_card_name(snd_use_case_mgr_t *uc_mgr)
 {
-	if (uc_mgr->card_short_name)
-		return strdup(uc_mgr->card_short_name);
-	return NULL;
+	struct ctl_list *ctl_list;
+
+	ctl_list = uc_mgr_get_one_ctl(uc_mgr);
+	if (ctl_list == NULL)
+		return NULL;
+	return strdup(snd_ctl_card_info_get_name(ctl_list->ctl_info));
 }
 
 static char *rval_card_longname(snd_use_case_mgr_t *uc_mgr)
 {
-	if (uc_mgr->card_long_name[0])
-		return strdup(uc_mgr->card_long_name);
-	return NULL;
+	struct ctl_list *ctl_list;
+
+	ctl_list = uc_mgr_get_one_ctl(uc_mgr);
+	if (ctl_list == NULL)
+		return NULL;
+	return strdup(snd_ctl_card_info_get_longname(ctl_list->ctl_info));
 }
 
 static char *rval_env(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED, const char *id)

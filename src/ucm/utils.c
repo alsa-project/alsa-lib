@@ -49,6 +49,21 @@ void uc_mgr_stdout(const char *fmt,...)
 	va_end(va);
 }
 
+struct ctl_list *uc_mgr_get_one_ctl(snd_use_case_mgr_t *uc_mgr)
+{
+	struct list_head *pos;
+	struct ctl_list *ctl_list = NULL;
+
+	list_for_each(pos, &uc_mgr->ctl_list) {
+		if (ctl_list) {
+			uc_error("multiple control device names were found!");
+			return NULL;
+		}
+		ctl_list = list_entry(pos, struct ctl_list, list);
+	}
+	return ctl_list;
+}
+
 static void uc_mgr_free_ctl(struct ctl_list *ctl_list)
 {
 	struct list_head *pos, *npos;
@@ -59,7 +74,7 @@ static void uc_mgr_free_ctl(struct ctl_list *ctl_list)
 		free(ctl_dev->device);
 		free(ctl_dev);
 	}
-	free(ctl_list->ctl_id);
+	snd_ctl_card_info_free(ctl_list->ctl_info);
 	free(ctl_list);
 }
 
@@ -103,7 +118,8 @@ static int uc_mgr_ctl_add_dev(struct ctl_list *ctl_list, const char *device)
 
 static int uc_mgr_ctl_add(snd_use_case_mgr_t *uc_mgr,
 			  struct ctl_list *ctl_list,
-			  snd_ctl_t *ctl, int card, snd_ctl_card_info_t *info,
+			  snd_ctl_t *ctl, int card,
+			  snd_ctl_card_info_t *info,
 			  const char *device)
 {
 	struct ctl_list *cl = NULL;
@@ -119,11 +135,11 @@ static int uc_mgr_ctl_add(snd_use_case_mgr_t *uc_mgr,
 			return -ENOMEM;
 		INIT_LIST_HEAD(&cl->dev_list);
 		cl->ctl = ctl;
-		cl->ctl_id = strdup(id);
-		if (cl->ctl_id == NULL) {
+		if (snd_ctl_card_info_malloc(&cl->ctl_info) < 0) {
 			free(cl);
 			return -ENOMEM;
 		}
+		snd_ctl_card_info_copy(cl->ctl_info, info);
 		ctl_list = cl;
 	}
 	if (card >= 0) {
@@ -197,7 +213,7 @@ int uc_mgr_open_ctl(snd_use_case_mgr_t *uc_mgr,
 	/* insert to cache, if just name differs */
 	list_for_each(pos1, &uc_mgr->ctl_list) {
 		ctl_list = list_entry(pos1, struct ctl_list, list);
-		if (strcmp(id, ctl_list->ctl_id) == 0) {
+		if (strcmp(id, snd_ctl_card_info_get_id(ctl_list->ctl_info)) == 0) {
 			card = snd_card_get_index(id);
 			err = uc_mgr_ctl_add(uc_mgr, ctl_list, *ctl, card, info, device);
 			if (err < 0)

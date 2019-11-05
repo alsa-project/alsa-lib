@@ -114,8 +114,8 @@ struct ctl_dev {
 struct ctl_list {
 	struct list_head list;
 	struct list_head dev_list;
-	char *ctl_id;
 	snd_ctl_t *ctl;
+	snd_ctl_card_info_t *ctl_info;
 };
 
 /*
@@ -205,8 +205,6 @@ struct use_case_verb {
  */
 struct snd_use_case_mgr {
 	char *card_name;
-	char card_short_name[MAX_CARD_SHORT_NAME];
-	char card_long_name[MAX_CARD_LONG_NAME];
 	char conf_file_name[MAX_CARD_LONG_NAME];
 	char *comment;
 	int conf_format;
@@ -264,6 +262,7 @@ int uc_mgr_open_ctl(snd_use_case_mgr_t *uc_mgr,
                     snd_ctl_t **ctl,
                     const char *device);
 
+struct ctl_list *uc_mgr_get_one_ctl(snd_use_case_mgr_t *uc_mgr);
 void uc_mgr_free_ctl_list(snd_use_case_mgr_t *uc_mgr);
 
 /** The name of the environment variable containing the UCM directory */

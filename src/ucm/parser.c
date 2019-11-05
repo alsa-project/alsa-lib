@@ -1437,7 +1437,7 @@ static int get_card_info(snd_use_case_mgr_t *mgr,
 }
 
 /* find the card in the local machine and store the card long name */
-static int get_card_long_name(snd_use_case_mgr_t *mgr)
+static int get_card_long_name(snd_use_case_mgr_t *mgr, char *longname)
 {
 	const char *card_name = mgr->card_name;
 	int card, err;
@@ -1464,8 +1464,7 @@ static int get_card_long_name(snd_use_case_mgr_t *mgr)
 			_long_name = snd_ctl_card_info_get_longname(info);
 			if (!strcmp(card_name, _name) ||
 			    !strcmp(card_name, _long_name)) {
-				snd_strlcpy(mgr->card_short_name, _name, sizeof(mgr->card_short_name));
-				snd_strlcpy(mgr->card_long_name, _long_name, sizeof(mgr->card_long_name));
+				snd_strlcpy(longname, _long_name, MAX_CARD_LONG_NAME);
 				return 0;
 			}
 		}
@@ -1480,7 +1479,7 @@ static int get_card_long_name(snd_use_case_mgr_t *mgr)
 }
 
 /* set the driver name and long name by the card ctl name */
-static int get_by_card(snd_use_case_mgr_t *mgr, const char *ctl_name)
+static int get_by_card(snd_use_case_mgr_t *mgr, const char *ctl_name, char *longname)
 {
 	snd_ctl_t *ctl;
 	snd_ctl_card_info_t *info;
@@ -1495,10 +1494,8 @@ static int get_by_card(snd_use_case_mgr_t *mgr, const char *ctl_name)
 
 	_name = snd_ctl_card_info_get_name(info);
 	_long_name = snd_ctl_card_info_get_longname(info);
-
-	snd_strlcpy(mgr->card_short_name, _name, sizeof(mgr->card_short_name));
-	snd_strlcpy(mgr->card_long_name, _long_name, sizeof(mgr->card_long_name));
 	snd_strlcpy(mgr->conf_file_name, _name, sizeof(mgr->conf_file_name));
+	snd_strlcpy(longname, _long_name, MAX_CARD_LONG_NAME);
 
 	return 0;
 }
@@ -1550,26 +1547,27 @@ int uc_mgr_import_master_config(snd_use_case_mgr_t *uc_mgr)
 {
 	snd_config_t *cfg;
 	const char *name = uc_mgr->card_name;
+	char longname[MAX_CARD_LONG_NAME];
 	int err;
 
 	snd_strlcpy(uc_mgr->conf_file_name, uc_mgr->card_name, sizeof(uc_mgr->conf_file_name));
 
 	if (strncmp(name, "hw:", 3) == 0) {
-		err = get_by_card(uc_mgr, name);
+		err = get_by_card(uc_mgr, name, longname);
 		if (err == 0)
 			goto __longname;
 		uc_error("card '%s' is not valid", name);
 		goto __error;
 	} else if (strncmp(name, "strict:", 7)) {
-		err = get_card_long_name(uc_mgr);
+		err = get_card_long_name(uc_mgr, longname);
 		if (err == 0) { /* load file that matches the card long name */
 __longname:
-			err = load_master_config(uc_mgr, uc_mgr->card_long_name, &cfg, 1);
+			err = load_master_config(uc_mgr, longname, &cfg, 1);
 		}
 
 		if (err == 0) {
 			/* got device-specific file that matches the card long name */
-			snd_strlcpy(uc_mgr->conf_file_name, uc_mgr->card_long_name, sizeof(uc_mgr->conf_file_name));
+			snd_strlcpy(uc_mgr->conf_file_name, longname, sizeof(uc_mgr->conf_file_name));
 			goto __parse;
 		}
 	}
