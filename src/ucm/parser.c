@@ -567,6 +567,7 @@ static int parse_value(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
 	struct ucm_value *curr;
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
+	char buf[64];
 	long l;
 	long long ll;
 	double d;
@@ -595,26 +596,22 @@ static int parse_value(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
 		type = snd_config_get_type(n);
 		switch (type) {
 		case SND_CONFIG_TYPE_INTEGER:
-			curr->data = malloc(16);
+			snd_config_get_integer(n, &l);
+			snprintf(buf, sizeof(buf), "%li", l);
+__buf:
+			curr->data = malloc(strlen(buf) + 1);
 			if (curr->data == NULL)
 				return -ENOMEM;
-			snd_config_get_integer(n, &l);
-			sprintf(curr->data, "%li", l);
+			strcpy(curr->data, buf);
 			break;
 		case SND_CONFIG_TYPE_INTEGER64:
-			curr->data = malloc(32);
-			if (curr->data == NULL)
-				return -ENOMEM;
 			snd_config_get_integer64(n, &ll);
-			sprintf(curr->data, "%lli", ll);
-			break;
+			snprintf(buf, sizeof(buf), "%lli", ll);
+			goto __buf;
 		case SND_CONFIG_TYPE_REAL:
-			curr->data = malloc(64);
-			if (curr->data == NULL)
-				return -ENOMEM;
 			snd_config_get_real(n, &d);
-			sprintf(curr->data, "%-16g", d);
-			break;
+			snprintf(buf, sizeof(buf), "%-16g", d);
+			goto __buf;
 		case SND_CONFIG_TYPE_STRING:
 			err = parse_string(n, &curr->data);
 			if (err < 0) {
