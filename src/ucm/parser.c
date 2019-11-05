@@ -549,6 +549,26 @@ static int parse_sequence(snd_use_case_mgr_t *uc_mgr,
 }
 
 /*
+ *
+ */
+int uc_mgr_add_value(struct list_head *base, const char *key, char *val)
+{
+	struct ucm_value *curr;
+
+	curr = calloc(1, sizeof(struct ucm_value));
+	if (curr == NULL)
+		return -ENOMEM;
+	curr->name = strdup(key);
+	if (curr->name == NULL) {
+		free(curr);
+		return -ENOMEM;
+	}
+	list_add_tail(&curr->list, base);
+	curr->data = val;
+	return 0;
+}
+
+/*
  * Parse values.
  *
  * Parse values describing PCM, control/mixer settings and stream parameters.
@@ -564,13 +584,9 @@ static int parse_value(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
 			  struct list_head *base,
 			  snd_config_t *cfg)
 {
-	struct ucm_value *curr;
 	snd_config_iterator_t i;
 	snd_config_t *n;
-	char buf[64];
-	long l;
-	long long ll;
-	double d;
+	char *s;
 	snd_config_type_t type;
 	int err;
 
@@ -593,35 +609,19 @@ static int parse_value(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
 			continue;
 		}
 
-		/* alloc new value */
-		curr = calloc(1, sizeof(struct ucm_value));
-		if (curr == NULL)
-			return -ENOMEM;
-		list_add_tail(&curr->list, base);
-		curr->name = strdup(id);
-		if (curr->name == NULL)
-			return -ENOMEM;
 		type = snd_config_get_type(n);
 		switch (type) {
 		case SND_CONFIG_TYPE_INTEGER:
-			snd_config_get_integer(n, &l);
-			snprintf(buf, sizeof(buf), "%li", l);
-__buf:
-			curr->data = malloc(strlen(buf) + 1);
-			if (curr->data == NULL)
-				return -ENOMEM;
-			strcpy(curr->data, buf);
-			break;
 		case SND_CONFIG_TYPE_INTEGER64:
-			snd_config_get_integer64(n, &ll);
-			snprintf(buf, sizeof(buf), "%lli", ll);
-			goto __buf;
 		case SND_CONFIG_TYPE_REAL:
-			snd_config_get_real(n, &d);
-			snprintf(buf, sizeof(buf), "%-16g", d);
-			goto __buf;
+			err = snd_config_get_ascii(n, &s);
+			if (err < 0) {
+				uc_error("error: unable to parse value for id '%s': %s!", id, snd_strerror(err));
+				return err;
+			}
+			break;
 		case SND_CONFIG_TYPE_STRING:
-			err = parse_string(n, &curr->data);
+			err = parse_string(n, &s);
 			if (err < 0) {
 				uc_error("error: unable to parse a string for id '%s'!", id);
 				return err;
@@ -631,6 +631,9 @@ __buf:
 			uc_error("error: invalid type %i in Value compound '%s'", type, id);
 			return -EINVAL;
 		}
+		err = uc_mgr_add_value(base, id, s);
+		if (err < 0)
+			return err;
 	}
 
 	return 0;

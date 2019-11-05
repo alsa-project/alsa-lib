@@ -266,6 +266,8 @@ struct ctl_list *uc_mgr_get_one_ctl(snd_use_case_mgr_t *uc_mgr);
 snd_ctl_t *uc_mgr_get_ctl(snd_use_case_mgr_t *uc_mgr);
 void uc_mgr_free_ctl_list(snd_use_case_mgr_t *uc_mgr);
 
+int uc_mgr_add_value(struct list_head *base, const char *key, char *val);
+
 int uc_mgr_get_substituted_value(snd_use_case_mgr_t *uc_mgr,
 				 char **_rvalue,
 				 const char *value);
