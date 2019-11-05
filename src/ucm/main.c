@@ -387,14 +387,15 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 				    strcmp(playback_ctl, capture_ctl) != 0) {
 					free(playback_ctl);
 					free(capture_ctl);
-					uc_error("cdev is not defined!");
+					uc_error("cdev is not equal for playback and capture!");
 					return -EINVAL;
 				}
 				if (playback_ctl != NULL) {
 					cdev = playback_ctl;
 					free(capture_ctl);
-				} else
+				} else {
 					cdev = capture_ctl;
+				}
 			}
 			if (ctl == NULL) {
 				err = uc_mgr_open_ctl(uc_mgr, &ctl, cdev);
