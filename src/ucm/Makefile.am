@@ -1,6 +1,6 @@
 EXTRA_LTLIBRARIES = libucm.la
 
-libucm_la_SOURCES = utils.c parser.c main.c
+libucm_la_SOURCES = utils.c parser.c ucm_cond.c ucm_subs.c main.c
 
 noinst_HEADERS = ucm_local.h
 

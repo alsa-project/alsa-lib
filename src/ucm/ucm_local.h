@@ -263,7 +263,16 @@ int uc_mgr_open_ctl(snd_use_case_mgr_t *uc_mgr,
                     const char *device);
 
 struct ctl_list *uc_mgr_get_one_ctl(snd_use_case_mgr_t *uc_mgr);
+snd_ctl_t *uc_mgr_get_ctl(snd_use_case_mgr_t *uc_mgr);
 void uc_mgr_free_ctl_list(snd_use_case_mgr_t *uc_mgr);
+
+int uc_mgr_get_substituted_value(snd_use_case_mgr_t *uc_mgr,
+				 char **_rvalue,
+				 const char *value);
+
+int uc_mgr_evaluate_condition(snd_use_case_mgr_t *uc_mgr,
+			      snd_config_t *parent,
+			      snd_config_t *cond);
 
 /** The name of the environment variable containing the UCM directory */
 #define ALSA_CONFIG_UCM_VAR "ALSA_CONFIG_UCM"

@@ -64,6 +64,16 @@ struct ctl_list *uc_mgr_get_one_ctl(snd_use_case_mgr_t *uc_mgr)
 	return ctl_list;
 }
 
+snd_ctl_t *uc_mgr_get_ctl(snd_use_case_mgr_t *uc_mgr)
+{
+	struct ctl_list *ctl_list;
+
+	ctl_list = uc_mgr_get_one_ctl(uc_mgr);
+	if (ctl_list)
+		return ctl_list->ctl;
+	return NULL;
+}
+
 static void uc_mgr_free_ctl(struct ctl_list *ctl_list)
 {
 	struct list_head *pos, *npos;
