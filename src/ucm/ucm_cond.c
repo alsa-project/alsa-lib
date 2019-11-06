@@ -25,6 +25,7 @@
  */
 
 #include "ucm_local.h"
+#include <regex.h>
 
 static int get_string(snd_config_t *compound, const char *key, const char **str)
 {
@@ -117,6 +118,48 @@ static int if_eval_string(snd_use_case_mgr_t *uc_mgr, snd_config_t *eval)
 	return -EINVAL;
 }
 
+static int if_eval_regex_match(snd_use_case_mgr_t *uc_mgr, snd_config_t *eval)
+{
+	const char *string, *regex_string;
+	char *s;
+	regex_t re;
+	int options = REG_EXTENDED | REG_ICASE;
+	regmatch_t match[1];
+	int err;
+
+	err = get_string(eval, "String", &string);
+	if (err < 0) {
+		uc_error("RegexMatch error (If.Condition.String)");
+		return -EINVAL;
+	}
+
+	err = get_string(eval, "Regex", &regex_string);
+	if (err < 0) {
+		uc_error("RegexMatch error (If.Condition.Regex)");
+		return -EINVAL;
+	}
+
+	err = uc_mgr_get_substituted_value(uc_mgr, &s, regex_string);
+	if (err < 0)
+		return err;
+	err = regcomp(&re, s, options);
+	free(s);
+	if (err) {
+		uc_error("Regex '%s' compilation failed (code %d)", err);
+		return -EINVAL;
+	}
+
+	err = uc_mgr_get_substituted_value(uc_mgr, &s, string);
+	if (err < 0) {
+		regfree(&re);
+		return err;
+	}
+	err = regexec(&re, s, ARRAY_SIZE(match), match, 0);
+	free(s);
+	regfree(&re);
+	return err == 0;
+}
+
 static int if_eval_control_exists(snd_use_case_mgr_t *uc_mgr, snd_config_t *eval)
 {
 	snd_ctl_t *ctl;
@@ -197,6 +240,9 @@ static int if_eval(snd_use_case_mgr_t *uc_mgr, snd_config_t *eval)
 
 	if (strcmp(type, "String") == 0)
 		return if_eval_string(uc_mgr, eval);
+
+	if (strcmp(type, "RegexMatch") == 0)
+		return if_eval_regex_match(uc_mgr, eval);
 
 	uc_error("unknown If.Condition.Type");
 	return -EINVAL;
