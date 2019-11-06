@@ -63,6 +63,16 @@ static char *rval_card_longname(snd_use_case_mgr_t *uc_mgr)
 	return strdup(snd_ctl_card_info_get_longname(ctl_list->ctl_info));
 }
 
+static char *rval_card_components(snd_use_case_mgr_t *uc_mgr)
+{
+	struct ctl_list *ctl_list;
+
+	ctl_list = uc_mgr_get_one_ctl(uc_mgr);
+	if (ctl_list == NULL)
+		return NULL;
+	return strdup(snd_ctl_card_info_get_components(ctl_list->ctl_info));
+}
+
 static char *rval_env(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED, const char *id)
 {
 	char *e;
@@ -121,6 +131,7 @@ int uc_mgr_get_substituted_value(snd_use_case_mgr_t *uc_mgr,
 			MATCH_VARIABLE(value, "${CardId}", rval_card_id);
 			MATCH_VARIABLE(value, "${CardName}", rval_card_name);
 			MATCH_VARIABLE(value, "${CardLongName}", rval_card_longname);
+			MATCH_VARIABLE(value, "${CardComponents}", rval_card_components);
 			MATCH_VARIABLE2(value, "${env:", rval_env);
 			err = -EINVAL;
 			tmp = strchr(value, '}');
