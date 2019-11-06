@@ -37,6 +37,86 @@ static int get_string(snd_config_t *compound, const char *key, const char **str)
 	return snd_config_get_string(node, str);
 }
 
+static int if_eval_string(snd_use_case_mgr_t *uc_mgr, snd_config_t *eval)
+{
+	const char *string1 = NULL, *string2 = NULL;
+	char *s1, *s2;
+	int err;
+
+	err = get_string(eval, "String1", &string1);
+	if (err < 0 && err != -ENOENT) {
+		uc_error("String error (If.Condition.String1)");
+		return -EINVAL;
+	}
+
+	err = get_string(eval, "String2", &string2);
+	if (err < 0 && err != -ENOENT) {
+		uc_error("String error (If.Condition.String2)");
+		return -EINVAL;
+	}
+
+	if (string1 || string2) {
+		if (string1 == NULL) {
+			uc_error("If.Condition.String1 not defined");
+			return -EINVAL;
+		}
+		if (string2 == NULL) {
+			uc_error("If.Condition.String2 not defined");
+			return -EINVAL;
+		}
+		err = uc_mgr_get_substituted_value(uc_mgr, &s1, string1);
+		if (err < 0)
+			return err;
+		err = uc_mgr_get_substituted_value(uc_mgr, &s2, string2);
+		if (err < 0) {
+			free(s1);
+			return err;
+		}
+		err = strcasecmp(string1, string2) == 0;
+		free(s2);
+		free(s1);
+		return err;
+	}
+
+	err = get_string(eval, "Haystack", &string1);
+	if (err < 0 && err != -ENOENT) {
+		uc_error("String error (If.Condition.Haystack)");
+		return -EINVAL;
+	}
+
+	err = get_string(eval, "Needle", &string2);
+	if (err < 0 && err != -ENOENT) {
+		uc_error("String error (If.Condition.Needle)");
+		return -EINVAL;
+	}
+
+	if (string1 || string2) {
+		if (string1 == NULL) {
+			uc_error("If.Condition.Haystack not defined");
+			return -EINVAL;
+		}
+		if (string2 == NULL) {
+			uc_error("If.Condition.Needle not defined");
+			return -EINVAL;
+		}
+		err = uc_mgr_get_substituted_value(uc_mgr, &s1, string1);
+		if (err < 0)
+			return err;
+		err = uc_mgr_get_substituted_value(uc_mgr, &s2, string2);
+		if (err < 0) {
+			free(s1);
+			return err;
+		}
+		err = strstr(string1, string2) == 0;
+		free(s2);
+		free(s1);
+		return err;
+	}
+
+	uc_error("Unknown String condition arguments");
+	return -EINVAL;
+}
+
 static int if_eval_control_exists(snd_use_case_mgr_t *uc_mgr, snd_config_t *eval)
 {
 	snd_ctl_t *ctl;
@@ -46,18 +126,19 @@ static int if_eval_control_exists(snd_use_case_mgr_t *uc_mgr, snd_config_t *eval
 	char *s;
 	int err;
 
+
 	snd_ctl_elem_id_alloca(&elem_id);
 	snd_ctl_elem_info_alloca(&elem_info);
 
 	err = get_string(eval, "Device", &device);
 	if (err < 0 && err != -ENOENT) {
-		uc_error("control device error (If.Condition.Device)");
+		uc_error("ControlExists error (If.Condition.Device)");
 		return -EINVAL;
 	}
 
 	err = get_string(eval, "Control", &ctldef);
 	if (err < 0) {
-		uc_error("control device error (If.Condition.Control)");
+		uc_error("ControlExists error (If.Condition.Control)");
 		return -EINVAL;
 	}
 
@@ -113,6 +194,9 @@ static int if_eval(snd_use_case_mgr_t *uc_mgr, snd_config_t *eval)
 
 	if (strcmp(type, "ControlExists") == 0)
 		return if_eval_control_exists(uc_mgr, eval);
+
+	if (strcmp(type, "String") == 0)
+		return if_eval_string(uc_mgr, eval);
 
 	uc_error("unknown If.Condition.Type");
 	return -EINVAL;
