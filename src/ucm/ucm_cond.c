@@ -308,6 +308,16 @@ int uc_mgr_evaluate_condition(snd_use_case_mgr_t *uc_mgr,
 		err = if_eval_one(uc_mgr, n, &a);
 		if (err < 0)
 			return err;
+		err = snd_config_search(a, "If", &n2);
+		if (err < 0 && err != -ENOENT) {
+			uc_error("If block error (If)");
+			return -EINVAL;
+		} else if (err == 0) {
+			err = uc_mgr_evaluate_condition(uc_mgr, a, n2);
+			if (err < 0)
+				return err;
+			snd_config_delete(n2);
+		}
 		snd_config_for_each(i2, next2, a) {
 			n2 = snd_config_iterator_entry(i2);
 			err = snd_config_remove(n2);
