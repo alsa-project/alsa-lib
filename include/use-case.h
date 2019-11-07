@@ -307,6 +307,8 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
  *   - CaptureMixerID
  *	- can be parsed using snd_use_case_parse_selem_id()
  *      - mixer capture ID
+ *   - EDIDFile
+ *      - Path to EDID file for HDMI devices
  *   - JackControl, JackDev, JackHWMute
  *      - Jack information for a device. The jack status can be reported via
  *        a kcontrol and/or via an input device. **JackControl** is the
