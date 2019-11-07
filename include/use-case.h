@@ -328,6 +328,10 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
  *        trick upper software layers to e.g. automatically mute speakers when
  *        headphones are plugged in, but that's application policy
  *        configuration that doesn't belong to UCM configuration files.
+ *   - MinBufferLevel
+ *	- This is used on platform where reported buffer level is not accurate.
+ *	  E.g. "512", which holds 512 samples in device buffer. Note: this will
+ *	  increase latency.
  */
 int snd_use_case_get(snd_use_case_mgr_t *uc_mgr,
                      const char *identifier,
