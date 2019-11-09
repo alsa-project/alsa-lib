@@ -49,7 +49,7 @@ void uc_mgr_stdout(const char *fmt,...)
 	va_end(va);
 }
 
-int uc_mgr_config_load(const char *file, snd_config_t **cfg)
+int uc_mgr_config_load(int format, const char *file, snd_config_t **cfg)
 {
 	FILE *fp;
 	snd_input_t *in;
@@ -71,9 +71,15 @@ int uc_mgr_config_load(const char *file, snd_config_t **cfg)
 	if (err < 0)
 		goto __err1;
 
-	path = getenv(ALSA_CONFIG_UCM_VAR);
-	if (!path || path[0] == '\0')
-		path = ALSA_CONFIG_DIR "/ucm";
+	if (format >= 2) {
+		path = getenv(ALSA_CONFIG_UCM2_VAR);
+		if (!path || path[0] == '\0')
+			path = ALSA_CONFIG_DIR "/ucm2";
+	} else {
+		path = getenv(ALSA_CONFIG_UCM_VAR);
+		if (!path || path[0] == '\0')
+			path = ALSA_CONFIG_DIR "/ucm";
+	}
 
 	default_paths[0] = path;
 	default_paths[1] = NULL;

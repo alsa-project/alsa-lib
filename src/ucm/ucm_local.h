@@ -40,6 +40,8 @@
 #include <pthread.h>
 #include "use-case.h"
 
+#define SYNTAX_VERSION_MAX	2
+
 #define MAX_FILE		256
 #define MAX_CARD_LONG_NAME	80
 
@@ -193,6 +195,7 @@ struct snd_use_case_mgr {
 	char card_long_name[MAX_CARD_LONG_NAME];
 	char conf_file_name[MAX_CARD_LONG_NAME];
 	char *comment;
+	int conf_format;
 
 	/* use case verb, devices and modifier configs parsed from files */
 	struct list_head verb_list;
@@ -235,7 +238,7 @@ struct snd_use_case_mgr {
 void uc_mgr_error(const char *fmt, ...);
 void uc_mgr_stdout(const char *fmt, ...);
 
-int uc_mgr_config_load(const char *file, snd_config_t **cfg);
+int uc_mgr_config_load(int format, const char *file, snd_config_t **cfg);
 int uc_mgr_import_master_config(snd_use_case_mgr_t *uc_mgr);
 int uc_mgr_scan_master_configs(const char **_list[]);
 
@@ -246,3 +249,6 @@ void uc_mgr_free(snd_use_case_mgr_t *uc_mgr);
 
 /** The name of the environment variable containing the UCM directory */
 #define ALSA_CONFIG_UCM_VAR "ALSA_CONFIG_UCM"
+
+/** The name of the environment variable containing the UCM directory (new syntax) */
+#define ALSA_CONFIG_UCM2_VAR "ALSA_CONFIG_UCM2"
