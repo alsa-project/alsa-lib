@@ -525,7 +525,7 @@ static inline void snd_config_unlock(void) { }
  * The direcotry should be a subdiretory of top configuration directory
  * "/usr/share/alsa/".
  */
-static int add_include_path(struct filedesc *fd, char *dir)
+static int add_include_path(struct filedesc *fd, const char *dir)
 {
 	struct include_path *path;
 
@@ -533,7 +533,12 @@ static int add_include_path(struct filedesc *fd, char *dir)
 	if (!path)
 		return -ENOMEM;
 
-	path->dir = dir;
+	path->dir = strdup(dir);
+	if (path->dir == NULL) {
+		free(path);
+		return -ENOMEM;
+	}
+
 	list_add_tail(&path->list, &fd->include_paths);
 	return 0;
 }
@@ -598,53 +603,37 @@ static char *_snd_config_path(const char *name)
  *
  * This function will search and open the file in the following order
  * of priority:
- * 1. directly open the file by its name;
- * 2. search for the file name in top configuration directory
- *     "/usr/share/alsa/";
- * 3. search for the file name in in additional configuration directories
- *     specified by users, via alsaconf syntax
- *     <searchdir:relative-path/to/user/share/alsa>;
- *     These directories should be subdirectories of /usr/share/alsa.
+ * 1. directly open the file by its name (only if absolute)
+ * 2. search for the file name in in additional configuration directories
+ *    specified by users, via alsaconf syntax
+ *    <searchdir:relative-path/to/user/share/alsa>;
+ *    These directories should be subdirectories of /usr/share/alsa.
  */
 static int input_stdio_open(snd_input_t **inputp, const char *file,
 			    struct list_head *include_paths)
 {
-	struct list_head *pos, *base;
+	struct list_head *pos;
 	struct include_path *path;
-	char full_path[PATH_MAX + 1];
+	char full_path[PATH_MAX];
 	int err = 0;
 
-	err = snd_input_stdio_open(inputp, file, "r");
-	if (err == 0)
-		goto out;
-
-	if (file[0] == '/') /* not search file with absolute path */
-		return err;
-
-	/* search file in top configuration directory /usr/share/alsa */
-	snprintf(full_path, PATH_MAX, "%s/%s", snd_config_topdir(), file);
-	err = snd_input_stdio_open(inputp, full_path, "r");
-	if (err == 0)
-		goto out;
+	if (file[0] == '/')
+		return snd_input_stdio_open(inputp, file, "r");
 
 	/* search file in user specified include paths. These directories
 	 * are subdirectories of /usr/share/alsa.
 	 */
-	if (include_paths) {
-		base = include_paths;
-		list_for_each(pos, base) {
-			path = list_entry(pos, struct include_path, list);
-			if (!path->dir)
-				continue;
+	list_for_each(pos, include_paths) {
+		path = list_entry(pos, struct include_path, list);
+		if (!path->dir)
+			continue;
 
-			snprintf(full_path, PATH_MAX, "%s/%s", path->dir, file);
-			err = snd_input_stdio_open(inputp, full_path, "r");
-			if (err == 0)
-				goto out;
-		}
+		snprintf(full_path, PATH_MAX, "%s/%s", path->dir, file);
+		err = snd_input_stdio_open(inputp, full_path, "r");
+		if (err == 0)
+			return 0;
 	}
 
-out:
 	return err;
 }
 
@@ -798,9 +787,9 @@ static int get_char_skip_comments(input_t *input)
 				closedir(dirp);
 
 				err = add_include_path(input->current, str);
+				free(str);
 				if (err < 0) {
 					SNDERR("Cannot add search dir %s", str);
-					free(str);
 					return err;
 				}
 				continue;
@@ -1835,28 +1824,32 @@ int snd_config_top(snd_config_t **config)
 
 #ifndef DOC_HIDDEN
 int _snd_config_load_with_include(snd_config_t *config, snd_input_t *in,
-                                  int override, char *default_include_path)
+				  int override, const char * const *include_paths)
 {
 	int err;
 	input_t input;
 	struct filedesc *fd, *fd_next;
+
 	assert(config && in);
 	fd = malloc(sizeof(*fd));
-	if (!fd) {
-		err = -ENOMEM;
-		goto _end_inc;
-	}
+	if (!fd)
+		return -ENOMEM;
 	fd->name = NULL;
 	fd->in = in;
 	fd->line = 1;
 	fd->column = 0;
 	fd->next = NULL;
 	INIT_LIST_HEAD(&fd->include_paths);
-	if (default_include_path) {
-		err = add_include_path(fd, default_include_path);
+	if (include_paths) {
+		for (; *include_paths; include_paths++) {
+			err = add_include_path(fd, *include_paths);
+			if (err < 0)
+				goto _end;
+		}
+	} else {
+		err = add_include_path(fd, snd_config_topdir());
 		if (err < 0)
 			goto _end;
-		default_include_path = NULL;
 	}
 	input.current = fd;
 	input.unget = 0;
@@ -1905,8 +1898,6 @@ int _snd_config_load_with_include(snd_config_t *config, snd_input_t *in,
 
 	free_include_paths(fd);
 	free(fd);
- _end_inc:
-	free(default_include_path);
 	return err;
 }
 #endif

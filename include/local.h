@@ -359,7 +359,7 @@ int snd_config_search_alias_hooks(snd_config_t *config,
 int _snd_conf_generic_id(const char *id);
 
 int _snd_config_load_with_include(snd_config_t *config, snd_input_t *in,
-				  int override, char *default_include_path);
+				  int override, const char * const *default_include_path);
 
 /* convenience macros */
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
