@@ -1929,17 +1929,43 @@ int snd_use_case_set(snd_use_case_mgr_t *uc_mgr,
  * \return Zero if success, otherwise a negative error code
  */
 int snd_use_case_parse_ctl_elem_id(snd_ctl_elem_id_t *dst,
-				   const char *ucm_id, char *value)
+				   const char *ucm_id,
+				   const char *value)
 {
 	snd_ctl_elem_iface_t iface;
+	int jack_control;
 
+	jack_control = strcmp(ucm_id, "JackControl") == 0;
+	if (!jack_control &&
+	    strcmp(ucm_id, "PlaybackVolume") &&
+	    strcmp(ucm_id, "PlaybackSwitch") &&
+	    strcmp(ucm_id, "CaptureVolume") &&
+	    strcmp(ucm_id, "CaptureSwitch"))
+		return -EINVAL;
 	snd_ctl_elem_id_clear(dst);
 	if (strcasestr(ucm_id, "name="))
 		return __snd_ctl_ascii_elem_id_parse(dst, value, NULL);
 	iface = SND_CTL_ELEM_IFACE_MIXER;
-	if (strcasecmp(ucm_id, "JackControl") == 0)
+	if (jack_control)
 		iface = SND_CTL_ELEM_IFACE_CARD;
 	snd_ctl_elem_id_set_interface(dst, iface);
 	snd_ctl_elem_id_set_name(dst, value);
 	return 0;
+}
+
+/**
+ * \brief Parse mixer element identifier
+ * \param dst Simple mixer element identifier
+ * \param ucm_id Use case identifier
+ * \param value String value to be parsed
+ * \return Zero if success, otherwise a negative error code
+ */
+int snd_use_case_parse_selem_id(snd_mixer_selem_id_t *dst,
+				const char *ucm_id,
+				const char *value)
+{
+	if (strcmp(ucm_id, "PlaybackMixerId") == 0 ||
+	    strcmp(ucm_id, "CaptureMixerId") == 0)
+		return snd_mixer_selem_id_parse(dst, value);
+	return -EINVAL;
 }
