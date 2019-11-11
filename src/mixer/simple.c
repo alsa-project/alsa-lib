@@ -1052,3 +1052,56 @@ void snd_mixer_selem_id_set_index(snd_mixer_selem_id_t *obj, unsigned int val)
 	assert(obj);
 	obj->index = val;
 }
+
+/**
+ * \brief Parse ASCII simple mixer element identifier
+ * \param dst Parsed simple mixer element identifier
+ * \param str Mixer simple element ASCII representation
+ */
+int snd_mixer_selem_id_parse(snd_mixer_selem_id_t *dst, const char *str)
+{
+	int c, size;
+	char buf[128];
+	char *ptr = buf;
+
+	memset(dst, 0, sizeof(*dst));
+	while (*str == ' ' || *str == '\t')
+		str++;
+	if (!(*str))
+		return -EINVAL;
+	size = 1;	/* for '\0' */
+	if (*str != '"' && *str != '\'') {
+		while (*str && *str != ',') {
+			if (size < (int)sizeof(buf)) {
+				*ptr++ = *str;
+				size++;
+			}
+			str++;
+		}
+	} else {
+		c = *str++;
+		while (*str && *str != c) {
+			if (size < (int)sizeof(buf)) {
+				*ptr++ = *str;
+				size++;
+			}
+			str++;
+		}
+		if (*str == c)
+			str++;
+	}
+	if (*str == '\0') {
+		*ptr = 0;
+		goto _set;
+	}
+	if (*str != ',')
+		return -EINVAL;
+	*ptr = 0;	/* terminate the string */
+	str++;
+	if (str[0] < '0' || str[1] > '9')
+		return -EINVAL;
+	dst->index = atoi(str);
+       _set:
+	snd_strlcpy(dst->name, buf, sizeof(dst->name));
+	return 0;
+}

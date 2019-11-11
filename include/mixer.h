@@ -304,6 +304,7 @@ const char *snd_mixer_selem_id_get_name(const snd_mixer_selem_id_t *obj);
 unsigned int snd_mixer_selem_id_get_index(const snd_mixer_selem_id_t *obj);
 void snd_mixer_selem_id_set_name(snd_mixer_selem_id_t *obj, const char *val);
 void snd_mixer_selem_id_set_index(snd_mixer_selem_id_t *obj, unsigned int val);
+int snd_mixer_selem_id_parse(snd_mixer_selem_id_t *dst, const char *str);
 
 /** \} */
 
