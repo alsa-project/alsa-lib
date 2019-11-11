@@ -281,8 +281,10 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
  *      - playback control device name
  *   - PlaybackVolume
  *      - playback control volume ID string
+ *	- can be parsed using snd_use_case_parse_ctl_elem_id()
  *   - PlaybackSwitch
  *      - playback control switch ID string
+ *	- can be parsed using snd_use_case_parse_ctl_elem_id()
  *   - CaptureRate
  *      - capture device sample rate
  *   - CaptureChannels
@@ -291,15 +293,19 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
  *      - capture control device name
  *   - CaptureVolume
  *      - capture control volume ID string
+ *	- can be parsed using snd_use_case_parse_ctl_elem_id()
  *   - CaptureSwitch
  *      - capture control switch ID string
+ *	- can be parsed using snd_use_case_parse_ctl_elem_id()
  *   - PlaybackMixer
  *      - name of playback mixer
  *   - PlaybackMixerID
  *      - mixer playback ID
+ *	- can be parsed using snd_use_case_parse_selem_id()
  *   - CaptureMixer
  *      - name of capture mixer
  *   - CaptureMixerID
+ *	- can be parsed using snd_use_case_parse_selem_id()
  *      - mixer capture ID
  *   - JackControl, JackDev, JackHWMute
  *      - Jack information for a device. The jack status can be reported via
