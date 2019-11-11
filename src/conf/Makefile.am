@@ -1,8 +1,5 @@
 SUBDIRS=cards pcm
 
-if BUILD_UCM
-SUBDIRS += ucm
-endif
 if BUILD_TOPOLOGY
 SUBDIRS += topology
 endif
