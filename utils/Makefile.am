@@ -6,7 +6,7 @@ EXTRA_DIST=alsa.m4 buildrpm alsa.pc.in
 
 alsapkgconfdir = @ALSA_PKGCONF_DIR@
 pkgconfigdir = $(alsapkgconfdir)
-pkgconfig_DATA = alsa.pc
+pkgconfig_DATA = alsa.pc alsa-topology.pc
 
 rpm: buildrpm alsa-lib.spec
 	VERSION=$(VERSION) $(srcdir)/buildrpm

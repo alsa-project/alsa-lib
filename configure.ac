@@ -718,12 +718,12 @@ AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile doc/doxygen.cfg \
 	  src/conf/pcm/Makefile \
 	  src/conf/topology/Makefile \
 	  src/conf/topology/broadwell/Makefile \
-	  modules/Makefile modules/mixer/Makefile modules/mixer/simple/Makefile \
 	  src/conf/topology/sklrt286/Makefile \
 	  src/conf/topology/bxtrt298/Makefile \
+	  modules/Makefile modules/mixer/Makefile modules/mixer/simple/Makefile \
 	  alsalisp/Makefile aserver/Makefile \
 	  test/Makefile test/lsb/Makefile \
-	  utils/Makefile utils/alsa-lib.spec utils/alsa.pc)
+	  utils/Makefile utils/alsa-lib.spec utils/alsa.pc utils/alsa-topology.pc)
 
 dnl Create asoundlib.h dynamically according to configure options
 echo "Creating asoundlib.h..."
@@ -769,3 +769,13 @@ test "$build_seq" = "yes" && echo "#include <alsa/seqmid.h>" >> include/asoundli
 test "$build_seq" = "yes" && echo "#include <alsa/seq_midi_event.h>" >> include/asoundlib.h
 cat "$srcdir"/include/asoundlib-tail.h >> include/asoundlib.h
 
+dnl Taken from https://wiki.debian.org/RpathIssue
+case $host in
+   *-*-linux-gnu)
+   AC_MSG_RESULT([Fixing libtool for -rpath problems.])
+   sed < libtool > libtool-2 \
+     's/^hardcode_libdir_flag_spec.*$'/'hardcode_libdir_flag_spec=" -D__LIBTOOL_IS_A_FOOL__ "/'
+   mv libtool-2 libtool
+   chmod 755 libtool
+ ;;
+esac

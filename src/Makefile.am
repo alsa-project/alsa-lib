@@ -42,10 +42,6 @@ if BUILD_UCM
 SUBDIRS += ucm
 libasound_la_LIBADD += ucm/libucm.la
 endif
-if BUILD_TOPOLOGY
-SUBDIRS += topology
-libasound_la_LIBADD += topology/libtopology.la
-endif
 if BUILD_ALISP
 SUBDIRS += alisp
 libasound_la_LIBADD += alisp/libalisp.la

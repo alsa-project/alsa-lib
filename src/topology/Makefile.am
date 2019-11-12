@@ -1,6 +1,23 @@
-EXTRA_LTLIBRARIES = libtopology.la
+COMPATNUM=@LIBTOOL_VERSION_INFO@
 
-libtopology_la_SOURCES =\
+if VERSIONED_SYMBOLS
+VSYMS = -Wl,--version-script=../Versions
+else
+VSYMS =
+endif
+
+if SYMBOLIC_FUNCTIONS
+SYMFUNCS = -Wl,-Bsymbolic-functions
+else
+SYMFUNCS =
+endif
+
+lib_LTLIBRARIES = libatopology.la
+
+libatopology_la_LIBADD = ../libasound.la
+libatopology_la_LDFLAGS = -version-info $(COMPATNUM) $(VSYMS) $(SYMFUNCS) $(LDFLAGS_NOUNDEFINED)
+
+libatopology_la_SOURCES =\
 	parser.c \
 	builder.c \
 	ctl.c \
@@ -13,7 +30,5 @@ libtopology_la_SOURCES =\
 	elem.c
 
 noinst_HEADERS = tplg_local.h
-
-all: libtopology.la
 
 AM_CPPFLAGS=-I$(top_srcdir)/include
