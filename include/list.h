@@ -86,6 +86,21 @@ static inline void list_add_tail(struct list_head *p, struct list_head *list)
 	list->prev = p;
 }
 
+/* list_insert - insert a new list entry between two known consecutive entries
+ * @p: the new entry to be inserted between prev and next
+ * @prev: the left-side entry
+ * @next: the right-side entry
+ */
+static inline void list_insert(struct list_head *p,
+			       struct list_head *prev,
+			       struct list_head *next)
+{
+	next->prev = p;
+	p->next = next;
+	p->prev = prev;
+	prev->next = p;
+}
+
 /* list_del - delete the given list entry */
 static inline void list_del(struct list_head *p)
 {

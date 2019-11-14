@@ -1979,6 +1979,88 @@ int snd_config_add(snd_config_t *parent, snd_config_t *child)
 }
 
 /**
+ * \brief Adds a child after another child configuration node.
+ * \param after Handle to the start configuration node.
+ * \param child Handle to the configuration node to be added.
+ * \return Zero if successful, otherwise a negative error code.
+ *
+ * This function makes the node \a child a child of the parent of
+ * the node \a after.
+ *
+ * The parent node then owns the child node, i.e., the child node gets
+ * deleted together with its parent.
+ *
+ * \a child must have an id.
+ *
+ * \par Errors:
+ * <dl>
+ * <dt>-EINVAL<dd>\a child does not have an id.
+ * <dt>-EINVAL<dd>\a child already has a parent.
+ * <dt>-EEXIST<dd>\a parent already contains a child node with the same
+ *                id as \a child.
+ * </dl>
+ */
+int snd_config_add_after(snd_config_t *after, snd_config_t *child)
+{
+	snd_config_iterator_t i, next;
+	snd_config_t *parent;
+	assert(after && child);
+	parent = after->parent;
+	assert(parent);
+	if (!child->id || child->parent)
+		return -EINVAL;
+	snd_config_for_each(i, next, parent) {
+		snd_config_t *n = snd_config_iterator_entry(i);
+		if (strcmp(child->id, n->id) == 0)
+			return -EEXIST;
+	}
+	child->parent = parent;
+	list_insert(&child->list, &after->list, after->list.next);
+	return 0;
+}
+
+/**
+ * \brief Adds a child before another child configuration node.
+ * \param before Handle to the start configuration node.
+ * \param child Handle to the configuration node to be added.
+ * \return Zero if successful, otherwise a negative error code.
+ *
+ * This function makes the node \a child a child of the parent of
+ * the node \a before.
+ *
+ * The parent node then owns the child node, i.e., the child node gets
+ * deleted together with its parent.
+ *
+ * \a child must have an id.
+ *
+ * \par Errors:
+ * <dl>
+ * <dt>-EINVAL<dd>\a child does not have an id.
+ * <dt>-EINVAL<dd>\a child already has a parent.
+ * <dt>-EEXIST<dd>\a parent already contains a child node with the same
+ *                id as \a child.
+ * </dl>
+ */
+int snd_config_add_before(snd_config_t *before, snd_config_t *child)
+{
+	snd_config_iterator_t i, next;
+	snd_config_t *parent;
+	assert(before && child);
+	parent = before->parent;
+	assert(parent);
+	if (!child->id || child->parent)
+		return -EINVAL;
+	snd_config_for_each(i, next, parent) {
+		snd_config_t *n = snd_config_iterator_entry(i);
+		if (strcmp(child->id, n->id) == 0)
+			return -EEXIST;
+	}
+	child->parent = parent;
+	list_insert(&child->list, before->list.prev, &before->list);
+	return 0;
+}
+
+/**
  * \brief Removes a configuration node from its tree.
  * \param config Handle to the configuration node to be removed.
  * \return Zero if successful, otherwise a negative error code.

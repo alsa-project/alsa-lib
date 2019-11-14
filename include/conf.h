@@ -114,7 +114,9 @@ int snd_config_expand(snd_config_t *config, snd_config_t *root,
 int snd_config_evaluate(snd_config_t *config, snd_config_t *root,
 			snd_config_t *private_data, snd_config_t **result);
 
-int snd_config_add(snd_config_t *config, snd_config_t *leaf);
+int snd_config_add(snd_config_t *config, snd_config_t *child);
+int snd_config_add_before(snd_config_t *before, snd_config_t *child);
+int snd_config_add_after(snd_config_t *after, snd_config_t *child);
 int snd_config_remove(snd_config_t *config);
 int snd_config_delete(snd_config_t *config);
 int snd_config_delete_compound_members(const snd_config_t *config);
