@@ -180,25 +180,6 @@ snd_config_t *snd_config_iterator_entry(const snd_config_iterator_t iterator);
 #define snd_config_for_each(pos, next, node) \
 	for (pos = snd_config_iterator_first(node), next = snd_config_iterator_next(pos); pos != snd_config_iterator_end(node); pos = next, next = snd_config_iterator_next(pos))
 
-/**
- * \brief Helper macro to iterate over the children of a compound node.
- * \param[in,out] pos Iterator variable for the current node.
- * \param[in] node Handle to the compound configuration node to iterate over.
- *
- * Use this macro like a \c for statement, e.g.:
- * \code
- * snd_config_iterator_t pos;
- * snd_config_for_each(pos, node) {
- *     snd_config_t *entry = snd_config_iterator_entry(pos);
- *     ...
- * }
- * \endcode
- *
- * This macro does not allow deleting or removing the current node.
- */
-#define snd_config_for_each_unsafe(pos, node) \
-	for (pos = snd_config_iterator_first(node); pos != snd_config_iterator_end(node); pos = snd_config_iterator_next(pos))
-
 /* Misc functions */
 
 int snd_config_get_bool_ascii(const char *ascii);

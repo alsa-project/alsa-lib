@@ -161,6 +161,24 @@ int parse_get_safe_id(snd_config_t *n, const char **id)
 }
 
 /*
+ * Evaluate condition (in-place)
+ */
+static int evaluate_condition(snd_use_case_mgr_t *uc_mgr,
+			      snd_config_t *cfg)
+{
+	snd_config_t *n;
+	int err;
+
+	err = snd_config_search(cfg, "If", &n);
+	if (err == -ENOENT)
+		return 0;
+	if (err < 0)
+		return err;
+
+	return uc_mgr_evaluate_condition(uc_mgr, cfg, n);
+}
+
+/*
  * Parse transition
  */
 static int parse_transition(snd_use_case_mgr_t *uc_mgr,
@@ -584,7 +602,7 @@ static int parse_value(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
 			  struct list_head *base,
 			  snd_config_t *cfg)
 {
-	snd_config_iterator_t i;
+	snd_config_iterator_t i, next;
 	snd_config_t *n;
 	char *s;
 	snd_config_type_t type;
@@ -594,20 +612,18 @@ static int parse_value(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
 		uc_error("error: compound is expected for value definition");
 		return -EINVAL;
 	}
-	snd_config_for_each_unsafe(i, cfg) {
+
+	/* in-place condition evaluation */
+	err = evaluate_condition(uc_mgr, cfg);
+	if (err < 0)
+		return err;
+
+	snd_config_for_each(i, next, cfg) {
 		const char *id;
 		n = snd_config_iterator_entry(i);
 		err = snd_config_get_id(n, &id);
 		if (err < 0)
 			continue;
-
-		/* in-place condition evaluation */
-		if (strcmp(id, "If") == 0) {
-			err = uc_mgr_evaluate_condition(uc_mgr, cfg, n);
-			if (err < 0)
-				return err;
-			continue;
-		}
 
 		type = snd_config_get_type(n);
 		switch (type) {
@@ -690,7 +706,7 @@ static int parse_modifier(snd_use_case_mgr_t *uc_mgr,
 	struct use_case_verb *verb = data1;
 	struct use_case_modifier *modifier;
 	const char *name;
-	snd_config_iterator_t i;
+	snd_config_iterator_t i, next;
 	snd_config_t *n;
 	int err;
 
@@ -716,19 +732,16 @@ static int parse_modifier(snd_use_case_mgr_t *uc_mgr,
 	list_add_tail(&modifier->list, &verb->modifier_list);
 	modifier->name = strdup(name);
 
-	snd_config_for_each_unsafe(i, cfg) {
+	/* in-place condition evaluation */
+	err = evaluate_condition(uc_mgr, cfg);
+	if (err < 0)
+		return err;
+
+	snd_config_for_each(i, next, cfg) {
 		const char *id;
 		n = snd_config_iterator_entry(i);
 		if (snd_config_get_id(n, &id) < 0)
 			continue;
-
-		/* in-place condition evaluation */
-		if (strcmp(id, "If") == 0) {
-			err = uc_mgr_evaluate_condition(uc_mgr, cfg, n);
-			if (err < 0)
-				return err;
-			continue;
-		}
 
 		if (strcmp(id, "Comment") == 0) {
 			err = parse_string(n, &modifier->comment);
@@ -845,7 +858,7 @@ static int parse_device(snd_use_case_mgr_t *uc_mgr,
 	struct use_case_verb *verb = data1;
 	const char *name;
 	struct use_case_device *device;
-	snd_config_iterator_t i;
+	snd_config_iterator_t i, next;
 	snd_config_t *n;
 	int err;
 
@@ -870,19 +883,16 @@ static int parse_device(snd_use_case_mgr_t *uc_mgr,
 	list_add_tail(&device->list, &verb->device_list);
 	device->name = strdup(name);
 
-	snd_config_for_each_unsafe(i, cfg) {
+	/* in-place condition evaluation */
+	err = evaluate_condition(uc_mgr, cfg);
+	if (err < 0)
+		return err;
+
+	snd_config_for_each(i, next, cfg) {
 		const char *id;
 		n = snd_config_iterator_entry(i);
 		if (snd_config_get_id(n, &id) < 0)
 			continue;
-
-		/* in-place condition evaluation */
-		if (strcmp(id, "If") == 0) {
-			err = uc_mgr_evaluate_condition(uc_mgr, cfg, n);
-			if (err < 0)
-				return err;
-			continue;
-		}
 
 		if (strcmp(id, "Comment") == 0) {
 			err = parse_string(n, &device->comment);
@@ -1061,24 +1071,21 @@ static int parse_verb(snd_use_case_mgr_t *uc_mgr,
 		      struct use_case_verb *verb,
 		      snd_config_t *cfg)
 {
-	snd_config_iterator_t i;
+	snd_config_iterator_t i, next;
 	snd_config_t *n;
 	int err;
 	
+	/* in-place condition evaluation */
+	err = evaluate_condition(uc_mgr, cfg);
+	if (err < 0)
+		return err;
+
 	/* parse verb section */
-	snd_config_for_each_unsafe(i, cfg) {
+	snd_config_for_each(i, next, cfg) {
 		const char *id;
 		n = snd_config_iterator_entry(i);
 		if (snd_config_get_id(n, &id) < 0)
 			continue;
-
-		/* in-place condition evaluation */
-		if (strcmp(id, "If") == 0) {
-			err = uc_mgr_evaluate_condition(uc_mgr, cfg, n);
-			if (err < 0)
-				return err;
-			continue;
-		}
 
 		if (strcmp(id, "EnableSequence") == 0) {
 			uc_dbg("Parse EnableSequence");
@@ -1138,7 +1145,7 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 			   const char *comment,
 			   const char *file)
 {
-	snd_config_iterator_t i;
+	snd_config_iterator_t i, next;
 	snd_config_t *n;
 	struct use_case_verb *verb;
 	snd_config_t *cfg;
@@ -1178,20 +1185,17 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 		return err;
 	}
 
+	/* in-place condition evaluation */
+	err = evaluate_condition(uc_mgr, cfg);
+	if (err < 0)
+		return err;
+
 	/* parse master config sections */
-	snd_config_for_each_unsafe(i, cfg) {
+	snd_config_for_each(i, next, cfg) {
 		const char *id;
 		n = snd_config_iterator_entry(i);
 		if (snd_config_get_id(n, &id) < 0)
 			continue;
-
-		/* in-place condition evaluation */
-		if (strcmp(id, "If") == 0) {
-			err = uc_mgr_evaluate_condition(uc_mgr, cfg, n);
-			if (err < 0)
-				return err;
-			continue;
-		}
 
 		/* find verb section and parse it */
 		if (strcmp(id, "SectionVerb") == 0) {
@@ -1250,7 +1254,7 @@ static int parse_master_section(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg,
 				void *data1 ATTRIBUTE_UNUSED,
 				void *data2 ATTRIBUTE_UNUSED)
 {
-	snd_config_iterator_t i;
+	snd_config_iterator_t i, next;
 	snd_config_t *n;
 	const char *use_case_name, *file = NULL, *comment = NULL;
 	int err;
@@ -1265,20 +1269,17 @@ static int parse_master_section(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg,
 		return -EINVAL;
 	}
 
+	/* in-place condition evaluation */
+	err = evaluate_condition(uc_mgr, cfg);
+	if (err < 0)
+		return err;
+
 	/* parse master config sections */
-	snd_config_for_each_unsafe(i, cfg) {
+	snd_config_for_each(i, next, cfg) {
 		const char *id;
 		n = snd_config_iterator_entry(i);
 		if (snd_config_get_id(n, &id) < 0)
 			continue;
-
-		/* in-place condition evaluation */
-		if (strcmp(id, "If") == 0) {
-			err = uc_mgr_evaluate_condition(uc_mgr, cfg, n);
-			if (err < 0)
-				return err;
-			continue;
-		}
 
 		/* get use case verb file name */
 		if (strcmp(id, "File") == 0) {
@@ -1380,7 +1381,7 @@ static int parse_controls(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
  */
 static int parse_master_file(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 {
-	snd_config_iterator_t i;
+	snd_config_iterator_t i, next;
 	snd_config_t *n;
 	const char *id;
 	long l;
@@ -1406,24 +1407,20 @@ static int parse_master_file(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 			uc_error("Incompatible syntax %d in %s", l, uc_mgr->conf_file_name);
 			return -EINVAL;
 		}
+		/* delete this field to avoid strcmp() call in the loop */
+		snd_config_delete(n);
 	}
 
+	/* in-place condition evaluation */
+	err = evaluate_condition(uc_mgr, cfg);
+	if (err < 0)
+		return err;
+
 	/* parse master config sections */
-	snd_config_for_each_unsafe(i, cfg) {
+	snd_config_for_each(i, next, cfg) {
 
 		n = snd_config_iterator_entry(i);
 		if (snd_config_get_id(n, &id) < 0)
-			continue;
-
-		/* in-place condition evaluation */
-		if (strcmp(id, "If") == 0) {
-			err = uc_mgr_evaluate_condition(uc_mgr, cfg, n);
-			if (err < 0)
-				return err;
-			continue;
-		}
-
-		if (uc_mgr->conf_format >= 2 && strcmp(id, "Syntax") == 0)
 			continue;
 
 		if (strcmp(id, "Comment") == 0) {
