@@ -175,7 +175,9 @@ static int evaluate_condition(snd_use_case_mgr_t *uc_mgr,
 	if (err < 0)
 		return err;
 
-	return uc_mgr_evaluate_condition(uc_mgr, cfg, n);
+	err = uc_mgr_evaluate_condition(uc_mgr, cfg, n);
+	snd_config_delete(n);
+	return err;
 }
 
 /*
