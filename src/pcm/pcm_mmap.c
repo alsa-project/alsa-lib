@@ -447,11 +447,12 @@ int snd_pcm_munmap(snd_pcm_t *pcm)
 		SNDMSG("Not mmapped");
 		return -ENXIO;
 	}
-	if (pcm->mmap_shadow)
+	if (pcm->mmap_shadow) {
 		if (pcm->ops->munmap)
 			return pcm->ops->munmap(pcm);
 		else
 			return -ENOSYS;
+	}
 	for (c = 0; c < pcm->channels; ++c) {
 		snd_pcm_channel_info_t *i = &pcm->mmap_channels[c];
 		unsigned int c1;
