@@ -650,8 +650,10 @@ static int parse_value(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
 			return -EINVAL;
 		}
 		err = uc_mgr_add_value(base, id, s);
-		if (err < 0)
+		if (err < 0) {
+			free(s);
 			return err;
+		}
 	}
 
 	return 0;
@@ -1761,15 +1763,18 @@ int uc_mgr_scan_master_configs(const char **_list[])
 		err = snd_config_search(cfg, "Syntax", &c);
 		if (err < 0) {
 			uc_error("Syntax field not found in %s", d_name);
+			snd_config_delete(cfg);
 			continue;
 		}
 		err = snd_config_get_integer(c, &l);
 		if (err < 0) {
 			uc_error("Syntax field is invalid in %s", d_name);
+			snd_config_delete(cfg);
 			goto __err;
 		}
 		if (l < 2 || l > SYNTAX_VERSION_MAX) {
 			uc_error("Incompatible syntax %d in %s", l, d_name);
+			snd_config_delete(cfg);
 			goto __err;
 		}
 		err = snd_config_search(cfg, "Comment", &c);

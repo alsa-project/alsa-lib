@@ -158,6 +158,7 @@ __rval:
 			if (nsize > size) {
 				nr = realloc(r, nsize);
 				if (nr == NULL) {
+					free(rval);
 					err = -ENOMEM;
 					goto __error;
 				}
