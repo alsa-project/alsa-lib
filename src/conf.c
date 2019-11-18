@@ -610,12 +610,12 @@ static char *_snd_config_path(const char *name)
  *    These directories should be subdirectories of /usr/share/alsa.
  */
 static int input_stdio_open(snd_input_t **inputp, const char *file,
-			    struct list_head *include_paths)
+			    struct filedesc *current)
 {
 	struct list_head *pos;
 	struct include_path *path;
 	char full_path[PATH_MAX];
-	int err = 0;
+	int err;
 
 	if (file[0] == '/')
 		return snd_input_stdio_open(inputp, file, "r");
@@ -623,15 +623,19 @@ static int input_stdio_open(snd_input_t **inputp, const char *file,
 	/* search file in user specified include paths. These directories
 	 * are subdirectories of /usr/share/alsa.
 	 */
-	list_for_each(pos, include_paths) {
-		path = list_entry(pos, struct include_path, list);
-		if (!path->dir)
-			continue;
+	err = -ENOENT;
+	while (current) {
+		list_for_each(pos, &current->include_paths) {
+			path = list_entry(pos, struct include_path, list);
+			if (!path->dir)
+				continue;
 
-		snprintf(full_path, PATH_MAX, "%s/%s", path->dir, file);
-		err = snd_input_stdio_open(inputp, full_path, "r");
-		if (err == 0)
-			return 0;
+			snprintf(full_path, PATH_MAX, "%s/%s", path->dir, file);
+			err = snd_input_stdio_open(inputp, full_path, "r");
+			if (err == 0)
+				return 0;
+		}
+		current = current->next;
 	}
 
 	return err;
@@ -804,8 +808,7 @@ static int get_char_skip_comments(input_t *input)
 				str = tmp;
 				err = snd_input_stdio_open(&in, str, "r");
 			} else { /* absolute or relative file path */
-				err = input_stdio_open(&in, str,
-						&input->current->include_paths);
+				err = input_stdio_open(&in, str, input->current);
 			}
 
 			if (err < 0) {
