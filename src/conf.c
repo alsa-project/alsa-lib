@@ -528,6 +528,17 @@ static inline void snd_config_unlock(void) { }
 static int add_include_path(struct filedesc *fd, const char *dir)
 {
 	struct include_path *path;
+	struct filedesc *fd1;
+	struct list_head *pos;
+
+	/* check, if dir is already registered (also in parents) */
+	for (fd1 = fd; fd1; fd1 = fd1->next) {
+		list_for_each(pos, &fd1->include_paths) {
+			path = list_entry(pos, struct include_path, list);
+			if (strcmp(path->dir, dir) == 0)
+				return 0;
+		}
+	}
 
 	path = calloc(1, sizeof(*path));
 	if (!path)
