@@ -76,9 +76,10 @@ static void configuration_filename2(char *fn, size_t fn_len, int format,
 
 static void configuration_filename(snd_use_case_mgr_t *uc_mgr,
 				   char *fn, size_t fn_len,
-				   const char *file, const char *suffix)
+				   const char *dir, const char *file,
+				   const char *suffix)
 {
-	const char *env, *dir;
+	const char *env;
 
 	if (uc_mgr->conf_format > 0) {
 		/* known format */
@@ -94,13 +95,11 @@ static void configuration_filename(snd_use_case_mgr_t *uc_mgr,
 		}
 	}
 	if (env) {
-		snprintf(fn, fn_len, "%s/%s/%s%s",
-			env, uc_mgr->conf_file_name, file, suffix);
+		snprintf(fn, fn_len, "%s/%s/%s%s", env, dir, file, suffix);
 		fn[fn_len-1] = '\0';
 		return;
 	}
 
-	dir = uc_mgr->conf_file_name;
 	if (uc_mgr->conf_format > 0) {
 __format:
 		configuration_filename2(fn, fn_len, uc_mgr->conf_format,
@@ -1181,7 +1180,8 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 	}
 
 	/* open Verb file for reading */
-	configuration_filename(uc_mgr, filename, sizeof(filename), file, "");
+	configuration_filename(uc_mgr, filename, sizeof(filename),
+			       uc_mgr->conf_file_name, file, "");
 	err = uc_mgr_config_load(uc_mgr->conf_format, filename, &cfg);
 	if (err < 0) {
 		uc_error("error: failed to open verb file %s : %d",
@@ -1576,7 +1576,7 @@ static int load_master_config(snd_use_case_mgr_t *uc_mgr,
 	}
 
 	configuration_filename(uc_mgr, filename, sizeof(filename),
-			       card_name, ".conf");
+			       card_name, card_name, ".conf");
 
 	/* if the configuration file does not exist, silently return */
 	if (fcheck && access(filename, R_OK) != 0)
