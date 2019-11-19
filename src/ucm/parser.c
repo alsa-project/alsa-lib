@@ -107,12 +107,18 @@ static void configuration_filename(snd_use_case_mgr_t *uc_mgr,
 	}
 
 	configuration_filename2(fn, fn_len, 2, dir, file, suffix);
-	if (access(fn, R_OK) == 0)
+	if (access(fn, R_OK) == 0) {
+		/* Found an ucm2 file, only look in the ucm2 dir from now on */
+		uc_mgr->conf_format = 2;
 		return;
+	}
 
 	configuration_filename2(fn, fn_len, 0, dir, file, suffix);
-	if (access(fn, R_OK) == 0)
+	if (access(fn, R_OK) == 0) {
+		/* Found an ucm1 file, only look in the ucm dir from now on */
+		uc_mgr->conf_format = 1;
 		return;
+	}
 
 	/* make sure that the error message refers to the new path */
 	configuration_filename2(fn, fn_len, 2, dir, file, suffix);
