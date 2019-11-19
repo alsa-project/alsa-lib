@@ -101,7 +101,6 @@ static void configuration_filename(snd_use_case_mgr_t *uc_mgr,
 	}
 
 	if (uc_mgr->conf_format > 0) {
-__format:
 		configuration_filename2(fn, fn_len, uc_mgr->conf_format,
 					dir, file, suffix);
 		return;
@@ -112,11 +111,11 @@ __format:
 		return;
 
 	configuration_filename2(fn, fn_len, 0, dir, file, suffix);
-	if (access(fn, R_OK)) {
-		/* make sure that the error message refers to the new path */
-		uc_mgr->conf_format = 2;
-		goto __format;
-	}
+	if (access(fn, R_OK) == 0)
+		return;
+
+	/* make sure that the error message refers to the new path */
+	configuration_filename2(fn, fn_len, 2, dir, file, suffix);
 }
 
 /*
