@@ -1584,20 +1584,21 @@ static int load_master_config(snd_use_case_mgr_t *uc_mgr,
 			uc_mgr->conf_format = 2;
 			configuration_filename(uc_mgr, filename, sizeof(filename),
 					       uc_mgr->conf_file_name, card_name, ".conf");
+			if (access(filename, R_OK) == 0)
+				goto __load;
 		}
-		if (uc_mgr->conf_format >= 2 && access(filename, R_OK) != 0) {
-			/* try the old ucm directory */
-			uc_mgr->conf_format = 1;
-			configuration_filename(uc_mgr, filename, sizeof(filename),
-					       card_name, card_name, ".conf");
-			if (access(filename, R_OK) != 0)
-				return -ENOENT;
-		}
+		/* try the old ucm directory */
+		uc_mgr->conf_format = 1;
+		configuration_filename(uc_mgr, filename, sizeof(filename),
+				       card_name, card_name, ".conf");
+		if (access(filename, R_OK) != 0)
+			return -ENOENT;
 	} else {
 		configuration_filename(uc_mgr, filename, sizeof(filename),
 				       card_name, card_name, ".conf");
 	}
 
+__load:
 	err = uc_mgr_config_load(uc_mgr->conf_format, filename, cfg);
 	if (err < 0) {
 		uc_error("error: could not parse configuration for card %s",
