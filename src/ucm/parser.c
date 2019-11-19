@@ -1567,7 +1567,7 @@ static int get_by_card(snd_use_case_mgr_t *mgr, const char *ctl_name, char *long
 }
 
 static int load_master_config(snd_use_case_mgr_t *uc_mgr,
-			      const char *card_name, snd_config_t **cfg, int fcheck)
+			      const char *card_name, snd_config_t **cfg, int longname)
 {
 	char filename[MAX_FILE];
 	int err;
@@ -1578,12 +1578,25 @@ static int load_master_config(snd_use_case_mgr_t *uc_mgr,
 		return -EINVAL;
 	}
 
-	configuration_filename(uc_mgr, filename, sizeof(filename),
-			       card_name, card_name, ".conf");
-
-	/* if the configuration file does not exist, silently return */
-	if (fcheck && access(filename, R_OK) != 0)
-		return -ENOENT;
+	uc_mgr->conf_format = 0;
+	if (longname) {
+		if (getenv(ALSA_CONFIG_UCM2_VAR) || !getenv(ALSA_CONFIG_UCM_VAR)) {
+			uc_mgr->conf_format = 2;
+			configuration_filename(uc_mgr, filename, sizeof(filename),
+					       uc_mgr->conf_file_name, card_name, ".conf");
+		}
+		if (uc_mgr->conf_format >= 2 && access(filename, R_OK) != 0) {
+			/* try the old ucm directory */
+			uc_mgr->conf_format = 1;
+			configuration_filename(uc_mgr, filename, sizeof(filename),
+					       card_name, card_name, ".conf");
+			if (access(filename, R_OK) != 0)
+				return -ENOENT;
+		}
+	} else {
+		configuration_filename(uc_mgr, filename, sizeof(filename),
+				       card_name, card_name, ".conf");
+	}
 
 	err = uc_mgr_config_load(uc_mgr->conf_format, filename, cfg);
 	if (err < 0) {
