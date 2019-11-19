@@ -71,7 +71,6 @@ static void configuration_filename2(char *fn, size_t fn_len, int format,
 	snprintf(fn, fn_len, "%s/ucm%s/%s/%s%s",
 		 snd_config_topdir(), format >= 2 ? "2" : "",
 		 dir, file, suffix);
-	fn[fn_len-1] = '\0';
 }
 
 static void configuration_filename(snd_use_case_mgr_t *uc_mgr,
@@ -96,7 +95,6 @@ static void configuration_filename(snd_use_case_mgr_t *uc_mgr,
 	}
 	if (env) {
 		snprintf(fn, fn_len, "%s/%s/%s%s", env, dir, file, suffix);
-		fn[fn_len-1] = '\0';
 		return;
 	}
 
@@ -1712,11 +1710,10 @@ int uc_mgr_scan_master_configs(const char **_list[])
 	struct dirent **namelist;
 
 	if (env)
-		snprintf(filename, sizeof(filename)-1, "%s", env);
+		snprintf(filename, sizeof(filename), "%s", env);
 	else
-		snprintf(filename, sizeof(filename)-1, "%s/ucm2",
+		snprintf(filename, sizeof(filename), "%s/ucm2",
 			 snd_config_topdir());
-	filename[sizeof(filename)-1] = '\0';
 
 #if defined(_GNU_SOURCE) && !defined(__NetBSD__) && !defined(__FreeBSD__) && !defined(__sun) && !defined(ANDROID)
 #define SORTFUNC	versionsort
