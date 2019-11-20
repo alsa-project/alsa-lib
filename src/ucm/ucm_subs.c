@@ -25,6 +25,8 @@
  */
 
 #include "ucm_local.h"
+#include <sys/stat.h>
+#include <limits.h>
 
 static char *rval_conf_name(snd_use_case_mgr_t *uc_mgr)
 {
@@ -83,6 +85,56 @@ static char *rval_env(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED, const char *i
 	return NULL;
 }
 
+static char *rval_sysfs(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED, const char *id)
+{
+	char path[PATH_MAX], link[PATH_MAX + 1];
+	struct stat sb;
+	ssize_t len;
+	char *e;
+	int fd;
+
+	e = getenv("SYSFS_PATH");
+	if (e == NULL)
+		e = "/sys";
+	if (id[0] == '/')
+		id++;
+	snprintf(path, sizeof(path), "%s/%s", e, id);
+	if (lstat(path, &sb) != 0)
+		return NULL;
+	if (S_ISLNK(sb.st_mode)) {
+		len = readlink(path, link, sizeof(link) - 1);
+		if (len <= 0) {
+			uc_error("sysfs: cannot read link '%s' (%d)", path, errno);
+			return NULL;
+		}
+		link[len] = '\0';
+		e = strrchr(link, '/');
+		if (e)
+			return strdup(e + 1);
+		return NULL;
+	}
+	if (S_ISDIR(sb.st_mode))
+		return NULL;
+	if ((sb.st_mode & S_IRUSR) == 0)
+		return NULL;
+
+	fd = open(path, O_RDONLY);
+	if (fd < 0) {
+		uc_error("sysfs open failed for '%s' (%d)", path, errno);
+		return NULL;
+	}
+	len = read(fd, path, sizeof(path)-1);
+	close(fd);
+	if (len < 0) {
+		uc_error("sysfs unable to read value '%s' (%d)", path, errno);
+		return NULL;
+	}
+	while (len > 0 && path[len-1] == '\n')
+		len--;
+	path[len] = '\0';
+	return strdup(path);
+}
+
 #define MATCH_VARIABLE(name, id, fcn)					\
 	if (strncmp((name), (id), sizeof(id) - 1) == 0) { 		\
 		rval = fcn(uc_mgr);					\
@@ -133,6 +185,7 @@ int uc_mgr_get_substituted_value(snd_use_case_mgr_t *uc_mgr,
 			MATCH_VARIABLE(value, "${CardLongName}", rval_card_longname);
 			MATCH_VARIABLE(value, "${CardComponents}", rval_card_components);
 			MATCH_VARIABLE2(value, "${env:", rval_env);
+			MATCH_VARIABLE2(value, "${sys:", rval_sysfs);
 			err = -EINVAL;
 			tmp = strchr(value, '}');
 			if (tmp) {
