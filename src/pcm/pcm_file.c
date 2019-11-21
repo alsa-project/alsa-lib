@@ -71,6 +71,7 @@ typedef struct {
 	int trunc;
 	int perm;
 	int fd;
+	FILE *pipe;
 	char *ifname;
 	int ifd;
 	int format;
@@ -227,15 +228,10 @@ static int snd_pcm_file_open_output_file(snd_pcm_file_t *file)
 					file->final_fname);
 			return -errno;
 		}
-		fd = dup(fileno(pipe));
-		err = -errno;
-		pclose(pipe);
-		if (fd < 0) {
-			SYSERR("unable to dup pipe file handle for command %s",
-					file->final_fname);
-			return err;
-		}
+		fd = fileno(pipe);
+		file->pipe = pipe;
 	} else {
+		file->pipe = NULL;
 		if (file->trunc)
 			fd = open(file->final_fname, O_WRONLY|O_CREAT|O_TRUNC,
 					file->perm);
@@ -486,7 +482,9 @@ static int snd_pcm_file_close(snd_pcm_t *pcm)
 		if (file->wav_header.fmt)
 			fixup_wav_header(pcm);
 		free((void *)file->fname);
-		if (file->fd >= 0) {
+		if (file->pipe) {
+			pclose(file->pipe);
+		} else if (file->fd >= 0) {
 			close(file->fd);
 		}
 	}
