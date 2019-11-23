@@ -42,6 +42,8 @@
 extern "C" {
 #endif
 
+#include <alsa/asoundlib.h>
+
 /**
  *  \defgroup ucm Use Case Interface
  *  The ALSA Use Case manager interface.
