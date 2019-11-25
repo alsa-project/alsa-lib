@@ -1573,7 +1573,7 @@ static int load_master_config(snd_use_case_mgr_t *uc_mgr,
 	int err;
 
 	if (strnlen(card_name, MAX_CARD_LONG_NAME) == MAX_CARD_LONG_NAME) {
-		uc_error("error: invalid card name %s (at most %d chars)\n",
+		uc_error("error: invalid card name %s (at most %d chars)",
 			 card_name, MAX_CARD_LONG_NAME - 1);
 		return -EINVAL;
 	}

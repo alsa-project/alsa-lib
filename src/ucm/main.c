@@ -406,7 +406,7 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 			}
 			err = execute_cset(ctl, s->data.cset, s->type);
 			if (err < 0) {
-				uc_error("unable to execute cset '%s'\n", s->data.cset);
+				uc_error("unable to execute cset '%s'", s->data.cset);
 				goto __fail;
 			}
 			break;
@@ -987,7 +987,7 @@ int snd_use_case_mgr_reload(snd_use_case_mgr_t *uc_mgr)
 	/* reload all use cases */
 	err = import_master_config(uc_mgr);
 	if (err < 0) {
-		uc_error("error: failed to reload use cases\n");
+		uc_error("error: failed to reload use cases");
 		pthread_mutex_unlock(&uc_mgr->mutex);
 		return -EINVAL;
 	}
