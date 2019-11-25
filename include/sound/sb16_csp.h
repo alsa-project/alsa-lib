@@ -1,6 +1,4 @@
-#ifndef __SOUND_SB16_CSP_H
-#define __SOUND_SB16_CSP_H
-
+/* SPDX-License-Identifier: GPL-2.0+ WITH Linux-syscall-note */
 /*
  *  Copyright (c) 1999 by Uros Bizjak <uros@kss-loka.si>
  *                        Takashi Iwai <tiwai@suse.de>
@@ -19,9 +17,12 @@
  *
  *   You should have received a copy of the GNU General Public License
  *   along with this program; if not, write to the Free Software
- *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  *
  */
+#ifndef _UAPI__SOUND_SB16_CSP_H
+#define _UAPI__SOUND_SB16_CSP_H
+
 
 /* CSP modes */
 #define SNDRV_SB_CSP_MODE_NONE		0x00
@@ -63,25 +64,25 @@
 #define SNDRV_SB_CSP_MAX_MICROCODE_FILE_SIZE	0x3000
 
 /* microcode header */
-typedef struct snd_sb_csp_mc_header {
+struct snd_sb_csp_mc_header {
 	char codec_name[16];		/* id name of codec */
 	unsigned short func_req;	/* requested function */
-} snd_sb_csp_mc_header_t;
+};
 
 /* microcode to be loaded */
-typedef struct snd_sb_csp_microcode {
-	snd_sb_csp_mc_header_t info;
+struct snd_sb_csp_microcode {
+	struct snd_sb_csp_mc_header info;
 	unsigned char data[SNDRV_SB_CSP_MAX_MICROCODE_FILE_SIZE];
-} snd_sb_csp_microcode_t;
+};
 
 /* start CSP with sample_width in mono/stereo */
-typedef struct snd_sb_csp_start {
+struct snd_sb_csp_start {
 	int sample_width;	/* sample width, look above */
 	int channels;		/* channels, look above */
-} snd_sb_csp_start_t;
+};
 
 /* CSP information */
-typedef struct snd_sb_csp_info {
+struct snd_sb_csp_info {
 	char codec_name[16];		/* id name of codec */
 	unsigned short func_nr;		/* function number */
 	unsigned int acc_format;	/* accepted PCM formats */
@@ -93,23 +94,30 @@ typedef struct snd_sb_csp_info {
 	unsigned short run_width;	/* current sample width */
 	unsigned short version;		/* version id: 0x10 - 0x1f */
 	unsigned short state;		/* state bits */
-} snd_sb_csp_info_t;
+};
 
 /* HWDEP controls */
 /* get CSP information */
-#define SNDRV_SB_CSP_IOCTL_INFO		_IOR('H', 0x10, snd_sb_csp_info_t)
+#define SNDRV_SB_CSP_IOCTL_INFO		_IOR('H', 0x10, struct snd_sb_csp_info)
 /* load microcode to CSP */
-#define SNDRV_SB_CSP_IOCTL_LOAD_CODE	_IOW('H', 0x11, snd_sb_csp_microcode_t)
+/* NOTE: struct snd_sb_csp_microcode overflows the max size (13 bits)
+ * defined for some architectures like MIPS, and it leads to build errors.
+ * (x86 and co have 14-bit size, thus it's valid, though.)
+ * As a workaround for skipping the size-limit check, here we don't use the
+ * normal _IOW() macro but _IOC() with the manual argument.
+ */
+#define SNDRV_SB_CSP_IOCTL_LOAD_CODE	\
+	_IOC(_IOC_WRITE, 'H', 0x11, sizeof(struct snd_sb_csp_microcode))
 /* unload microcode from CSP */
 #define SNDRV_SB_CSP_IOCTL_UNLOAD_CODE	_IO('H', 0x12)
 /* start CSP */
-#define SNDRV_SB_CSP_IOCTL_START	_IOW('H', 0x13, snd_sb_csp_start_t)
+#define SNDRV_SB_CSP_IOCTL_START		_IOW('H', 0x13, struct snd_sb_csp_start)
 /* stop CSP */
 #define SNDRV_SB_CSP_IOCTL_STOP		_IO('H', 0x14)
 /* pause CSP and DMA transfer */
-#define SNDRV_SB_CSP_IOCTL_PAUSE	_IO('H', 0x15)
+#define SNDRV_SB_CSP_IOCTL_PAUSE		_IO('H', 0x15)
 /* restart CSP and DMA transfer */
 #define SNDRV_SB_CSP_IOCTL_RESTART	_IO('H', 0x16)
 
 
-#endif /* __SOUND_SB16_CSP */
+#endif /* _UAPI__SOUND_SB16_CSP_H */

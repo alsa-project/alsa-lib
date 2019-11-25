@@ -1,6 +1,4 @@
-#ifndef __SOUND_EMU10K1_H
-#define __SOUND_EMU10K1_H
-
+/* SPDX-License-Identifier: GPL-2.0+ WITH Linux-syscall-note */
 /*
  *  Copyright (c) by Jaroslav Kysela <perex@perex.cz>,
  *		     Creative Labs, Inc.
@@ -19,11 +17,14 @@
  *
  *   You should have received a copy of the GNU General Public License
  *   along with this program; if not, write to the Free Software
- *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  *
  */
+#ifndef _UAPI__SOUND_EMU10K1_H
+#define _UAPI__SOUND_EMU10K1_H
 
-#include <stdint.h>
+#include <linux/types.h>
+#include <sound/asound.h>
 
 /*
  * ---- FX8010 ----
@@ -33,6 +34,14 @@
 #define EMU10K1_CARD_EMUAPS			0x00000001
 
 #define EMU10K1_FX8010_PCM_COUNT		8
+
+/*
+ * Following definition is copied from linux/types.h to support compiling
+ * this header file in userspace since they are not generally available for
+ * uapi headers.
+ */
+#define __EMU10K1_DECLARE_BITMAP(name,bits) \
+	unsigned long name[(bits) / (sizeof(unsigned long) * 8)]
 
 /* instruction set */
 #define iMAC0	 0x00	/* R = A + (X * Y >> 31)   ; saturation */
@@ -55,7 +64,10 @@
 /* GPRs */
 #define FXBUS(x)	(0x00 + (x))	/* x = 0x00 - 0x0f */
 #define EXTIN(x)	(0x10 + (x))	/* x = 0x00 - 0x0f */
-#define EXTOUT(x)	(0x20 + (x))	/* x = 0x00 - 0x0f */
+#define EXTOUT(x)	(0x20 + (x))	/* x = 0x00 - 0x0f physical outs -> FXWC low 16 bits */
+#define FXBUS2(x)	(0x30 + (x))	/* x = 0x00 - 0x0f copies of fx buses for capture -> FXWC high 16 bits */
+					/* NB: 0x31 and 0x32 are shared with Center/LFE on SB live 5.1 */
+
 #define C_00000000	0x40
 #define C_00000001	0x41
 #define C_00000002	0x42
@@ -90,9 +102,22 @@
 #define ITRAM_ADDR(x)	(TANKMEMADDRREGBASE + 0x00 + (x)) /* x = 0x00 - 0x7f */
 #define ETRAM_ADDR(x)	(TANKMEMADDRREGBASE + 0x80 + (x)) /* x = 0x00 - 0x1f */
 
-#define A_FXBUS(x)	(0x00 + (x))	/* x = 0x00 - 0x3f? */
-#define A_EXTIN(x)	(0x40 + (x))	/* x = 0x00 - 0x1f? */
-#define A_EXTOUT(x)	(0x60 + (x))	/* x = 0x00 - 0x1f? */
+#define A_ITRAM_DATA(x)	(TANKMEMDATAREGBASE + 0x00 + (x)) /* x = 0x00 - 0xbf */
+#define A_ETRAM_DATA(x)	(TANKMEMDATAREGBASE + 0xc0 + (x)) /* x = 0x00 - 0x3f */
+#define A_ITRAM_ADDR(x)	(TANKMEMADDRREGBASE + 0x00 + (x)) /* x = 0x00 - 0xbf */
+#define A_ETRAM_ADDR(x)	(TANKMEMADDRREGBASE + 0xc0 + (x)) /* x = 0x00 - 0x3f */
+#define A_ITRAM_CTL(x)	(A_TANKMEMCTLREGBASE + 0x00 + (x)) /* x = 0x00 - 0xbf */
+#define A_ETRAM_CTL(x)	(A_TANKMEMCTLREGBASE + 0xc0 + (x)) /* x = 0x00 - 0x3f */
+
+#define A_FXBUS(x)	(0x00 + (x))	/* x = 0x00 - 0x3f FX buses */
+#define A_EXTIN(x)	(0x40 + (x))	/* x = 0x00 - 0x0f physical ins */
+#define A_P16VIN(x)	(0x50 + (x))	/* x = 0x00 - 0x0f p16v ins (A2 only) "EMU32 inputs" */
+#define A_EXTOUT(x)	(0x60 + (x))	/* x = 0x00 - 0x1f physical outs -> A_FXWC1 0x79-7f unknown   */
+#define A_FXBUS2(x)	(0x80 + (x))	/* x = 0x00 - 0x1f extra outs used for EFX capture -> A_FXWC2 */
+#define A_EMU32OUTH(x)	(0xa0 + (x))	/* x = 0x00 - 0x0f "EMU32_OUT_10 - _1F" - ??? */
+#define A_EMU32OUTL(x)	(0xb0 + (x))	/* x = 0x00 - 0x0f "EMU32_OUT_1 - _F" - ??? */
+#define A3_EMU32IN(x)	(0x160 + (x))	/* x = 0x00 - 0x3f "EMU32_IN_00 - _3F" - Only when .device = 0x0008 */
+#define A3_EMU32OUT(x)	(0x1E0 + (x))	/* x = 0x00 - 0x0f "EMU32_OUT_00 - _3F" - Only when .device = 0x0008 */
 #define A_GPR(x)	(A_FXGPREGBASE + (x))
 
 /* cc_reg constants */
@@ -242,14 +267,14 @@
 #define TANKMEMADDRREG_READ	 0x00100000	/* Read from tank memory			*/
 #endif
 
-typedef struct {
+struct snd_emu10k1_fx8010_info {
 	unsigned int internal_tram_size;	/* in samples */
 	unsigned int external_tram_size;	/* in samples */
 	char fxbus_names[16][32];		/* names of FXBUSes */
 	char extin_names[16][32];		/* names of external inputs */
 	char extout_names[32][32];		/* names of external outputs */
 	unsigned int gpr_controls;		/* count of GPR controls */
-} emu10k1_fx8010_info_t;
+};
 
 #define EMU10K1_GPR_TRANSLATION_NONE		0
 #define EMU10K1_GPR_TRANSLATION_TABLE100	1
@@ -257,22 +282,8 @@ typedef struct {
 #define EMU10K1_GPR_TRANSLATION_TREBLE		3
 #define EMU10K1_GPR_TRANSLATION_ONOFF		4
 
-enum emu10k1_ctl_elem_iface {
-	EMU10K1_CTL_ELEM_IFACE_MIXER = 2,	/* virtual mixer device */
-	EMU10K1_CTL_ELEM_IFACE_PCM = 3,		/* PCM device */
-};
-
-typedef struct {
-	unsigned int pad;		/* don't use */
-	int iface;			/* interface identifier */
-	unsigned int device;		/* device/client number */
-	unsigned int subdevice;		/* subdevice (substream) number */
-	unsigned char name[44];		/* ASCII name of item */ 
-	unsigned int index;		/* index of item */
-} emu10k1_ctl_elem_id_t;
-
-typedef struct {
-	emu10k1_ctl_elem_id_t id;	/* full control ID definition */
+struct snd_emu10k1_fx8010_control_gpr {
+	struct snd_ctl_elem_id id;		/* full control ID definition */
 	unsigned int vcount;		/* visible count */
 	unsigned int count;		/* count of GPR (1..16) */
 	unsigned short gpr[32];		/* GPR number(s) */
@@ -280,41 +291,53 @@ typedef struct {
 	unsigned int min;		/* minimum range */
 	unsigned int max;		/* maximum range */
 	unsigned int translation;	/* translation type (EMU10K1_GPR_TRANSLATION*) */
-	unsigned int *tlv;
-} emu10k1_fx8010_control_gpr_t;
+	const unsigned int *tlv;
+};
 
-typedef struct {
+/* old ABI without TLV support */
+struct snd_emu10k1_fx8010_control_old_gpr {
+	struct snd_ctl_elem_id id;
+	unsigned int vcount;
+	unsigned int count;
+	unsigned short gpr[32];
+	unsigned int value[32];
+	unsigned int min;
+	unsigned int max;
+	unsigned int translation;
+};
+
+struct snd_emu10k1_fx8010_code {
 	char name[128];
 
-	unsigned long gpr_valid[0x200/(sizeof(unsigned long)*8)]; /* bitmask of valid initializers */
-	uint32_t *gpr_map;		  /* initializers */
+	__EMU10K1_DECLARE_BITMAP(gpr_valid, 0x200); /* bitmask of valid initializers */
+	__u32 __user *gpr_map;		/* initializers */
 
 	unsigned int gpr_add_control_count; /* count of GPR controls to add/replace */
-	emu10k1_fx8010_control_gpr_t *gpr_add_controls; /* GPR controls to add/replace */
+	struct snd_emu10k1_fx8010_control_gpr __user *gpr_add_controls; /* GPR controls to add/replace */
 
 	unsigned int gpr_del_control_count; /* count of GPR controls to remove */
-	emu10k1_ctl_elem_id_t *gpr_del_controls; /* IDs of GPR controls to remove */
+	struct snd_ctl_elem_id __user *gpr_del_controls; /* IDs of GPR controls to remove */
 
 	unsigned int gpr_list_control_count; /* count of GPR controls to list */
 	unsigned int gpr_list_control_total; /* total count of GPR controls */
-	emu10k1_fx8010_control_gpr_t *gpr_list_controls; /* listed GPR controls */
+	struct snd_emu10k1_fx8010_control_gpr __user *gpr_list_controls; /* listed GPR controls */
 
-	unsigned long tram_valid[0x100/(sizeof(unsigned long)*8)]; /* bitmask of valid initializers */
-	uint32_t *tram_data_map;	/* data initializers */
-	uint32_t *tram_addr_map;	/* map initializers */
+	__EMU10K1_DECLARE_BITMAP(tram_valid, 0x100); /* bitmask of valid initializers */
+	__u32 __user *tram_data_map;	  /* data initializers */
+	__u32 __user *tram_addr_map;	  /* map initializers */
 
-	unsigned long code_valid[1024/(sizeof(unsigned long)*8)];  /* bitmask of valid instructions */
-	uint32_t *code;			/* one instruction - 64 bits */
-} emu10k1_fx8010_code_t;
+	__EMU10K1_DECLARE_BITMAP(code_valid, 1024); /* bitmask of valid instructions */
+	__u32 __user *code;		  /* one instruction - 64 bits */
+};
 
-typedef struct {
+struct snd_emu10k1_fx8010_tram {
 	unsigned int address;		/* 31.bit == 1 -> external TRAM */
 	unsigned int size;		/* size in samples (4 bytes) */
 	unsigned int *samples;		/* pointer to samples (20-bit) */
 					/* NULL->clear memory */
-} emu10k1_fx8010_tram_t;
+};
 
-typedef struct {
+struct snd_emu10k1_fx8010_pcm_rec {
 	unsigned int substream;		/* substream number */
 	unsigned int res1;		/* reserved */
 	unsigned int channels;		/* 16-bit channels count, zero = remove this substream */
@@ -329,16 +352,18 @@ typedef struct {
 	unsigned char pad;		/* reserved */
 	unsigned char etram[32];	/* external TRAM address & data (one per channel) */
 	unsigned int res2;		/* reserved */
-} emu10k1_fx8010_pcm_t;
+};
 
-#define SNDRV_EMU10K1_IOCTL_INFO	_IOR ('H', 0x10, emu10k1_fx8010_info_t)
-#define SNDRV_EMU10K1_IOCTL_CODE_POKE	_IOW ('H', 0x11, emu10k1_fx8010_code_t)
-#define SNDRV_EMU10K1_IOCTL_CODE_PEEK	_IOWR('H', 0x12, emu10k1_fx8010_code_t)
+#define SNDRV_EMU10K1_VERSION		SNDRV_PROTOCOL_VERSION(1, 0, 1)
+
+#define SNDRV_EMU10K1_IOCTL_INFO	_IOR ('H', 0x10, struct snd_emu10k1_fx8010_info)
+#define SNDRV_EMU10K1_IOCTL_CODE_POKE	_IOW ('H', 0x11, struct snd_emu10k1_fx8010_code)
+#define SNDRV_EMU10K1_IOCTL_CODE_PEEK	_IOWR('H', 0x12, struct snd_emu10k1_fx8010_code)
 #define SNDRV_EMU10K1_IOCTL_TRAM_SETUP	_IOW ('H', 0x20, int)
-#define SNDRV_EMU10K1_IOCTL_TRAM_POKE	_IOW ('H', 0x21, emu10k1_fx8010_tram_t)
-#define SNDRV_EMU10K1_IOCTL_TRAM_PEEK	_IOWR('H', 0x22, emu10k1_fx8010_tram_t)
-#define SNDRV_EMU10K1_IOCTL_PCM_POKE	_IOW ('H', 0x30, emu10k1_fx8010_pcm_t)
-#define SNDRV_EMU10K1_IOCTL_PCM_PEEK	_IOWR('H', 0x31, emu10k1_fx8010_pcm_t)
+#define SNDRV_EMU10K1_IOCTL_TRAM_POKE	_IOW ('H', 0x21, struct snd_emu10k1_fx8010_tram)
+#define SNDRV_EMU10K1_IOCTL_TRAM_PEEK	_IOWR('H', 0x22, struct snd_emu10k1_fx8010_tram)
+#define SNDRV_EMU10K1_IOCTL_PCM_POKE	_IOW ('H', 0x30, struct snd_emu10k1_fx8010_pcm_rec)
+#define SNDRV_EMU10K1_IOCTL_PCM_PEEK	_IOWR('H', 0x31, struct snd_emu10k1_fx8010_pcm_rec)
 #define SNDRV_EMU10K1_IOCTL_PVERSION	_IOR ('H', 0x40, int)
 #define SNDRV_EMU10K1_IOCTL_STOP	_IO  ('H', 0x80)
 #define SNDRV_EMU10K1_IOCTL_CONTINUE	_IO  ('H', 0x81)
@@ -346,4 +371,11 @@ typedef struct {
 #define SNDRV_EMU10K1_IOCTL_SINGLE_STEP	_IOW ('H', 0x83, int)
 #define SNDRV_EMU10K1_IOCTL_DBG_READ	_IOR ('H', 0x84, int)
 
-#endif	/* __SOUND_EMU10K1_H */
+/* typedefs for compatibility to user-space */
+typedef struct snd_emu10k1_fx8010_info emu10k1_fx8010_info_t;
+typedef struct snd_emu10k1_fx8010_control_gpr emu10k1_fx8010_control_gpr_t;
+typedef struct snd_emu10k1_fx8010_code emu10k1_fx8010_code_t;
+typedef struct snd_emu10k1_fx8010_tram emu10k1_fx8010_tram_t;
+typedef struct snd_emu10k1_fx8010_pcm_rec emu10k1_fx8010_pcm_t;
+
+#endif /* _UAPI__SOUND_EMU10K1_H */

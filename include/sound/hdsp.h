@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0+ WITH Linux-syscall-note */
 #ifndef __SOUND_HDSP_H
 #define __SOUND_HDSP_H
 
@@ -19,36 +20,32 @@
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#include <stdint.h>
+#include <linux/types.h>
 
 #define HDSP_MATRIX_MIXER_SIZE 2048
 
-typedef enum {
+enum HDSP_IO_Type {
 	Digiface,
 	Multiface,
 	H9652,
 	H9632,
 	RPM,
 	Undefined,
-} HDSP_IO_Type;
-
-typedef struct _snd_hdsp_peak_rms hdsp_peak_rms_t;
-
-struct _snd_hdsp_peak_rms {
-	uint32_t input_peaks[26];
-	uint32_t playback_peaks[26];
-	uint32_t output_peaks[28];
-	uint64_t input_rms[26];
-	uint64_t playback_rms[26];
-	/* These are only used for H96xx cards */
-	uint64_t output_rms[26];
 };
 
-#define SNDRV_HDSP_IOCTL_GET_PEAK_RMS _IOR('H', 0x40, hdsp_peak_rms_t)
+struct hdsp_peak_rms {
+	__u32 input_peaks[26];
+	__u32 playback_peaks[26];
+	__u32 output_peaks[28];
+	__u64 input_rms[26];
+	__u64 playback_rms[26];
+	/* These are only used for H96xx cards */
+	__u64 output_rms[26];
+};
 
-typedef struct _snd_hdsp_config_info hdsp_config_info_t;
+#define SNDRV_HDSP_IOCTL_GET_PEAK_RMS _IOR('H', 0x40, struct hdsp_peak_rms)
 
-struct _snd_hdsp_config_info {
+struct hdsp_config_info {
 	unsigned char pref_sync_ref;
 	unsigned char wordclock_sync_check;
 	unsigned char spdif_sync_check;
@@ -74,40 +71,41 @@ struct _snd_hdsp_config_info {
 	unsigned char analog_extension_board;
 };
 
-#define SNDRV_HDSP_IOCTL_GET_CONFIG_INFO _IOR('H', 0x41, hdsp_config_info_t)
+#define SNDRV_HDSP_IOCTL_GET_CONFIG_INFO _IOR('H', 0x41, struct hdsp_config_info)
 
-typedef struct _snd_hdsp_firmware hdsp_firmware_t;
-
-struct _snd_hdsp_firmware {
-	void *firmware_data;	/* 24413 x 4 bytes */
+struct hdsp_firmware {
+	void __user *firmware_data;	/* 24413 x 4 bytes */
 };
 
-#define SNDRV_HDSP_IOCTL_UPLOAD_FIRMWARE _IOW('H', 0x42, hdsp_firmware_t)
+#define SNDRV_HDSP_IOCTL_UPLOAD_FIRMWARE _IOW('H', 0x42, struct hdsp_firmware)
 
-typedef struct _snd_hdsp_version hdsp_version_t;
-
-struct _snd_hdsp_version {
-	HDSP_IO_Type io_type;
+struct hdsp_version {
+	enum HDSP_IO_Type io_type;
 	unsigned short firmware_rev;
 };
 
-#define SNDRV_HDSP_IOCTL_GET_VERSION _IOR('H', 0x43, hdsp_version_t)
+#define SNDRV_HDSP_IOCTL_GET_VERSION _IOR('H', 0x43, struct hdsp_version)
 
-typedef struct _snd_hdsp_mixer hdsp_mixer_t;
-
-struct _snd_hdsp_mixer {
+struct hdsp_mixer {
 	unsigned short matrix[HDSP_MATRIX_MIXER_SIZE];
 };
 
-#define SNDRV_HDSP_IOCTL_GET_MIXER _IOR('H', 0x44, hdsp_mixer_t)
+#define SNDRV_HDSP_IOCTL_GET_MIXER _IOR('H', 0x44, struct hdsp_mixer)
 
-typedef struct _snd_hdsp_9632_aeb hdsp_9632_aeb_t;
-
-struct _snd_hdsp_9632_aeb {
+struct hdsp_9632_aeb {
 	int aebi;
 	int aebo;
 };
 
-#define SNDRV_HDSP_IOCTL_GET_9632_AEB _IOR('H', 0x45, hdsp_9632_aeb_t)
+#define SNDRV_HDSP_IOCTL_GET_9632_AEB _IOR('H', 0x45, struct hdsp_9632_aeb)
+
+/* typedefs for compatibility to user-space */
+typedef enum HDSP_IO_Type HDSP_IO_Type;
+typedef struct hdsp_peak_rms hdsp_peak_rms_t;
+typedef struct hdsp_config_info hdsp_config_info_t;
+typedef struct hdsp_firmware hdsp_firmware_t;
+typedef struct hdsp_version hdsp_version_t;
+typedef struct hdsp_mixer hdsp_mixer_t;
+typedef struct hdsp_9632_aeb hdsp_9632_aeb_t;
 
 #endif /* __SOUND_HDSP_H */
