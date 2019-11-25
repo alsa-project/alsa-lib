@@ -156,7 +156,7 @@
 #undef snd_ctl_elem_type_t
 #undef snd_ctl_elem_iface_t
 
-#include <sound/asoundef.h>
+#include "asoundef.h"
 #include "alsa-symbols.h"
 #include "version.h"
 #include "global.h"
