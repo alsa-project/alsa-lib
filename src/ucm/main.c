@@ -489,6 +489,45 @@ static int execute_component_seq(snd_use_case_mgr_t *uc_mgr,
 	return err;
 }
 
+static int add_auto_value(snd_use_case_mgr_t *uc_mgr, const char *key, char *value)
+{
+	char *s;
+	int err;
+
+	err = get_value1(uc_mgr, &value, &uc_mgr->value_list, key);
+	if (err == -ENOENT) {
+		s = strdup(value);
+		if (s == NULL)
+			return -ENOMEM;
+		return uc_mgr_add_value(&uc_mgr->value_list, key, s);
+	} else if (err < 0) {
+		return err;
+	}
+	free(value);
+	return 0;
+}
+
+static int add_auto_values(snd_use_case_mgr_t *uc_mgr)
+{
+	struct ctl_list *ctl_list;
+	const char *id;
+	char buf[40];
+	int err;
+
+	ctl_list = uc_mgr_get_one_ctl(uc_mgr);
+	if (ctl_list) {
+		id = snd_ctl_card_info_get_id(ctl_list->ctl_info);
+		snprintf(buf, sizeof(buf), "hw:%s", id);
+		err = add_auto_value(uc_mgr, "PlaybackCTL", buf);
+		if (err < 0)
+			return err;
+		err = add_auto_value(uc_mgr, "CaptureCTL", buf);
+		if (err < 0)
+			return err;
+	}
+	return 0;
+}
+
 /**
  * \brief Import master config and execute the default sequence
  * \param uc_mgr Use case manager
@@ -499,6 +538,9 @@ static int import_master_config(snd_use_case_mgr_t *uc_mgr)
 	int err;
 	
 	err = uc_mgr_import_master_config(uc_mgr);
+	if (err < 0)
+		return err;
+	err = add_auto_values(uc_mgr);
 	if (err < 0)
 		return err;
 	err = execute_sequence(uc_mgr, &uc_mgr->default_list,
@@ -882,45 +924,6 @@ static int set_device(snd_use_case_mgr_t *uc_mgr,
 	return err;
 }
 
-static int add_auto_value(snd_use_case_mgr_t *uc_mgr, const char *key, char *value)
-{
-	char *s;
-	int err;
-
-	err = get_value1(uc_mgr, &value, &uc_mgr->value_list, key);
-	if (err == -ENOENT) {
-		s = strdup(value);
-		if (s == NULL)
-			return -ENOMEM;
-		return uc_mgr_add_value(&uc_mgr->value_list, key, s);
-	} else if (err < 0) {
-		return err;
-	}
-	free(value);
-	return 0;
-}
-
-static int add_auto_values(snd_use_case_mgr_t *uc_mgr)
-{
-	struct ctl_list *ctl_list;
-	const char *id;
-	char buf[40];
-	int err;
-
-	ctl_list = uc_mgr_get_one_ctl(uc_mgr);
-	if (ctl_list) {
-		id = snd_ctl_card_info_get_id(ctl_list->ctl_info);
-		snprintf(buf, sizeof(buf), "hw:%s", id);
-		err = add_auto_value(uc_mgr, "PlaybackCTL", buf);
-		if (err < 0)
-			return err;
-		err = add_auto_value(uc_mgr, "CaptureCTL", buf);
-		if (err < 0)
-			return err;
-	}
-	return 0;
-}
-
 /**
  * \brief Init sound card use case manager.
  * \param uc_mgr Returned use case manager pointer
@@ -958,10 +961,6 @@ int snd_use_case_mgr_open(snd_use_case_mgr_t **uc_mgr,
 			card_name, err);
 		goto err;
 	}
-
-	err = add_auto_values(mgr);
-	if (err < 0)
-		goto err;
 
 	*uc_mgr = mgr;
 	return 0;
