@@ -130,6 +130,7 @@ AC_LANG_C
 AC_MSG_CHECKING([for libatopology (sound headers version > 1.1.9)])
 AC_TRY_COMPILE([
 #include <alsa/asoundlib.h>
+#include <alsa/topology.h>
 ], [
 /* ensure backward compatibility */
 #if !defined(SND_LIB_VERSION)
