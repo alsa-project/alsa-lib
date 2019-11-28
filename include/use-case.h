@@ -86,7 +86,7 @@ extern "C" {
  *  + Get the TQ parameter for each use case verb, use case device and
  *     modifier.
  *  + Get the ALSA master playback and capture volume/switch kcontrols
- *     for each use case.
+ *     or mixer elements for each use case.
  */
 
 
