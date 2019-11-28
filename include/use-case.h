@@ -287,6 +287,8 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
  *   - PlaybackSwitch
  *      - playback control switch identifier string
  *	- can be parsed using snd_use_case_parse_ctl_elem_id()
+ *   - PlaybackPriority
+ *      - priority value (1-10000), default value is 100, higher value means lower priority
  *   - CaptureRate
  *      - capture device sample rate
  *   - CaptureChannels
@@ -299,6 +301,8 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
  *   - CaptureSwitch
  *      - capture control switch identifier string
  *	- can be parsed using snd_use_case_parse_ctl_elem_id()
+ *   - CapturePriority
+ *      - priority value (1-10000), default value is 100, higher value means lower priority
  *   - PlaybackMixer
  *      - name of playback mixer
  *   - PlaybackMixerElem
