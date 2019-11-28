@@ -73,7 +73,7 @@ static int if_eval_string(snd_use_case_mgr_t *uc_mgr, snd_config_t *eval)
 			free(s1);
 			return err;
 		}
-		err = strcasecmp(string1, string2) == 0;
+		err = strcasecmp(s1, s2) == 0;
 		free(s2);
 		free(s1);
 		return err;
@@ -108,7 +108,7 @@ static int if_eval_string(snd_use_case_mgr_t *uc_mgr, snd_config_t *eval)
 			free(s1);
 			return err;
 		}
-		err = strstr(string1, string2) == 0;
+		err = strstr(s1, s2) != NULL;
 		free(s2);
 		free(s1);
 		return err;
