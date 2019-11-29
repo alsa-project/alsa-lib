@@ -163,12 +163,12 @@ static int if_eval_regex_match(snd_use_case_mgr_t *uc_mgr, snd_config_t *eval)
 static int if_eval_control_exists(snd_use_case_mgr_t *uc_mgr, snd_config_t *eval)
 {
 	snd_ctl_t *ctl;
-	const char *device = NULL, *ctldef;
+	const char *device = NULL, *ctldef, *enumval = NULL, *name;
 	snd_ctl_elem_id_t *elem_id;
 	snd_ctl_elem_info_t *elem_info;
+	snd_ctl_elem_type_t type;
 	char *s;
-	int err;
-
+	int err, i, items;
 
 	snd_ctl_elem_id_alloca(&elem_id);
 	snd_ctl_elem_info_alloca(&elem_info);
@@ -182,6 +182,12 @@ static int if_eval_control_exists(snd_use_case_mgr_t *uc_mgr, snd_config_t *eval
 	err = get_string(eval, "Control", &ctldef);
 	if (err < 0) {
 		uc_error("ControlExists error (If.Condition.Control)");
+		return -EINVAL;
+	}
+
+	err = get_string(eval, "ControlEnum", &enumval);
+	if (err < 0 && err != -ENOENT) {
+		uc_error("ControlExists error (If.Condition.ControlEnum)");
 		return -EINVAL;
 	}
 
@@ -215,6 +221,31 @@ static int if_eval_control_exists(snd_use_case_mgr_t *uc_mgr, snd_config_t *eval
 	err = snd_ctl_elem_info(ctl, elem_info);
 	if (err < 0)
 		return 0;
+
+	if (enumval) {
+		type = snd_ctl_elem_info_get_type(elem_info);
+		if (type != SND_CTL_ELEM_TYPE_ENUMERATED)
+			return 0;
+		err = uc_mgr_get_substituted_value(uc_mgr, &s, enumval);
+		if (err < 0)
+			return err;
+		items = snd_ctl_elem_info_get_items(elem_info);
+		for (i = 0; i < items; i++) {
+			snd_ctl_elem_info_set_item(elem_info, i);
+			err = snd_ctl_elem_info(ctl, elem_info);
+			if (err < 0) {
+				free(s);
+				return err;
+			}
+			name = snd_ctl_elem_info_get_item_name(elem_info);
+			if (strcasecmp(name, s) == 0) {
+				free(s);
+				return 1;
+			}
+		}
+		free(s);
+		return 0;
+	}
 
 	return 1;
 }
