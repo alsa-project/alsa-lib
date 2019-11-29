@@ -1160,8 +1160,10 @@ static int get_supcon_device_list(snd_use_case_mgr_t *uc_mgr,
 
 	modifier = find_modifier(uc_mgr, verb, name, 0);
 	if (modifier) {
-		if (modifier->dev_list.type != type)
+		if (modifier->dev_list.type != type) {
+			*list = NULL;
 			return 0;
+		}
 		return get_list(&modifier->dev_list.list, list,
 				struct dev_list_node, list,
 				name);
@@ -1169,8 +1171,10 @@ static int get_supcon_device_list(snd_use_case_mgr_t *uc_mgr,
 
 	device = find_device(uc_mgr, verb, name, 0);
 	if (device) {
-		if (device->dev_list.type != type)
+		if (device->dev_list.type != type) {
+			*list = NULL;
 			return 0;
+		}
 		return get_list(&device->dev_list.list, list,
 				struct dev_list_node, list,
 				name);
