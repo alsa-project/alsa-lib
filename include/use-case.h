@@ -206,6 +206,7 @@ int snd_use_case_free_list(const char *list[], int items);
  *   - _enadevs			- get list of enabled devices
  *   - _enamods			- get list of enabled modifiers
  *
+ *   - _identifiers/{modifier}|{device}[/{verb}]     - list of value identifiers
  *   - _supporteddevs/{modifier}|{device}[/{verb}]   - list of supported devices
  *   - _conflictingdevs/{modifier}|{device}[/{verb}] - list of conflicting devices
  *
