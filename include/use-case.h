@@ -309,8 +309,14 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
  *   - PlaybackMixerElem
  *      - mixer element playback identifier
  *	- can be parsed using snd_use_case_parse_selem_id()
+ *   - PlaybackMixerCopy
+ *      - additional mixer element playback identifier
+ *	- can be parsed using snd_use_case_parse_selem_id()
+ *      - those elements should copy the volume and switch settings
+ *      - element identifiers are separated using the | character
  *   - PlaybackMasterElem
  *      - mixer element playback identifier for the master control
+ *	- can be parsed using snd_use_case_parse_selem_id()
  *   - PlaybackMasterType
  *      - type of the master volume control
  *      - Valid values: "soft" (software attenuation)
@@ -319,8 +325,14 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
  *   - CaptureMixerElem
  *      - mixer element capture identifier
  *	- can be parsed using snd_use_case_parse_selem_id()
+ *   - CaptureMixerCopy
+ *      - additional mixer element capture identifier
+ *	- can be parsed using snd_use_case_parse_selem_id()
+ *      - those elements should copy the volume and switch settings
+ *      - element identifiers are separated using the | character
  *   - CaptureMasterElem
  *      - mixer element playback identifier for the master control
+ *	- can be parsed using snd_use_case_parse_selem_id()
  *   - CaptureMasterType
  *      - type of the master volume control
  *      - Valid values: "soft" (software attenuation)
