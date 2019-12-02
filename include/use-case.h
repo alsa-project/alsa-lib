@@ -326,7 +326,7 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
  *      - Valid values: "soft" (software attenuation)
  *   - EDIDFile
  *      - Path to EDID file for HDMI devices
- *   - JackControl, JackDev, JackHWMute
+ *   - JackControl, JackDev
  *      - Jack information for a device. The jack status can be reported via
  *        a kcontrol and/or via an input device. **JackControl** is the
  *        kcontrol name of the jack, and **JackDev** is the input device id of
@@ -334,17 +334,18 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
  *        JackDev value should be "foo"). UCM configuration files should
  *        contain both JackControl and JackDev when possible, because
  *        applications are likely to support only one or the other.
- *
- *        If **JackHWMute** is set, it indicates that when the jack is plugged
- *        in, the hardware automatically mutes some other device(s). The
- *        JackHWMute value is a space-separated list of device names (this
- *        isn't compatible with device names with spaces in them, so don't use
- *        such device names!). Note that JackHWMute should be used only when
- *        the hardware enforces the automatic muting. If the hardware doesn't
- *        enforce any muting, it may still be tempting to set JackHWMute to
- *        trick upper software layers to e.g. automatically mute speakers when
- *        headphones are plugged in, but that's application policy
- *        configuration that doesn't belong to UCM configuration files.
+ *   - JackHWMute
+ *	  If this value is set, it indicates that when the jack is plugged
+ *	  in, the hardware automatically mutes some other device(s). The
+ *	  value is a space-separated list of device names. If the device
+ *	  name contains space, it must be enclosed to ' or ", e.g.:
+ *		JackHWMute "'Dock Headphone' Headphone"
+ *        Note that JackHWMute should be used only when the hardware enforces
+ *        the automatic muting. If the hardware doesn't enforce any muting, it
+ *        may still be tempting to set JackHWMute to trick upper software layers
+ *        to e.g. automatically mute speakers when headphones are plugged in,
+ *        but that's application policy configuration that doesn't belong
+ *        to UCM configuration files.
  *   - MinBufferLevel
  *	- This is used on platform where reported buffer level is not accurate.
  *	  E.g. "512", which holds 512 samples in device buffer. Note: this will
