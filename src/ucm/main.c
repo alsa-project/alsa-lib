@@ -2115,8 +2115,10 @@ int snd_use_case_parse_selem_id(snd_mixer_selem_id_t *dst,
 				const char *ucm_id,
 				const char *value)
 {
+#ifdef BUILD_MIXER
 	if (strcmp(ucm_id, "PlaybackMixerId") == 0 ||
 	    strcmp(ucm_id, "CaptureMixerId") == 0)
 		return snd_mixer_selem_id_parse(dst, value);
+#endif
 	return -EINVAL;
 }
