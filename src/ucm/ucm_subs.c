@@ -25,6 +25,7 @@
  */
 
 #include "ucm_local.h"
+#include <stdbool.h>
 #include <sys/stat.h>
 #include <limits.h>
 
@@ -145,10 +146,11 @@ static char *rval_sysfs(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED, const char 
 	return strdup(path);
 }
 
-#define MATCH_VARIABLE(name, id, fcn)					\
+#define MATCH_VARIABLE(name, id, fcn, empty_ok)				\
 	if (strncmp((name), (id), sizeof(id) - 1) == 0) { 		\
 		rval = fcn(uc_mgr);					\
 		idsize = sizeof(id) - 1;				\
+		allow_empty = (empty_ok);				\
 		goto __rval;						\
 	}
 
@@ -189,12 +191,14 @@ int uc_mgr_get_substituted_value(snd_use_case_mgr_t *uc_mgr,
 
 	while (*value) {
 		if (*value == '$' && *(value+1) == '{') {
-			MATCH_VARIABLE(value, "${ConfName}", rval_conf_name);
-			MATCH_VARIABLE(value, "${CardId}", rval_card_id);
-			MATCH_VARIABLE(value, "${CardDriver}", rval_card_driver);
-			MATCH_VARIABLE(value, "${CardName}", rval_card_name);
-			MATCH_VARIABLE(value, "${CardLongName}", rval_card_longname);
-			MATCH_VARIABLE(value, "${CardComponents}", rval_card_components);
+			bool allow_empty = false;
+
+			MATCH_VARIABLE(value, "${ConfName}", rval_conf_name, false);
+			MATCH_VARIABLE(value, "${CardId}", rval_card_id, false);
+			MATCH_VARIABLE(value, "${CardDriver}", rval_card_driver, false);
+			MATCH_VARIABLE(value, "${CardName}", rval_card_name, false);
+			MATCH_VARIABLE(value, "${CardLongName}", rval_card_longname, false);
+			MATCH_VARIABLE(value, "${CardComponents}", rval_card_components, true);
 			MATCH_VARIABLE2(value, "${env:", rval_env);
 			MATCH_VARIABLE2(value, "${sys:", rval_sysfs);
 			err = -EINVAL;
@@ -208,7 +212,7 @@ int uc_mgr_get_substituted_value(snd_use_case_mgr_t *uc_mgr,
 			}
 			goto __error;
 __rval:
-			if (rval == NULL || rval[0] == '\0') {
+			if (rval == NULL || (!allow_empty && rval[0] == '\0')) {
 				free(rval);
 				strncpy(r, value, idsize);
 				r[idsize] = '\0';
