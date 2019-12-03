@@ -338,14 +338,20 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
  *      - Valid values: "soft" (software attenuation)
  *   - EDIDFile
  *      - Path to EDID file for HDMI devices
- *   - JackControl, JackDev
- *      - Jack information for a device. The jack status can be reported via
- *        a kcontrol and/or via an input device. **JackControl** is the
- *        kcontrol name of the jack, and **JackDev** is the input device id of
- *        the jack (if the full input device path is /dev/input/by-id/foo, the
- *        JackDev value should be "foo"). UCM configuration files should
- *        contain both JackControl and JackDev when possible, because
- *        applications are likely to support only one or the other.
+ *   - JackCTL
+ *      - jack control device name
+ *   - JackControl
+ *      - jack control identificator
+ *      - can be parsed using snd_use_case_parse_ctl_elem_id()
+ *      - UCM configuration files should contain both JackControl and JackDev
+ *        when possible, because applications are likely to support only one
+ *        or the other
+ *   - JackDev
+ *      - the input device id of the jack (if the full input device path is
+ *        /dev/input/by-id/foo, the JackDev value should be "foo")
+ *      - UCM configuration files should contain both JackControl and JackDev
+ *        when possible, because applications are likely to support only one
+ *        or the other
  *   - JackHWMute
  *	  If this value is set, it indicates that when the jack is plugged
  *	  in, the hardware automatically mutes some other device(s). The
