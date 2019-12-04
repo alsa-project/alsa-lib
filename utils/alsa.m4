@@ -22,6 +22,7 @@ alsa_save_CFLAGS="$CFLAGS"
 alsa_save_LDFLAGS="$LDFLAGS"
 alsa_save_LIBS="$LIBS"
 alsa_found=yes
+alsa_topology_found=no
 
 dnl
 dnl Get the cflags and libraries for alsa
@@ -158,10 +159,16 @@ AC_CHECK_LIB([asound], [snd_ctl_open],,
 	 alsa_found=no]
 )
 if test "x$enable_atopology" = "xyes"; then
+alsa_topology_found=yes
 AC_CHECK_LIB([atopology], [snd_tplg_new],,
 	[ifelse([$3], , [AC_MSG_ERROR(No linkable libatopology was found.)])
-	 alsa_found=no]
+	 alsa_topology_found=no,
+]
 )
+fi
+else
+if test "x$enable_atopology" = "xyes"; then
+  alsa_topology_found=yes
 fi
 fi
 
@@ -183,7 +190,7 @@ fi
 
 dnl add the alsa topology library; must be at the end
 AC_MSG_CHECKING(for ALSA topology LDFLAGS)
-if test "x$enable_atopology" = "xyes"; then
+if test "x$alsa_topology_found" = "xyes"; then
   ALSA_TOPOLOGY_LIBS="$ALSA_TOPOLOGY_LIBS -latopology"
 fi
 AC_MSG_RESULT($ALSA_TOPOLOGY_LIBS)
