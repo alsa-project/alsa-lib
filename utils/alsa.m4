@@ -124,6 +124,15 @@ exit(0);
    alsa_found=no]
 )
 AC_LANG_RESTORE
+fi
+
+dnl Now that we know that we have the right version, let's see if we have the library and not just the headers.
+if test "x$enable_alsatest" = "xyes"; then
+AC_CHECK_LIB([asound], [snd_ctl_open],,
+	[ifelse([$3], , [AC_MSG_ERROR(No linkable libasound was found.)])
+	 alsa_found=no]
+)
+fi
 
 AC_LANG_SAVE
 AC_LANG_C
@@ -149,20 +158,11 @@ exit(0);
 )
 AC_LANG_RESTORE
 
-fi
-
-dnl Now that we know that we have the right version, let's see if we have the library and not just the headers.
-if test "x$enable_alsatest" = "xyes"; then
-AC_CHECK_LIB([asound], [snd_ctl_open],,
-	[ifelse([$3], , [AC_MSG_ERROR(No linkable libasound was found.)])
-	 alsa_found=no]
-)
 if test "x$enable_atopology" = "xyes"; then
 AC_CHECK_LIB([atopology], [snd_tplg_new],,
 	[ifelse([$3], , [AC_MSG_ERROR(No linkable libatopology was found.)])
 	 alsa_found=no]
 )
-fi
 fi
 
 if test "x$alsa_found" = "xyes" ; then
