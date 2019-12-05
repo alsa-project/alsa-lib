@@ -124,8 +124,7 @@ extern "C" {
 #define SND_USE_CASE_DEV_NONE		"None"		/**< None Device */
 #define SND_USE_CASE_DEV_SPEAKER	"Speaker"	/**< Speaker Device */
 #define SND_USE_CASE_DEV_LINE		"Line"		/**< Line Device */
-#define SND_USE_CASE_DEV_MIC            "Mic"           /**< Integrated Analog Microphone */
-#define SND_USE_CASE_DEV_DIGITAL_MIC    "DigitalMic"    /**< Integrated Digital Microphone */
+#define SND_USE_CASE_DEV_MIC            "Mic"           /**< Integrated Microphone */
 #define SND_USE_CASE_DEV_HEADPHONES	"Headphones"	/**< Headphones Device */
 #define SND_USE_CASE_DEV_HEADSET	"Headset"	/**< Headset Device */
 #define SND_USE_CASE_DEV_HANDSET	"Handset"	/**< Handset Device */
