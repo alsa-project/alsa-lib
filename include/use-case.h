@@ -114,10 +114,18 @@ extern "C" {
  *
  * Physical system devices the render and capture audio. Devices can be OR'ed
  * together to support audio on simultaneous devices.
+ *
+ * If multiple devices with the same name exists, the number suffixes should
+ * be added to these names like HDMI1,HDMI2,HDMI3 etc. No number gaps are
+ * allowed. The names with numbers must be continuous.
+ *
+ * The preference of the devices is determined by the priority value.
  */
 #define SND_USE_CASE_DEV_NONE		"None"		/**< None Device */
 #define SND_USE_CASE_DEV_SPEAKER	"Speaker"	/**< Speaker Device */
 #define SND_USE_CASE_DEV_LINE		"Line"		/**< Line Device */
+#define SND_USE_CASE_DEV_MIC            "Mic"           /**< Integrated Analog Microphone */
+#define SND_USE_CASE_DEV_DIGITAL_MIC    "DigitalMic"    /**< Integrated Digital Microphone */
 #define SND_USE_CASE_DEV_HEADPHONES	"Headphones"	/**< Headphones Device */
 #define SND_USE_CASE_DEV_HEADSET	"Headset"	/**< Headset Device */
 #define SND_USE_CASE_DEV_HANDSET	"Handset"	/**< Handset Device */
