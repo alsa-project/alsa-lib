@@ -119,6 +119,11 @@ extern "C" {
  * be added to these names like HDMI1,HDMI2,HDMI3 etc. No number gaps are
  * allowed. The names with numbers must be continuous.
  *
+ * If EnableSequence/DisableSequence controls independent paths in the hardware
+ * it is also recommended to split playback and capture UCM devices and use
+ * the number suffixes. Example use case: Use the integrated microphone
+ * in the laptop instead the microphone in headphones.
+ *
  * The preference of the devices is determined by the priority value.
  */
 #define SND_USE_CASE_DEV_NONE		"None"		/**< None Device */
