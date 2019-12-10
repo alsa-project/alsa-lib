@@ -274,6 +274,10 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
  * Recommended names for values:
  *   - TQ
  *      - Tone Quality
+ *   - Priority
+ *      - priority value (1-10000), higher value means higher priority
+ *      - valid only for verbs
+ *      - for devices - PlaybackPriority and CapturePriority
  *   - PlaybackPCM
  *      - full PCM playback device name
  *   - PlaybackPCMIsDummy
@@ -301,7 +305,7 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
  *      - playback control switch identifier string
  *	- can be parsed using snd_use_case_parse_ctl_elem_id()
  *   - PlaybackPriority
- *      - priority value (1-10000), default value is 100, higher value means lower priority
+ *      - priority value (1-10000), higher value means higher priority
  *   - CaptureRate
  *      - capture device sample rate
  *   - CaptureChannels
@@ -315,17 +319,12 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
  *      - capture control switch identifier string
  *	- can be parsed using snd_use_case_parse_ctl_elem_id()
  *   - CapturePriority
- *      - priority value (1-10000), default value is 100, higher value means lower priority
+ *      - priority value (1-10000), higher value means higher priority
  *   - PlaybackMixer
  *      - name of playback mixer
  *   - PlaybackMixerElem
  *      - mixer element playback identifier
  *	- can be parsed using snd_use_case_parse_selem_id()
- *   - PlaybackMixerCopy
- *      - additional mixer element playback identifier
- *	- can be parsed using snd_use_case_parse_selem_id()
- *      - those elements should copy the volume and switch settings
- *      - element identifiers are separated using the | character
  *   - PlaybackMasterElem
  *      - mixer element playback identifier for the master control
  *	- can be parsed using snd_use_case_parse_selem_id()
@@ -337,11 +336,6 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
  *   - CaptureMixerElem
  *      - mixer element capture identifier
  *	- can be parsed using snd_use_case_parse_selem_id()
- *   - CaptureMixerCopy
- *      - additional mixer element capture identifier
- *	- can be parsed using snd_use_case_parse_selem_id()
- *      - those elements should copy the volume and switch settings
- *      - element identifiers are separated using the | character
  *   - CaptureMasterElem
  *      - mixer element playback identifier for the master control
  *	- can be parsed using snd_use_case_parse_selem_id()
