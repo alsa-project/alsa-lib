@@ -89,6 +89,8 @@ static void configuration_filename(snd_use_case_mgr_t *uc_mgr,
 		env = getenv(ALSA_CONFIG_UCM2_VAR);
 		if (env == NULL) {
 			env = getenv(ALSA_CONFIG_UCM_VAR);
+			if (env)
+				uc_mgr->conf_format = 1;
 		} else {
 			uc_mgr->conf_format = 2;
 		}
