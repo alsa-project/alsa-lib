@@ -1226,7 +1226,7 @@ static int parse_value(snd_config_t **_n, snd_config_t *parent, input_t *input, 
 static int parse_defs(snd_config_t *parent, input_t *input, int skip, int override);
 static int parse_array_defs(snd_config_t *farther, input_t *input, int skip, int override);
 
-static int parse_array_def(snd_config_t *parent, input_t *input, int idx, int skip, int override)
+static int parse_array_def(snd_config_t *parent, input_t *input, int *idx, int skip, int override)
 {
 	char *id = NULL;
 	int c;
@@ -1234,8 +1234,21 @@ static int parse_array_def(snd_config_t *parent, input_t *input, int idx, int sk
 	snd_config_t *n = NULL;
 
 	if (!skip) {
+		snd_config_t *g;
 		char static_id[12];
-		snprintf(static_id, sizeof(static_id), "%i", idx);
+		while (1) {
+			snprintf(static_id, sizeof(static_id), "%i", *idx);
+			if (_snd_config_search(parent, static_id, -1, &g) == 0) {
+				if (override) {
+					snd_config_delete(n);
+				} else {
+					/* merge */
+					(*idx)++;
+					continue;
+				}
+			}
+			break;
+		}
 		id = strdup(static_id);
 		if (id == NULL)
 			return -ENOMEM;
@@ -1306,9 +1319,10 @@ static int parse_array_defs(snd_config_t *parent, input_t *input, int skip, int 
 		unget_char(c, input);
 		if (c == ']')
 			return 0;
-		err = parse_array_def(parent, input, idx++, skip, override);
+		err = parse_array_def(parent, input, &idx, skip, override);
 		if (err < 0)
 			return err;
+		idx++;
 	}
 	return 0;
 }
