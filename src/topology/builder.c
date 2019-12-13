@@ -29,7 +29,7 @@ static void verbose(snd_tplg_t *tplg, const char *fmt, ...)
 		return;
 
 	va_start(va, fmt);
-	fprintf(stdout, "0x%6.6zx/%6.6zd -", tplg->out_pos, tplg->out_pos);
+	fprintf(stdout, "0x%6.6zx/%6.6zd - ", tplg->out_pos, tplg->out_pos);
 	vfprintf(stdout, fmt, va);
 	va_end(va);
 }
@@ -80,7 +80,7 @@ static ssize_t write_block_header(snd_tplg_t *tplg, unsigned int type,
 		return -EINVAL;
 	}
 
-	verbose(tplg, " header index %d type %d count %d size 0x%lx/%ld vendor %d "
+	verbose(tplg, "header index %d type %d count %d size 0x%lx/%ld vendor %d "
 		"version %d\n", index, type, count,
 		(long unsigned int)payload_size, (long int)payload_size,
 		vendor_type, version);
@@ -128,10 +128,10 @@ static int write_elem_block(snd_tplg_t *tplg,
 					continue;
 
 				if (elem->type != SND_TPLG_TYPE_DAPM_GRAPH)
-					verbose(tplg, " %s '%s': write %d bytes\n",
+					verbose(tplg, "%s '%s': write %d bytes\n",
 						obj_name, elem->id, elem->size);
 				else
-					verbose(tplg, " %s '%s -> %s -> %s': write %d bytes\n",
+					verbose(tplg, "%s '%s -> %s -> %s': write %d bytes\n",
 						obj_name, elem->route->source,
 						elem->route->control,
 						elem->route->sink, elem->size);
@@ -197,10 +197,10 @@ static ssize_t write_manifest_data(snd_tplg_t *tplg)
 		return ret;
 	}
 
-	verbose(tplg, "manifest : write %d bytes\n", sizeof(tplg->manifest));
+	verbose(tplg, "manifest: write %d bytes\n", sizeof(tplg->manifest));
 	ret = twrite(tplg, &tplg->manifest, sizeof(tplg->manifest));
 	if (ret >= 0) {
-		verbose(tplg, "manifest : write %d priv bytes\n", tplg->manifest.priv.size);
+		verbose(tplg, "manifest: write %d priv bytes\n", tplg->manifest.priv.size);
 		ret = twrite(tplg, tplg->manifest_pdata, tplg->manifest.priv.size);
 	}
 	return ret;
@@ -294,9 +294,9 @@ int tplg_write_data(snd_tplg_t *tplg)
 		size = calc_block_size(wptr->list);
 		if (size == 0)
 			continue;
-		verbose(tplg, " block size for type %s (%d:%d) is %zd\n",
+		verbose(tplg, "block size for type %s (%d:%d) is 0x%zx/%zd\n",
 						wptr->name, wptr->type,
-						wptr->tsoc, size);
+						wptr->tsoc, size, size);
 		ret = write_elem_block(tplg, wptr->list, size,
 				       wptr->tsoc, wptr->name);
 		if (ret < 0) {
@@ -305,6 +305,8 @@ int tplg_write_data(snd_tplg_t *tplg)
 			return ret;
 		}
 	}
+
+	verbose(tplg, "total size is 0x%zx/%zd\n", tplg->out_pos, tplg->out_pos);
 
 	return 0;
 }
