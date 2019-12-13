@@ -163,11 +163,11 @@ static int write_elem_block(snd_tplg_t *tplg,
 	return 0;
 }
 
-static int calc_block_size(struct list_head *base)
+static size_t calc_block_size(struct list_head *base)
 {
 	struct list_head *pos;
 	struct tplg_elem *elem;
-	int size = 0;
+	size_t size = 0;
 
 	list_for_each(pos, base) {
 
@@ -185,14 +185,14 @@ static int calc_block_size(struct list_head *base)
 
 static int write_block(snd_tplg_t *tplg, struct list_head *base, int type)
 {
-	int size;
+	size_t size;
 
 	/* calculate the block size in bytes for all elems in this list */
 	size = calc_block_size(base);
-	if (size <= 0)
+	if (size == 0)
 		return size;
 
-	verbose(tplg, " block size for type %d is %d\n", type, size);
+	verbose(tplg, " block size for type %d is %zd\n", type, size);
 
 	/* write each elem for this block */
 	switch (type) {
