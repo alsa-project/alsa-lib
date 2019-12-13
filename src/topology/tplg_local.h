@@ -60,11 +60,6 @@ typedef enum _snd_pcm_rates {
 } snd_pcm_rates_t;
 
 struct snd_tplg {
-
-	/* opaque vendor data */
-	int vendor_fd;
-	char *vendor_name;
-
 	/* out file */
 	int out_fd;
 
