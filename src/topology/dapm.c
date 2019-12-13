@@ -152,8 +152,7 @@ static int copy_dapm_control(struct tplg_elem *elem, struct tplg_elem *ref)
 }
 
 /* check referenced controls for a widget */
-static int tplg_build_widget(snd_tplg_t *tplg,
-	struct tplg_elem *elem)
+static int tplg_build_widget(snd_tplg_t *tplg, struct tplg_elem *elem)
 {
 	struct tplg_ref *ref;
 	struct list_head *base, *pos;
@@ -164,7 +163,7 @@ static int tplg_build_widget(snd_tplg_t *tplg,
 	/* A widget's private data sits before the embedded controls.
 	 * So merge the private data blocks at first
 	 */
-	 list_for_each(pos, base) {
+	list_for_each(pos, base) {
 		ref = list_entry(pos, struct tplg_ref, list);
 
 		if (ref->type != SND_TPLG_TYPE_DATA)
@@ -314,7 +313,7 @@ int tplg_build_routes(snd_tplg_t *tplg)
 	return 0;
 }
 
-struct tplg_elem* tplg_elem_new_route(snd_tplg_t *tplg)
+struct tplg_elem *tplg_elem_new_route(snd_tplg_t *tplg)
 {
 	struct tplg_elem *elem;
 	struct snd_soc_tplg_dapm_graph_elem *line;
@@ -342,7 +341,7 @@ struct tplg_elem* tplg_elem_new_route(snd_tplg_t *tplg)
 
 /* line is defined as '"source, control, sink"' */
 static int tplg_parse_line(const char *text,
-	struct snd_soc_tplg_dapm_graph_elem *line)
+			   struct snd_soc_tplg_dapm_graph_elem *line)
 {
 	char buf[LINE_SIZE];
 	unsigned int len, i;
@@ -422,7 +421,7 @@ static int tplg_parse_routes(snd_tplg_t *tplg, snd_config_t *cfg, int index)
 }
 
 int tplg_parse_dapm_graph(snd_tplg_t *tplg, snd_config_t *cfg,
-	void *private ATTRIBUTE_UNUSED)
+			  void *private ATTRIBUTE_UNUSED)
 {
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
@@ -472,7 +471,7 @@ int tplg_parse_dapm_graph(snd_tplg_t *tplg, snd_config_t *cfg,
 
 /* DAPM Widget */
 int tplg_parse_dapm_widget(snd_tplg_t *tplg,
-	snd_config_t *cfg, void *private ATTRIBUTE_UNUSED)
+			   snd_config_t *cfg, void *private ATTRIBUTE_UNUSED)
 {
 	struct snd_soc_tplg_dapm_widget *widget;
 	struct tplg_elem *elem;
@@ -645,7 +644,7 @@ int tplg_add_route(snd_tplg_t *tplg, struct snd_tplg_graph_elem *t)
 	snd_strlcpy(line->source, t->src, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 	if (t->ctl)
 		snd_strlcpy(line->control, t->ctl,
-			SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+				SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 	snd_strlcpy(line->sink, t->sink, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 
 	return 0;
