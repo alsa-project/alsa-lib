@@ -183,56 +183,6 @@ static size_t calc_block_size(struct list_head *base)
 	return size;
 }
 
-static int write_block(snd_tplg_t *tplg, struct list_head *base, int type)
-{
-	size_t size;
-
-	/* calculate the block size in bytes for all elems in this list */
-	size = calc_block_size(base);
-	if (size == 0)
-		return size;
-
-	verbose(tplg, " block size for type %d is %zd\n", type, size);
-
-	/* write each elem for this block */
-	switch (type) {
-	case SND_TPLG_TYPE_MIXER:
-		return write_elem_block(tplg, base, size,
-			SND_SOC_TPLG_TYPE_MIXER, "mixer");
-	case SND_TPLG_TYPE_BYTES:
-		return write_elem_block(tplg, base, size,
-			SND_SOC_TPLG_TYPE_BYTES, "bytes");
-	case SND_TPLG_TYPE_ENUM:
-		return write_elem_block(tplg, base, size,
-			SND_SOC_TPLG_TYPE_ENUM, "enum");
-	case SND_TPLG_TYPE_DAPM_GRAPH:
-		return write_elem_block(tplg, base, size,
-			SND_SOC_TPLG_TYPE_DAPM_GRAPH, "route");
-	case SND_TPLG_TYPE_DAPM_WIDGET:
-		return write_elem_block(tplg, base, size,
-			SND_SOC_TPLG_TYPE_DAPM_WIDGET, "widget");
-	case SND_TPLG_TYPE_PCM:
-		return write_elem_block(tplg, base, size,
-			SND_SOC_TPLG_TYPE_PCM, "pcm");
-	case SND_TPLG_TYPE_BE:
-		return write_elem_block(tplg, base, size,
-			SND_SOC_TPLG_TYPE_BACKEND_LINK, "be");
-	case SND_TPLG_TYPE_CC:
-		return write_elem_block(tplg, base, size,
-			SND_SOC_TPLG_TYPE_CODEC_LINK, "cc");
-	case SND_TPLG_TYPE_DATA:
-		return write_elem_block(tplg, base, size,
-			SND_SOC_TPLG_TYPE_PDATA, "data");
-	case SND_TPLG_TYPE_DAI:
-		return write_elem_block(tplg, base, size,
-			SND_SOC_TPLG_TYPE_DAI, "dai");
-	default:
-		return -EINVAL;
-	}
-
-	return 0;
-}
-
 /* write the manifest including its private data */
 static ssize_t write_manifest_data(snd_tplg_t *tplg)
 {
@@ -262,60 +212,72 @@ int tplg_write_data(snd_tplg_t *tplg)
 		const char *name;
 		struct list_head *list;
 		int type;
+		int tsoc;
 	} *wptr, wtable[] = {
 		{
-			.name = "control mixer elements",
+			.name = "control mixer",
 			.list = &tplg->mixer_list,
 			.type = SND_TPLG_TYPE_MIXER,
+			.tsoc = SND_SOC_TPLG_TYPE_MIXER,
 		},
 		{
-			.name = "control enum elements",
+			.name = "control enum",
 			.list = &tplg->enum_list,
 			.type = SND_TPLG_TYPE_ENUM,
+			.tsoc = SND_SOC_TPLG_TYPE_ENUM,
 		},
 		{
-			.name = "control extended (bytes) elements",
+			.name = "control extended (bytes)",
 			.list = &tplg->bytes_ext_list,
 			.type = SND_TPLG_TYPE_BYTES,
+			.tsoc = SND_SOC_TPLG_TYPE_BYTES,
 		},
 		{
-			.name = "dapm widget elements",
+			.name = "dapm widget",
 			.list = &tplg->widget_list,
 			.type = SND_TPLG_TYPE_DAPM_WIDGET,
+			.tsoc = SND_SOC_TPLG_TYPE_DAPM_WIDGET,
 		},
 		{
-			.name = "pcm elements",
+			.name = "pcm",
 			.list = &tplg->pcm_list,
 			.type = SND_TPLG_TYPE_PCM,
+			.tsoc = SND_SOC_TPLG_TYPE_PCM,
 		},
 		{
-			.name = "physical dai elements",
+			.name = "physical dai",
 			.list = &tplg->dai_list,
 			.type = SND_TPLG_TYPE_DAI,
+			.tsoc = SND_SOC_TPLG_TYPE_DAI,
 		},
 		{
-			.name = "be elements",
+			.name = "be",
 			.list = &tplg->be_list,
 			.type = SND_TPLG_TYPE_BE,
+			.tsoc = SND_SOC_TPLG_TYPE_BACKEND_LINK,
 		},
 		{
-			.name = "cc elements",
+			.name = "cc",
 			.list = &tplg->cc_list,
 			.type = SND_TPLG_TYPE_CC,
+			.tsoc = SND_SOC_TPLG_TYPE_CODEC_LINK,
 		},
 		{
-			.name = "route (dapm graph) elements",
+			.name = "route (dapm graph)",
 			.list = &tplg->route_list,
 			.type = SND_TPLG_TYPE_DAPM_GRAPH,
+			.tsoc = SND_SOC_TPLG_TYPE_DAPM_GRAPH,
 		},
 		{
-			.name = "private data elements",
+			.name = "private data",
 			.list = &tplg->pdata_list,
 			.type = SND_TPLG_TYPE_DATA,
+			.tsoc = SND_SOC_TPLG_TYPE_PDATA,
 		},
 	};
 
 	ssize_t ret;
+	size_t size;
 	unsigned int index;
 
 	/* write manifest */
@@ -328,9 +290,18 @@ int tplg_write_data(snd_tplg_t *tplg)
 	/* write all blocks */
 	for (index = 0; index < ARRAY_SIZE(wtable); index++) {
 		wptr = &wtable[index];
-		ret = write_block(tplg, wptr->list, wptr->type);
+		/* calculate the block size in bytes for all elems in this list */
+		size = calc_block_size(wptr->list);
+		if (size == 0)
+			continue;
+		verbose(tplg, " block size for type %s (%d:%d) is %zd\n",
+						wptr->name, wptr->type,
+						wptr->tsoc, size);
+		ret = write_elem_block(tplg, wptr->list, size,
+				       wptr->tsoc, wptr->name);
 		if (ret < 0) {
-			SNDERR("failed to write %s: %s\n", wptr->name, snd_strerror(-ret));
+			SNDERR("failed to write %s elements: %s\n",
+						wptr->name, snd_strerror(-ret));
 			return ret;
 		}
 	}
