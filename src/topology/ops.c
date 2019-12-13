@@ -48,8 +48,8 @@ static int lookup_ops(const char *c)
 /* Parse Control operations. Ops can come from standard names above or
  * bespoke driver controls with numbers >= 256
  */
-int tplg_parse_ops(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
-	snd_config_t *cfg, void *private)
+int tplg_parse_ops(snd_tplg_t *tplg ATTRIBUTE_UNUSED, snd_config_t *cfg,
+		   void *private)
 {
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
@@ -88,7 +88,7 @@ int tplg_parse_ops(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
  * bespoke driver controls with numbers >= 256
  */
 int tplg_parse_ext_ops(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
-	snd_config_t *cfg, void *private)
+		       snd_config_t *cfg, void *private)
 {
 	snd_config_iterator_t i, next;
 	snd_config_t *n;

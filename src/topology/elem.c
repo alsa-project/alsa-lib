@@ -107,7 +107,7 @@ void tplg_elem_free_list(struct list_head *base)
 }
 
 struct tplg_elem *tplg_elem_lookup(struct list_head *base, const char* id,
-	unsigned int type, int index)
+				   unsigned int type, int index)
 {
 	struct list_head *pos;
 	struct tplg_elem *elem;
@@ -148,7 +148,9 @@ void tplg_elem_insert(struct tplg_elem *elem_p, struct list_head *list)
 
 /* create a new common element and object */
 struct tplg_elem* tplg_elem_new_common(snd_tplg_t *tplg,
-	snd_config_t *cfg, const char *name, enum snd_tplg_type type)
+				       snd_config_t *cfg,
+				       const char *name,
+				       enum snd_tplg_type type)
 {
 	struct tplg_elem *elem;
 	const char *id, *val = NULL;

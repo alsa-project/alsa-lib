@@ -63,7 +63,8 @@ struct tplg_elem *lookup_pcm_dai_stream(struct list_head *base, const char* id)
 
 /* copy referenced caps to the parent (pcm or be dai) */
 static void copy_stream_caps(const char *id ATTRIBUTE_UNUSED,
-	struct snd_soc_tplg_stream_caps *caps, struct tplg_elem *ref_elem)
+			     struct snd_soc_tplg_stream_caps *caps,
+			     struct tplg_elem *ref_elem)
 {
 	struct snd_soc_tplg_stream_caps *ref_caps = ref_elem->stream_caps;
 
@@ -75,7 +76,8 @@ static void copy_stream_caps(const char *id ATTRIBUTE_UNUSED,
 
 /* find and copy the referenced stream caps */
 static int tplg_build_stream_caps(snd_tplg_t *tplg,
-	const char *id, int index, struct snd_soc_tplg_stream_caps *caps)
+				  const char *id, int index,
+				  struct snd_soc_tplg_stream_caps *caps)
 {
 	struct tplg_elem *ref_elem = NULL;
 	unsigned int i;
@@ -207,7 +209,8 @@ int tplg_build_dais(snd_tplg_t *tplg, unsigned int type)
 }
 
 static int tplg_build_stream_cfg(snd_tplg_t *tplg,
-	struct snd_soc_tplg_stream *stream, int num_streams, int index)
+				 struct snd_soc_tplg_stream *stream,
+				 int num_streams, int index)
 {
 	struct snd_soc_tplg_stream *strm;
 	struct tplg_elem *ref_elem;
@@ -367,7 +370,8 @@ static int split_rate(struct snd_soc_tplg_stream_caps *caps, char *str)
 
 /* Parse pcm stream capabilities */
 int tplg_parse_stream_caps(snd_tplg_t *tplg,
-	snd_config_t *cfg, void *private ATTRIBUTE_UNUSED)
+			   snd_config_t *cfg,
+			   void *private ATTRIBUTE_UNUSED)
 {
 	struct snd_soc_tplg_stream_caps *sc;
 	struct tplg_elem *elem;
@@ -637,8 +641,8 @@ static int parse_flag(snd_config_t *n, unsigned int mask_in,
 }
 
 /* Parse PCM (for front end DAI & DAI link) in text conf file */
-int tplg_parse_pcm(snd_tplg_t *tplg,
-	snd_config_t *cfg, void *private ATTRIBUTE_UNUSED)
+int tplg_parse_pcm(snd_tplg_t *tplg, snd_config_t *cfg,
+		   void *private ATTRIBUTE_UNUSED)
 {
 	struct snd_soc_tplg_pcm *pcm;
 	struct tplg_elem *elem;
@@ -746,8 +750,8 @@ int tplg_parse_pcm(snd_tplg_t *tplg,
 }
 
 /* Parse physical DAI */
-int tplg_parse_dai(snd_tplg_t *tplg,
-	snd_config_t *cfg, void *private ATTRIBUTE_UNUSED)
+int tplg_parse_dai(snd_tplg_t *tplg, snd_config_t *cfg,
+		   void *private ATTRIBUTE_UNUSED)
 {
 	struct snd_soc_tplg_dai *dai;
 	struct tplg_elem *elem;

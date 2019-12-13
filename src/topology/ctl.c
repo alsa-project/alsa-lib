@@ -46,7 +46,7 @@ static const struct ctl_access_elem ctl_access[] = {
 
 /* find CTL access strings and conver to values */
 static int parse_access_values(snd_config_t *cfg,
-	struct snd_soc_tplg_ctl_hdr *hdr)
+			       struct snd_soc_tplg_ctl_hdr *hdr)
 {
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
@@ -77,7 +77,7 @@ static int parse_access_values(snd_config_t *cfg,
 
 /* Parse Access */
 int parse_access(snd_config_t *cfg,
-	struct snd_soc_tplg_ctl_hdr *hdr)
+		 struct snd_soc_tplg_ctl_hdr *hdr)
 {
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
@@ -118,7 +118,7 @@ static int copy_tlv(struct tplg_elem *elem, struct tplg_elem *ref)
 
 /* check referenced TLV for a mixer control */
 static int tplg_build_mixer_control(snd_tplg_t *tplg,
-				struct tplg_elem *elem)
+				    struct tplg_elem *elem)
 {
 	struct tplg_ref *ref;
 	struct list_head *base, *pos;
@@ -157,7 +157,7 @@ static int tplg_build_mixer_control(snd_tplg_t *tplg,
 }
 
 static void copy_enum_texts(struct tplg_elem *enum_elem,
-	struct tplg_elem *ref_elem)
+			    struct tplg_elem *ref_elem)
 {
 	struct snd_soc_tplg_enum_control *ec = enum_elem->enum_ctrl;
 	struct tplg_texts *texts = ref_elem->texts;
@@ -169,7 +169,7 @@ static void copy_enum_texts(struct tplg_elem *enum_elem,
 
 /* check referenced text for a enum control */
 static int tplg_build_enum_control(snd_tplg_t *tplg,
-				struct tplg_elem *elem)
+				   struct tplg_elem *elem)
 {
 	struct tplg_ref *ref;
 	struct list_head *base, *pos;
@@ -331,7 +331,7 @@ static int tplg_parse_tlv_dbscale(snd_config_t *cfg, struct tplg_elem *elem)
 
 /* Parse TLV */
 int tplg_parse_tlv(snd_tplg_t *tplg, snd_config_t *cfg,
-	void *private ATTRIBUTE_UNUSED)
+		   void *private ATTRIBUTE_UNUSED)
 {
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
@@ -364,7 +364,8 @@ int tplg_parse_tlv(snd_tplg_t *tplg, snd_config_t *cfg,
 
 /* Parse Control Bytes */
 int tplg_parse_control_bytes(snd_tplg_t *tplg,
-	snd_config_t *cfg, void *private ATTRIBUTE_UNUSED)
+			     snd_config_t *cfg,
+			     void *private ATTRIBUTE_UNUSED)
 {
 	struct snd_soc_tplg_bytes_control *be;
 	struct tplg_elem *elem;

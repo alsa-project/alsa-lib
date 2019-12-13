@@ -74,8 +74,8 @@ static int lookup_channel(const char *c)
 }
 
 /* Parse a channel mapping. */
-int tplg_parse_channel(snd_tplg_t *tplg,
-	snd_config_t *cfg, void *private)
+int tplg_parse_channel(snd_tplg_t *tplg, snd_config_t *cfg,
+		       void *private)
 {
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
