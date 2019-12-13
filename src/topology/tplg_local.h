@@ -62,12 +62,13 @@ typedef enum _snd_pcm_rates {
 struct snd_tplg {
 	/* out file */
 	int out_fd;
+	size_t out_pos;
 
 	int verbose;
 	unsigned int version;
 
 	/* runtime state */
-	unsigned int next_hdr_pos;
+	size_t next_hdr_pos;
 	int index;
 	int channel_idx;
 
