@@ -131,7 +131,7 @@ struct tplg_elem *tplg_elem_lookup(struct list_head *base, const char* id,
 	return NULL;
 }
 
-/* insert a new element into list in the ascending order of index value*/
+/* insert a new element into list in the ascending order of index value */
 static void tplg_elem_insert(struct tplg_elem *elem_p, struct list_head *list)
 {
 	struct list_head *pos, *p = &(elem_p->list);
@@ -142,10 +142,8 @@ static void tplg_elem_insert(struct tplg_elem *elem_p, struct list_head *list)
 		if (elem_p->index < elem->index)
 			break;
 	}
-	p->prev = pos->prev;
-	pos->prev->next = p;
-	pos->prev = p;
-	p->next = pos;
+	/* insert item before pos */
+	list_insert(p, pos->prev, pos);
 }
 
 /* create a new common element and object */
