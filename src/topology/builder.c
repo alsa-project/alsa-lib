@@ -258,93 +258,81 @@ static ssize_t write_manifest_data(snd_tplg_t *tplg)
 
 int tplg_write_data(snd_tplg_t *tplg)
 {
+	struct wtable {
+		const char *name;
+		struct list_head *list;
+		int type;
+	} *wptr, wtable[] = {
+		{
+			.name = "control mixer elements",
+			.list = &tplg->mixer_list,
+			.type = SND_TPLG_TYPE_MIXER,
+		},
+		{
+			.name = "control enum elements",
+			.list = &tplg->enum_list,
+			.type = SND_TPLG_TYPE_ENUM,
+		},
+		{
+			.name = "control extended (bytes) elements",
+			.list = &tplg->bytes_ext_list,
+			.type = SND_TPLG_TYPE_BYTES,
+		},
+		{
+			.name = "dapm widget elements",
+			.list = &tplg->widget_list,
+			.type = SND_TPLG_TYPE_DAPM_WIDGET,
+		},
+		{
+			.name = "pcm elements",
+			.list = &tplg->pcm_list,
+			.type = SND_TPLG_TYPE_PCM,
+		},
+		{
+			.name = "physical dai elements",
+			.list = &tplg->dai_list,
+			.type = SND_TPLG_TYPE_DAI,
+		},
+		{
+			.name = "be elements",
+			.list = &tplg->be_list,
+			.type = SND_TPLG_TYPE_BE,
+		},
+		{
+			.name = "cc elements",
+			.list = &tplg->cc_list,
+			.type = SND_TPLG_TYPE_CC,
+		},
+		{
+			.name = "route (dapm graph) elements",
+			.list = &tplg->route_list,
+			.type = SND_TPLG_TYPE_DAPM_GRAPH,
+		},
+		{
+			.name = "private data elements",
+			.list = &tplg->pdata_list,
+			.type = SND_TPLG_TYPE_DATA,
+		},
+	};
+
 	ssize_t ret;
+	unsigned int index;
 
 	/* write manifest */
 	ret = write_manifest_data(tplg);
 	if (ret < 0) {
-		SNDERR("failed to write manifest %zd\n", ret);
+		SNDERR("failed to write manifest %d\n", ret);
 		return ret;
 	}
 
-	/* write mixer elems. */
-	ret = write_block(tplg, &tplg->mixer_list,
-		SND_TPLG_TYPE_MIXER);
-	if (ret < 0) {
-		SNDERR("failed to write control elems %zd\n", ret);
-		return ret;
-	}
-
-	/* write enum control elems. */
-	ret = write_block(tplg, &tplg->enum_list,
-		SND_TPLG_TYPE_ENUM);
-	if (ret < 0) {
-		SNDERR("failed to write control elems %zd\n", ret);
-		return ret;
-	}
-
-	/* write bytes extended control elems. */
-	ret = write_block(tplg, &tplg->bytes_ext_list,
-		SND_TPLG_TYPE_BYTES);
-	if (ret < 0) {
-		SNDERR("failed to write control elems %zd\n", ret);
-		return ret;
-	}
-
-	/* write widget elems */
-	ret = write_block(tplg, &tplg->widget_list,
-		SND_TPLG_TYPE_DAPM_WIDGET);
-	if (ret < 0) {
-		SNDERR("failed to write widget elems %zd\n", ret);
-		return ret;
-	}
-
-	/* write pcm elems */
-	ret = write_block(tplg, &tplg->pcm_list,
-		SND_TPLG_TYPE_PCM);
-	if (ret < 0) {
-		SNDERR("failed to write pcm elems %zd\n", ret);
-		return ret;
-	}
-
-	/* write physical dai elems */
-	ret = write_block(tplg, &tplg->dai_list,
-		SND_TPLG_TYPE_DAI);
-	if (ret < 0) {
-		SNDERR("failed to write physical dai elems %zd\n", ret);
-		return ret;
-	}
-
-	/* write be elems */
-	ret = write_block(tplg, &tplg->be_list,
-		SND_TPLG_TYPE_BE);
-	if (ret < 0) {
-		SNDERR("failed to write be elems %zd\n", ret);
-		return ret;
-	}
-
-	/* write cc elems */
-	ret = write_block(tplg, &tplg->cc_list,
-		SND_TPLG_TYPE_CC);
-	if (ret < 0) {
-		SNDERR("failed to write cc elems %zd\n", ret);
-		return ret;
-	}
-
-	/* write route elems */
-	ret = write_block(tplg, &tplg->route_list,
-		SND_TPLG_TYPE_DAPM_GRAPH);
-	if (ret < 0) {
-		SNDERR("failed to write graph elems %zd\n", ret);
-		return ret;
-	}
-
-	/* write private data */
-	ret = write_block(tplg, &tplg->pdata_list,
-		SND_TPLG_TYPE_DATA);
-	if (ret < 0) {
-		SNDERR("failed to write private data %zd\n", ret);
-		return ret;
+	/* write all blocks */
+	for (index = 0; index < ARRAY_SIZE(wtable); index++) {
+		wptr = &wtable[index];
+		ret = write_block(tplg, wptr->list, wptr->type);
+		if (ret < 0) {
+			SNDERR("failed to write %s: %s\n", wptr->name, snd_strerror(-ret));
+			return ret;
+		}
 	}
 
 	return 0;
