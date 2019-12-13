@@ -273,6 +273,7 @@ int tplg_ref_add_elem(struct tplg_elem *elem, struct tplg_elem *elem_ref);
 struct tplg_elem *tplg_elem_new(void);
 void tplg_elem_free(struct tplg_elem *elem);
 void tplg_elem_free_list(struct list_head *base);
+void tplg_elem_insert(struct tplg_elem *elem_p, struct list_head *list);
 struct tplg_elem *tplg_elem_lookup(struct list_head *base,
 				const char* id,
 				unsigned int type,

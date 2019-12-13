@@ -313,7 +313,7 @@ int tplg_build_routes(snd_tplg_t *tplg)
 	return 0;
 }
 
-struct tplg_elem *tplg_elem_new_route(snd_tplg_t *tplg)
+struct tplg_elem *tplg_elem_new_route(snd_tplg_t *tplg, int index)
 {
 	struct tplg_elem *elem;
 	struct snd_soc_tplg_dapm_graph_elem *line;
@@ -322,7 +322,8 @@ struct tplg_elem *tplg_elem_new_route(snd_tplg_t *tplg)
 	if (!elem)
 		return NULL;
 
-	list_add_tail(&elem->list, &tplg->route_list);
+	elem->index = index;
+	tplg_elem_insert(elem, &tplg->route_list);
 	strcpy(elem->id, "line");
 	elem->type = SND_TPLG_TYPE_DAPM_GRAPH;
 	elem->size = sizeof(*line);
@@ -403,10 +404,9 @@ static int tplg_parse_routes(snd_tplg_t *tplg, snd_config_t *cfg, int index)
 		if (snd_config_get_string(n, &val) < 0)
 			continue;
 
-		elem = tplg_elem_new_route(tplg);
+		elem = tplg_elem_new_route(tplg, index);
 		if (!elem)
 			return -ENOMEM;
-		elem->index = index;
 		line = elem->route;
 
 		err = tplg_parse_line(val, line);
@@ -628,7 +628,7 @@ int tplg_parse_dapm_widget(snd_tplg_t *tplg,
 	return 0;
 }
 
-int tplg_add_route(snd_tplg_t *tplg, struct snd_tplg_graph_elem *t)
+int tplg_add_route(snd_tplg_t *tplg, struct snd_tplg_graph_elem *t, int index)
 {
 	struct tplg_elem *elem;
 	struct snd_soc_tplg_dapm_graph_elem *line;
@@ -636,7 +636,7 @@ int tplg_add_route(snd_tplg_t *tplg, struct snd_tplg_graph_elem *t)
 	if (!t->src || !t->sink)
 		return -EINVAL;
 
-	elem = tplg_elem_new_route(tplg);
+	elem = tplg_elem_new_route(tplg, index);
 	if (!elem)
 		return -ENOMEM;
 
@@ -656,7 +656,7 @@ int tplg_add_graph_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 	int i, ret;
 
 	for (i = 0; i < gt->count; i++) {
-		ret = tplg_add_route(tplg, gt->elem + i);
+		ret = tplg_add_route(tplg, gt->elem + i, t->index);
 		if (ret < 0)
 			return ret;
 	}

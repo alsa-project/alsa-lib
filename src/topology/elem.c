@@ -132,7 +132,7 @@ struct tplg_elem *tplg_elem_lookup(struct list_head *base, const char* id,
 }
 
 /* insert a new element into list in the ascending order of index value */
-static void tplg_elem_insert(struct tplg_elem *elem_p, struct list_head *list)
+void tplg_elem_insert(struct tplg_elem *elem_p, struct list_head *list)
 {
 	struct list_head *pos, *p = &(elem_p->list);
 	struct tplg_elem *elem;
