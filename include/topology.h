@@ -791,7 +791,18 @@ void snd_tplg_free(snd_tplg_t *tplg);
  * \return Zero on success, otherwise a negative error code
  */
 int snd_tplg_build_file(snd_tplg_t *tplg, const char *infile,
-	const char *outfile);
+			const char *outfile);
+
+/**
+ * \brief Parse and build topology text file into binary file.
+ * \param tplg Topology instance.
+ * \param infile Topology text input file to be parsed
+ * \param bin Binary topology output buffer (malloc).
+ * \param size Binary topology output buffer size in bytes.
+ * \return Zero on success, otherwise a negative error code
+ */
+int snd_tplg_build_bin_file(snd_tplg_t *tplg, const char *infile,
+			    void **bin, size_t *size);
 
 /**
  * \brief Enable verbose reporting of binary file output
@@ -1088,6 +1099,15 @@ int snd_tplg_add_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t);
  * \return Zero on success, otherwise a negative error code
  */
 int snd_tplg_build(snd_tplg_t *tplg, const char *outfile);
+
+/**
+ * \brief Build all registered topology data into memory.
+ * \param tplg Topology instance.
+ * \param bin Binary topology output buffer (malloc).
+ * \param size Binary topology output buffer size in bytes.
+ * \return Zero on success, otherwise a negative error code
+ */
+int snd_tplg_build_bin(snd_tplg_t *tplg, void **bin, size_t *size);
 
 /**
  * \brief Attach private data to topology manifest.

@@ -393,9 +393,7 @@ static int tplg_build_integ(snd_tplg_t *tplg)
 	return err;
 }
 
-int snd_tplg_build_file(snd_tplg_t *tplg,
-			const char *infile,
-			const char *outfile)
+static int tplg_load(snd_tplg_t *tplg, const char *infile)
 {
 	snd_config_t *cfg = NULL;
 	int err = 0;
@@ -414,8 +412,51 @@ int snd_tplg_build_file(snd_tplg_t *tplg,
 	}
 
 	snd_config_delete(cfg);
+	return 0;
+}
+
+static int tplg_build(snd_tplg_t *tplg)
+{
+	int err;
+
+	err = tplg_build_integ(tplg);
+	if (err < 0) {
+		SNDERR("error: failed to check topology integrity\n");
+		return err;
+	}
+
+	err = tplg_write_data(tplg);
+	if (err < 0) {
+		SNDERR("error: failed to write data %d\n", err);
+		return err;
+	}
+	return 0;
+}
+
+int snd_tplg_build_file(snd_tplg_t *tplg,
+			const char *infile,
+			const char *outfile)
+{
+	int err;
+
+	err = tplg_load(tplg, infile);
+	if (err < 0)
+		return err;
 
 	return snd_tplg_build(tplg, outfile);
+}
+
+int snd_tplg_build_bin_file(snd_tplg_t *tplg,
+			    const char *infile,
+			    void **bin, size_t *size)
+{
+	int err;
+
+	err = tplg_load(tplg, infile);
+	if (err < 0)
+		return err;
+
+	return snd_tplg_build_bin(tplg, bin, size);
 }
 
 int snd_tplg_add_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
@@ -450,17 +491,9 @@ int snd_tplg_build(snd_tplg_t *tplg, const char *outfile)
 	int fd, err;
 	ssize_t r;
 
-	err = tplg_build_integ(tplg);
-	if (err < 0) {
-		SNDERR("error: failed to check topology integrity\n");
+	err = tplg_build(tplg);
+	if (err < 0)
 		return err;
-	}
-
-	err = tplg_write_data(tplg);
-	if (err < 0) {
-		SNDERR("error: failed to write data %d\n", err);
-		return err;
-	}
 
 	fd = open(outfile, O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
 	if (fd < 0) {
@@ -478,6 +511,26 @@ int snd_tplg_build(snd_tplg_t *tplg, const char *outfile)
 		SNDERR("error: partial write (%zd != %zd)\n", r, tplg->bin_size);
 		return -EIO;
 	}
+	return 0;
+}
+
+int snd_tplg_build_bin(snd_tplg_t *tplg,
+		       void **bin, size_t *size)
+{
+	int err;
+
+	err = tplg_build(tplg);
+	if (err < 0)
+		return err;
+
+	err = tplg_build(tplg);
+	if (err < 0)
+		return err;
+
+	*bin = tplg->bin;
+	*size = tplg->bin_size;
+	tplg->bin = NULL;
+	tplg->bin_size = tplg->bin_pos = 0;
 	return 0;
 }
 
