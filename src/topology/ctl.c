@@ -286,7 +286,8 @@ static int tplg_parse_tlv_dbscale(snd_config_t *cfg, struct tplg_elem *elem)
 	snd_config_t *n;
 	struct snd_soc_tplg_ctl_tlv *tplg_tlv;
 	struct snd_soc_tplg_tlv_dbscale *scale;
-	const char *id = NULL, *value = NULL;
+	const char *id = NULL;
+	int val;
 
 	tplg_dbg(" scale: %s\n", elem->id);
 
@@ -310,18 +311,18 @@ static int tplg_parse_tlv_dbscale(snd_config_t *cfg, struct tplg_elem *elem)
 		}
 
 		/* get value */
-		if (snd_config_get_string(n, &value) < 0)
+		if (tplg_get_integer(n, &val, 0))
 			continue;
 
-		tplg_dbg("\t%s = %s\n", id, value);
+		tplg_dbg("\t%s = %i\n", id, val);
 
 		/* get TLV data */
 		if (strcmp(id, "min") == 0)
-			scale->min = atoi(value);
+			scale->min = val;
 		else if (strcmp(id, "step") == 0)
-			scale->step = atoi(value);
+			scale->step = val;
 		else if (strcmp(id, "mute") == 0)
-			scale->mute = atoi(value);
+			scale->mute = val;
 		else
 			SNDERR("error: unknown key %s\n", id);
 	}
@@ -372,7 +373,7 @@ int tplg_parse_control_bytes(snd_tplg_t *tplg,
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
 	const char *id, *val = NULL;
-	int err;
+	int err, ival;
 	bool access_set = false, tlv_set = false;
 
 	elem = tplg_elem_new_common(tplg, cfg, NULL, SND_TPLG_TYPE_BYTES);
@@ -398,37 +399,37 @@ int tplg_parse_control_bytes(snd_tplg_t *tplg,
 			continue;
 
 		if (strcmp(id, "base") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
+			if (tplg_get_integer(n, &ival, 0))
 				return -EINVAL;
 
-			be->base = atoi(val);
+			be->base = ival;
 			tplg_dbg("\t%s: %d\n", id, be->base);
 			continue;
 		}
 
 		if (strcmp(id, "num_regs") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
+			if (tplg_get_integer(n, &ival, 0))
 				return -EINVAL;
 
-			be->num_regs = atoi(val);
+			be->num_regs = ival;
 			tplg_dbg("\t%s: %d\n", id, be->num_regs);
 			continue;
 		}
 
 		if (strcmp(id, "max") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
+			if (tplg_get_integer(n, &ival, 0))
 				return -EINVAL;
 
-			be->max = atoi(val);
+			be->max = ival;
 			tplg_dbg("\t%s: %d\n", id, be->max);
 			continue;
 		}
 
 		if (strcmp(id, "mask") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
+			if (tplg_get_integer(n, &ival, 16))
 				return -EINVAL;
 
-			be->mask = strtol(val, NULL, 16);
+			be->mask = ival;
 			tplg_dbg("\t%s: %d\n", id, be->mask);
 			continue;
 		}
@@ -598,7 +599,7 @@ int tplg_parse_control_mixer(snd_tplg_t *tplg,
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
 	const char *id, *val = NULL;
-	int err, j;
+	int err, j, ival;
 	bool access_set = false, tlv_set = false;
 
 	elem = tplg_elem_new_common(tplg, cfg, NULL, SND_TPLG_TYPE_MIXER);
@@ -647,10 +648,10 @@ int tplg_parse_control_mixer(snd_tplg_t *tplg,
 		}
 
 		if (strcmp(id, "max") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
+			if (tplg_get_integer(n, &ival, 0))
 				return -EINVAL;
 
-			mc->max = atoi(val);
+			mc->max = ival;
 			tplg_dbg("\t%s: %d\n", id, mc->max);
 			continue;
 		}

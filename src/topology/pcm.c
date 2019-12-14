@@ -368,6 +368,24 @@ static int split_rate(struct snd_soc_tplg_stream_caps *caps, char *str)
 	return 0;
 }
 
+static int parse_unsigned(snd_config_t *n, unsigned int *dst)
+{
+	int ival;
+
+	if (tplg_get_integer(n, &ival, 0) < 0)
+		return -EINVAL;
+
+	*dst = ival;
+#if TPLG_DEBUG
+	{
+		const char *id;
+		if (snd_config_get_id(n, &id) >= 0)
+			tplg_dbg("\t\t%s: %d\n", id, *dst);
+	}
+#endif
+	return 0;
+}
+
 /* Parse pcm stream capabilities */
 int tplg_parse_stream_caps(snd_tplg_t *tplg,
 			   snd_config_t *cfg,
@@ -402,10 +420,10 @@ int tplg_parse_stream_caps(snd_tplg_t *tplg,
 		if (id[0] == '#')
 			continue;
 
-		if (snd_config_get_string(n, &val) < 0)
-			return -EINVAL;
-
 		if (strcmp(id, "formats") == 0) {
+			if (snd_config_get_string(n, &val) < 0)
+				return -EINVAL;
+
 			s = strdup(val);
 			if (s == NULL)
 				return -ENOMEM;
@@ -421,6 +439,9 @@ int tplg_parse_stream_caps(snd_tplg_t *tplg,
 		}
 
 		if (strcmp(id, "rates") == 0) {
+			if (snd_config_get_string(n, &val) < 0)
+				return -EINVAL;
+
 			s = strdup(val);
 			if (!s)
 				return -ENOMEM;
@@ -436,68 +457,68 @@ int tplg_parse_stream_caps(snd_tplg_t *tplg,
 		}
 
 		if (strcmp(id, "rate_min") == 0) {
-			sc->rate_min = atoi(val);
-			tplg_dbg("\t\t%s: %d\n", id, sc->rate_min);
+			if (parse_unsigned(n, &sc->rate_min))
+				return -EINVAL;
 			continue;
 		}
 
 		if (strcmp(id, "rate_max") == 0) {
-			sc->rate_max = atoi(val);
-			tplg_dbg("\t\t%s: %d\n", id, sc->rate_max);
+			if (parse_unsigned(n, &sc->rate_max))
+				return -EINVAL;
 			continue;
 		}
 
 		if (strcmp(id, "channels_min") == 0) {
-			sc->channels_min = atoi(val);
-			tplg_dbg("\t\t%s: %d\n", id, sc->channels_min);
+			if (parse_unsigned(n, &sc->channels_min))
+				return -EINVAL;
 			continue;
 		}
 
 		if (strcmp(id, "channels_max") == 0) {
-			sc->channels_max = atoi(val);
-			tplg_dbg("\t\t%s: %d\n", id, sc->channels_max);
+			if (parse_unsigned(n, &sc->channels_max))
+				return -EINVAL;
 			continue;
 		}
 
 		if (strcmp(id, "periods_min") == 0) {
-			sc->periods_min = atoi(val);
-			tplg_dbg("\t\t%s: %d\n", id, sc->periods_min);
+			if (parse_unsigned(n, &sc->periods_min))
+				return -EINVAL;
 			continue;
 		}
 
 		if (strcmp(id, "periods_max") == 0) {
-			sc->periods_max = atoi(val);
-			tplg_dbg("\t\t%s: %d\n", id, sc->periods_max);
+			if (parse_unsigned(n, &sc->periods_max))
+				return -EINVAL;
 			continue;
 		}
 
 		if (strcmp(id, "period_size_min") == 0) {
-			sc->period_size_min = atoi(val);
-			tplg_dbg("\t\t%s: %d\n", id, sc->period_size_min);
+			if (parse_unsigned(n, &sc->period_size_min))
+				return -EINVAL;
 			continue;
 		}
 
 		if (strcmp(id, "period_size_max") == 0) {
-			sc->period_size_max = atoi(val);
-			tplg_dbg("\t\t%s: %d\n", id, sc->period_size_max);
+			if (parse_unsigned(n, &sc->period_size_max))
+				return -EINVAL;
 			continue;
 		}
 
 		if (strcmp(id, "buffer_size_min") == 0) {
-			sc->buffer_size_min = atoi(val);
-			tplg_dbg("\t\t%s: %d\n", id, sc->buffer_size_min);
+			if (parse_unsigned(n, &sc->buffer_size_min))
+				return -EINVAL;
 			continue;
 		}
 
 		if (strcmp(id, "buffer_size_max") == 0) {
-			sc->buffer_size_max = atoi(val);
-			tplg_dbg("\t\t%s: %d\n", id, sc->buffer_size_max);
+			if (parse_unsigned(n, &sc->buffer_size_max))
+				return -EINVAL;
 			continue;
 		}
 
 		if (strcmp(id, "sig_bits") == 0) {
-			sc->sig_bits = atoi(val);
-			tplg_dbg("\t\t%s: %d\n", id, sc->sig_bits);
+			if (parse_unsigned(n, &sc->sig_bits))
+				return -EINVAL;
 			continue;
 		}
 
@@ -674,11 +695,8 @@ int tplg_parse_pcm(snd_tplg_t *tplg, snd_config_t *cfg,
 			continue;
 
 		if (strcmp(id, "id") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
+			if (parse_unsigned(n, &pcm->pcm_id))
 				return -EINVAL;
-
-			pcm->pcm_id = atoi(val);
-			tplg_dbg("\t%s: %d\n", id, pcm->pcm_id);
 			continue;
 		}
 
@@ -784,30 +802,21 @@ int tplg_parse_dai(snd_tplg_t *tplg, snd_config_t *cfg,
 			continue;
 
 		if (strcmp(id, "id") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
+			if (parse_unsigned(n, &dai->dai_id))
 				return -EINVAL;
-
-			dai->dai_id = atoi(val);
-			tplg_dbg("\t%s: %d\n", id, dai->dai_id);
 			continue;
 		}
 
 		if (strcmp(id, "playback") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
+			if (parse_unsigned(n, &dai->playback))
 				return -EINVAL;
-
-			dai->playback = atoi(val);
-			tplg_dbg("\t%s: %d\n", id, dai->playback);
 			continue;
 		}
 
 
 		if (strcmp(id, "capture") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
+			if (parse_unsigned(n, &dai->capture))
 				return -EINVAL;
-
-			dai->capture = atoi(val);
-			tplg_dbg("\t%s: %d\n", id, dai->capture);
 			continue;
 		}
 
@@ -949,11 +958,8 @@ int tplg_parse_link(snd_tplg_t *tplg,
 			continue;
 
 		if (strcmp(id, "id") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
+			if (parse_unsigned(n, &link->id))
 				return -EINVAL;
-
-			link->id = atoi(val);
-			tplg_dbg("\t%s: %d\n", id, link->id);
 			continue;
 		}
 
@@ -975,10 +981,8 @@ int tplg_parse_link(snd_tplg_t *tplg,
 		}
 
 		if (strcmp(id, "default_hw_conf_id") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
+			if (parse_unsigned(n, &link->default_hw_config_id))
 				return -EINVAL;
-
-			link->default_hw_config_id = atoi(val);
 			continue;
 		}
 
@@ -1030,7 +1034,7 @@ int tplg_parse_cc(snd_tplg_t *tplg,
 	struct tplg_elem *elem;
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
-	const char *id, *val = NULL;
+	const char *id;
 
 	elem = tplg_elem_new_common(tplg, cfg, NULL, SND_TPLG_TYPE_CC);
 	if (!elem)
@@ -1054,11 +1058,8 @@ int tplg_parse_cc(snd_tplg_t *tplg,
 			continue;
 
 		if (strcmp(id, "id") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
+			if (parse_unsigned(n, &link->id))
 				return -EINVAL;
-
-			link->id = atoi(val);
-			tplg_dbg("\t%s: %d\n", id, link->id);
 			continue;
 		}
 
@@ -1130,11 +1131,8 @@ int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
 			continue;
 
 		if (strcmp(id, "id") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
+			if (parse_unsigned(n, &hw_cfg->id))
 				return -EINVAL;
-
-			hw_cfg->id = atoi(val);
-			tplg_dbg("\t%s: %d\n", id, hw_cfg->id);
 			continue;
 		}
 
@@ -1173,10 +1171,8 @@ int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
 
 		if (strcmp(id, "bclk_freq") == 0 ||
 		    strcmp(id, "bclk_rate") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
+			if (parse_unsigned(n, &hw_cfg->bclk_rate))
 				return -EINVAL;
-
-			hw_cfg->bclk_rate = atoi(val);
 			continue;
 		}
 
@@ -1223,19 +1219,15 @@ int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
 
 		if (strcmp(id, "fsync_freq") == 0 ||
 		    strcmp(id, "fsync_rate") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
+			if (parse_unsigned(n, &hw_cfg->fsync_rate))
 				return -EINVAL;
-
-			hw_cfg->fsync_rate = atoi(val);
 			continue;
 		}
 
 		if (strcmp(id, "mclk_freq") == 0 ||
 		    strcmp(id, "mclk_rate") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
+			if (parse_unsigned(n, &hw_cfg->mclk_rate))
 				return -EINVAL;
-
-			hw_cfg->mclk_rate = atoi(val);
 			continue;
 		}
 
@@ -1275,50 +1267,38 @@ int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
 		}
 
 		if (strcmp(id, "tdm_slots") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
+			if (parse_unsigned(n, &hw_cfg->tdm_slots))
 				return -EINVAL;
-
-			hw_cfg->tdm_slots = atoi(val);
 			continue;
 		}
 
 		if (strcmp(id, "tdm_slot_width") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
+			if (parse_unsigned(n, &hw_cfg->tdm_slot_width))
 				return -EINVAL;
-
-			hw_cfg->tdm_slot_width = atoi(val);
 			continue;
 		}
 
 		if (strcmp(id, "tx_slots") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
+			if (parse_unsigned(n, &hw_cfg->tx_slots))
 				return -EINVAL;
-
-			hw_cfg->tx_slots = atoi(val);
 			continue;
 		}
 
 		if (strcmp(id, "rx_slots") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
+			if (parse_unsigned(n, &hw_cfg->rx_slots))
 				return -EINVAL;
-
-			hw_cfg->rx_slots = atoi(val);
 			continue;
 		}
 
 		if (strcmp(id, "tx_channels") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
+			if (parse_unsigned(n, &hw_cfg->tx_channels))
 				return -EINVAL;
-
-			hw_cfg->tx_channels = atoi(val);
 			continue;
 		}
 
 		if (strcmp(id, "rx_channels") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
+			if (parse_unsigned(n, &hw_cfg->rx_channels))
 				return -EINVAL;
-
-			hw_cfg->rx_channels = atoi(val);
 			continue;
 		}
 

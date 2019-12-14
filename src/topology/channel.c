@@ -80,8 +80,8 @@ int tplg_parse_channel(snd_tplg_t *tplg, snd_config_t *cfg,
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
 	struct snd_soc_tplg_channel *channel = private;
-	const char *id, *value;
-	int channel_id;
+	const char *id;
+	int channel_id, value;
 
 	if (tplg->channel_idx >= SND_SOC_TPLG_MAX_CHAN)
 		return -EINVAL;
@@ -109,13 +109,13 @@ int tplg_parse_channel(snd_tplg_t *tplg, snd_config_t *cfg,
 			continue;
 
 		/* get value */
-		if (snd_config_get_string(n, &value) < 0)
+		if (tplg_get_integer(n, &value, 0) < 0)
 			continue;
 
 		if (strcmp(id, "reg") == 0)
-			channel->reg = atoi(value);
+			channel->reg = value;
 		else if (strcmp(id, "shift") == 0)
-			channel->shift = atoi(value);
+			channel->shift = value;
 
 		tplg_dbg("\t\t%s = %s\n", id, value);
 	}

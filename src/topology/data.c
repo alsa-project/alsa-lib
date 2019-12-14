@@ -800,10 +800,10 @@ int tplg_parse_tokens(snd_tplg_t *tplg, snd_config_t *cfg,
 {
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
-	const char *id, *value;
+	const char *id;
 	struct tplg_elem *elem;
 	struct tplg_vendor_tokens *tokens;
-	int num_tokens = 0;
+	int num_tokens = 0, value;
 
 	elem = tplg_elem_new_common(tplg, cfg, NULL, SND_TPLG_TYPE_TOKEN);
 	if (!elem)
@@ -830,12 +830,12 @@ int tplg_parse_tokens(snd_tplg_t *tplg, snd_config_t *cfg,
 		if (snd_config_get_id(n, &id) < 0)
 			continue;
 
-		if (snd_config_get_string(n, &value) < 0)
+		if (tplg_get_integer(n, &value, 0))
 			continue;
 
 		snd_strlcpy(tokens->token[tokens->num_tokens].id, id,
 				SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
-		tokens->token[tokens->num_tokens].value = atoi(value);
+		tokens->token[tokens->num_tokens].value = value;
 		tplg_dbg("\t\t %s : %d\n", tokens->token[tokens->num_tokens].id,
 			tokens->token[tokens->num_tokens].value);
 		tokens->num_tokens++;
@@ -1013,7 +1013,7 @@ int tplg_parse_data(snd_tplg_t *tplg, snd_config_t *cfg,
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
 	const char *id, *val = NULL;
-	int err = 0;
+	int err = 0, ival;
 	struct tplg_elem *elem;
 
 	elem = tplg_elem_new_common(tplg, cfg, NULL, SND_TPLG_TYPE_DATA);
@@ -1071,10 +1071,10 @@ int tplg_parse_data(snd_tplg_t *tplg, snd_config_t *cfg,
 		}
 
 		if (strcmp(id, "type") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
+			if (tplg_get_integer(n, &ival, 0))
 				return -EINVAL;
 
-			elem->vendor_type = atoi(val);
+			elem->vendor_type = ival;
 			tplg_dbg("\t%s: %d\n", id, elem->index);
 			continue;
 		}

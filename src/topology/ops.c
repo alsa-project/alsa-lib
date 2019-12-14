@@ -42,7 +42,7 @@ static int lookup_ops(const char *c)
 	}
 
 	/* cant find string name in our table so we use its ID number */
-	return atoi(c);
+	return strtol(c, NULL, 0);
 }
 
 /* Parse Control operations. Ops can come from standard names above or

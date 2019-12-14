@@ -22,6 +22,35 @@
 #include "tplg_local.h"
 
 /*
+ * Get integer value
+ */
+int tplg_get_integer(snd_config_t *n, int *val, int base)
+{
+	const char *str;
+	long lval;
+	int err;
+
+	switch (snd_config_get_type(n)) {
+	case SND_CONFIG_TYPE_INTEGER:
+		err = snd_config_get_integer(n, &lval);
+		if (err < 0)
+			return err;
+		if (lval < INT_MIN || lval > INT_MAX)
+			return -EINVAL;
+		*val = lval;
+		return err;
+	case SND_CONFIG_TYPE_STRING:
+		err = snd_config_get_string(n, &str);
+		if (err < 0)
+			return err;
+		*val = strtol(str, NULL, base);
+		return 0;
+	default:
+		return -EINVAL;
+	}
+}
+
+/*
  * Parse compound
  */
 int tplg_parse_compound(snd_tplg_t *tplg, snd_config_t *cfg,

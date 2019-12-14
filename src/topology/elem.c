@@ -153,7 +153,7 @@ struct tplg_elem* tplg_elem_new_common(snd_tplg_t *tplg,
 				       enum snd_tplg_type type)
 {
 	struct tplg_elem *elem;
-	const char *id, *val = NULL;
+	const char *id;
 	int obj_size = 0;
 	void *obj;
 	snd_config_iterator_t i, next;
@@ -178,11 +178,14 @@ struct tplg_elem* tplg_elem_new_common(snd_tplg_t *tplg,
 			if (snd_config_get_id(n, &id))
 				continue;
 			if (strcmp(id, "index") == 0) {
-				if (snd_config_get_string(n, &val) < 0) {
+				if (tplg_get_integer(n, &elem->index, 0)) {
 					free(elem);
 					return NULL;
 				}
-				elem->index = atoi(val);
+				if (elem->index < 0) {
+					free(elem);
+					return NULL;
+				}
 			}
 		}
 	} else if (name != NULL)

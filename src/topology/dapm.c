@@ -426,7 +426,7 @@ int tplg_parse_dapm_graph(snd_tplg_t *tplg, snd_config_t *cfg,
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
 	int err;
-	const char *graph_id, *val = NULL;
+	const char *graph_id;
 	int index = -1;
 
 	if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
@@ -445,9 +445,10 @@ int tplg_parse_dapm_graph(snd_tplg_t *tplg, snd_config_t *cfg,
 		}
 
 		if (strcmp(id, "index") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
+			if (tplg_get_integer(n, &index, 0))
 				return -EINVAL;
-			index = atoi(val);
+			if (index < 0)
+				return -EINVAL;
 		}
 
 		if (strcmp(id, "lines") == 0) {
@@ -479,6 +480,7 @@ int tplg_parse_dapm_widget(snd_tplg_t *tplg,
 	snd_config_t *n;
 	const char *id, *val = NULL;
 	int widget_type, err;
+	int ival;
 
 	elem = tplg_elem_new_common(tplg, cfg, NULL, SND_TPLG_TYPE_DAPM_WIDGET);
 	if (!elem)
@@ -540,55 +542,55 @@ int tplg_parse_dapm_widget(snd_tplg_t *tplg,
 		}
 
 		if (strcmp(id, "shift") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
+			if (tplg_get_integer(n, &ival, 0))
 				return -EINVAL;
 
-			widget->shift = atoi(val);
+			widget->shift = ival;
 			tplg_dbg("\t%s: %d\n", id, widget->shift);
 			continue;
 		}
 
 		if (strcmp(id, "reg") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
+			if (tplg_get_integer(n, &ival, 0))
 				return -EINVAL;
 
-			widget->reg = atoi(val);
+			widget->reg = ival;
 			tplg_dbg("\t%s: %d\n", id, widget->reg);
 			continue;
 		}
 
 		if (strcmp(id, "invert") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
+			if (tplg_get_integer(n, &ival, 0))
 				return -EINVAL;
 
-			widget->invert = atoi(val);
+			widget->invert = ival;
 			tplg_dbg("\t%s: %d\n", id, widget->invert);
 			continue;
 		}
 
 		if (strcmp(id, "subseq") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
+			if (tplg_get_integer(n, &ival, 0))
 				return -EINVAL;
 
-			widget->subseq= atoi(val);
+			widget->subseq = ival;
 			tplg_dbg("\t%s: %d\n", id, widget->subseq);
 			continue;
 		}
 
 		if (strcmp(id, "event_type") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
+			if (tplg_get_integer(n, &ival, 0))
 				return -EINVAL;
 
-			widget->event_type = atoi(val);
+			widget->event_type = ival;
 			tplg_dbg("\t%s: %d\n", id, widget->event_type);
 			continue;
 		}
 
 		if (strcmp(id, "event_flags") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
+			if (tplg_get_integer(n, &ival, 0))
 				return -EINVAL;
 
-			widget->event_flags = atoi(val);
+			widget->event_flags = ival;
 			tplg_dbg("\t%s: %d\n", id, widget->event_flags);
 			continue;
 		}

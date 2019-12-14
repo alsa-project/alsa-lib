@@ -280,6 +280,8 @@ struct tplg_elem *tplg_elem_lookup(struct list_head *base,
 struct tplg_elem* tplg_elem_new_common(snd_tplg_t *tplg,
 	snd_config_t *cfg, const char *name, enum snd_tplg_type type);
 
+int tplg_get_integer(snd_config_t *n, int *val, int base);
+
 int tplg_parse_channel(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 	snd_config_t *cfg, void *private);
 
