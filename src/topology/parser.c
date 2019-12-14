@@ -36,14 +36,19 @@ int tplg_get_integer(snd_config_t *n, int *val, int base)
 		if (err < 0)
 			return err;
 		if (lval < INT_MIN || lval > INT_MAX)
-			return -EINVAL;
+			return -ERANGE;
 		*val = lval;
 		return err;
 	case SND_CONFIG_TYPE_STRING:
 		err = snd_config_get_string(n, &str);
 		if (err < 0)
 			return err;
+		errno = 0;
 		*val = strtol(str, NULL, base);
+		if (errno == ERANGE)
+			return -ERANGE;
+		if (errno && *val == 0)
+			return -EINVAL;
 		return 0;
 	default:
 		return -EINVAL;
