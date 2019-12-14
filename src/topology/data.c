@@ -556,7 +556,7 @@ static int parse_tuple_set(snd_config_t *cfg,
 	struct tplg_tuple_set *set;
 	unsigned int type, num_tuples = 0;
 	struct tplg_tuple *tuple;
-	unsigned long int tuple_val;
+	unsigned int tuple_val;
 	int ival;
 
 	snd_config_get_id(cfg, &id);
@@ -598,10 +598,6 @@ static int parse_tuple_set(snd_config_t *cfg,
 		if (snd_config_get_id(n, &id) < 0)
 			continue;
 
-		/* get value */
-		if (snd_config_get_string(n, &value) < 0)
-			continue;
-
 		tuple = &set->tuple[set->num_tuples];
 		snd_strlcpy(tuple->token, id,
 				SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
@@ -633,14 +629,9 @@ static int parse_tuple_set(snd_config_t *cfg,
 		case SND_SOC_TPLG_TUPLE_TYPE_BYTE:
 		case SND_SOC_TPLG_TUPLE_TYPE_SHORT:
 		case SND_SOC_TPLG_TUPLE_TYPE_WORD:
-			if (snd_config_get_string(n, &value) < 0)
-				continue;
-			errno = 0;
-			/* no support for negative value */
-			tuple_val = strtoul(value, NULL, 0);
-			if ((errno == ERANGE && tuple_val == ULONG_MAX)
-				|| (errno != 0 && tuple_val == 0)) {
-				SNDERR("error: tuple %s:strtoul fail\n", id);
+			ival = tplg_get_unsigned(n, &tuple_val, 0);
+			if (ival < 0) {
+				SNDERR("error: tuple %s: %s\n", id, snd_strerror(ival));
 				goto err;
 			}
 
@@ -654,7 +645,7 @@ static int parse_tuple_set(snd_config_t *cfg,
 				goto err;
 			}
 
-			tuple->value = (unsigned int) tuple_val;
+			tuple->value = tuple_val;
 			tplg_dbg("\t\t%s = 0x%x\n", tuple->token, tuple->value);
 			break;
 

@@ -606,8 +606,7 @@ static int tplg_parse_fe_dai(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 	struct snd_soc_tplg_pcm *pcm = elem->pcm;
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
-	const char *id, *value = NULL;
-	unsigned long int id_val;
+	const char *id;
 
 	snd_config_get_id(cfg, &id);
 	tplg_dbg("\t\tFE DAI %s:\n", id);
@@ -622,19 +621,11 @@ static int tplg_parse_fe_dai(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 			continue;
 
 		if (strcmp(id, "id") == 0) {
-			if (snd_config_get_string(n, &value) < 0)
-				continue;
-			errno = 0;
-			/* no support for negative value */
-			id_val = strtoul(value, NULL, 0);
-			if ((errno == ERANGE && id_val == ULONG_MAX)
-				|| (errno != 0 && id_val == 0)
-				|| id_val > UINT_MAX) {
+			if (tplg_get_unsigned(n, &pcm->dai_id, 0)) {
 				SNDERR("error: invalid fe dai ID\n");
 				return -EINVAL;
 			}
 
-			pcm->dai_id = (int) id_val;
 			tplg_dbg("\t\t\tindex: %d\n", pcm->dai_id);
 		}
 	}

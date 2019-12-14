@@ -56,6 +56,53 @@ int tplg_get_integer(snd_config_t *n, int *val, int base)
 }
 
 /*
+ * Get unsigned integer value
+ */
+int tplg_get_unsigned(snd_config_t *n, unsigned *val, int base)
+{
+	const char *str;
+	long lval;
+	long long llval;
+	unsigned long uval;
+	int err;
+
+	switch (snd_config_get_type(n)) {
+	case SND_CONFIG_TYPE_INTEGER:
+		err = snd_config_get_integer(n, &lval);
+		if (err < 0)
+			return err;
+		if (lval < 0 || lval > UINT_MAX)
+			return -ERANGE;
+		*val = lval;
+		return err;
+	case SND_CONFIG_TYPE_INTEGER64:
+		err = snd_config_get_integer64(n, &llval);
+		if (err < 0)
+			return err;
+		if (llval < 0 || llval > UINT_MAX)
+			return -ERANGE;
+		*val = llval;
+		return err;
+	case SND_CONFIG_TYPE_STRING:
+		err = snd_config_get_string(n, &str);
+		if (err < 0)
+			return err;
+		errno = 0;
+		uval = strtoul(str, NULL, base);
+		if (errno == ERANGE && uval == ULONG_MAX)
+			return -ERANGE;
+		if (errno && uval == 0)
+			return -EINVAL;
+		if (uval > UINT_MAX)
+			return -ERANGE;
+		*val = uval;
+		return 0;
+	default:
+		return -EINVAL;
+	}
+}
+
+/*
  * Parse compound
  */
 int tplg_parse_compound(snd_tplg_t *tplg, snd_config_t *cfg,
