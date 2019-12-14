@@ -557,6 +557,7 @@ static int parse_tuple_set(snd_config_t *cfg,
 	unsigned int type, num_tuples = 0;
 	struct tplg_tuple *tuple;
 	unsigned long int tuple_val;
+	int ival;
 
 	snd_config_get_id(cfg, &id);
 
@@ -607,25 +608,33 @@ static int parse_tuple_set(snd_config_t *cfg,
 
 		switch (type) {
 		case SND_SOC_TPLG_TUPLE_TYPE_UUID:
+			if (snd_config_get_string(n, &value) < 0)
+				continue;
 			if (get_uuid(value, tuple->uuid) < 0)
 				goto err;
 			break;
 
 		case SND_SOC_TPLG_TUPLE_TYPE_STRING:
+			if (snd_config_get_string(n, &value) < 0)
+				continue;
 			snd_strlcpy(tuple->string, value,
 				SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 			tplg_dbg("\t\t%s = %s\n", tuple->token, tuple->string);
 			break;
 
 		case SND_SOC_TPLG_TUPLE_TYPE_BOOL:
-			if (strcmp(value, "true") == 0)
-				tuple->value = 1;
+			ival = snd_config_get_bool(n);
+			if (ival < 0)
+				continue;
+			tuple->value = ival;
 			tplg_dbg("\t\t%s = %d\n", tuple->token, tuple->value);
 			break;
 
 		case SND_SOC_TPLG_TUPLE_TYPE_BYTE:
 		case SND_SOC_TPLG_TUPLE_TYPE_SHORT:
 		case SND_SOC_TPLG_TUPLE_TYPE_WORD:
+			if (snd_config_get_string(n, &value) < 0)
+				continue;
 			errno = 0;
 			/* no support for negative value */
 			tuple_val = strtoul(value, NULL, 0);
@@ -1012,7 +1021,7 @@ int tplg_parse_data(snd_tplg_t *tplg, snd_config_t *cfg,
 {
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
-	const char *id, *val = NULL;
+	const char *id;
 	int err = 0, ival;
 	struct tplg_elem *elem;
 

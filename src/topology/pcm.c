@@ -669,8 +669,8 @@ int tplg_parse_pcm(snd_tplg_t *tplg, snd_config_t *cfg,
 	struct tplg_elem *elem;
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
-	const char *id, *val = NULL;
-	int err;
+	const char *id;
+	int err, ival;
 
 	elem = tplg_elem_new_common(tplg, cfg, NULL, SND_TPLG_TYPE_PCM);
 	if (!elem)
@@ -709,11 +709,11 @@ int tplg_parse_pcm(snd_tplg_t *tplg, snd_config_t *cfg,
 		}
 
 		if (strcmp(id, "compress") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
+			ival = snd_config_get_bool(n);
+			if (ival < 0)
 				return -EINVAL;
 
-			if (strcmp(val, "true") == 0)
-				pcm->compress = 1;
+			pcm->compress = ival;
 
 			tplg_dbg("\t%s: %s\n", id, val);
 			continue;
@@ -1107,7 +1107,7 @@ int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
 	const char *id, *val = NULL;
-	int ret;
+	int ret, ival;
 
 	elem = tplg_elem_new_common(tplg, cfg, NULL, SND_TPLG_TYPE_HW_CONFIG);
 	if (!elem)
@@ -1178,11 +1178,11 @@ int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
 
 		if (strcmp(id, "bclk_invert") == 0 ||
 		    strcmp(id, "invert_bclk") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
+			ival = snd_config_get_bool(n);
+			if (ival < 0)
 				return -EINVAL;
 
-			if (!strcmp(val, "true"))
-				hw_cfg->invert_bclk = true;
+			hw_cfg->invert_bclk = ival;
 			continue;
 		}
 
@@ -1209,11 +1209,11 @@ int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
 
 		if (strcmp(id, "fsync_invert") == 0 ||
 		    strcmp(id, "invert_fsync") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
+			ival = snd_config_get_bool(n);
+			if (ival < 0)
 				return -EINVAL;
 
-			if (!strcmp(val, "true"))
-				hw_cfg->invert_fsync = true;
+			hw_cfg->invert_fsync = ival;
 			continue;
 		}
 
@@ -1254,10 +1254,11 @@ int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
 
 		if (strcmp(id, "pm_gate_clocks") == 0 ||
 		    strcmp(id, "clock_gated") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
+			ival = snd_config_get_bool(n);
+			if (ival < 0)
 				return -EINVAL;
 
-			if (!strcmp(val, "true"))
+			if (ival)
 				hw_cfg->clock_gated =
 					SND_SOC_TPLG_DAI_CLK_GATE_GATED;
 			else

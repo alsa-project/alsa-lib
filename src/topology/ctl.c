@@ -657,13 +657,10 @@ int tplg_parse_control_mixer(snd_tplg_t *tplg,
 		}
 
 		if (strcmp(id, "invert") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
+			ival = snd_config_get_bool(n);
+			if (ival < 0)
 				return -EINVAL;
-
-			if (strcmp(val, "true") == 0)
-				mc->invert = 1;
-			else if (strcmp(val, "false") == 0)
-				mc->invert = 0;
+			mc->invert = ival;
 
 			tplg_dbg("\t%s: %d\n", id, mc->invert);
 			continue;

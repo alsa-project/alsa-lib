@@ -479,8 +479,7 @@ int tplg_parse_dapm_widget(snd_tplg_t *tplg,
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
 	const char *id, *val = NULL;
-	int widget_type, err;
-	int ival;
+	int widget_type, err, ival;
 
 	elem = tplg_elem_new_common(tplg, cfg, NULL, SND_TPLG_TYPE_DAPM_WIDGET);
 	if (!elem)
@@ -531,11 +530,11 @@ int tplg_parse_dapm_widget(snd_tplg_t *tplg,
 		}
 
 		if (strcmp(id, "no_pm") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
+			ival = snd_config_get_bool(n);
+			if (ival < 0)
 				return -EINVAL;
 
-			if (strcmp(val, "true") == 0)
-				widget->reg = -1;
+			widget->reg = ival ? -1 : 0;
 
 			tplg_dbg("\t%s: %s\n", id, val);
 			continue;
