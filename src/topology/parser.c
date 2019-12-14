@@ -142,9 +142,88 @@ int tplg_parse_compound(snd_tplg_t *tplg, snd_config_t *cfg,
 
 static int tplg_parse_config(snd_tplg_t *tplg, snd_config_t *cfg)
 {
+	static struct _parser {
+		const char *id;
+		int (*parser)(snd_tplg_t *tplg, snd_config_t *cfg, void *priv);
+	} *p, parsers[] = {
+		{
+			.id = "SectionTLV",
+			.parser = tplg_parse_tlv
+		},
+		{
+			.id = "SectionControlMixer",
+			.parser = tplg_parse_control_mixer
+		},
+		{
+			.id = "SectionControlEnum",
+			.parser = tplg_parse_control_enum
+		},
+		{
+			.id = "SectionControlBytes",
+			.parser = tplg_parse_control_bytes
+		},
+		{
+			.id = "SectionWidget",
+			.parser = tplg_parse_dapm_widget
+		},
+		{
+			.id = "SectionPCMCapabilities",
+			.parser = tplg_parse_stream_caps
+		},
+		{
+			.id = "SectionPCM",
+			.parser = tplg_parse_pcm
+		},
+		{
+			.id = "SectionDAI",
+			.parser = tplg_parse_dai
+		},
+		{
+			.id = "SectionHWConfig",
+			.parser = tplg_parse_hw_config
+		},
+		{
+			.id = "SectionLink",
+			.parser = tplg_parse_link
+		},
+		{
+			.id = "SectionBE",
+			.parser = tplg_parse_link
+		},
+		{
+			.id = "SectionCC",
+			.parser = tplg_parse_cc
+		},
+		{
+			.id = "SectionGraph",
+			.parser = tplg_parse_dapm_graph
+		},
+		{
+			.id = "SectionText",
+			.parser = tplg_parse_text
+		},
+		{
+			.id = "SectionData",
+			.parser = tplg_parse_data
+		},
+		{
+			.id = "SectionVendorTokens",
+			.parser = tplg_parse_tokens
+		},
+		{
+			.id = "SectionVendorTuples",
+			.parser = tplg_parse_tuples
+		},
+		{
+			.id = "SectionManifest",
+			.parser = tplg_parse_manifest_data
+		},
+	};
+	int (*parser)(snd_tplg_t *tplg, snd_config_t *cfg, void *priv);
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
 	const char *id;
+	unsigned int idx;
 	int err;
 
 	if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
@@ -159,145 +238,23 @@ static int tplg_parse_config(snd_tplg_t *tplg, snd_config_t *cfg)
 		if (snd_config_get_id(n, &id) < 0)
 			continue;
 
-		if (strcmp(id, "SectionTLV") == 0) {
-			err = tplg_parse_compound(tplg, n, tplg_parse_tlv,
-				NULL);
-			if (err < 0)
-				return err;
+		parser = NULL;
+		for (idx = 0; idx < ARRAY_SIZE(parsers); idx++) {
+			p = &parsers[idx];
+			if (strcmp(id, p->id) == 0) {
+				parser = p->parser;
+				break;
+			}
+		}
+
+		if (parser == NULL) {
+			SNDERR("error: unknown section %s\n", id);
 			continue;
 		}
 
-		if (strcmp(id, "SectionControlMixer") == 0) {
-			err = tplg_parse_compound(tplg, n,
-				tplg_parse_control_mixer, NULL);
-			if (err < 0)
-				return err;
-			continue;
-		}
-
-		if (strcmp(id, "SectionControlEnum") == 0) {
-			err = tplg_parse_compound(tplg, n,
-				tplg_parse_control_enum, NULL);
-			if (err < 0)
-				return err;
-			continue;
-		}
-
-		if (strcmp(id, "SectionControlBytes") == 0) {
-			err = tplg_parse_compound(tplg, n,
-				tplg_parse_control_bytes, NULL);
-			if (err < 0)
-				return err;
-			continue;
-		}
-
-		if (strcmp(id, "SectionWidget") == 0) {
-			err = tplg_parse_compound(tplg, n,
-				tplg_parse_dapm_widget, NULL);
-			if (err < 0)
-				return err;
-			continue;
-		}
-
-		if (strcmp(id, "SectionPCMCapabilities") == 0) {
-			err = tplg_parse_compound(tplg, n,
-				tplg_parse_stream_caps, NULL);
-			if (err < 0)
-				return err;
-			continue;
-		}
-
-		if (strcmp(id, "SectionPCM") == 0) {
-			err = tplg_parse_compound(tplg, n,
-				tplg_parse_pcm, NULL);
-			if (err < 0)
-				return err;
-			continue;
-		}
-
-		if (strcmp(id, "SectionDAI") == 0) {
-			err = tplg_parse_compound(tplg, n,
-				tplg_parse_dai, NULL);
-			if (err < 0)
-				return err;
-			continue;
-		}
-
-		if (strcmp(id, "SectionHWConfig") == 0) {
-			err = tplg_parse_compound(tplg, n, tplg_parse_hw_config,
-				NULL);
-			if (err < 0)
-				return err;
-			continue;
-		}
-
-		if (strcmp(id, "SectionLink") == 0
-			|| strcmp(id, "SectionBE") == 0) {
-			err = tplg_parse_compound(tplg, n, tplg_parse_link,
-				NULL);
-			if (err < 0)
-				return err;
-			continue;
-		}
-
-		if (strcmp(id, "SectionCC") == 0) {
-			err = tplg_parse_compound(tplg, n, tplg_parse_cc,
-				NULL);
-			if (err < 0)
-				return err;
-			continue;
-		}
-
-		if (strcmp(id, "SectionGraph") == 0) {
-			err = tplg_parse_compound(tplg, n,
-				tplg_parse_dapm_graph, NULL);
-			if (err < 0)
-				return err;
-			continue;
-		}
-
-		if (strcmp(id, "SectionText") == 0) {
-			err = tplg_parse_compound(tplg, n, tplg_parse_text,
-				NULL);
-			if (err < 0)
-				return err;
-			continue;
-		}
-
-		if (strcmp(id, "SectionData") == 0) {
-			err = tplg_parse_compound(tplg, n, tplg_parse_data,
-				NULL);
-			if (err < 0)
-				return err;
-			continue;
-		}
-
-		if (strcmp(id, "SectionVendorTokens") == 0) {
-			err = tplg_parse_compound(tplg, n, tplg_parse_tokens,
-				NULL);
-			if (err < 0)
-				return err;
-			continue;
-		}
-
-		if (strcmp(id, "SectionVendorTuples") == 0) {
-			err = tplg_parse_compound(tplg, n, tplg_parse_tuples,
-				NULL);
-			if (err < 0)
-				return err;
-			continue;
-		}
-
-		if (strcmp(id, "SectionManifest") == 0) {
-			err = tplg_parse_compound(tplg, n,
-						  tplg_parse_manifest_data,
-				NULL);
-			if (err < 0)
-				return err;
-			continue;
-		}
-
-		SNDERR("error: unknown section %s\n", id);
+		err = tplg_parse_compound(tplg, n, parser, NULL);
+		if (err < 0)
+			return err;
 	}
 	return 0;
 }

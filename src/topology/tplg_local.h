@@ -202,58 +202,25 @@ int tplg_parse_compound(snd_tplg_t *tplg, snd_config_t *cfg,
 
 int tplg_write_data(snd_tplg_t *tplg);
 
-int tplg_parse_tlv(snd_tplg_t *tplg, snd_config_t *cfg,
-	void *private ATTRIBUTE_UNUSED);
-
-int tplg_parse_text(snd_tplg_t *tplg, snd_config_t *cfg,
-	void *private ATTRIBUTE_UNUSED);
-
-int tplg_parse_data(snd_tplg_t *tplg, snd_config_t *cfg,
-	void *private ATTRIBUTE_UNUSED);
-
-int tplg_parse_tokens(snd_tplg_t *tplg, snd_config_t *cfg,
-	void *private ATTRIBUTE_UNUSED);
-
-int tplg_parse_tuples(snd_tplg_t *tplg, snd_config_t *cfg,
-	void *private ATTRIBUTE_UNUSED);
+int tplg_parse_tlv(snd_tplg_t *tplg, snd_config_t *cfg, void *priv);
+int tplg_parse_text(snd_tplg_t *tplg, snd_config_t *cfg, void *priv);
+int tplg_parse_data(snd_tplg_t *tplg, snd_config_t *cfg, void *priv);
+int tplg_parse_tokens(snd_tplg_t *tplg, snd_config_t *cfg, void *priv);
+int tplg_parse_tuples(snd_tplg_t *tplg, snd_config_t *cfg, void *priv);
+int tplg_parse_manifest_data(snd_tplg_t *tplg, snd_config_t *cfg, void *priv);
+int tplg_parse_control_bytes(snd_tplg_t *tplg, snd_config_t *cfg, void *priv);
+int tplg_parse_control_enum(snd_tplg_t *tplg, snd_config_t *cfg, void *priv);
+int tplg_parse_control_mixer(snd_tplg_t *tplg, snd_config_t *cfg, void *priv);
+int tplg_parse_dapm_graph(snd_tplg_t *tplg, snd_config_t *cfg, void *priv);
+int tplg_parse_dapm_widget(snd_tplg_t *tplg, snd_config_t *cfg, void *priv);
+int tplg_parse_stream_caps(snd_tplg_t *tplg, snd_config_t *cfg, void *priv);
+int tplg_parse_pcm(snd_tplg_t *tplg, snd_config_t *cfg, void *priv);
+int tplg_parse_dai(snd_tplg_t *tplg, snd_config_t *cfg, void *priv);
+int tplg_parse_link(snd_tplg_t *tplg, snd_config_t *cfg, void *priv);
+int tplg_parse_cc(snd_tplg_t *tplg, snd_config_t *cfg, void *priv);
+int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg, void *priv);
 
 void tplg_free_tuples(void *obj);
-
-int tplg_parse_manifest_data(snd_tplg_t *tplg, snd_config_t *cfg,
-	void *private ATTRIBUTE_UNUSED);
-
-int tplg_parse_control_bytes(snd_tplg_t *tplg,
-	snd_config_t *cfg, void *private ATTRIBUTE_UNUSED);
-
-int tplg_parse_control_enum(snd_tplg_t *tplg, snd_config_t *cfg,
-	void *private ATTRIBUTE_UNUSED);
-
-int tplg_parse_control_mixer(snd_tplg_t *tplg,
-	snd_config_t *cfg, void *private ATTRIBUTE_UNUSED);
-
-int tplg_parse_dapm_graph(snd_tplg_t *tplg, snd_config_t *cfg,
-	void *private ATTRIBUTE_UNUSED);
-
-int tplg_parse_dapm_widget(snd_tplg_t *tplg,
-	snd_config_t *cfg, void *private ATTRIBUTE_UNUSED);
-
-int tplg_parse_stream_caps(snd_tplg_t *tplg,
-	snd_config_t *cfg, void *private ATTRIBUTE_UNUSED);
-
-int tplg_parse_pcm(snd_tplg_t *tplg,
-	snd_config_t *cfg, void *private ATTRIBUTE_UNUSED);
-
-int tplg_parse_dai(snd_tplg_t *tplg, snd_config_t *cfg,
-		   void *private ATTRIBUTE_UNUSED);
-
-int tplg_parse_link(snd_tplg_t *tplg,
-	snd_config_t *cfg, void *private ATTRIBUTE_UNUSED);
-
-int tplg_parse_cc(snd_tplg_t *tplg,
-	snd_config_t *cfg, void *private ATTRIBUTE_UNUSED);
-
-int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
-			 void *private ATTRIBUTE_UNUSED);
 
 int tplg_build_data(snd_tplg_t *tplg);
 int tplg_build_manifest_data(snd_tplg_t *tplg);
