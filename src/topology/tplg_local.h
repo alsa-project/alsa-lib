@@ -60,8 +60,9 @@ typedef enum _snd_pcm_rates {
 
 struct snd_tplg {
 	/* out file */
-	int out_fd;
-	size_t out_pos;
+	unsigned char *bin;
+	size_t bin_pos;
+	size_t bin_size;
 
 	int verbose;
 	unsigned int version;

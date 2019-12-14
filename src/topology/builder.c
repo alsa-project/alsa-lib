@@ -29,7 +29,7 @@ static void verbose(snd_tplg_t *tplg, const char *fmt, ...)
 		return;
 
 	va_start(va, fmt);
-	fprintf(stdout, "0x%6.6zx/%6.6zd - ", tplg->out_pos, tplg->out_pos);
+	fprintf(stdout, "0x%6.6zx/%6.6zd - ", tplg->bin_pos, tplg->bin_pos);
 	vfprintf(stdout, fmt, va);
 	va_end(va);
 }
@@ -37,18 +37,11 @@ static void verbose(snd_tplg_t *tplg, const char *fmt, ...)
 /* write a block, track the position */
 static ssize_t twrite(snd_tplg_t *tplg, void *data, size_t data_size)
 {
-	ssize_t r = write(tplg->out_fd, data, data_size);
-	if (r != (ssize_t)data_size) {
-		if (r < 0) {
-			SNDERR("error: unable to write: %s", strerror(errno));
-			return -errno;
-		}
-		tplg->out_pos += r;
-		SNDERR("error: unable to write (partial)");
+	if (tplg->bin_pos + data_size > tplg->bin_size)
 		return -EIO;
-	}
-	tplg->out_pos += r;
-	return r;
+	memcpy(tplg->bin + tplg->bin_pos, data, data_size);
+	tplg->bin_pos += data_size;
+	return data_size;
 }
 
 /* write out block header to output file */
@@ -71,12 +64,12 @@ static ssize_t write_block_header(snd_tplg_t *tplg, unsigned int type,
 	hdr.count = count;
 
 	/* make sure file offset is aligned with the calculated HDR offset */
-	if (tplg->out_pos != tplg->next_hdr_pos) {
+	if (tplg->bin_pos != tplg->next_hdr_pos) {
 		SNDERR("error: New header is at offset 0x%zx but file"
 			" offset 0x%zx is %s by %ld bytes\n",
-			tplg->next_hdr_pos, tplg->out_pos,
-			tplg->out_pos > tplg->next_hdr_pos ? "ahead" : "behind",
-			labs(tplg->out_pos - tplg->next_hdr_pos));
+			tplg->next_hdr_pos, tplg->bin_pos,
+			tplg->bin_pos > tplg->next_hdr_pos ? "ahead" : "behind",
+			labs(tplg->bin_pos - tplg->next_hdr_pos));
 		return -EINVAL;
 	}
 
@@ -161,6 +154,41 @@ static int write_elem_block(snd_tplg_t *tplg,
 	}
 
 	return 0;
+}
+
+static size_t calc_manifest_size(snd_tplg_t *tplg)
+{
+	return sizeof(struct snd_soc_tplg_hdr) +
+	       sizeof(tplg->manifest) +
+	       tplg->manifest.priv.size;
+}
+
+static size_t calc_real_size(struct list_head *base)
+{
+	struct list_head *pos;
+	struct tplg_elem *elem, *elem_next;
+	size_t size = 0;
+
+	list_for_each(pos, base) {
+
+		elem = list_entry(pos, struct tplg_elem, list);
+
+		/* compound elems have already been copied to other elems */
+		if (elem->compound_elem)
+			continue;
+
+		if (elem->size <= 0)
+			continue;
+
+		size += elem->size;
+
+		elem_next = list_entry(pos->next, struct tplg_elem, list);
+
+		if ((pos->next == base) || (elem_next->index != elem->index))
+			size += sizeof(struct snd_soc_tplg_hdr);
+	}
+
+	return size;
 }
 
 static size_t calc_block_size(struct list_head *base)
@@ -277,8 +305,26 @@ int tplg_write_data(snd_tplg_t *tplg)
 	};
 
 	ssize_t ret;
-	size_t size;
+	size_t total_size, size;
 	unsigned int index;
+
+	/* calculate total size */
+	total_size = calc_manifest_size(tplg);
+	for (index = 0; index < ARRAY_SIZE(wtable); index++) {
+		wptr = &wtable[index];
+		size = calc_real_size(wptr->list);
+		total_size += size;
+	}
+
+	/* allocate new binary output */
+	free(tplg->bin);
+	tplg->bin = malloc(total_size);
+	tplg->bin_pos = 0;
+	tplg->bin_size = total_size;
+	if (tplg->bin == NULL) {
+		tplg->bin_size = 0;
+		return -ENOMEM;
+	}
 
 	/* write manifest */
 	ret = write_manifest_data(tplg);
@@ -306,7 +352,13 @@ int tplg_write_data(snd_tplg_t *tplg)
 		}
 	}
 
-	verbose(tplg, "total size is 0x%zx/%zd\n", tplg->out_pos, tplg->out_pos);
+	verbose(tplg, "total size is 0x%zx/%zd\n", tplg->bin_pos, tplg->bin_pos);
+
+	if (total_size != tplg->bin_pos) {
+		SNDERR("total size mismatch (%zd != %zd)\n",
+		       total_size, tplg->bin_pos);
+		return -EINVAL;
+	}
 
 	return 0;
 }

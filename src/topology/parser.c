@@ -393,50 +393,29 @@ static int tplg_build_integ(snd_tplg_t *tplg)
 	return err;
 }
 
-int snd_tplg_build_file(snd_tplg_t *tplg, const char *infile,
-	const char *outfile)
+int snd_tplg_build_file(snd_tplg_t *tplg,
+			const char *infile,
+			const char *outfile)
 {
 	snd_config_t *cfg = NULL;
 	int err = 0;
-
-	tplg->out_fd =
-		open(outfile, O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-	if (tplg->out_fd < 0) {
-		SNDERR("error: failed to open %s err %d\n",
-			outfile, -errno);
-		return -errno;
-	}
 
 	err = tplg_load_config(infile, &cfg);
 	if (err < 0) {
 		SNDERR("error: failed to load topology file %s\n",
 			infile);
-		goto out_close;
+		return err;
 	}
 
 	err = tplg_parse_config(tplg, cfg);
 	if (err < 0) {
 		SNDERR("error: failed to parse topology\n");
-		goto out;
+		return err;
 	}
 
-	err = tplg_build_integ(tplg);
-	if (err < 0) {
-		SNDERR("error: failed to check topology integrity\n");
-		goto out;
-	}
-
-	err = tplg_write_data(tplg);
-	if (err < 0) {
-		SNDERR("error: failed to write data %d\n", err);
-		goto out;
-	}
-
-out:
 	snd_config_delete(cfg);
-out_close:
-	close(tplg->out_fd);
-	return err;
+
+	return snd_tplg_build(tplg, outfile);
 }
 
 int snd_tplg_add_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
@@ -468,31 +447,38 @@ int snd_tplg_add_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 
 int snd_tplg_build(snd_tplg_t *tplg, const char *outfile)
 {
-	int err;
-
-	tplg->out_fd =
-		open(outfile, O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-	if (tplg->out_fd < 0) {
-		SNDERR("error: failed to open %s err %d\n",
-			outfile, -errno);
-		return -errno;
-	}
+	int fd, err;
+	ssize_t r;
 
 	err = tplg_build_integ(tplg);
 	if (err < 0) {
 		SNDERR("error: failed to check topology integrity\n");
-		goto out;
+		return err;
 	}
 
 	err = tplg_write_data(tplg);
 	if (err < 0) {
 		SNDERR("error: failed to write data %d\n", err);
-		goto out;
+		return err;
 	}
 
-out:
-	close(tplg->out_fd);
-	return err;
+	fd = open(outfile, O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+	if (fd < 0) {
+		SNDERR("error: failed to open %s err %d\n", outfile, -errno);
+		return -errno;
+	}
+	r = write(fd, tplg->bin, tplg->bin_size);
+	close(fd);
+	if (r < 0) {
+		err = -errno;
+		SNDERR("error: write error: %s\n", strerror(errno));
+		return err;
+	}
+	if ((size_t)r != tplg->bin_size) {
+		SNDERR("error: partial write (%zd != %zd)\n", r, tplg->bin_size);
+		return -EIO;
+	}
+	return 0;
 }
 
 int snd_tplg_set_manifest_data(snd_tplg_t *tplg, const void *data, int len)
@@ -571,8 +557,8 @@ snd_tplg_t *snd_tplg_new(void)
 
 void snd_tplg_free(snd_tplg_t *tplg)
 {
-	if (tplg->manifest_pdata)
-		free(tplg->manifest_pdata);
+	free(tplg->bin);
+	free(tplg->manifest_pdata);
 
 	tplg_elem_free_list(&tplg->tlv_list);
 	tplg_elem_free_list(&tplg->widget_list);
