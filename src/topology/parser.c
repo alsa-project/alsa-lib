@@ -259,52 +259,30 @@ static int tplg_parse_config(snd_tplg_t *tplg, snd_config_t *cfg)
 	return 0;
 }
 
-static int tplg_load_config(const char *file, snd_config_t **cfg)
+static int tplg_load_config(snd_tplg_t *tplg, snd_input_t *in)
 {
-	FILE *fp;
-	snd_input_t *in;
 	snd_config_t *top;
 	int ret;
 
-	fp = fopen(file, "r");
-	if (fp == NULL) {
-		SNDERR("error: could not open configuration file %s",
-			file);
-		return -errno;
-	}
-
-	ret = snd_input_stdio_attach(&in, fp, 1);
-	if (ret < 0) {
-		fclose(fp);
-		SNDERR("error: could not attach stdio %s", file);
-		return ret;
-	}
 	ret = snd_config_top(&top);
 	if (ret < 0)
-		goto err;
+		return ret;
 
 	ret = snd_config_load(top, in);
 	if (ret < 0) {
-		SNDERR("error: could not load configuration file %s",
-			file);
-		goto err_load;
+		SNDERR("error: could not load configuration");
+		snd_config_delete(top);
+		return ret;
 	}
 
-	ret = snd_input_close(in);
-	if (ret < 0) {
-		in = NULL;
-		goto err_load;
-	}
-
-	*cfg = top;
-	return 0;
-
-err_load:
+	ret = tplg_parse_config(tplg, top);
 	snd_config_delete(top);
-err:
-	if (in)
-		snd_input_close(in);
-	return ret;
+	if (ret < 0) {
+		SNDERR("error: failed to parse topology");
+		return ret;
+	}
+
+	return 0;
 }
 
 static int tplg_build_integ(snd_tplg_t *tplg)
@@ -350,26 +328,20 @@ static int tplg_build_integ(snd_tplg_t *tplg)
 	return err;
 }
 
-static int tplg_load(snd_tplg_t *tplg, const char *infile)
+int snd_tplg_load(snd_tplg_t *tplg, const char *buf, size_t size)
 {
-	snd_config_t *cfg = NULL;
-	int err = 0;
+	snd_input_t *in;
+	int err;
 
-	err = tplg_load_config(infile, &cfg);
+	err = snd_input_buffer_open(&in, buf, size);
 	if (err < 0) {
-		SNDERR("error: failed to load topology file %s\n",
-			infile);
+		SNDERR("error: could not create input buffer");
 		return err;
 	}
 
-	err = tplg_parse_config(tplg, cfg);
-	if (err < 0) {
-		SNDERR("error: failed to parse topology\n");
-		return err;
-	}
-
-	snd_config_delete(cfg);
-	return 0;
+	err = tplg_load_config(tplg, in);
+	snd_input_close(in);
+	return err;
 }
 
 static int tplg_build(snd_tplg_t *tplg)
@@ -394,26 +366,30 @@ int snd_tplg_build_file(snd_tplg_t *tplg,
 			const char *infile,
 			const char *outfile)
 {
+	FILE *fp;
+	snd_input_t *in;
 	int err;
 
-	err = tplg_load(tplg, infile);
+	fp = fopen(infile, "r");
+	if (fp == NULL) {
+		SNDERR("error: could not open configuration file %s",
+		       infile);
+		return -errno;
+	}
+
+	err = snd_input_stdio_attach(&in, fp, 1);
+	if (err < 0) {
+		fclose(fp);
+		SNDERR("error: could not attach stdio %s", infile);
+		return err;
+	}
+
+	err = tplg_load_config(tplg, in);
+	snd_input_close(in);
 	if (err < 0)
 		return err;
 
 	return snd_tplg_build(tplg, outfile);
-}
-
-int snd_tplg_build_bin_file(snd_tplg_t *tplg,
-			    const char *infile,
-			    void **bin, size_t *size)
-{
-	int err;
-
-	err = tplg_load(tplg, infile);
-	if (err < 0)
-		return err;
-
-	return snd_tplg_build_bin(tplg, bin, size);
 }
 
 int snd_tplg_add_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
@@ -475,10 +451,6 @@ int snd_tplg_build_bin(snd_tplg_t *tplg,
 		       void **bin, size_t *size)
 {
 	int err;
-
-	err = tplg_build(tplg);
-	if (err < 0)
-		return err;
 
 	err = tplg_build(tplg);
 	if (err < 0)
