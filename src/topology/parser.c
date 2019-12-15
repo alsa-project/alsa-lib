@@ -142,87 +142,11 @@ int tplg_parse_compound(snd_tplg_t *tplg, snd_config_t *cfg,
 
 static int tplg_parse_config(snd_tplg_t *tplg, snd_config_t *cfg)
 {
-	static struct _parser {
-		const char *id;
-		int (*parser)(snd_tplg_t *tplg, snd_config_t *cfg, void *priv);
-	} *p, parsers[] = {
-		{
-			.id = "SectionTLV",
-			.parser = tplg_parse_tlv
-		},
-		{
-			.id = "SectionControlMixer",
-			.parser = tplg_parse_control_mixer
-		},
-		{
-			.id = "SectionControlEnum",
-			.parser = tplg_parse_control_enum
-		},
-		{
-			.id = "SectionControlBytes",
-			.parser = tplg_parse_control_bytes
-		},
-		{
-			.id = "SectionWidget",
-			.parser = tplg_parse_dapm_widget
-		},
-		{
-			.id = "SectionPCMCapabilities",
-			.parser = tplg_parse_stream_caps
-		},
-		{
-			.id = "SectionPCM",
-			.parser = tplg_parse_pcm
-		},
-		{
-			.id = "SectionDAI",
-			.parser = tplg_parse_dai
-		},
-		{
-			.id = "SectionHWConfig",
-			.parser = tplg_parse_hw_config
-		},
-		{
-			.id = "SectionLink",
-			.parser = tplg_parse_link
-		},
-		{
-			.id = "SectionBE",
-			.parser = tplg_parse_link
-		},
-		{
-			.id = "SectionCC",
-			.parser = tplg_parse_cc
-		},
-		{
-			.id = "SectionGraph",
-			.parser = tplg_parse_dapm_graph
-		},
-		{
-			.id = "SectionText",
-			.parser = tplg_parse_text
-		},
-		{
-			.id = "SectionData",
-			.parser = tplg_parse_data
-		},
-		{
-			.id = "SectionVendorTokens",
-			.parser = tplg_parse_tokens
-		},
-		{
-			.id = "SectionVendorTuples",
-			.parser = tplg_parse_tuples
-		},
-		{
-			.id = "SectionManifest",
-			.parser = tplg_parse_manifest_data
-		},
-	};
 	int (*parser)(snd_tplg_t *tplg, snd_config_t *cfg, void *priv);
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
 	const char *id;
+	struct tplg_table *p;
 	unsigned int idx;
 	int err;
 
@@ -239,10 +163,14 @@ static int tplg_parse_config(snd_tplg_t *tplg, snd_config_t *cfg)
 			continue;
 
 		parser = NULL;
-		for (idx = 0; idx < ARRAY_SIZE(parsers); idx++) {
-			p = &parsers[idx];
-			if (strcmp(id, p->id) == 0) {
-				parser = p->parser;
+		for (idx = 0; idx < tplg_table_items; idx++) {
+			p = &tplg_table[idx];
+			if (p->id && strcmp(id, p->id) == 0) {
+				parser = p->parse;
+				break;
+			}
+			if (p->id2 && strcmp(id, p->id2) == 0) {
+				parser = p->parse;
 				break;
 			}
 		}

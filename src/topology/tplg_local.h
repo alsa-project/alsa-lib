@@ -199,6 +199,8 @@ struct map_elem {
 /* mapping table */
 struct tplg_table {
 	const char *name;
+	const char *id;
+	const char *id2;
 	off_t loff;
 	size_t size;
 	int type;
@@ -206,6 +208,7 @@ struct tplg_table {
 	unsigned build: 1;
 	unsigned enew: 1;
 	void (*free)(void *);
+	int (*parse)(snd_tplg_t *tplg, snd_config_t *cfg, void *priv);
 };
 
 extern struct tplg_table tplg_table[];
