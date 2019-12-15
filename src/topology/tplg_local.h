@@ -196,6 +196,21 @@ struct map_elem {
 	int id;
 };
 
+/* mapping table */
+struct tplg_table {
+	const char *name;
+	off_t loff;
+	size_t size;
+	int type;
+	int tsoc;
+	unsigned build: 1;
+	unsigned enew: 1;
+	void (*free)(void *);
+};
+
+extern struct tplg_table tplg_table[];
+extern unsigned int tplg_table_items;
+
 int tplg_parse_compound(snd_tplg_t *tplg, snd_config_t *cfg,
 	int (*fcn)(snd_tplg_t *, snd_config_t *, void *),
 	void *private);

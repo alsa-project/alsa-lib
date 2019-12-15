@@ -284,18 +284,13 @@ static int tplg_parse_tlv_dbscale(snd_config_t *cfg, struct tplg_elem *elem)
 {
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
-	struct snd_soc_tplg_ctl_tlv *tplg_tlv;
+	struct snd_soc_tplg_ctl_tlv *tplg_tlv = elem->tlv;
 	struct snd_soc_tplg_tlv_dbscale *scale;
 	const char *id = NULL;
 	int val;
 
 	tplg_dbg(" scale: %s\n", elem->id);
 
-	tplg_tlv = calloc(1, sizeof(*tplg_tlv));
-	if (!tplg_tlv)
-		return -ENOMEM;
-
-	elem->tlv = tplg_tlv;
 	tplg_tlv->size = sizeof(struct snd_soc_tplg_ctl_tlv);
 	tplg_tlv->type = SNDRV_CTL_TLVT_DB_SCALE;
 	scale = &tplg_tlv->scale;

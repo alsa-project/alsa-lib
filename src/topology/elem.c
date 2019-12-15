@@ -20,6 +20,154 @@
 #include "list.h"
 #include "tplg_local.h"
 
+struct tplg_table tplg_table[] = {
+	{
+		.name  = "manifest",
+		.loff  = offsetof(snd_tplg_t, manifest_list),
+		.type  = SND_TPLG_TYPE_MANIFEST,
+		.tsoc  = SND_SOC_TPLG_TYPE_MANIFEST,
+		.size  = sizeof(struct snd_soc_tplg_manifest),
+		.enew  = 1,
+	},
+	{
+		.name  = "control mixer",
+		.loff  = offsetof(snd_tplg_t, mixer_list),
+		.type  = SND_TPLG_TYPE_MIXER,
+		.tsoc  = SND_SOC_TPLG_TYPE_MIXER,
+		.size  = sizeof(struct snd_soc_tplg_mixer_control),
+		.build = 1,
+		.enew  = 1,
+	},
+	{
+		.name  = "control enum",
+		.loff  = offsetof(snd_tplg_t, enum_list),
+		.type  = SND_TPLG_TYPE_ENUM,
+		.tsoc  = SND_SOC_TPLG_TYPE_ENUM,
+		.size  = sizeof(struct snd_soc_tplg_enum_control),
+		.build = 1,
+		.enew  = 1,
+	},
+	{
+		.name  = "control extended (bytes)",
+		.loff  = offsetof(snd_tplg_t, bytes_ext_list),
+		.type  = SND_TPLG_TYPE_BYTES,
+		.tsoc  = SND_SOC_TPLG_TYPE_BYTES,
+		.size  = sizeof(struct snd_soc_tplg_bytes_control),
+		.build = 1,
+		.enew  = 1,
+	},
+	{
+		.name  = "dapm widget",
+		.loff  = offsetof(snd_tplg_t, widget_list),
+		.type  = SND_TPLG_TYPE_DAPM_WIDGET,
+		.tsoc  = SND_SOC_TPLG_TYPE_DAPM_WIDGET,
+		.size  = sizeof(struct snd_soc_tplg_dapm_widget),
+		.build = 1,
+		.enew  = 1,
+	},
+	{
+		.name  = "pcm",
+		.loff  = offsetof(snd_tplg_t, pcm_list),
+		.type  = SND_TPLG_TYPE_PCM,
+		.tsoc  = SND_SOC_TPLG_TYPE_PCM,
+		.size  = sizeof(struct snd_soc_tplg_pcm),
+		.build = 1,
+		.enew  = 1,
+	},
+	{
+		.name  = "physical dai",
+		.loff  = offsetof(snd_tplg_t, dai_list),
+		.type  = SND_TPLG_TYPE_DAI,
+		.tsoc  = SND_SOC_TPLG_TYPE_DAI,
+		.size  = sizeof(struct snd_soc_tplg_dai),
+		.build = 1,
+		.enew  = 1,
+	},
+	{
+		.name  = "be",
+		.loff  = offsetof(snd_tplg_t, be_list),
+		.type  = SND_TPLG_TYPE_BE,
+		.tsoc  = SND_SOC_TPLG_TYPE_BACKEND_LINK,
+		.size  = sizeof(struct snd_soc_tplg_link_config),
+		.build = 1,
+		.enew  = 1,
+	},
+	{
+		.name  = "cc",
+		.loff  = offsetof(snd_tplg_t, cc_list),
+		.type  = SND_TPLG_TYPE_CC,
+		.tsoc  = SND_SOC_TPLG_TYPE_CODEC_LINK,
+		.size  = sizeof(struct snd_soc_tplg_link_config),
+		.build = 1,
+		.enew  = 1,
+	},
+	{
+		.name  = "route (dapm graph)",
+		.loff  = offsetof(snd_tplg_t, route_list),
+		.type  = SND_TPLG_TYPE_DAPM_GRAPH,
+		.tsoc  = SND_SOC_TPLG_TYPE_DAPM_GRAPH,
+		.build = 1,
+	},
+	{
+		.name  = "private data",
+		.loff  = offsetof(snd_tplg_t, pdata_list),
+		.type  = SND_TPLG_TYPE_DATA,
+		.tsoc  = SND_SOC_TPLG_TYPE_PDATA,
+		.build = 1,
+		.enew  = 1,
+	},
+	{
+		.name  = "text",
+		.loff  = offsetof(snd_tplg_t, text_list),
+		.type  = SND_TPLG_TYPE_TEXT,
+		.size  = sizeof(struct tplg_texts),
+		.enew  = 1,
+	},
+	{
+		.name  = "tlv",
+		.loff  = offsetof(snd_tplg_t, tlv_list),
+		.type  = SND_TPLG_TYPE_TLV,
+		.size  = sizeof(struct snd_soc_tplg_ctl_tlv),
+		.enew  = 1,
+	},
+	{
+		.name  = "stream config",
+		.loff  = offsetof(snd_tplg_t, pcm_config_list),
+		.type  = SND_TPLG_TYPE_STREAM_CONFIG,
+		.size  = sizeof(struct snd_soc_tplg_stream),
+		.enew  = 1,
+	},
+	{
+		.name  = "stream capabilities",
+		.loff  = offsetof(snd_tplg_t, pcm_caps_list),
+		.type  = SND_TPLG_TYPE_STREAM_CAPS,
+		.size  = sizeof(struct snd_soc_tplg_stream_caps),
+		.enew  = 1,
+	},
+	{
+		.name  = "token",
+		.loff  = offsetof(snd_tplg_t, token_list),
+		.type  = SND_TPLG_TYPE_TOKEN,
+		.enew  = 1,
+	},
+	{
+		.name  = "tuple",
+		.loff  = offsetof(snd_tplg_t, tuple_list),
+		.type  = SND_TPLG_TYPE_TUPLE,
+		.free  = tplg_free_tuples,
+		.enew  = 1,
+	},
+	{
+		.name  = "hw config",
+		.loff  = offsetof(snd_tplg_t, hw_cfg_list),
+		.type  = SND_TPLG_TYPE_HW_CONFIG,
+		.size  = sizeof(struct snd_soc_tplg_hw_config),
+		.enew  = 1,
+	}
+};
+
+unsigned int tplg_table_items = ARRAY_SIZE(tplg_table);
+
 int tplg_ref_add(struct tplg_elem *elem, int type, const char* id)
 {
 	struct tplg_ref *ref;
@@ -152,9 +300,12 @@ struct tplg_elem* tplg_elem_new_common(snd_tplg_t *tplg,
 				       const char *name,
 				       enum snd_tplg_type type)
 {
+	struct tplg_table *tptr;
 	struct tplg_elem *elem;
+	struct list_head *list;
 	const char *id;
 	int obj_size = 0;
+	unsigned index;
 	void *obj;
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
@@ -191,78 +342,23 @@ struct tplg_elem* tplg_elem_new_common(snd_tplg_t *tplg,
 	} else if (name != NULL)
 		snd_strlcpy(elem->id, name, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 
-	switch (type) {
-	case SND_TPLG_TYPE_DATA:
-		tplg_elem_insert(elem, &tplg->pdata_list);
+	for (index = 0; index < tplg_table_items; index++) {
+		tptr = &tplg_table[index];
+		if (!tptr->enew)
+			continue;
+		if ((int)type != tptr->type)
+			continue;
 		break;
-	case SND_TPLG_TYPE_MANIFEST:
-		tplg_elem_insert(elem, &tplg->manifest_list);
-		obj_size = sizeof(struct snd_soc_tplg_manifest);
-		break;
-	case SND_TPLG_TYPE_TEXT:
-		tplg_elem_insert(elem, &tplg->text_list);
-		obj_size = sizeof(struct tplg_texts);
-		break;
-	case SND_TPLG_TYPE_TLV:
-		tplg_elem_insert(elem, &tplg->tlv_list);
-		elem->size = sizeof(struct snd_soc_tplg_ctl_tlv);
-		break;
-	case SND_TPLG_TYPE_BYTES:
-		tplg_elem_insert(elem, &tplg->bytes_ext_list);
-		obj_size = sizeof(struct snd_soc_tplg_bytes_control);
-		break;
-	case SND_TPLG_TYPE_ENUM:
-		tplg_elem_insert(elem, &tplg->enum_list);
-		obj_size = sizeof(struct snd_soc_tplg_enum_control);
-		break;
-	case SND_TPLG_TYPE_MIXER:
-		tplg_elem_insert(elem, &tplg->mixer_list);
-		obj_size = sizeof(struct snd_soc_tplg_mixer_control);
-		break;
-	case SND_TPLG_TYPE_DAPM_WIDGET:
-		tplg_elem_insert(elem, &tplg->widget_list);
-		obj_size = sizeof(struct snd_soc_tplg_dapm_widget);
-		break;
-	case SND_TPLG_TYPE_STREAM_CONFIG:
-		tplg_elem_insert(elem, &tplg->pcm_config_list);
-		obj_size = sizeof(struct snd_soc_tplg_stream);
-		break;
-	case SND_TPLG_TYPE_STREAM_CAPS:
-		tplg_elem_insert(elem, &tplg->pcm_caps_list);
-		obj_size = sizeof(struct snd_soc_tplg_stream_caps);
-		break;
-	case SND_TPLG_TYPE_PCM:
-		tplg_elem_insert(elem, &tplg->pcm_list);
-		obj_size = sizeof(struct snd_soc_tplg_pcm);
-		break;
-	case SND_TPLG_TYPE_DAI:
-		tplg_elem_insert(elem, &tplg->dai_list);
-		obj_size = sizeof(struct snd_soc_tplg_dai);
-		break;
-	case SND_TPLG_TYPE_BE:
-	case SND_TPLG_TYPE_LINK:
-		tplg_elem_insert(elem, &tplg->be_list);
-		obj_size = sizeof(struct snd_soc_tplg_link_config);
-		break;
-	case SND_TPLG_TYPE_CC:
-		tplg_elem_insert(elem, &tplg->cc_list);
-		obj_size = sizeof(struct snd_soc_tplg_link_config);
-		break;
-	case SND_TPLG_TYPE_TOKEN:
-		tplg_elem_insert(elem, &tplg->token_list);
-		break;
-	case SND_TPLG_TYPE_TUPLE:
-		tplg_elem_insert(elem, &tplg->tuple_list);
-		elem->free = tplg_free_tuples;
-		break;
-	case SND_TPLG_TYPE_HW_CONFIG:
-		tplg_elem_insert(elem, &tplg->hw_cfg_list);
-		obj_size = sizeof(struct snd_soc_tplg_hw_config);
-		break;
-	default:
+	}
+	if (index >= tplg_table_items) {
 		free(elem);
 		return NULL;
 	}
+
+	list = (struct list_head *)((void *)tplg + tptr->loff);
+	tplg_elem_insert(elem, list);
+	obj_size = tptr->size;
+	elem->free = tptr->free;
 
 	/* create new object too if required */
 	if (obj_size > 0) {

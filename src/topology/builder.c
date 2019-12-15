@@ -236,83 +236,20 @@ static ssize_t write_manifest_data(snd_tplg_t *tplg)
 
 int tplg_write_data(snd_tplg_t *tplg)
 {
-	struct wtable {
-		const char *name;
-		struct list_head *list;
-		int type;
-		int tsoc;
-	} *wptr, wtable[] = {
-		{
-			.name = "control mixer",
-			.list = &tplg->mixer_list,
-			.type = SND_TPLG_TYPE_MIXER,
-			.tsoc = SND_SOC_TPLG_TYPE_MIXER,
-		},
-		{
-			.name = "control enum",
-			.list = &tplg->enum_list,
-			.type = SND_TPLG_TYPE_ENUM,
-			.tsoc = SND_SOC_TPLG_TYPE_ENUM,
-		},
-		{
-			.name = "control extended (bytes)",
-			.list = &tplg->bytes_ext_list,
-			.type = SND_TPLG_TYPE_BYTES,
-			.tsoc = SND_SOC_TPLG_TYPE_BYTES,
-		},
-		{
-			.name = "dapm widget",
-			.list = &tplg->widget_list,
-			.type = SND_TPLG_TYPE_DAPM_WIDGET,
-			.tsoc = SND_SOC_TPLG_TYPE_DAPM_WIDGET,
-		},
-		{
-			.name = "pcm",
-			.list = &tplg->pcm_list,
-			.type = SND_TPLG_TYPE_PCM,
-			.tsoc = SND_SOC_TPLG_TYPE_PCM,
-		},
-		{
-			.name = "physical dai",
-			.list = &tplg->dai_list,
-			.type = SND_TPLG_TYPE_DAI,
-			.tsoc = SND_SOC_TPLG_TYPE_DAI,
-		},
-		{
-			.name = "be",
-			.list = &tplg->be_list,
-			.type = SND_TPLG_TYPE_BE,
-			.tsoc = SND_SOC_TPLG_TYPE_BACKEND_LINK,
-		},
-		{
-			.name = "cc",
-			.list = &tplg->cc_list,
-			.type = SND_TPLG_TYPE_CC,
-			.tsoc = SND_SOC_TPLG_TYPE_CODEC_LINK,
-		},
-		{
-			.name = "route (dapm graph)",
-			.list = &tplg->route_list,
-			.type = SND_TPLG_TYPE_DAPM_GRAPH,
-			.tsoc = SND_SOC_TPLG_TYPE_DAPM_GRAPH,
-		},
-		{
-			.name = "private data",
-			.list = &tplg->pdata_list,
-			.type = SND_TPLG_TYPE_DATA,
-			.tsoc = SND_SOC_TPLG_TYPE_PDATA,
-		},
-	};
-
+	struct tplg_table *tptr;
+	struct list_head *list;
 	ssize_t ret;
 	size_t total_size, size;
 	unsigned int index;
 
 	/* calculate total size */
 	total_size = calc_manifest_size(tplg);
-	for (index = 0; index < ARRAY_SIZE(wtable); index++) {
-		wptr = &wtable[index];
-		size = calc_real_size(wptr->list);
+	for (index = 0; index < tplg_table_items; index++) {
+		tptr = &tplg_table[index];
+		if (!tptr->build)
+			continue;
+		list = (struct list_head *)((void *)tplg + tptr->loff);
+		size = calc_real_size(list);
 		total_size += size;
 	}
 
@@ -334,20 +271,23 @@ int tplg_write_data(snd_tplg_t *tplg)
 	}
 
 	/* write all blocks */
-	for (index = 0; index < ARRAY_SIZE(wtable); index++) {
-		wptr = &wtable[index];
+	for (index = 0; index < tplg_table_items; index++) {
+		tptr = &tplg_table[index];
+		if (!tptr->build)
+			continue;
+		list = (struct list_head *)((void *)tplg + tptr->loff);
 		/* calculate the block size in bytes for all elems in this list */
-		size = calc_block_size(wptr->list);
+		size = calc_block_size(list);
 		if (size == 0)
 			continue;
 		verbose(tplg, "block size for type %s (%d:%d) is 0x%zx/%zd\n",
-						wptr->name, wptr->type,
-						wptr->tsoc, size, size);
-		ret = write_elem_block(tplg, wptr->list, size,
-				       wptr->tsoc, wptr->name);
+						tptr->name, tptr->type,
+						tptr->tsoc, size, size);
+		ret = write_elem_block(tplg, list, size,
+				       tptr->tsoc, tptr->name);
 		if (ret < 0) {
 			SNDERR("failed to write %s elements: %s\n",
-						wptr->name, snd_strerror(-ret));
+						tptr->name, snd_strerror(-ret));
 			return ret;
 		}
 	}
