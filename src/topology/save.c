@@ -577,6 +577,9 @@ int snd_tplg_save(snd_tplg_t *tplg, char **dst, int flags)
 	if (err < 0)
 		goto _err;
 
+	if (*dst == NULL)
+		return -EINVAL;
+
 	if (flags & SND_TPLG_SAVE_NOCHECK)
 		return 0;
 

@@ -142,7 +142,8 @@ struct tplg_tuple_set {
 };
 
 struct tplg_vendor_tuples {
-	unsigned int  num_sets;
+	unsigned int num_sets;
+	unsigned int alloc_sets;
 	struct tplg_tuple_set **set;
 };
 
@@ -217,10 +218,18 @@ struct tplg_table {
 		    char **dst, const char *prefix);
 	int (*gsave)(snd_tplg_t *tplg, int index,
 		     char **dst, const char *prefix);
+	int (*decod)(snd_tplg_t *tplg, size_t pos,
+		     struct snd_soc_tplg_hdr *hdr,
+		     void *bin, size_t size);
 };
 
 extern struct tplg_table tplg_table[];
 extern unsigned int tplg_table_items;
+
+void *tplg_calloc(struct list_head *heap, size_t size);
+void tplg_free(struct list_head *heap);
+
+int tplg_get_type(int asoc_type);
 
 int tplg_parse_compound(snd_tplg_t *tplg, snd_config_t *cfg,
 	int (*fcn)(snd_tplg_t *, snd_config_t *, void *),
@@ -246,6 +255,7 @@ int tplg_parse_link(snd_tplg_t *tplg, snd_config_t *cfg, void *priv);
 int tplg_parse_cc(snd_tplg_t *tplg, snd_config_t *cfg, void *priv);
 int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg, void *priv);
 
+unsigned int tplg_get_tuple_size(int type);
 void tplg_free_tuples(void *obj);
 
 int tplg_build_data(snd_tplg_t *tplg);
@@ -272,6 +282,8 @@ struct tplg_elem *tplg_elem_lookup(struct list_head *base,
 				const char* id,
 				unsigned int type,
 				int index);
+struct tplg_elem *tplg_elem_type_lookup(snd_tplg_t *tplg,
+					enum snd_tplg_type type);
 struct tplg_elem* tplg_elem_new_common(snd_tplg_t *tplg,
 	snd_config_t *cfg, const char *name, enum snd_tplg_type type);
 
@@ -291,6 +303,10 @@ int tplg_parse_ext_ops(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 struct tplg_elem *lookup_pcm_dai_stream(struct list_head *base,
 	const char* id);
 
+int tplg_add_data(snd_tplg_t *tplg, struct tplg_elem *parent,
+		  const void *bin, size_t size);
+int tplg_add_data_bytes(snd_tplg_t *tplg, struct tplg_elem *parent,
+			const char *suffix, const void *bin, size_t size);
 int tplg_add_mixer_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t);
 int tplg_add_enum_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t);
 int tplg_add_bytes_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t);
@@ -356,3 +372,56 @@ int tplg_save_stream_caps(snd_tplg_t *tplg, struct tplg_elem *elem,
 			  char **dst, const char *pfx);
 int tplg_save_dai(snd_tplg_t *tplg, struct tplg_elem *elem,
 		  char **dst, const char *pfx);
+
+void tplg_dv(snd_tplg_t *tplg, size_t pos, const char *fmt, ...);
+int tplg_decode_template(snd_tplg_t *tplg,
+			 size_t pos,
+			 struct snd_soc_tplg_hdr *hdr,
+			 snd_tplg_obj_template_t *t);
+int tplg_decode_manifest_data(snd_tplg_t *tplg, size_t pos,
+			      struct snd_soc_tplg_hdr *hdr,
+			      void *bin, size_t size);
+int tplg_decode_control_mixer1(snd_tplg_t *tplg,
+			       struct list_head *heap,
+			       struct snd_tplg_mixer_template *mt,
+			       size_t pos,
+			       void *bin, size_t size);
+int tplg_decode_control_mixer(snd_tplg_t *tplg, size_t pos,
+			      struct snd_soc_tplg_hdr *hdr,
+			      void *bin, size_t size);
+int tplg_decode_control_enum1(snd_tplg_t *tplg,
+			      struct list_head *heap,
+			      struct snd_tplg_enum_template *et,
+			      size_t pos,
+			      void *bin, size_t size);
+int tplg_decode_control_enum(snd_tplg_t *tplg, size_t pos,
+			     struct snd_soc_tplg_hdr *hdr,
+			     void *bin, size_t size);
+int tplg_decode_control_bytes1(snd_tplg_t *tplg,
+			       struct snd_tplg_bytes_template *bt,
+			       size_t pos,
+			       void *bin, size_t size);
+int tplg_decode_control_bytes(snd_tplg_t *tplg, size_t pos,
+			      struct snd_soc_tplg_hdr *hdr,
+			      void *bin, size_t size);
+int tplg_decode_data(snd_tplg_t *tplg, size_t pos,
+		     struct snd_soc_tplg_hdr *hdr,
+		     void *bin, size_t size);
+int tplg_decode_dapm_graph(snd_tplg_t *tplg, size_t pos,
+			   struct snd_soc_tplg_hdr *hdr,
+			   void *bin, size_t size);
+int tplg_decode_dapm_widget(snd_tplg_t *tplg, size_t pos,
+			    struct snd_soc_tplg_hdr *hdr,
+			    void *bin, size_t size);
+int tplg_decode_link(snd_tplg_t *tplg, size_t pos,
+		     struct snd_soc_tplg_hdr *hdr,
+		     void *bin, size_t size);
+int tplg_decode_cc(snd_tplg_t *tplg, size_t pos,
+		   struct snd_soc_tplg_hdr *hdr,
+		   void *bin, size_t size);
+int tplg_decode_pcm(snd_tplg_t *tplg, size_t pos,
+		    struct snd_soc_tplg_hdr *hdr,
+		    void *bin, size_t size);
+int tplg_decode_dai(snd_tplg_t *tplg, size_t pos,
+		    struct snd_soc_tplg_hdr *hdr,
+		    void *bin, size_t size);

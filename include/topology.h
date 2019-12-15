@@ -885,7 +885,10 @@ struct snd_tplg_ctl_template {
 	const char *name;	/*!< Control name */
 	int access;		/*!< Control access */
 	struct snd_tplg_io_ops_template ops;	/*!< operations */
-	struct snd_tplg_tlv_template *tlv; /*!< non NULL means we have TLV data */
+	union {
+		struct snd_tplg_tlv_template *tlv; /*!< non NULL means we have TLV data */
+		struct snd_tplg_tlv_dbscale_template *tlv_scale; /*!< scale TLV data */
+	};
 };
 
 /** \struct snd_tplg_mixer_template
@@ -1154,6 +1157,15 @@ int snd_tplg_set_version(snd_tplg_t *tplg, unsigned int version);
  * \return Zero on success, otherwise a negative error code
  */
 int snd_tplg_save(snd_tplg_t *tplg, char **dst, int flags);
+
+/**
+ * \brief Decode the binary topology contents.
+ * \param tplg Topology instance.
+ * \param bin Binary topology input buffer.
+ * \param size Binary topology input buffer size.
+ * \return Zero on success, otherwise a negative error code
+ */
+int snd_tplg_decode(snd_tplg_t *tplg, void *bin, size_t size, int dflags);
 
 /* \} */
 

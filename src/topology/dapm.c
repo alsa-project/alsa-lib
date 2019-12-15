@@ -420,19 +420,39 @@ int tplg_save_dapm_graph(snd_tplg_t *tplg, int index, char **dst, const char *pf
 	struct snd_soc_tplg_dapm_graph_elem *route;
 	struct list_head *pos;
 	struct tplg_elem *elem;
-	int err, first = 1, old_index = -1;
-	unsigned block = -1, count = 0;
+	int err, first, old_index;
+	unsigned block, count;
+	const char *fmt;
 
+	old_index = -1;
+	block = 0;
+	count = 0;
 	list_for_each(pos, &tplg->route_list) {
 		elem = list_entry(pos, struct tplg_elem, list);
 		if (!elem->route || elem->type != SND_TPLG_TYPE_DAPM_GRAPH)
 			continue;
 		if (index >= 0 && elem->index != index)
 			continue;
+		if (old_index != elem->index) {
+			block++;
+			old_index = elem->index;
+		}
 		count++;
 	}
 	if (count == 0)
 		return 0;
+	if (block < 10) {
+		fmt = "\tset%u {\n";
+	} else if (block < 100) {
+		fmt = "\tset%02u {\n";
+	} else if (block < 1000) {
+		fmt = "\tset%03u {\n";
+	} else {
+		return -EINVAL;
+	}
+	old_index = -1;
+	block = -1;
+	first = 1;
 	err = tplg_save_printf(dst, pfx, "SectionGraph {\n");
 	list_for_each(pos, &tplg->route_list) {
 		elem = list_entry(pos, struct tplg_elem, list);
@@ -452,7 +472,7 @@ int tplg_save_dapm_graph(snd_tplg_t *tplg, int index, char **dst, const char *pf
 			old_index = elem->index;
 			block++;
 			first = 1;
-			err = tplg_save_printf(dst, pfx, "\tset%u {\n", block);
+			err = tplg_save_printf(dst, pfx, fmt, block);
 			if (err >= 0)
 				err = tplg_save_printf(dst, pfx, "\t\tindex %u\n",
 						       elem->index);
@@ -771,20 +791,14 @@ int tplg_add_widget_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 	w->event_flags = wt->event_flags;
 	w->event_type = wt->event_type;
 
-	if (wt->priv != NULL) {
-		w = realloc(w,
-			elem->size + wt->priv->size);
-		if (!w) {
+	/* add private data */
+	if (wt->priv != NULL && wt->priv->size > 0) {
+		ret = tplg_add_data(tplg, elem, wt->priv,
+				    sizeof(*wt->priv) + wt->priv->size);
+		if (ret < 0) {
 			tplg_elem_free(elem);
-			return -ENOMEM;
+			return ret;
 		}
-
-		elem->widget = w;
-		elem->size += wt->priv->size;
-
-		memcpy(w->priv.data, wt->priv->data,
-			wt->priv->size);
-		w->priv.size = wt->priv->size;
 	}
 
 	/* add controls to the widget's reference list */
@@ -835,4 +849,213 @@ int tplg_add_widget_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 	}
 
 	return 0;
+}
+
+/* decode dapm widget from the binary input */
+int tplg_decode_dapm_widget(snd_tplg_t *tplg,
+			    size_t pos,
+			    struct snd_soc_tplg_hdr *hdr,
+			    void *bin, size_t size)
+{
+	struct list_head heap;
+	struct snd_soc_tplg_dapm_widget *w;
+	snd_tplg_obj_template_t t;
+	struct snd_tplg_widget_template *wt;
+	struct snd_tplg_mixer_template *mt;
+	struct snd_tplg_enum_template *et;
+	struct snd_tplg_bytes_template *bt;
+	struct snd_soc_tplg_ctl_hdr *chdr;
+	struct snd_soc_tplg_mixer_control *mc;
+	struct snd_soc_tplg_enum_control *ec;
+	struct snd_soc_tplg_bytes_control *bc;
+	size_t size2;
+	unsigned int index;
+	int err;
+
+	err = tplg_decode_template(tplg, pos, hdr, &t);
+	if (err < 0)
+		return err;
+
+next:
+	INIT_LIST_HEAD(&heap);
+	w = bin;
+
+	if (size < sizeof(*w)) {
+		SNDERR("dapm widget: small size %d", size);
+		return -EINVAL;
+	}
+	if (sizeof(*w) != w->size) {
+		SNDERR("dapm widget: unknown element size %d (expected %zd)",
+		       w->size, sizeof(*w));
+		return -EINVAL;
+	}
+	if (w->num_kcontrols > 16) {
+		SNDERR("dapm widget: too many kcontrols %d",
+		       w->num_kcontrols);
+		return -EINVAL;
+	}
+
+	tplg_dv(tplg, pos, "dapm widget: size %d private size %d kcontrols %d",
+		w->size, w->priv.size, w->num_kcontrols);
+
+	wt = tplg_calloc(&heap, sizeof(*wt) + sizeof(void *) * w->num_kcontrols);
+	if (wt == NULL)
+		return -ENOMEM;
+	wt->id = w->id;
+	wt->name = w->name;
+	wt->sname = w->sname;
+	wt->reg = w->reg;
+	wt->shift = w->shift;
+	wt->mask = w->mask;
+	wt->subseq = w->subseq;
+	wt->invert = w->invert;
+	wt->ignore_suspend = w->ignore_suspend;
+	wt->event_flags = w->event_flags;
+	wt->event_type = w->event_type;
+
+	tplg_dv(tplg, pos, "dapm widget: name '%s' sname '%s'", wt->name, wt->sname);
+
+	if (sizeof(*w) + w->priv.size > size) {
+		SNDERR("dapm widget: wrong private data size %d",
+		       w->priv.size);
+		return -EINVAL;
+	}
+
+	tplg_dv(tplg, pos + offsetof(struct snd_soc_tplg_dapm_widget, priv),
+		"dapm widget: private start");
+
+	wt->priv = &w->priv;
+	bin += sizeof(*w) + w->priv.size;
+	size -= sizeof(*w) + w->priv.size;
+	pos += sizeof(*w) + w->priv.size;
+
+	for (index = 0; index < w->num_kcontrols; index++) {
+		chdr = bin;
+		switch (chdr->type) {
+		case SND_SOC_TPLG_TYPE_MIXER:
+			mt = tplg_calloc(&heap, sizeof(*mt));
+			if (mt == NULL) {
+				err = -ENOMEM;
+				goto retval;
+			}
+			wt->ctl[index] = (void *)mt;
+			wt->num_ctls++;
+			mc = bin;
+			size2 = mc->size + mc->priv.size;
+			tplg_dv(tplg, pos, "kcontrol mixer size %zd", size2);
+			if (size2 > size) {
+				SNDERR("dapm widget: small mixer size %d",
+				       size2);
+				err = -EINVAL;
+				goto retval;
+			}
+			err = tplg_decode_control_mixer1(tplg, &heap, mt, pos,
+							 bin, size2);
+			break;
+		case SND_SOC_TPLG_TYPE_ENUM:
+			et = tplg_calloc(&heap, sizeof(*mt));
+			if (et == NULL) {
+				err = -ENOMEM;
+				goto retval;
+			}
+			wt->ctl[index] = (void *)et;
+			wt->num_ctls++;
+			ec = bin;
+			size2 = ec->size + ec->priv.size;
+			tplg_dv(tplg, pos, "kcontrol enum size %zd", size2);
+			if (size2 > size) {
+				SNDERR("dapm widget: small enum size %d",
+				       size2);
+				err = -EINVAL;
+				goto retval;
+			}
+			err = tplg_decode_control_enum1(tplg, &heap, et, pos,
+							bin, size2);
+			break;
+		case SND_SOC_TPLG_TYPE_BYTES:
+			bt = tplg_calloc(&heap, sizeof(*bt));
+			if (bt == NULL) {
+				err = -ENOMEM;
+				goto retval;
+			}
+			wt->ctl[index] = (void *)bt;
+			wt->num_ctls++;
+			bc = bin;
+			size2 = bc->size + bc->priv.size;
+			tplg_dv(tplg, pos, "kcontrol bytes size %zd", size2);
+			if (size2 > size) {
+				SNDERR("dapm widget: small bytes size %d",
+				       size2);
+				err = -EINVAL;
+				goto retval;
+			}
+			err = tplg_decode_control_bytes1(tplg, bt, pos,
+							 bin, size2);
+			break;
+		default:
+			SNDERR("dapm widget: wrong control type %d",
+			       chdr->type);
+			err = -EINVAL;
+			goto retval;
+		}
+		if (err < 0)
+			goto retval;
+		bin += size2;
+		size -= size2;
+		pos += size2;
+	}
+
+	t.widget = wt;
+	err = snd_tplg_add_object(tplg, &t);
+	tplg_free(&heap);
+	if (err < 0)
+		return err;
+	if (size > 0)
+		goto next;
+	return 0;
+
+retval:
+	tplg_free(&heap);
+	return err;
+}
+
+/* decode dapm link from the binary input */
+int tplg_decode_dapm_graph(snd_tplg_t *tplg,
+			   size_t pos,
+			   struct snd_soc_tplg_hdr *hdr,
+			   void *bin, size_t size)
+{
+	struct snd_soc_tplg_dapm_graph_elem *g;
+	snd_tplg_obj_template_t t;
+	struct snd_tplg_graph_template *gt;
+	struct snd_tplg_graph_elem *ge;
+	size_t asize;
+	int err;
+
+	err = tplg_decode_template(tplg, pos, hdr, &t);
+	if (err < 0)
+		return err;
+
+	asize = sizeof(*gt) + (size / sizeof(*g)) * sizeof(*ge);
+	gt = alloca(asize);
+	memset(gt, 0, asize);
+	for (ge = gt->elem; size > 0; ge++) {
+		g = bin;
+		if (size < sizeof(*g)) {
+			SNDERR("dapm graph: small size %d", size);
+			return -EINVAL;
+		}
+		ge->src = g->source;
+		ge->ctl = g->control;
+		ge->sink = g->sink;
+		gt->count++;
+		tplg_dv(tplg, pos, "dapm graph: src='%s' ctl='%s' sink='%s'",
+			ge->src, ge->ctl, ge->sink);
+		bin += sizeof(*g);
+		size -= sizeof(*g);
+		pos += sizeof(*g);
+	}
+
+	t.graph = gt;
+	return snd_tplg_add_object(tplg, &t);
 }

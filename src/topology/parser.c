@@ -396,17 +396,21 @@ int snd_tplg_build_bin(snd_tplg_t *tplg,
 
 int snd_tplg_set_manifest_data(snd_tplg_t *tplg, const void *data, int len)
 {
+	struct tplg_elem *elem;
+
+	elem = tplg_elem_type_lookup(tplg, SND_TPLG_TYPE_MANIFEST);
+	if (elem == NULL) {
+		elem = tplg_elem_new_common(tplg, NULL, "manifest",
+					    SND_TPLG_TYPE_MANIFEST);
+		if (!elem)
+			return -ENOMEM;
+		tplg->manifest.size = elem->size;
+	}
+
 	if (len <= 0)
 		return 0;
 
-	tplg->manifest.priv.size = len;
-
-	tplg->manifest_pdata = malloc(len);
-	if (!tplg->manifest_pdata)
-		return -ENOMEM;
-
-	memcpy(tplg->manifest_pdata, data, len);
-	return 0;
+	return tplg_add_data_bytes(tplg, elem, NULL, data, len);
 }
 
 int snd_tplg_set_version(snd_tplg_t *tplg, unsigned int version)

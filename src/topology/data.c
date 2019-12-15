@@ -566,7 +566,7 @@ static bool has_tuples(struct tplg_elem *elem)
 }
 
 /* get size of a tuple element from its type */
-static unsigned int get_tuple_size(int type)
+unsigned int tplg_get_tuple_size(int type)
 {
 	switch (type) {
 
@@ -602,7 +602,7 @@ static int copy_tuples(struct tplg_elem *elem,
 	for (i = 0; i < tuples->num_sets ; i++) {
 		tuple_set = tuples->set[i];
 		set_size = sizeof(struct snd_soc_tplg_vendor_array)
-			+ get_tuple_size(tuple_set->type)
+			+ tplg_get_tuple_size(tuple_set->type)
 			* tuple_set->num_tuples;
 		size += set_size;
 		if (size > TPLG_MAX_PRIV_SIZE) {
@@ -1250,6 +1250,9 @@ int tplg_save_manifest_data(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 			continue;
 		count++;
 	}
+	if (count == 0)
+		return tplg_save_printf(dst, NULL,
+					"'%s'.comment 'empty'\n", elem->id);
 	if (count > 1) {
 		err = tplg_save_printf(dst, NULL, "'%s'.data [\n", elem->id);
 		if (err < 0)
@@ -1556,4 +1559,437 @@ int tplg_build_data(snd_tplg_t *tplg)
 	}
 
 	return 0;
+}
+
+/* decode manifest data */
+int tplg_decode_manifest_data(snd_tplg_t *tplg,
+			      size_t pos,
+			      struct snd_soc_tplg_hdr *hdr,
+			      void *bin, size_t size)
+{
+	struct snd_soc_tplg_manifest *m = bin;
+	struct tplg_elem *elem;
+	size_t off;
+
+	if (hdr->index != 0) {
+		SNDERR("manifest - wrong index %d", hdr->index);
+		return -EINVAL;
+	}
+
+	if (sizeof(*m) > size) {
+		SNDERR("manifest - wrong size %zd (minimal %zd)",
+		       size, sizeof(*m));
+		return -EINVAL;
+	}
+
+	if (m->size != sizeof(*m)) {
+		SNDERR("manifest - wrong sructure size %d", m->size);
+		return -EINVAL;
+	}
+
+	off = offsetof(struct snd_soc_tplg_manifest, priv);
+	if (off + m->priv.size > size) {
+		SNDERR("manifest - wrong private size %d", m->priv.size);
+		return -EINVAL;
+	}
+
+	tplg->manifest = *m;
+
+	bin += off;
+	size -= off;
+	pos += off;
+
+	elem = tplg_elem_new_common(tplg, NULL, "manifest",
+				    SND_TPLG_TYPE_MANIFEST);
+	if (!elem)
+		return -ENOMEM;
+
+	tplg_dv(tplg, pos, "manifest: private size %d", size);
+	return tplg_add_data(tplg, elem, bin, size);
+}
+
+int tplg_add_token(snd_tplg_t *tplg, struct tplg_elem *parent,
+		   unsigned int token,
+		   char str_ref[SNDRV_CTL_ELEM_ID_NAME_MAXLEN])
+{
+	struct tplg_elem *elem;
+	struct tplg_token *t;
+	struct tplg_vendor_tokens *tokens;
+	unsigned int i;
+	size_t size;
+
+	elem = tplg_elem_lookup(&tplg->token_list, parent->id,
+				SND_TPLG_TYPE_TOKEN, parent->index);
+	if (elem == NULL) {
+		elem = tplg_elem_new_common(tplg, NULL, parent->id,
+					    SND_TPLG_TYPE_TOKEN);
+		if (!elem)
+			return -ENOMEM;
+	}
+
+	tokens = elem->tokens;
+	if (tokens) {
+		for (i = 0; i < tokens->num_tokens; i++) {
+			t = &tokens->token[i];
+			if (t->value == token)
+				goto found;
+		}
+		size = sizeof(*tokens) +
+		       (tokens->num_tokens + 1) * sizeof(struct tplg_token);
+		tokens = realloc(tokens, size);
+	} else {
+		size = sizeof(*tokens) + 1 * sizeof(struct tplg_token);
+		tokens = calloc(1, size);
+	}
+
+	if (!tokens)
+		return -ENOMEM;
+
+	memset(&tokens->token[tokens->num_tokens], 0, sizeof(struct tplg_token));
+	elem->tokens = tokens;
+	t = &tokens->token[tokens->num_tokens];
+	tokens->num_tokens++;
+	snprintf(t->id, sizeof(t->id), "token%u", token);
+	t->value = token;
+found:
+	snd_strlcpy(str_ref, t->id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+	return 0;
+}
+
+static int tplg_verify_tuple_set(snd_tplg_t *tplg, size_t pos,
+				 const void *bin, size_t size)
+{
+	const struct snd_soc_tplg_vendor_array *va;
+	unsigned int j;
+
+	va = bin;
+	if (size < sizeof(*va) || size < va->size) {
+		tplg_dv(tplg, pos, "tuple set verify: wrong size %d", size);
+		return -EINVAL;
+	}
+
+	switch (va->type) {
+	case SND_SOC_TPLG_TUPLE_TYPE_UUID:
+	case SND_SOC_TPLG_TUPLE_TYPE_STRING:
+	case SND_SOC_TPLG_TUPLE_TYPE_BOOL:
+	case SND_SOC_TPLG_TUPLE_TYPE_BYTE:
+	case SND_SOC_TPLG_TUPLE_TYPE_WORD:
+	case SND_SOC_TPLG_TUPLE_TYPE_SHORT:
+		break;
+	default:
+		tplg_dv(tplg, pos, "tuple set verify: unknown array type %d", va->type);
+		return -EINVAL;
+	}
+
+	j = tplg_get_tuple_size(va->type) * va->num_elems;
+	if (j + sizeof(*va) != va->size) {
+		tplg_dv(tplg, pos, "tuple set verify: wrong vendor array size %d "
+			"(expected %d for %d count %d)",
+			va->size, j + sizeof(*va), va->type, va->num_elems);
+		return -EINVAL;
+	}
+
+	if (va->num_elems > 4096) {
+		tplg_dv(tplg, pos, "tuple set verify: tuples overflow %d", va->num_elems);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+static int tplg_decode_tuple_set(snd_tplg_t *tplg,
+				 size_t pos,
+				 struct tplg_elem *parent,
+				 struct tplg_tuple_set **_set,
+				 const void *bin, size_t size)
+{
+	const struct snd_soc_tplg_vendor_array *va;
+	struct tplg_tuple_set *set;
+	struct tplg_tuple *tuple;
+	unsigned int j;
+	int err;
+
+	va = bin;
+	if (size < sizeof(*va) || size < va->size) {
+		SNDERR("tuples: wrong size %d", size);
+		return -EINVAL;
+	}
+
+	switch (va->type) {
+	case SND_SOC_TPLG_TUPLE_TYPE_UUID:
+	case SND_SOC_TPLG_TUPLE_TYPE_STRING:
+	case SND_SOC_TPLG_TUPLE_TYPE_BOOL:
+	case SND_SOC_TPLG_TUPLE_TYPE_BYTE:
+	case SND_SOC_TPLG_TUPLE_TYPE_WORD:
+	case SND_SOC_TPLG_TUPLE_TYPE_SHORT:
+		break;
+	default:
+		SNDERR("tuples: unknown array type %d", va->type);
+		return -EINVAL;
+	}
+
+	j = tplg_get_tuple_size(va->type) * va->num_elems;
+	if (j + sizeof(*va) != va->size) {
+		SNDERR("tuples: wrong vendor array size %d "
+		       "(expected %d for %d count %d)",
+		       va->size, j + sizeof(*va), va->type, va->num_elems);
+		return -EINVAL;
+	}
+
+	if (va->num_elems > 4096) {
+		SNDERR("tuples: tuples overflow %d", va->num_elems);
+		return -EINVAL;
+	}
+
+	set = calloc(1, sizeof(*set) + va->num_elems * sizeof(struct tplg_tuple));
+	if (!set)
+		return -ENOMEM;
+
+	set->type = va->type;
+	set->num_tuples = va->num_elems;
+
+	tplg_dv(tplg, pos, "tuple set: type %d (%s) tuples %d size %d", set->type,
+		get_tuple_type_name(set->type), set->num_tuples, va->size);
+	for (j = 0; j < set->num_tuples; j++) {
+		tuple = &set->tuple[j];
+		switch (va->type) {
+		case SND_SOC_TPLG_TUPLE_TYPE_UUID:
+			err = tplg_add_token(tplg, parent, va->uuid[j].token,
+					     tuple->token);
+			if (err < 0)
+				goto retval;
+			memcpy(tuple->uuid, va->uuid[j].uuid,
+			       sizeof(va->uuid[j].uuid));
+			break;
+		case SND_SOC_TPLG_TUPLE_TYPE_STRING:
+			err = tplg_add_token(tplg, parent, va->string[j].token,
+					     tuple->token);
+			if (err < 0)
+				goto retval;
+			snd_strlcpy(tuple->string, va->string[j].string,
+				    sizeof(tuple->string));
+			break;
+		case SND_SOC_TPLG_TUPLE_TYPE_BOOL:
+		case SND_SOC_TPLG_TUPLE_TYPE_BYTE:
+		case SND_SOC_TPLG_TUPLE_TYPE_WORD:
+		case SND_SOC_TPLG_TUPLE_TYPE_SHORT:
+			err = tplg_add_token(tplg, parent, va->value[j].token,
+					     tuple->token);
+			if (err < 0)
+				goto retval;
+			tuple->value = va->value[j].value;
+			break;
+		}
+	}
+
+	*_set = set;
+	return 0;
+
+retval:
+	free(set);
+	return err;
+}
+
+/* verify tuples from the binary input */
+static int tplg_verify_tuples(snd_tplg_t *tplg, size_t pos,
+			      const void *bin, size_t size)
+{
+	const struct snd_soc_tplg_vendor_array *va;
+	int err;
+
+	if (size < sizeof(*va)) {
+		tplg_dv(tplg, pos, "tuples: small size %d", size);
+		return -EINVAL;
+	}
+
+next:
+	va = bin;
+	if (size < sizeof(*va)) {
+		tplg_dv(tplg, pos, "tuples: unexpected vendor arry size %d", size);
+		return -EINVAL;
+	}
+
+	err = tplg_verify_tuple_set(tplg, pos, va, va->size);
+	if (err < 0)
+		return err;
+
+	bin += va->size;
+	size -= va->size;
+	pos += va->size;
+	if (size > 0)
+		goto next;
+
+	return 0;
+}
+
+/* add tuples from the binary input */
+static int tplg_decode_tuples(snd_tplg_t *tplg,
+			      size_t pos,
+			      struct tplg_elem *parent,
+			      struct tplg_vendor_tuples *tuples,
+			      const void *bin, size_t size)
+{
+	const struct snd_soc_tplg_vendor_array *va;
+	struct tplg_tuple_set *set;
+	int err;
+
+	if (size < sizeof(*va)) {
+		SNDERR("tuples: small size %d", size);
+		return -EINVAL;
+	}
+
+next:
+	va = bin;
+	if (size < sizeof(*va)) {
+		SNDERR("tuples: unexpected vendor arry size %d", size);
+		return -EINVAL;
+	}
+
+	if (tuples->num_sets >= tuples->alloc_sets) {
+		SNDERR("tuples: index overflow (%d)", tuples->num_sets);
+		return -EINVAL;
+	}
+
+	err = tplg_decode_tuple_set(tplg, pos, parent, &set, va, va->size);
+	if (err < 0)
+		return err;
+	tuples->set[tuples->num_sets++] = set;
+
+	bin += va->size;
+	size -= va->size;
+	pos += va->size;
+	if (size > 0)
+		goto next;
+
+	return 0;
+}
+
+/* decode private data */
+int tplg_add_data(snd_tplg_t *tplg,
+		  struct tplg_elem *parent,
+		  const void *bin, size_t size)
+{
+	const struct snd_soc_tplg_private *tp;
+	const struct snd_soc_tplg_vendor_array *va;
+	struct tplg_elem *elem = NULL, *elem2 = NULL;
+	struct tplg_vendor_tuples *tuples = NULL;
+	char id[SNDRV_CTL_ELEM_ID_NAME_MAXLEN];
+	char suffix[16];
+	size_t pos = 0, off;
+	int err, num_tuples = 0, block = 0;
+
+	if (size == 0)
+		return 0;
+
+	off = offsetof(struct snd_soc_tplg_private, array);
+
+next:
+	tp = bin;
+	if (off + size < tp->size) {
+		SNDERR("data: unexpected element size %d", size);
+		return -EINVAL;
+	}
+
+	if (tplg_verify_tuples(tplg, pos, tp->array, tp->size) < 0) {
+		if (tuples) {
+			err = tplg_ref_add(elem, SND_TPLG_TYPE_TOKEN, parent->id);
+			if (err < 0)
+				return err;
+			err = tplg_ref_add(elem2, SND_TPLG_TYPE_TUPLE, id);
+			if (err < 0)
+				return err;
+			err = tplg_ref_add(parent, SND_TPLG_TYPE_DATA, id);
+			if (err < 0)
+				return err;
+			tuples = NULL;
+		}
+		tplg_dv(tplg, pos, "add bytes: size %d", tp->size);
+		snprintf(suffix, sizeof(suffix), "data%u", block++);
+		err = tplg_add_data_bytes(tplg, parent, suffix, tp->array, tp->size);
+	} else {
+		if (!tuples) {
+			snprintf(id, sizeof(id), "%.30s:tuple%d", parent->id, (block++) & 0xffff);
+			elem = tplg_elem_new_common(tplg, NULL, id, SND_TPLG_TYPE_TUPLE);
+			if (!elem)
+				return -ENOMEM;
+
+			elem2 = tplg_elem_new_common(tplg, NULL, id, SND_TPLG_TYPE_DATA);
+			if (!elem2)
+				return -ENOMEM;
+
+			tuples = calloc(1, sizeof(*tuples));
+			if (!tuples)
+				return -ENOMEM;
+			elem->tuples = tuples;
+
+			tuples->alloc_sets = (size / sizeof(*va)) + 1;
+			tuples->set = calloc(1, tuples->alloc_sets * sizeof(void *));
+			if (!tuples->set) {
+				tuples->alloc_sets = 0;
+				return -ENOMEM;
+			}
+		}
+		tplg_dv(tplg, pos, "decode tuples: size %d", tp->size);
+		err = tplg_decode_tuples(tplg, pos, parent, tuples, tp->array, tp->size);
+		num_tuples++;
+	}
+	if (err < 0)
+		return err;
+
+	bin += off + tp->size;
+	size -= off + tp->size;
+	pos += off + tp->size;
+	if (size > 0)
+		goto next;
+
+	if (tuples && elem && elem2) {
+		err = tplg_ref_add(elem, SND_TPLG_TYPE_TOKEN, parent->id);
+		if (err < 0)
+			return err;
+		err = tplg_ref_add(elem2, SND_TPLG_TYPE_TUPLE, id);
+		if (err < 0)
+			return err;
+		err = tplg_ref_add(parent, SND_TPLG_TYPE_DATA, id);
+		if (err < 0)
+			return err;
+	}
+
+	return 0;
+}
+
+/* add private data - bytes */
+int tplg_add_data_bytes(snd_tplg_t *tplg, struct tplg_elem *parent,
+			const char *suffix, const void *bin, size_t size)
+{
+	struct snd_soc_tplg_private *priv;
+	struct tplg_elem *elem;
+	char id[SNDRV_CTL_ELEM_ID_NAME_MAXLEN];
+
+	if (suffix)
+		snprintf(id, sizeof(id), "%.30s:%.12s", parent->id, suffix);
+	else
+		snd_strlcpy(id, parent->id, sizeof(id));
+	elem = tplg_elem_new_common(tplg, NULL, id, SND_TPLG_TYPE_DATA);
+	if (!elem)
+		return -ENOMEM;
+
+	priv = malloc(sizeof(*priv) + size);
+	if (!priv)
+		return -ENOMEM;
+	memcpy(priv->data, bin, size);
+	priv->size = size;
+	elem->data = priv;
+
+	return tplg_ref_add(parent, SND_TPLG_TYPE_DATA, id);
+}
+
+/* decode data from the binary input */
+int tplg_decode_data(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
+		     size_t pos ATTRIBUTE_UNUSED,
+		     struct snd_soc_tplg_hdr *hdr ATTRIBUTE_UNUSED,
+		     void *bin ATTRIBUTE_UNUSED,
+		     size_t size ATTRIBUTE_UNUSED)
+{
+	SNDERR("data type not expected");
+	return -EINVAL;
 }

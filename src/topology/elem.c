@@ -31,6 +31,7 @@ struct tplg_table tplg_table[] = {
 		.enew  = 1,
 		.parse = tplg_parse_manifest_data,
 		.save  = tplg_save_manifest_data,
+		.decod = tplg_decode_manifest_data,
 	},
 	{
 		.name  = "control mixer",
@@ -43,6 +44,7 @@ struct tplg_table tplg_table[] = {
 		.enew  = 1,
 		.parse = tplg_parse_control_mixer,
 		.save  = tplg_save_control_mixer,
+		.decod = tplg_decode_control_mixer,
 	},
 	{
 		.name  = "control enum",
@@ -55,6 +57,7 @@ struct tplg_table tplg_table[] = {
 		.enew  = 1,
 		.parse = tplg_parse_control_enum,
 		.save  = tplg_save_control_enum,
+		.decod = tplg_decode_control_enum,
 	},
 	{
 		.name  = "control extended (bytes)",
@@ -67,6 +70,7 @@ struct tplg_table tplg_table[] = {
 		.enew  = 1,
 		.parse = tplg_parse_control_bytes,
 		.save  = tplg_save_control_bytes,
+		.decod = tplg_decode_control_bytes,
 	},
 	{
 		.name  = "dapm widget",
@@ -79,6 +83,7 @@ struct tplg_table tplg_table[] = {
 		.enew  = 1,
 		.parse = tplg_parse_dapm_widget,
 		.save  = tplg_save_dapm_widget,
+		.decod = tplg_decode_dapm_widget,
 	},
 	{
 		.name  = "pcm",
@@ -91,6 +96,7 @@ struct tplg_table tplg_table[] = {
 		.enew  = 1,
 		.parse = tplg_parse_pcm,
 		.save  = tplg_save_pcm,
+		.decod = tplg_decode_pcm,
 	},
 	{
 		.name  = "physical dai",
@@ -103,6 +109,7 @@ struct tplg_table tplg_table[] = {
 		.enew  = 1,
 		.parse = tplg_parse_dai,
 		.save  = tplg_save_dai,
+		.decod = tplg_decode_dai,
 	},
 	{
 		.name  = "be",
@@ -116,6 +123,7 @@ struct tplg_table tplg_table[] = {
 		.enew  = 1,
 		.parse = tplg_parse_link,
 		.save  = tplg_save_link,
+		.decod = tplg_decode_link,
 	},
 	{
 		.name  = "cc",
@@ -128,6 +136,7 @@ struct tplg_table tplg_table[] = {
 		.enew  = 1,
 		.parse = tplg_parse_cc,
 		.save  = tplg_save_cc,
+		.decod = tplg_decode_cc,
 	},
 	{
 		.name  = "route (dapm graph)",
@@ -138,6 +147,7 @@ struct tplg_table tplg_table[] = {
 		.build = 1,
 		.parse = tplg_parse_dapm_graph,
 		.gsave = tplg_save_dapm_graph,
+		.decod = tplg_decode_dapm_graph,
 	},
 	{
 		.name  = "private data",
@@ -149,6 +159,7 @@ struct tplg_table tplg_table[] = {
 		.enew  = 1,
 		.parse = tplg_parse_data,
 		.save  = tplg_save_data,
+		.decod = tplg_decode_data,
 	},
 	{
 		.name  = "text",
@@ -219,6 +230,17 @@ struct tplg_table tplg_table[] = {
 };
 
 unsigned int tplg_table_items = ARRAY_SIZE(tplg_table);
+
+int tplg_get_type(int asoc_type)
+{
+	unsigned int index;
+
+	for (index = 0; index < tplg_table_items; index++)
+		if (tplg_table[index].tsoc == asoc_type)
+			return tplg_table[index].type;
+	SNDERR("uknown asoc type %d", asoc_type);
+	return -EINVAL;
+}
 
 int tplg_ref_add(struct tplg_elem *elem, int type, const char* id)
 {
@@ -331,6 +353,36 @@ struct tplg_elem *tplg_elem_lookup(struct list_head *base, const char* id,
 	return NULL;
 }
 
+/* find an element by type */
+struct tplg_elem *tplg_elem_type_lookup(snd_tplg_t *tplg,
+					enum snd_tplg_type type)
+{
+	struct tplg_table *tptr;
+	struct list_head *pos, *list;
+	struct tplg_elem *elem;
+	unsigned int index;
+
+	for (index = 0; index < tplg_table_items; index++) {
+		tptr = &tplg_table[index];
+		if (!tptr->enew)
+			continue;
+		if ((int)type != tptr->type)
+			continue;
+		break;
+	}
+	if (index >= tplg_table_items)
+		return NULL;
+
+	list = (struct list_head *)((void *)tplg + tptr->loff);
+
+	/* return only first element */
+	list_for_each(pos, list) {
+		elem = list_entry(pos, struct tplg_elem, list);
+		return elem;
+	}
+	return NULL;
+}
+
 /* insert a new element into list in the ascending order of index value */
 void tplg_elem_insert(struct tplg_elem *elem_p, struct list_head *list)
 {
@@ -427,4 +479,32 @@ struct tplg_elem* tplg_elem_new_common(snd_tplg_t *tplg,
 
 	elem->type = type;
 	return elem;
+}
+
+struct tplg_alloc {
+	struct list_head list;
+	void *data[0];
+};
+
+void *tplg_calloc(struct list_head *heap, size_t size)
+{
+	struct tplg_alloc *a;
+
+	a = calloc(1, sizeof(*a) + size);
+	if (a == NULL)
+		return NULL;
+	list_add_tail(&a->list, heap);
+	return a->data;
+}
+
+void tplg_free(struct list_head *heap)
+{
+	struct list_head *pos, *npos;
+	struct tplg_alloc *a;
+
+	list_for_each_safe(pos, npos, heap) {
+		a = list_entry(pos, struct tplg_alloc, list);
+		list_del(&a->list);
+		free(a);
+	}
 }

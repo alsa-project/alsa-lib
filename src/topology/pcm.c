@@ -1679,11 +1679,20 @@ static void tplg_add_stream_object(struct snd_soc_tplg_stream *strm,
 	strm->channels = strm_tpl->channels;
 }
 
-static void tplg_add_stream_caps(struct snd_soc_tplg_stream_caps *caps,
-	struct snd_tplg_stream_caps_template *caps_tpl)
+static int tplg_add_stream_caps(snd_tplg_t *tplg,
+				struct snd_tplg_stream_caps_template *caps_tpl)
 {
-	snd_strlcpy(caps->name, caps_tpl->name,
-		SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+	struct snd_soc_tplg_stream_caps *caps;
+	struct tplg_elem *elem;
+
+	elem = tplg_elem_new_common(tplg, NULL, caps_tpl->name,
+				    SND_TPLG_TYPE_STREAM_CAPS);
+	if (!elem)
+		return -ENOMEM;
+
+	caps = elem->stream_caps;
+
+	snd_strlcpy(caps->name, caps_tpl->name, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 
 	caps->formats = caps_tpl->formats;
 	caps->rates = caps_tpl->rates;
@@ -1698,15 +1707,17 @@ static void tplg_add_stream_caps(struct snd_soc_tplg_stream_caps *caps,
 	caps->buffer_size_min = caps_tpl->buffer_size_min;
 	caps->buffer_size_max = caps_tpl->buffer_size_max;
 	caps->sig_bits = caps_tpl->sig_bits;
+	return 0;
 }
 
 /* Add a PCM element (FE DAI & DAI link) from C API */
 int tplg_add_pcm_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 {
 	struct snd_tplg_pcm_template *pcm_tpl = t->pcm;
-	struct snd_soc_tplg_pcm *pcm, *_pcm;
+	struct snd_soc_tplg_private *priv;
+	struct snd_soc_tplg_pcm *pcm;
 	struct tplg_elem *elem;
-	int i;
+	int ret, i;
 
 	tplg_dbg("PCM: %s, DAI %s\n", pcm_tpl->pcm_name, pcm_tpl->dai_name);
 
@@ -1732,8 +1743,13 @@ int tplg_add_pcm_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 	pcm->compress = pcm_tpl->compress;
 
 	for (i = 0; i < 2; i++) {
-		if (pcm_tpl->caps[i])
-			tplg_add_stream_caps(&pcm->caps[i], pcm_tpl->caps[i]);
+		if (!pcm_tpl->caps[i] || !pcm_tpl->caps[i]->name)
+			continue;
+		ret = tplg_add_stream_caps(tplg, pcm_tpl->caps[i]);
+		if (ret < 0)
+			return ret;
+		snd_strlcpy(pcm->caps[i].name, pcm_tpl->caps[i]->name,
+			    sizeof(pcm->caps[i].name));
 	}
 
 	pcm->flag_mask = pcm_tpl->flag_mask;
@@ -1744,22 +1760,12 @@ int tplg_add_pcm_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 		tplg_add_stream_object(&pcm->stream[i], &pcm_tpl->stream[i]);
 
 	/* private data */
-	if (pcm_tpl->priv != NULL && pcm_tpl->priv->size) {
-		tplg_dbg("\t priv data size %d\n", pcm_tpl->priv->size);
-		_pcm = realloc(pcm,
-			elem->size + pcm_tpl->priv->size);
-		if (!_pcm) {
-			tplg_elem_free(elem);
-			return -ENOMEM;
-		}
-
-		pcm = _pcm;
-		elem->pcm = pcm;
-		elem->size += pcm_tpl->priv->size;
-
-		memcpy(pcm->priv.data, pcm_tpl->priv->data,
-			pcm_tpl->priv->size);
-		pcm->priv.size = pcm_tpl->priv->size;
+	priv = pcm_tpl->priv;
+	if (priv && priv->size > 0) {
+		ret = tplg_add_data(tplg, elem, priv,
+				    sizeof(*priv) + priv->size);
+		if (ret < 0)
+			return ret;
 	}
 
 	return 0;
@@ -1810,9 +1816,11 @@ static int set_link_hw_config(struct snd_soc_tplg_hw_config *cfg,
 int tplg_add_link_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 {
 	struct snd_tplg_link_template *link_tpl = t->link;
-	struct snd_soc_tplg_link_config *link, *_link;
+	struct snd_soc_tplg_link_config *link;
+	struct snd_soc_tplg_private *priv;
 	struct tplg_elem *elem;
 	unsigned int i;
+	int ret;
 
 	if (t->type != SND_TPLG_TYPE_LINK && t->type != SND_TPLG_TYPE_BE
 	    && t->type != SND_TPLG_TYPE_CC)
@@ -1854,21 +1862,12 @@ int tplg_add_link_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 	link->flags = link_tpl->flags;
 
 	/* private data */
-	if (link_tpl->priv != NULL && link_tpl->priv->size) {
-		_link = realloc(link,
-			elem->size + link_tpl->priv->size);
-		if (!_link) {
-			tplg_elem_free(elem);
-			return -ENOMEM;
-		}
-
-		link = _link;
-		elem->link = link;
-		elem->size += link_tpl->priv->size;
-
-		memcpy(link->priv.data, link_tpl->priv->data,
-			link_tpl->priv->size);
-		link->priv.size = link_tpl->priv->size;
+	priv = link_tpl->priv;
+	if (priv && priv->size > 0) {
+		ret = tplg_add_data(tplg, elem, priv,
+				    sizeof(*priv) + priv->size);
+		if (ret < 0)
+			return ret;
 	}
 
 	return 0;
@@ -1877,14 +1876,15 @@ int tplg_add_link_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 int tplg_add_dai_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 {
 	struct snd_tplg_dai_template *dai_tpl = t->dai;
-	struct snd_soc_tplg_dai *dai, *_dai;
+	struct snd_soc_tplg_dai *dai;
+	struct snd_soc_tplg_private *priv;
 	struct tplg_elem *elem;
-	int i;
+	int ret, i;
 
 	tplg_dbg("DAI %s\n", dai_tpl->dai_name);
 
 	elem = tplg_elem_new_common(tplg, NULL, dai_tpl->dai_name,
-		SND_TPLG_TYPE_DAI);
+				    SND_TPLG_TYPE_DAI);
 	if (!elem)
 		return -ENOMEM;
 
@@ -1900,8 +1900,13 @@ int tplg_add_dai_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 	dai->capture = dai_tpl->capture;
 
 	for (i = 0; i < 2; i++) {
-		if (dai_tpl->caps[i])
-			tplg_add_stream_caps(&dai->caps[i], dai_tpl->caps[i]);
+		if (!dai_tpl->caps[i] || !dai_tpl->caps[i]->name)
+			continue;
+		ret = tplg_add_stream_caps(tplg, dai_tpl->caps[i]);
+		if (ret < 0)
+			return ret;
+		snd_strlcpy(dai->caps[i].name, dai_tpl->caps[i]->name,
+			    sizeof(dai->caps[i].name));
 	}
 
 	/* flags */
@@ -1909,22 +1914,299 @@ int tplg_add_dai_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 	dai->flags = dai_tpl->flags;
 
 	/* private data */
-	if (dai_tpl->priv != NULL) {
-		_dai = realloc(dai,
-			elem->size + dai_tpl->priv->size);
-		if (!_dai) {
-			tplg_elem_free(elem);
-			return -ENOMEM;
-		}
-
-		dai = _dai;
-		dai->priv.size = dai_tpl->priv->size;
-
-		elem->dai = dai;
-		elem->size += dai->priv.size;
-		memcpy(dai->priv.data, dai_tpl->priv->data,
-		       dai->priv.size);
+	priv = dai_tpl->priv;
+	if (priv && priv->size > 0) {
+		ret = tplg_add_data(tplg, elem, priv,
+				    sizeof(*priv) + priv->size);
+		if (ret < 0)
+			return ret;
 	}
+
+	return 0;
+}
+
+/* decode pcm from the binary input */
+int tplg_decode_pcm(snd_tplg_t *tplg,
+		    size_t pos,
+		    struct snd_soc_tplg_hdr *hdr,
+		    void *bin, size_t size)
+{
+	struct snd_soc_tplg_pcm *pcm;
+	snd_tplg_obj_template_t t;
+	struct snd_tplg_pcm_template *pt;
+	struct snd_tplg_stream_caps_template caps[2], *cap;
+	struct snd_tplg_stream_template *stream;
+	unsigned int i;
+	size_t asize;
+	int err;
+
+	err = tplg_decode_template(tplg, pos, hdr, &t);
+	if (err < 0)
+		return err;
+
+	asize = sizeof(*pt) + SND_SOC_TPLG_STREAM_CONFIG_MAX * sizeof(*stream);
+	pt = alloca(asize);
+
+next:
+	memset(pt, 0, asize);
+	pcm = bin;
+
+	if (size < sizeof(*pcm)) {
+		SNDERR("pcm: small size %d", size);
+		return -EINVAL;
+	}
+	if (sizeof(*pcm) != pcm->size) {
+		SNDERR("pcm: unknown element size %d (expected %zd)",
+		       pcm->size, sizeof(*pcm));
+		return -EINVAL;
+	}
+	if (pcm->num_streams > SND_SOC_TPLG_STREAM_CONFIG_MAX) {
+		SNDERR("pcm: wrong number of streams %d", pcm->num_streams);
+		return -EINVAL;
+	}
+	if (sizeof(*pcm) + pcm->priv.size > size) {
+		SNDERR("pcm: wrong private data size %d", pcm->priv.size);
+		return -EINVAL;
+	}
+
+	tplg_dv(tplg, pos, "pcm: size %d private size %d streams %d",
+		pcm->size, pcm->priv.size, pcm->num_streams);
+
+	pt->pcm_name = pcm->pcm_name;
+	tplg_dv(tplg, pos, "pcm: pcm_name '%s'", pt->pcm_name);
+	pt->dai_name = pcm->dai_name;
+	tplg_dv(tplg, pos, "pcm: dai_name '%s'", pt->dai_name);
+	pt->pcm_id = pcm->pcm_id;
+	pt->dai_id = pcm->dai_id;
+	tplg_dv(tplg, pos, "pcm: pcm_id %d dai_id %d", pt->pcm_id, pt->dai_id);
+	pt->playback = pcm->playback;
+	pt->capture = pcm->capture;
+	pt->compress = pcm->compress;
+	tplg_dv(tplg, pos, "pcm: playback %d capture %d compress",
+		pt->playback, pt->capture, pt->compress);
+	pt->num_streams = pcm->num_streams;
+	pt->flag_mask = pcm->flag_mask;
+	pt->flags = pcm->flags;
+	for (i = 0; i < pcm->num_streams; i++) {
+		stream = &pt->stream[i];
+		if (pcm->stream[i].size != sizeof(pcm->stream[0])) {
+			SNDERR("pcm: unknown stream structure size %d",
+			       pcm->stream[i].size);
+			return -EINVAL;
+		}
+		stream->name = pcm->stream[i].name;
+		tplg_dv(tplg, pos + offsetof(struct snd_soc_tplg_pcm, stream[i]),
+			"stream %d: '%s'", i, stream->name);
+		stream->format = pcm->stream[i].format;
+		stream->rate = pcm->stream[i].rate;
+		stream->period_bytes = pcm->stream[i].period_bytes;
+		stream->buffer_bytes = pcm->stream[i].buffer_bytes;
+		stream->channels = pcm->stream[i].channels;
+	}
+	for (i = 0; i < 2; i++) {
+		if (i == 0 && !pcm->playback)
+			continue;
+		if (i == 1 && !pcm->capture)
+			continue;
+		cap = &caps[i];
+		pt->caps[i] = cap;
+		if (pcm->caps[i].size != sizeof(pcm->caps[0])) {
+			SNDERR("pcm: unknown caps structure size %d",
+			       pcm->caps[i].size);
+			return -EINVAL;
+		}
+		cap->name = pcm->caps[i].name;
+		tplg_dv(tplg, pos + offsetof(struct snd_soc_tplg_pcm, caps[i]),
+			"caps %d: '%s'", i, cap->name);
+		cap->formats = pcm->caps[i].formats;
+		cap->rates = pcm->caps[i].rates;
+		cap->rate_min = pcm->caps[i].rate_min;
+		cap->rate_max = pcm->caps[i].rate_max;
+		cap->channels_min = pcm->caps[i].channels_min;
+		cap->channels_max = pcm->caps[i].channels_max;
+		cap->periods_min = pcm->caps[i].periods_min;
+		cap->periods_max = pcm->caps[i].periods_max;
+		cap->period_size_min = pcm->caps[i].period_size_min;
+		cap->period_size_max = pcm->caps[i].period_size_max;
+		cap->buffer_size_min = pcm->caps[i].buffer_size_min;
+		cap->buffer_size_max = pcm->caps[i].buffer_size_max;
+		cap->sig_bits = pcm->caps[i].sig_bits;
+	}
+
+	tplg_dv(tplg, pos + offsetof(struct snd_soc_tplg_pcm, priv),
+		"pcm: private start");
+	pt->priv = &pcm->priv;
+
+	bin += sizeof(*pcm) + pcm->priv.size;
+	size -= sizeof(*pcm) + pcm->priv.size;
+	pos += sizeof(*pcm) + pcm->priv.size;
+
+	t.pcm = pt;
+	err = snd_tplg_add_object(tplg, &t);
+	if (err < 0)
+		return err;
+
+	if (size > 0)
+		goto next;
+
+	return 0;
+}
+
+/* decode dai from the binary input */
+int tplg_decode_dai(snd_tplg_t *tplg,
+		    size_t pos,
+		    struct snd_soc_tplg_hdr *hdr,
+		    void *bin, size_t size)
+{
+	SNDERR("not implemented");
+	return -ENXIO;
+}
+
+/* decode cc from the binary input */
+int tplg_decode_cc(snd_tplg_t *tplg,
+		   size_t pos,
+		   struct snd_soc_tplg_hdr *hdr,
+		   void *bin, size_t size)
+{
+	SNDERR("not implemented");
+	return -ENXIO;
+}
+
+/* decode link from the binary input */
+int tplg_decode_link(snd_tplg_t *tplg,
+		     size_t pos,
+		     struct snd_soc_tplg_hdr *hdr,
+		     void *bin, size_t size)
+{
+	struct snd_soc_tplg_link_config *link;
+	snd_tplg_obj_template_t t;
+	struct snd_tplg_link_template lt;
+	struct snd_tplg_stream_template streams[SND_SOC_TPLG_STREAM_CONFIG_MAX];
+	struct snd_tplg_stream_template *stream;
+	struct snd_tplg_hw_config_template hws[SND_SOC_TPLG_HW_CONFIG_MAX];
+	struct snd_tplg_hw_config_template *hw;
+	unsigned int i, j;
+	int err;
+
+	err = tplg_decode_template(tplg, pos, hdr, &t);
+	if (err < 0)
+		return err;
+
+next:
+	memset(&lt, 0, sizeof(lt));
+	memset(streams, 0, sizeof(streams));
+	memset(hws, 0, sizeof(hws));
+	link = bin;
+
+	if (size < sizeof(*link)) {
+		SNDERR("link: small size %d", size);
+		return -EINVAL;
+	}
+	if (sizeof(*link) != link->size) {
+		SNDERR("link: unknown element size %d (expected %zd)",
+		       link->size, sizeof(*link));
+		return -EINVAL;
+	}
+	if (link->num_streams > SND_SOC_TPLG_STREAM_CONFIG_MAX) {
+		SNDERR("link: wrong number of streams %d", link->num_streams);
+		return -EINVAL;
+	}
+	if (link->num_hw_configs > SND_SOC_TPLG_HW_CONFIG_MAX) {
+		SNDERR("link: wrong number of streams %d", link->num_streams);
+		return -EINVAL;
+	}
+	if (sizeof(*link) + link->priv.size > size) {
+		SNDERR("link: wrong private data size %d", link->priv.size);
+		return -EINVAL;
+	}
+
+	tplg_dv(tplg, pos, "link: size %d private size %d streams %d "
+		"hw_configs %d",
+		link->size, link->priv.size, link->num_streams,
+		link->num_hw_configs);
+
+	lt.id = link->id;
+	lt.name = link->name;
+	tplg_dv(tplg, pos, "link: name '%s'", lt.name);
+	lt.stream_name = link->stream_name;
+	tplg_dv(tplg, pos, "link: stream_name '%s'", lt.stream_name);
+	lt.num_streams = link->num_streams;
+	lt.num_hw_configs = link->num_hw_configs;
+	lt.default_hw_config_id = link->default_hw_config_id;
+	lt.flag_mask = link->flag_mask;
+	lt.flags = link->flags;
+	for (i = 0; i < link->num_streams; i++) {
+		stream = &streams[i];
+		if (link->stream[i].size != sizeof(link->stream[0])) {
+			SNDERR("link: unknown stream structure size %d",
+			       link->stream[i].size);
+			return -EINVAL;
+		}
+		stream->name = link->stream[i].name;
+		tplg_dv(tplg,
+			pos + offsetof(struct snd_soc_tplg_link_config, stream[i]),
+			"stream %d: '%s'", i, stream->name);
+		stream->format = link->stream[i].format;
+		stream->rate = link->stream[i].rate;
+		stream->period_bytes = link->stream[i].period_bytes;
+		stream->buffer_bytes = link->stream[i].buffer_bytes;
+		stream->channels = link->stream[i].channels;
+	}
+	lt.stream = streams;
+	for (i = 0; i < link->num_hw_configs; i++) {
+		hw = &hws[i];
+		if (link->hw_config[i].size != sizeof(link->hw_config[0])) {
+			SNDERR("link: unknown hw_config structure size %d",
+			       link->hw_config[i].size);
+			return -EINVAL;
+		}
+		hw->id = link->hw_config[i].id;
+		hw->fmt = link->hw_config[i].fmt;
+		hw->clock_gated = link->hw_config[i].clock_gated;
+		hw->invert_bclk = link->hw_config[i].invert_bclk;
+		hw->invert_fsync = link->hw_config[i].invert_fsync;
+		hw->bclk_master = link->hw_config[i].bclk_master;
+		hw->fsync_master = link->hw_config[i].fsync_master;
+		hw->mclk_direction = link->hw_config[i].mclk_direction;
+		hw->mclk_rate = link->hw_config[i].mclk_rate;
+		hw->bclk_rate = link->hw_config[i].bclk_rate;
+		hw->fsync_rate = link->hw_config[i].fsync_rate;
+		hw->tdm_slots = link->hw_config[i].tdm_slots;
+		hw->tdm_slot_width = link->hw_config[i].tdm_slot_width;
+		hw->tx_slots = link->hw_config[i].tx_slots;
+		hw->rx_slots = link->hw_config[i].rx_slots;
+		hw->tx_channels = link->hw_config[i].tx_channels;
+		if (hw->tx_channels > SND_SOC_TPLG_MAX_CHAN) {
+			SNDERR("link: wrong tx channels %d", hw->tx_channels);
+			return -EINVAL;
+		}
+		for (j = 0; j < hw->tx_channels; j++)
+			hw->tx_chanmap[j] = link->hw_config[i].tx_chanmap[j];
+		hw->rx_channels = link->hw_config[i].rx_channels;
+		if (hw->rx_channels > SND_SOC_TPLG_MAX_CHAN) {
+			SNDERR("link: wrong rx channels %d", hw->tx_channels);
+			return -EINVAL;
+		}
+		for (j = 0; j < hw->rx_channels; j++)
+			hw->rx_chanmap[j] = link->hw_config[i].rx_chanmap[j];
+	}
+	lt.hw_config = hws;
+
+	tplg_dv(tplg, pos + offsetof(struct snd_soc_tplg_pcm, priv),
+		"link: private start");
+	lt.priv = &link->priv;
+
+	bin += sizeof(*link) + link->priv.size;
+	size -= sizeof(*link) + link->priv.size;
+	pos += sizeof(*link) + link->priv.size;
+
+	t.link = &lt;
+	err = snd_tplg_add_object(tplg, &t);
+	if (err < 0)
+		return err;
+
+	if (size > 0)
+		goto next;
 
 	return 0;
 }
