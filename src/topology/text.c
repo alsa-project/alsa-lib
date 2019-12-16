@@ -89,3 +89,22 @@ int tplg_parse_text(snd_tplg_t *tplg, snd_config_t *cfg,
 
 	return err;
 }
+
+/* save text data */
+int tplg_save_text(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
+		   struct tplg_elem *elem,
+		   char **dst, const char *pfx)
+{
+	struct tplg_texts *texts = elem->texts;
+	unsigned int i;
+	int err;
+
+	if (!texts || texts->num_items == 0)
+		return 0;
+	err = tplg_save_printf(dst, pfx, "'%s'.values [\n", elem->id);
+	for (i = 0; err >= 0 && i < texts->num_items; i++)
+		err = tplg_save_printf(dst, pfx, "\t'%s'\n", texts->items[i][0]);
+	if (err >= 0)
+		err = tplg_save_printf(dst, pfx, "]\n");
+	return err;
+}

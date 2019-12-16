@@ -21,6 +21,10 @@
 #include "tplg_local.h"
 #include <ctype.h>
 
+#define UUID_FORMAT "\
+0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, \
+0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x"
+
 /* Get private data buffer of an element */
 struct snd_soc_tplg_private *get_priv_data(struct tplg_elem *elem)
 {
@@ -62,6 +66,96 @@ struct snd_soc_tplg_private *get_priv_data(struct tplg_elem *elem)
 	}
 
 	return priv;
+}
+
+/* Parse references for the element, either a single data section
+ * or a list of data sections.
+ */
+int tplg_parse_refs(snd_config_t *cfg, struct tplg_elem *elem,
+		    unsigned int type)
+{
+	snd_config_type_t cfg_type;
+	snd_config_iterator_t i, next;
+	snd_config_t *n;
+	const char *val = NULL;
+	int err, count;
+
+	cfg_type = snd_config_get_type(cfg);
+
+	/* refer to a single data section */
+	if (cfg_type == SND_CONFIG_TYPE_STRING) {
+		if (snd_config_get_string(cfg, &val) < 0)
+			return -EINVAL;
+
+		tplg_dbg("\tref data: %s\n", val);
+		err = tplg_ref_add(elem, type, val);
+		if (err < 0)
+			return err;
+		return 1;
+	}
+
+	if (cfg_type != SND_CONFIG_TYPE_COMPOUND) {
+		SNDERR("error: compound type expected for %s", elem->id);
+		return -EINVAL;
+	}
+
+	/* refer to a list of data sections */
+	count = 0;
+	snd_config_for_each(i, next, cfg) {
+		const char *val;
+
+		n = snd_config_iterator_entry(i);
+		if (snd_config_get_string(n, &val) < 0)
+			continue;
+
+		tplg_dbg("\tref data: %s\n", val);
+		err = tplg_ref_add(elem, type, val);
+		if (err < 0)
+			return err;
+		count++;
+	}
+
+	return count;
+}
+
+/* save references */
+int tplg_save_refs(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
+		   struct tplg_elem *elem, unsigned int type,
+		   const char *id, char **dst, const char *pfx)
+{
+	struct tplg_ref *ref, *last;
+	struct list_head *pos;
+	int err, count;
+
+	count = 0;
+	last = NULL;
+	list_for_each(pos, &elem->ref_list) {
+		ref = list_entry(pos, struct tplg_ref, list);
+		if (ref->type == type) {
+			last = ref;
+			count++;
+		}
+	}
+
+	if (count == 0)
+		return 0;
+
+	if (count == 1)
+		return tplg_save_printf(dst, pfx, "%s '%s'\n", id, last->id);
+
+	err = tplg_save_printf(dst, pfx, "%s [\n", id);
+	if (err < 0)
+		return err;
+	list_for_each(pos, &elem->ref_list) {
+		ref = list_entry(pos, struct tplg_ref, list);
+		if (ref->type == type) {
+			err = tplg_save_printf(dst, pfx, "\t'%s'\n", ref->id);
+			if (err < 0)
+				return err;
+		}
+	}
+
+	return tplg_save_printf(dst, pfx, "]\n");
 }
 
 /* Get Private data from a file. */
@@ -140,58 +234,98 @@ err:
 static void dump_priv_data(struct tplg_elem *elem)
 {
 	struct snd_soc_tplg_private *priv = elem->data;
-	unsigned int i, j = 0;
+	unsigned int i;
 
 	tplg_dbg(" elem size = %d, priv data size = %d\n",
 		elem->size, priv->size);
 
 	for (i = 0; i < priv->size; i++) {
-		if (j++ % 8 == 0)
+		if (i > 0 && (i % 16) == 0)
 			tplg_dbg("\n");
 
-		tplg_dbg(" 0x%x", *p++);
+		tplg_dbg(" %02x:", *p++);
 	}
 
 	tplg_dbg("\n\n");
 }
 
+static inline int check_nibble(unsigned char c)
+{
+	return (c >= '0' && c <= '9') ||
+	       (c >= 'a' && c <= 'f') ||
+	       (c >= 'A' && c <= 'F');
+}
+
 /* get number of hex value elements in CSV list */
 static int get_hex_num(const char *str)
 {
-	int commas = 0, values = 0, len = strlen(str);
-	const char *end = str + len;
+	int delims, values, len = strlen(str);
+	const char *s, *end = str + len;
 
+	/* check "aa:bb:00" syntax */
+	s = str;
+	delims = values = 0;
+	while (s < end) {
+		/* skip white space */
+		if (isspace(*s)) {
+			s++;
+			continue;
+		}
+		/* find delimeters */
+		if (*s == ':') {
+			delims++;
+			s++;
+			continue;
+		}
+		/* check 00 hexadecimal value */
+		if (s + 1 <= end) {
+			if (check_nibble(s[0]) && check_nibble(s[1])) {
+				values++;
+			} else {
+				goto format2;
+			}
+			s++;
+		}
+		s++;
+	}
+	goto end;
+
+format2:
 	/* we expect "0x0, 0x0, 0x0" */
-	while (str < end) {
+	s = str;
+	delims = values = 0;
+	while (s < end) {
 
 		/* skip white space */
-		if (isspace(*str)) {
-			str++;
+		if (isspace(*s)) {
+			s++;
 			continue;
 		}
 
 		/* find delimeters */
-		if (*str == ',') {
-			commas++;
-			str++;
+		if (*s == ',') {
+			delims++;
+			s++;
 			continue;
 		}
 
 		/* find 0x[0-9] values */
-		if (*str == '0' && str + 2 <= end) {
-			if (str[1] == 'x' && str[2] >= '0' && str[2] <= 'f') {
+		if (*s == '0' && s + 2 <= end) {
+			if (s[1] == 'x' && check_nibble(s[2])) {
+				if (check_nibble(s[3]))
+					s++;
 				values++;
-				str += 3;
-			} else {
-				str++;
+				s += 2;
 			}
+			s++;
 		}
 
-		str++;
+		s++;
 	}
 
+end:
 	/* there should always be one less comma than value */
-	if (values -1 != commas)
+	if (values - 1 != delims)
 		return -EINVAL;
 
 	return values;
@@ -547,6 +681,71 @@ static int build_tuples(snd_tplg_t *tplg, struct tplg_elem *elem)
 	return 0;
 }
 
+struct tuple_type {
+	unsigned int type;
+	const char *name;
+	unsigned int size;
+};
+
+static struct tuple_type tuple_types[] = {
+	{
+		.type = SND_SOC_TPLG_TUPLE_TYPE_UUID,
+		.name = "uuid",
+		.size = 4,
+	},
+	{
+		.type = SND_SOC_TPLG_TUPLE_TYPE_STRING,
+		.name = "string",
+		.size = 6,
+	},
+	{
+		.type = SND_SOC_TPLG_TUPLE_TYPE_BOOL,
+		.name = "bool",
+		.size = 4,
+	},
+	{
+		.type = SND_SOC_TPLG_TUPLE_TYPE_BYTE,
+		.name = "byte",
+		.size = 4,
+	},
+	{
+		.type = SND_SOC_TPLG_TUPLE_TYPE_SHORT,
+		.name = "short",
+		.size = 5,
+	},
+	{
+		.type = SND_SOC_TPLG_TUPLE_TYPE_WORD,
+		.name = "word",
+		.size = 4
+	},
+};
+
+static int get_tuple_type(const char *name)
+{
+	struct tuple_type *t;
+	unsigned int i;
+
+	/* skip initial index for sorting */
+	while ((*name >= '0' && *name <= '9') || *name == '_')
+		name++;
+	for (i = 0; i < ARRAY_SIZE(tuple_types); i++) {
+		t = &tuple_types[i];
+		if (strncasecmp(t->name, name, t->size) == 0)
+			return t->type;
+	}
+	return -EINVAL;
+}
+
+static const char *get_tuple_type_name(unsigned int type)
+{
+	unsigned int i;
+
+	for (i = 0; i < ARRAY_SIZE(tuple_types); i++)
+		if (tuple_types[i].type == type)
+			return tuple_types[i].name;
+	return NULL;
+}
+
 static int parse_tuple_set(snd_config_t *cfg,
 	struct tplg_tuple_set **s)
 {
@@ -554,28 +753,17 @@ static int parse_tuple_set(snd_config_t *cfg,
 	snd_config_t *n;
 	const char *id, *value;
 	struct tplg_tuple_set *set;
-	unsigned int type, num_tuples = 0;
+	unsigned int num_tuples = 0;
 	struct tplg_tuple *tuple;
 	unsigned int tuple_val;
-	int ival;
+	int type, ival;
 
 	snd_config_get_id(cfg, &id);
 
-	if (strncmp(id, "uuid", 4) == 0)
-		type = SND_SOC_TPLG_TUPLE_TYPE_UUID;
-	else if (strncmp(id, "string", 5) == 0)
-		type = SND_SOC_TPLG_TUPLE_TYPE_STRING;
-	else if (strncmp(id, "bool", 4) == 0)
-		type = SND_SOC_TPLG_TUPLE_TYPE_BOOL;
-	else if (strncmp(id, "byte", 4) == 0)
-		type = SND_SOC_TPLG_TUPLE_TYPE_BYTE;
-	else if (strncmp(id, "short", 5) == 0)
-		type = SND_SOC_TPLG_TUPLE_TYPE_SHORT;
-	else if (strncmp(id, "word", 4) == 0)
-		type = SND_SOC_TPLG_TUPLE_TYPE_WORD;
-	else {
-		SNDERR("error: invalid tuple type '%s'\n", id);
-		return -EINVAL;
+	type = get_tuple_type(id);
+	if (type < 0) {
+		SNDERR("error: invalid tuple type '%s'", id);
+		return type;
 	}
 
 	snd_config_for_each(i, next, cfg)
@@ -664,6 +852,84 @@ err:
 	return -EINVAL;
 }
 
+/* save tuple set */
+static int tplg_save_tuple_set(struct tplg_vendor_tuples *tuples,
+			       unsigned int set_index,
+			       char **dst, const char *pfx)
+{
+	struct tplg_tuple_set *set;
+	struct tplg_tuple *tuple;
+	const char *s, *fmt;
+	char buf[32];
+	unsigned int i;
+	int err;
+
+	set = tuples->set[set_index];
+	if (set->num_tuples == 0)
+		return 0;
+	s = get_tuple_type_name(set->type);
+	if (s == NULL)
+		return -EINVAL;
+	if (tuples->num_sets < 10)
+		fmt = "%u_";
+	else if (tuples->num_sets < 100)
+		fmt = "%02u_";
+	else if (tuples->num_sets < 1000)
+		fmt = "%03u_";
+	else
+		return -EINVAL;
+	if (set->num_tuples > 1) {
+		snprintf(buf, sizeof(buf), "tuples.%s%%s {\n", fmt);
+		err = tplg_save_printf(dst, NULL, buf, set_index, s);
+		if (err < 0)
+			return err;
+	}
+	for (i = 0; i < set->num_tuples; i++) {
+		tuple = &set->tuple[i];
+		if (set->num_tuples == 1) {
+			snprintf(buf, sizeof(buf), "tuples.%s%%s.'%%s' ", fmt);
+			err = tplg_save_printf(dst, NULL, buf,
+					       set_index, s, tuple->token);
+		} else {
+			err = tplg_save_printf(dst, pfx, "\t'%s' ",
+					       tuple->token);
+		}
+		switch (set->type) {
+		case SND_SOC_TPLG_TUPLE_TYPE_UUID:
+			err = tplg_save_printf(dst, NULL, "'" UUID_FORMAT "'\n",
+					       tuple->uuid[0], tuple->uuid[1],
+					       tuple->uuid[2], tuple->uuid[3],
+					       tuple->uuid[4], tuple->uuid[5],
+					       tuple->uuid[6], tuple->uuid[7],
+					       tuple->uuid[8], tuple->uuid[9],
+					       tuple->uuid[10], tuple->uuid[11],
+					       tuple->uuid[12], tuple->uuid[13],
+					       tuple->uuid[14], tuple->uuid[15]);
+			break;
+		case SND_SOC_TPLG_TUPLE_TYPE_STRING:
+			err = tplg_save_printf(dst, NULL, "'%s'\n",
+					       tuple->string);
+			break;
+		case SND_SOC_TPLG_TUPLE_TYPE_BOOL:
+		case SND_SOC_TPLG_TUPLE_TYPE_BYTE:
+		case SND_SOC_TPLG_TUPLE_TYPE_SHORT:
+			err = tplg_save_printf(dst, NULL, "%u\n", tuple->value);
+			break;
+		case SND_SOC_TPLG_TUPLE_TYPE_WORD:
+			tplg_nice_value_format(buf, sizeof(buf), tuple->value);
+			err = tplg_save_printf(dst, NULL, "%s\n", buf);
+			break;
+		default:
+			return -EINVAL;
+		}
+		if (err < 0)
+			return err;
+	}
+	if (set->num_tuples > 1)
+		return tplg_save_printf(dst, pfx, "}\n");
+	return 0;
+}
+
 static int parse_tuple_sets(snd_config_t *cfg,
 	struct tplg_vendor_tuples *tuples)
 {
@@ -710,87 +976,24 @@ static int parse_tuple_sets(snd_config_t *cfg,
 	return 0;
 }
 
-/* Parse tuples references for a data element, either a single tuples section
- * or a list of tuples sections.
- */
-static int parse_tuples_refs(snd_config_t *cfg,
-	struct tplg_elem *elem)
+/* save tuple sets */
+int tplg_save_tuple_sets(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
+			 struct tplg_elem *elem,
+			 char **dst, const char *pfx)
 {
-	snd_config_type_t  type;
-	snd_config_iterator_t i, next;
-	snd_config_t *n;
-	const char *val = NULL;
+	struct tplg_vendor_tuples *tuples = elem->tuples;
+	unsigned int i;
+	int err = 0;
 
-	type = snd_config_get_type(cfg);
-
-	/* refer to a single tuples section */
-	if (type == SND_CONFIG_TYPE_STRING) {
-		if (snd_config_get_string(cfg, &val) < 0)
-			return -EINVAL;
-		tplg_dbg("\ttuples: %s\n", val);
-		return tplg_ref_add(elem, SND_TPLG_TYPE_TUPLE, val);
+	for (i = 0; i < tuples->num_sets; i++) {
+		err = tplg_save_printf(dst, pfx, "");
+		if (err < 0)
+			break;
+		err = tplg_save_tuple_set(tuples, i, dst, pfx);
+		if (err < 0)
+			break;
 	}
-
-	if (type != SND_CONFIG_TYPE_COMPOUND) {
-		SNDERR("error: compound type expected for %s", elem->id);
-		return -EINVAL;
-	}
-
-	/* refer to a list of data sections */
-	snd_config_for_each(i, next, cfg) {
-		const char *val;
-
-		n = snd_config_iterator_entry(i);
-		if (snd_config_get_string(n, &val) < 0)
-			continue;
-
-		tplg_dbg("\ttuples: %s\n", val);
-		tplg_ref_add(elem, SND_TPLG_TYPE_TUPLE, val);
-	}
-
-	return 0;
-}
-
-/* Parse private data references for the element, either a single data section
- * or a list of data sections.
- */
-int tplg_parse_data_refs(snd_config_t *cfg,
-	struct tplg_elem *elem)
-{
-	snd_config_type_t  type;
-	snd_config_iterator_t i, next;
-	snd_config_t *n;
-	const char *val = NULL;
-
-	type = snd_config_get_type(cfg);
-
-	/* refer to a single data section */
-	if (type == SND_CONFIG_TYPE_STRING) {
-		if (snd_config_get_string(cfg, &val) < 0)
-			return -EINVAL;
-
-		tplg_dbg("\tdata: %s\n", val);
-		return tplg_ref_add(elem, SND_TPLG_TYPE_DATA, val);
-	}
-
-	if (type != SND_CONFIG_TYPE_COMPOUND) {
-		SNDERR("error: compound type expected for %s", elem->id);
-		return -EINVAL;
-	}
-
-	/* refer to a list of data sections */
-	snd_config_for_each(i, next, cfg) {
-		const char *val;
-
-		n = snd_config_iterator_entry(i);
-		if (snd_config_get_string(n, &val) < 0)
-			continue;
-
-		tplg_dbg("\tdata: %s\n", val);
-		tplg_ref_add(elem, SND_TPLG_TYPE_DATA, val);
-	}
-
-	return 0;
+	return err;
 }
 
 /* Parse vendor tokens
@@ -844,6 +1047,31 @@ int tplg_parse_tokens(snd_tplg_t *tplg, snd_config_t *cfg,
 	return 0;
 }
 
+/* save vendor tokens */
+int tplg_save_tokens(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
+		     struct tplg_elem *elem,
+		     char **dst, const char *pfx)
+{
+	struct tplg_vendor_tokens *tokens = elem->tokens;
+	unsigned int i;
+	int err;
+
+	if (!tokens || tokens->num_tokens == 0)
+		return 0;
+
+	err = tplg_save_printf(dst, NULL, "'%s' {\n", elem->id);
+	if (err < 0)
+		return err;
+	for (i = 0; err >= 0 && i < tokens->num_tokens; i++)
+		err = tplg_save_printf(dst, pfx, "\t'%s' %u\n",
+				       tokens->token[i].id,
+				       tokens->token[i].value);
+	err = tplg_save_printf(dst, pfx, "}\n");
+	if (err < 0)
+		return err;
+	return 0;
+}
+
 /* Parse vendor tuples.
  */
 int tplg_parse_tuples(snd_tplg_t *tplg, snd_config_t *cfg,
@@ -887,6 +1115,29 @@ int tplg_parse_tuples(snd_tplg_t *tplg, snd_config_t *cfg,
 		}
 	}
 
+	return 0;
+}
+
+/* save vendor tuples */
+int tplg_save_tuples(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
+		     struct tplg_elem *elem,
+		     char **dst, const char *pfx)
+{
+	char pfx2[16];
+	int err;
+
+	if (!elem->tuples)
+		return 0;
+
+	err = tplg_save_printf(dst, NULL, "'%s' {\n", elem->id);
+	snprintf(pfx2, sizeof(pfx2), "%s\t", pfx ?: "");
+	if (err >= 0)
+		err = tplg_save_refs(tplg, elem, SND_TPLG_TYPE_TOKEN,
+				     "tokens", dst, pfx2);
+	if (err >= 0)
+		err = tplg_save_tuple_sets(tplg, elem, dst, pfx2);
+	if (err >= 0)
+		err = tplg_save_printf(dst, pfx, "}\n");
 	return 0;
 }
 
@@ -944,13 +1195,58 @@ int tplg_parse_manifest_data(snd_tplg_t *tplg, snd_config_t *cfg,
 
 
 		if (strcmp(id, "data") == 0) {
-			err = tplg_parse_data_refs(n, elem);
+			err = tplg_parse_refs(n, elem, SND_TPLG_TYPE_DATA);
 			if (err < 0)
 				return err;
 			continue;
 		}
 	}
 
+	return 0;
+}
+
+/* save manifest data */
+int tplg_save_manifest_data(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
+			    struct tplg_elem *elem, char **dst,
+			    const char *pfx)
+{
+	struct list_head *pos;
+	struct tplg_ref *ref;
+	int err, index, count;
+
+	/* for each ref in this manifest elem */
+	count = 0;
+	list_for_each(pos, &elem->ref_list) {
+		ref = list_entry(pos, struct tplg_ref, list);
+		if (ref->type != SND_TPLG_TYPE_DATA)
+			continue;
+		count++;
+	}
+	if (count > 1) {
+		err = tplg_save_printf(dst, NULL, "'%s'.data [\n", elem->id);
+		if (err < 0)
+			return err;
+	}
+	index = 0;
+	list_for_each(pos, &elem->ref_list) {
+		ref = list_entry(pos, struct tplg_ref, list);
+		if (ref->type != SND_TPLG_TYPE_DATA)
+			continue;
+		if (count == 1) {
+			err = tplg_save_printf(dst, NULL, "'%s'.data.%u '%s'\n",
+					       elem->id, index, ref->id);
+		} else {
+			err = tplg_save_printf(dst, pfx, "\t'%s'\n", ref->id);
+			if (err < 0)
+				return err;
+		}
+		index++;
+	}
+	if (count > 1) {
+		err = tplg_save_printf(dst, pfx, "]\n");
+		if (err < 0)
+			return err;
+	}
 	return 0;
 }
 
@@ -1064,7 +1360,7 @@ int tplg_parse_data(snd_tplg_t *tplg, snd_config_t *cfg,
 		}
 
 		if (strcmp(id, "tuples") == 0) {
-			err = parse_tuples_refs(n, elem);
+			err = tplg_parse_refs(n, elem, SND_TPLG_TYPE_TUPLE);
 			if (err < 0)
 				return err;
 			continue;
@@ -1080,6 +1376,81 @@ int tplg_parse_data(snd_tplg_t *tplg, snd_config_t *cfg,
 		}
 	}
 
+	return err;
+}
+
+/* save data element */
+int tplg_save_data(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
+		   struct tplg_elem *elem,
+		   char **dst, const char *pfx)
+{
+	struct snd_soc_tplg_private *priv = elem->data;
+	struct list_head *pos;
+	struct tplg_ref *ref;
+	char pfx2[16];
+	unsigned int i, count;
+	int err;
+
+	count = 0;
+	if (priv && priv->size > 0)
+		count++;
+	list_for_each(pos, &elem->ref_list) {
+		ref = list_entry(pos, struct tplg_ref, list);
+		if (ref->type == SND_TPLG_TYPE_TUPLE)
+			count++;
+	}
+	if (elem->vendor_type > 0)
+		count++;
+
+	if (count > 1) {
+		err = tplg_save_printf(dst, NULL, "'%s' {\n", elem->id);
+		if (err >= 0)
+			err = tplg_save_printf(dst, NULL, "");
+	} else {
+		err = tplg_save_printf(dst, NULL, "'%s'.", elem->id);
+	}
+	if (err >= 0 && priv && priv->size > 0) {
+		if (count > 1) {
+			err = tplg_save_printf(dst, pfx, "");
+			if (err < 0)
+				return err;
+		}
+		if (priv->size > 8) {
+			err = tplg_save_printf(dst, NULL, "bytes\n");
+			if (err >= 0)
+				err = tplg_save_printf(dst, pfx, "\t'");
+		} else {
+			err = tplg_save_printf(dst, NULL, "bytes '");
+		}
+		if (err < 0)
+			return err;
+		for (i = 0; i < priv->size; i++) {
+			if (i > 0 && (i % 8) == 0) {
+				err = tplg_save_printf(dst, NULL, ":\n");
+				if (err < 0)
+					return err;
+				err = tplg_save_printf(dst, pfx, "\t ");
+				if (err < 0)
+					return err;
+			}
+			err = tplg_save_printf(dst, NULL, "%s%02x",
+					       (i % 8) == 0 ? "" : ":",
+					       (unsigned char)priv->data[i]);
+			if (err < 0)
+				return err;
+		}
+		err = tplg_save_printf(dst, NULL, "'\n");
+	}
+	snprintf(pfx2, sizeof(pfx2), "%s\t", pfx ?: "");
+	if (err >= 0)
+		err = tplg_save_refs(tplg, elem, SND_TPLG_TYPE_TUPLE,
+				     "tuples", dst,
+				     count > 1 ? pfx2 : NULL);
+	if (err >= 0 && elem->vendor_type > 0)
+		err = tplg_save_printf(dst, pfx, "type %u",
+				       elem->vendor_type);
+	if (err >= 0 && count > 1)
+		err = tplg_save_printf(dst, pfx, "}\n");
 	return err;
 }
 

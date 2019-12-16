@@ -27,7 +27,8 @@ libatopology_la_SOURCES =\
 	text.c \
 	channel.c \
 	ops.c \
-	elem.c
+	elem.c \
+	save.c
 
 noinst_HEADERS = tplg_local.h
 

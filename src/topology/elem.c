@@ -30,6 +30,7 @@ struct tplg_table tplg_table[] = {
 		.size  = sizeof(struct snd_soc_tplg_manifest),
 		.enew  = 1,
 		.parse = tplg_parse_manifest_data,
+		.save  = tplg_save_manifest_data,
 	},
 	{
 		.name  = "control mixer",
@@ -41,6 +42,7 @@ struct tplg_table tplg_table[] = {
 		.build = 1,
 		.enew  = 1,
 		.parse = tplg_parse_control_mixer,
+		.save  = tplg_save_control_mixer,
 	},
 	{
 		.name  = "control enum",
@@ -52,6 +54,7 @@ struct tplg_table tplg_table[] = {
 		.build = 1,
 		.enew  = 1,
 		.parse = tplg_parse_control_enum,
+		.save  = tplg_save_control_enum,
 	},
 	{
 		.name  = "control extended (bytes)",
@@ -63,6 +66,7 @@ struct tplg_table tplg_table[] = {
 		.build = 1,
 		.enew  = 1,
 		.parse = tplg_parse_control_bytes,
+		.save  = tplg_save_control_bytes,
 	},
 	{
 		.name  = "dapm widget",
@@ -74,6 +78,7 @@ struct tplg_table tplg_table[] = {
 		.build = 1,
 		.enew  = 1,
 		.parse = tplg_parse_dapm_widget,
+		.save  = tplg_save_dapm_widget,
 	},
 	{
 		.name  = "pcm",
@@ -85,6 +90,7 @@ struct tplg_table tplg_table[] = {
 		.build = 1,
 		.enew  = 1,
 		.parse = tplg_parse_pcm,
+		.save  = tplg_save_pcm,
 	},
 	{
 		.name  = "physical dai",
@@ -96,6 +102,7 @@ struct tplg_table tplg_table[] = {
 		.build = 1,
 		.enew  = 1,
 		.parse = tplg_parse_dai,
+		.save  = tplg_save_dai,
 	},
 	{
 		.name  = "be",
@@ -108,6 +115,7 @@ struct tplg_table tplg_table[] = {
 		.build = 1,
 		.enew  = 1,
 		.parse = tplg_parse_link,
+		.save  = tplg_save_link,
 	},
 	{
 		.name  = "cc",
@@ -119,6 +127,7 @@ struct tplg_table tplg_table[] = {
 		.build = 1,
 		.enew  = 1,
 		.parse = tplg_parse_cc,
+		.save  = tplg_save_cc,
 	},
 	{
 		.name  = "route (dapm graph)",
@@ -128,6 +137,7 @@ struct tplg_table tplg_table[] = {
 		.tsoc  = SND_SOC_TPLG_TYPE_DAPM_GRAPH,
 		.build = 1,
 		.parse = tplg_parse_dapm_graph,
+		.gsave = tplg_save_dapm_graph,
 	},
 	{
 		.name  = "private data",
@@ -138,6 +148,7 @@ struct tplg_table tplg_table[] = {
 		.build = 1,
 		.enew  = 1,
 		.parse = tplg_parse_data,
+		.save  = tplg_save_data,
 	},
 	{
 		.name  = "text",
@@ -147,6 +158,7 @@ struct tplg_table tplg_table[] = {
 		.size  = sizeof(struct tplg_texts),
 		.enew  = 1,
 		.parse = tplg_parse_text,
+		.save  = tplg_save_text,
 	},
 	{
 		.name  = "tlv",
@@ -156,6 +168,7 @@ struct tplg_table tplg_table[] = {
 		.size  = sizeof(struct snd_soc_tplg_ctl_tlv),
 		.enew  = 1,
 		.parse = tplg_parse_tlv,
+		.save  = tplg_save_tlv,
 	},
 	{
 		.name  = "stream config",
@@ -172,6 +185,7 @@ struct tplg_table tplg_table[] = {
 		.size  = sizeof(struct snd_soc_tplg_stream_caps),
 		.enew  = 1,
 		.parse = tplg_parse_stream_caps,
+		.save  = tplg_save_stream_caps,
 	},
 	{
 		.name  = "token",
@@ -180,6 +194,7 @@ struct tplg_table tplg_table[] = {
 		.type  = SND_TPLG_TYPE_TOKEN,
 		.enew  = 1,
 		.parse = tplg_parse_tokens,
+		.save  = tplg_save_tokens,
 	},
 	{
 		.name  = "tuple",
@@ -189,6 +204,7 @@ struct tplg_table tplg_table[] = {
 		.free  = tplg_free_tuples,
 		.enew  = 1,
 		.parse = tplg_parse_tuples,
+		.save  = tplg_save_tuples,
 	},
 	{
 		.name  = "hw config",
@@ -198,6 +214,7 @@ struct tplg_table tplg_table[] = {
 		.size  = sizeof(struct snd_soc_tplg_hw_config),
 		.enew  = 1,
 		.parse = tplg_parse_hw_config,
+		.save  = tplg_save_hw_config,
 	}
 };
 
@@ -394,6 +411,7 @@ struct tplg_elem* tplg_elem_new_common(snd_tplg_t *tplg,
 	tplg_elem_insert(elem, list);
 	obj_size = tptr->size;
 	elem->free = tptr->free;
+	elem->table = tptr;
 
 	/* create new object too if required */
 	if (obj_size > 0) {

@@ -874,6 +874,21 @@ static int get_nonwhite(input_t *input)
 	}
 }
 
+static inline int get_hexachar(input_t *input)
+{
+	int c, num = 0;
+
+	c = get_char(input);
+	if (c >= '0' && c <= '9') num |= (c - '0') << 4;
+	else if (c >= 'a' && c <= 'f') num |= (c - 'a') << 4;
+	else if (c >= 'A' && c <= 'F') num |= (c - 'A') << 4;
+	c = get_char(input);
+	if (c >= '0' && c <= '9') num |= (c - '0') << 0;
+	else if (c >= 'a' && c <= 'f') num |= (c - 'a') << 0;
+	else if (c >= 'A' && c <= 'F') num |= (c - 'A') << 0;
+	return c;
+}
+
 static int get_quotedchar(input_t *input)
 {
 	int c;
@@ -891,6 +906,8 @@ static int get_quotedchar(input_t *input)
 		return '\r';
 	case 'f':
 		return '\f';
+	case 'x':
+		return get_hexachar(input);
 	case '0': case '1': case '2': case '3':
 	case '4': case '5': case '6': case '7':
 	{

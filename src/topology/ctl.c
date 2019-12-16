@@ -28,15 +28,16 @@ struct ctl_access_elem {
 };
 
 /* CTL access strings and codes */
+/* place the multi-bit values on top - like read_write - for save */
 static const struct ctl_access_elem ctl_access[] = {
+	{"read_write", SNDRV_CTL_ELEM_ACCESS_READWRITE},
+	{"tlv_read_write", SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE},
 	{"read", SNDRV_CTL_ELEM_ACCESS_READ},
 	{"write", SNDRV_CTL_ELEM_ACCESS_WRITE},
-	{"read_write", SNDRV_CTL_ELEM_ACCESS_READWRITE},
 	{"volatile", SNDRV_CTL_ELEM_ACCESS_VOLATILE},
 	{"timestamp", SNDRV_CTL_ELEM_ACCESS_TIMESTAMP},
 	{"tlv_read", SNDRV_CTL_ELEM_ACCESS_TLV_READ},
 	{"tlv_write", SNDRV_CTL_ELEM_ACCESS_TLV_WRITE},
-	{"tlv_read_write", SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE},
 	{"tlv_command", SNDRV_CTL_ELEM_ACCESS_TLV_COMMAND},
 	{"inactive", SNDRV_CTL_ELEM_ACCESS_INACTIVE},
 	{"lock", SNDRV_CTL_ELEM_ACCESS_LOCK},
@@ -101,6 +102,46 @@ int parse_access(snd_config_t *cfg,
 	}
 
 	return err;
+}
+
+/* Save Access */
+static int tplg_save_access(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
+			    struct snd_soc_tplg_ctl_hdr *hdr, char **dst,
+			    const char *pfx)
+{
+	const char *last;
+	unsigned int j, count, access, cval;
+	int err;
+
+	if (hdr->access == 0)
+		return 0;
+
+	access = hdr->access;
+	for (j = 0, count = 0, last = NULL; j < ARRAY_SIZE(ctl_access); j++) {
+		cval = ctl_access[j].value;
+		if ((access & cval) == cval) {
+			access &= ~cval;
+			last = ctl_access[j].name;
+			count++;
+		}
+	}
+	if (count == 1)
+		return tplg_save_printf(dst, pfx, "access.0 %s\n", last);
+	err = tplg_save_printf(dst, pfx, "access [\n");
+	if (err < 0)
+		return err;
+	access = hdr->access;
+	for (j = 0; j < ARRAY_SIZE(ctl_access); j++) {
+		cval = ctl_access[j].value;
+		if ((access & cval) == cval) {
+			err = tplg_save_printf(dst, pfx, "\t%s\n",
+					       ctl_access[j].name);
+			if (err < 0)
+				return err;
+			access &= ~cval;
+		}
+	}
+	return tplg_save_printf(dst, pfx, "]\n");
 }
 
 /* copy referenced TLV to the mixer control */
@@ -358,6 +399,37 @@ int tplg_parse_tlv(snd_tplg_t *tplg, snd_config_t *cfg,
 	return err;
 }
 
+/* save TLV data */
+int tplg_save_tlv(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
+		  struct tplg_elem *elem,
+		  char **dst, const char *pfx)
+{
+	struct snd_soc_tplg_ctl_tlv *tlv = elem->tlv;
+	struct snd_soc_tplg_tlv_dbscale *scale;
+	int err;
+
+	if (tlv->type != SNDRV_CTL_TLVT_DB_SCALE) {
+		SNDERR("unknown TLV type");
+		return -EINVAL;
+	}
+
+	scale = &tlv->scale;
+	err = tplg_save_printf(dst, NULL, "'%s' {\n", elem->id);
+	if (err >= 0)
+		err = tplg_save_printf(dst, pfx, "\tscale {\n");
+	if (err >= 0 && scale->min)
+		err = tplg_save_printf(dst, pfx, "\t\tmin %i\n", scale->min);
+	if (err >= 0 && scale->step > 0)
+		err = tplg_save_printf(dst, pfx, "\t\tstep %i\n", scale->step);
+	if (err >= 0 && scale->mute > 0)
+		err = tplg_save_printf(dst, pfx, "\t\tmute %i\n", scale->mute);
+	if (err >= 0)
+		err = tplg_save_printf(dst, pfx, "\t}\n");
+	if (err >= 0)
+		err = tplg_save_printf(dst, pfx, "}\n");
+	return err;
+}
+
 /* Parse Control Bytes */
 int tplg_parse_control_bytes(snd_tplg_t *tplg,
 			     snd_config_t *cfg,
@@ -430,7 +502,7 @@ int tplg_parse_control_bytes(snd_tplg_t *tplg,
 		}
 
 		if (strcmp(id, "data") == 0) {
-			err = tplg_parse_data_refs(n, elem);
+			err = tplg_parse_refs(n, elem, SND_TPLG_TYPE_DATA);
 			if (err < 0)
 				return err;
 			continue;
@@ -483,6 +555,49 @@ int tplg_parse_control_bytes(snd_tplg_t *tplg,
 	}
 
 	return 0;
+}
+
+/* save control bytes */
+int tplg_save_control_bytes(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
+			    struct tplg_elem *elem,
+			    char **dst, const char *pfx)
+{
+	struct snd_soc_tplg_bytes_control *be = elem->bytes_ext;
+	char pfx2[16];
+	int err;
+
+	if (!be)
+		return 0;
+
+	snprintf(pfx2, sizeof(pfx2), "%s\t", pfx ?: "");
+	err = tplg_save_printf(dst, NULL, "'%s' {\n", elem->id);
+	if (err < 0)
+		return err;
+	if (err >= 0 && elem->index > 0)
+		err = tplg_save_printf(dst, pfx, "\tindex %u\n", elem->index);
+	if (err >= 0 && be->base > 0)
+		err = tplg_save_printf(dst, pfx, "\tbase %u\n", be->base);
+	if (err >= 0 && be->num_regs > 0)
+		err = tplg_save_printf(dst, pfx, "\tnum_regs %u\n", be->num_regs);
+	if (err >= 0 && be->max > 0)
+		err = tplg_save_printf(dst, pfx, "\tmax %u\n", be->max);
+	if (err >= 0 && be->mask > 0)
+		err = tplg_save_printf(dst, pfx, "\tmask %u\n", be->mask);
+	if (err >= 0)
+		err = tplg_save_ops(tplg, &be->hdr, dst, pfx2);
+	if (err >= 0)
+		err = tplg_save_ext_ops(tplg, be, dst, pfx2);
+	if (err >= 0)
+		err = tplg_save_access(tplg, &be->hdr, dst, pfx2);
+	if (err >= 0)
+		err = tplg_save_refs(tplg, elem, SND_TPLG_TYPE_TLV,
+				     "tlv", dst, pfx2);
+	if (err >= 0)
+		err = tplg_save_refs(tplg, elem, SND_TPLG_TYPE_DATA,
+				     "data", dst, pfx2);
+	if (err >= 0)
+		err = tplg_save_printf(dst, pfx, "}\n");
+	return err;
 }
 
 /* Parse Control Enums. */
@@ -559,7 +674,7 @@ int tplg_parse_control_enum(snd_tplg_t *tplg, snd_config_t *cfg,
 		}
 
 		if (strcmp(id, "data") == 0) {
-			err = tplg_parse_data_refs(n, elem);
+			err = tplg_parse_refs(n, elem, SND_TPLG_TYPE_DATA);
 			if (err < 0)
 				return err;
 			continue;
@@ -580,6 +695,42 @@ int tplg_parse_control_enum(snd_tplg_t *tplg, snd_config_t *cfg,
 	}
 
 	return 0;
+}
+
+/* save control eunm */
+int tplg_save_control_enum(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
+			   struct tplg_elem *elem,
+			   char **dst, const char *pfx)
+{
+	struct snd_soc_tplg_enum_control *ec = elem->enum_ctrl;
+	char pfx2[16];
+	int err;
+
+	if (!ec)
+		return 0;
+
+	snprintf(pfx2, sizeof(pfx2), "%s\t", pfx ?: "");
+	err = tplg_save_printf(dst, NULL, "'%s' {\n", elem->id);
+	if (err < 0)
+		return err;
+	if (err >= 0 && elem->index > 0)
+		err = tplg_save_printf(dst, pfx, "\tindex %u\n", elem->index);
+	if (err >= 0)
+		err = tplg_save_refs(tplg, elem, SND_TPLG_TYPE_TEXT,
+				     "texts", dst, pfx2);
+	if (err >= 0)
+		err = tplg_save_channels(tplg, ec->channel, ec->num_channels,
+					 dst, pfx2);
+	if (err >= 0)
+		err = tplg_save_ops(tplg, &ec->hdr, dst, pfx2);
+	if (err >= 0)
+		err = tplg_save_access(tplg, &ec->hdr, dst, pfx2);
+	if (err >= 0)
+		err = tplg_save_refs(tplg, elem, SND_TPLG_TYPE_DATA,
+				     "data", dst, pfx2);
+	if (err >= 0)
+		err = tplg_save_printf(dst, pfx, "}\n");
+	return err;
 }
 
 /* Parse Controls.
@@ -683,7 +834,7 @@ int tplg_parse_control_mixer(snd_tplg_t *tplg,
 		}
 
 		if (strcmp(id, "data") == 0) {
-			err = tplg_parse_data_refs(n, elem);
+			err = tplg_parse_refs(n, elem, SND_TPLG_TYPE_DATA);
 			if (err < 0)
 				return err;
 			continue;
@@ -707,6 +858,46 @@ int tplg_parse_control_mixer(snd_tplg_t *tplg,
 	}
 
 	return 0;
+}
+
+int tplg_save_control_mixer(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
+			    struct tplg_elem *elem, char **dst,
+			    const char *pfx)
+{
+	struct snd_soc_tplg_mixer_control *mc = elem->mixer_ctrl;
+	char pfx2[16];
+	int err;
+
+	if (!mc)
+		return 0;
+	err = tplg_save_printf(dst, NULL, "'%s' {\n", elem->id);
+	if (err < 0)
+		return err;
+	snprintf(pfx2, sizeof(pfx2), "%s\t", pfx ?: "");
+	if (err >= 0 && elem->index > 0)
+		err = tplg_save_printf(dst, pfx, "\tindex %u\n", elem->index);
+	if (err >= 0)
+		err = tplg_save_channels(tplg, mc->channel, mc->num_channels,
+					 dst, pfx2);
+	if (err >= 0 && mc->max > 0)
+		err = tplg_save_printf(dst, pfx, "\tmax %u\n", mc->max);
+	if (err >= 0 && mc->invert > 0)
+		err = tplg_save_printf(dst, pfx, "\tinvert 1\n", mc->max);
+	if (err >= 0 && mc->invert > 0)
+		err = tplg_save_printf(dst, pfx, "\tinvert 1\n", mc->max);
+	if (err >= 0)
+		err = tplg_save_ops(tplg, &mc->hdr, dst, pfx2);
+	if (err >= 0)
+		err = tplg_save_access(tplg, &mc->hdr, dst, pfx2);
+	if (err >= 0)
+		err = tplg_save_refs(tplg, elem, SND_TPLG_TYPE_TLV,
+				     "tlv", dst, pfx2);
+	if (err >= 0)
+		err = tplg_save_refs(tplg, elem, SND_TPLG_TYPE_DATA,
+				     "data", dst, pfx2);
+	if (err >= 0)
+		err = tplg_save_printf(dst, pfx, "}\n");
+	return err;
 }
 
 static int init_ctl_hdr(struct snd_soc_tplg_ctl_hdr *hdr,

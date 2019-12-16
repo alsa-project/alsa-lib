@@ -45,6 +45,18 @@ static int lookup_ops(const char *c)
 	return strtol(c, NULL, 0);
 }
 
+const char *tplg_ops_name(int type)
+{
+	unsigned int i;
+
+	for (i = 0; i < ARRAY_SIZE(control_map); i++) {
+		if (control_map[i].id == type)
+			return control_map[i].name;
+	}
+
+	return NULL;
+}
+
 /* Parse Control operations. Ops can come from standard names above or
  * bespoke driver controls with numbers >= 256
  */
@@ -84,6 +96,46 @@ int tplg_parse_ops(snd_tplg_t *tplg ATTRIBUTE_UNUSED, snd_config_t *cfg,
 	return 0;
 }
 
+/* save control operations */
+int tplg_save_ops(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
+		  struct snd_soc_tplg_ctl_hdr *hdr, char **dst,
+		  const char *pfx)
+{
+	const char *s;
+	int err;
+
+	if (hdr->ops.info + hdr->ops.get + hdr->ops.put == 0)
+		return 0;
+	err = tplg_save_printf(dst, pfx, "ops.0 {\n");
+	if (err >= 0 && hdr->ops.info > 0) {
+		s = tplg_ops_name(hdr->ops.info);
+		if (s == NULL)
+			err = tplg_save_printf(dst, pfx, "\tinfo %u\n",
+					       hdr->ops.info);
+		else
+			err = tplg_save_printf(dst, pfx, "\tinfo %s\n", s);
+	}
+	if (err >= 0 && hdr->ops.get > 0) {
+		s = tplg_ops_name(hdr->ops.get);
+		if (s == NULL)
+			err = tplg_save_printf(dst, pfx, "\tget %u\n",
+					       hdr->ops.get);
+		else
+			err = tplg_save_printf(dst, pfx, "\tget %s\n", s);
+	}
+	if (err >= 0 && hdr->ops.put > 0) {
+		s = tplg_ops_name(hdr->ops.put);
+		if (s == NULL)
+			err = tplg_save_printf(dst, pfx, "\tput %u\n",
+					       hdr->ops.put);
+		else
+			err = tplg_save_printf(dst, pfx, "\tput %s\n", s);
+	}
+	if (err >= 0)
+		err = tplg_save_printf(dst, pfx, "}\n");
+	return err;
+}
+
 /* Parse External Control operations. Ops can come from standard names above or
  * bespoke driver controls with numbers >= 256
  */
@@ -120,4 +172,44 @@ int tplg_parse_ext_ops(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 	}
 
 	return 0;
+}
+
+/* save external control operations */
+int tplg_save_ext_ops(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
+		      struct snd_soc_tplg_bytes_control *be,
+		      char **dst, const char *pfx)
+{
+	const char *s;
+	int err;
+
+	if (be->ext_ops.info + be->ext_ops.get + be->ext_ops.put == 0)
+		return 0;
+	err = tplg_save_printf(dst, pfx, "extops.0 {\n");
+	if (err >= 0 && be->ext_ops.info > 0) {
+		s = tplg_ops_name(be->ext_ops.info);
+		if (s == NULL)
+			err = tplg_save_printf(dst, pfx, "\tinfo %u\n",
+					       be->ext_ops.info);
+		else
+			err = tplg_save_printf(dst, pfx, "\tinfo %s\n", s);
+	}
+	if (err >= 0 && be->ext_ops.get > 0) {
+		s = tplg_ops_name(be->ext_ops.get);
+		if (s == NULL)
+			err = tplg_save_printf(dst, pfx, "\tget %u\n",
+					       be->ext_ops.get);
+		else
+			err = tplg_save_printf(dst, pfx, "\tget %s\n", s);
+	}
+	if (err >= 0 && be->ext_ops.put > 0) {
+		s = tplg_ops_name(be->ext_ops.put);
+		if (s == NULL)
+			err = tplg_save_printf(dst, pfx, "\tput %u\n",
+					       be->ext_ops.put);
+		else
+			err = tplg_save_printf(dst, pfx, "\tput %s\n", s);
+	}
+	if (err >= 0)
+		err = tplg_save_printf(dst, pfx, "}\n");
+	return err;
 }

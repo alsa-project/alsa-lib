@@ -71,6 +71,8 @@ int tplg_get_unsigned(snd_config_t *n, unsigned *val, int base)
 		err = snd_config_get_integer(n, &lval);
 		if (err < 0)
 			return err;
+		if (lval < 0 && lval >= INT_MIN)
+			lval = UINT_MAX + lval + 1;
 		if (lval < 0 || lval > UINT_MAX)
 			return -ERANGE;
 		*val = lval;
@@ -79,6 +81,8 @@ int tplg_get_unsigned(snd_config_t *n, unsigned *val, int base)
 		err = snd_config_get_integer64(n, &llval);
 		if (err < 0)
 			return err;
+		if (llval < 0 && llval >= INT_MIN)
+			llval = UINT_MAX + llval + 1;
 		if (llval < 0 || llval > UINT_MAX)
 			return -ERANGE;
 		*val = llval;

@@ -37,6 +37,7 @@
 
 struct tplg_ref;
 struct tplg_elem;
+struct tplg_table;
 
 typedef enum _snd_pcm_rates {
 	SND_PCM_RATE_UNKNOWN = -1,
@@ -147,6 +148,8 @@ struct tplg_vendor_tuples {
 /* topology element */
 struct tplg_elem {
 
+	struct tplg_table *table;
+
 	char id[SNDRV_CTL_ELEM_ID_NAME_MAXLEN];
 
 	int index;
@@ -209,6 +212,10 @@ struct tplg_table {
 	unsigned enew: 1;
 	void (*free)(void *);
 	int (*parse)(snd_tplg_t *tplg, snd_config_t *cfg, void *priv);
+	int (*save)(snd_tplg_t *tplg, struct tplg_elem *elem,
+		    char **dst, const char *prefix);
+	int (*gsave)(snd_tplg_t *tplg, int index,
+		     char **dst, const char *prefix);
 };
 
 extern struct tplg_table tplg_table[];
@@ -250,7 +257,8 @@ int tplg_build_pcm_dai(snd_tplg_t *tplg, unsigned int type);
 int tplg_copy_data(snd_tplg_t *tplg, struct tplg_elem *elem,
 		   struct tplg_ref *ref);
 
-int tplg_parse_data_refs(snd_config_t *cfg, struct tplg_elem *elem);
+int tplg_parse_refs(snd_config_t *cfg, struct tplg_elem *elem,
+		    unsigned int type);
 
 int tplg_ref_add(struct tplg_elem *elem, int type, const char* id);
 int tplg_ref_add_elem(struct tplg_elem *elem, struct tplg_elem *elem_ref);
@@ -269,9 +277,11 @@ struct tplg_elem* tplg_elem_new_common(snd_tplg_t *tplg,
 int tplg_get_integer(snd_config_t *n, int *val, int base);
 int tplg_get_unsigned(snd_config_t *n, unsigned *val, int base);
 
+const char *tplg_channel_name(int type);
 int tplg_parse_channel(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 	snd_config_t *cfg, void *private);
 
+const char *tplg_ops_name(int type);
 int tplg_parse_ops(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 	snd_config_t *cfg, void *private);
 int tplg_parse_ext_ops(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
@@ -299,3 +309,49 @@ int tplg_build_links(snd_tplg_t *tplg, unsigned int type);
 int tplg_add_link_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t);
 int tplg_add_pcm_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t);
 int tplg_add_dai_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t);
+
+int tplg_nice_value_format(char *dst, size_t dst_size, unsigned int value);
+
+int tplg_save_printf(char **dst, const char *prefix, const char *fmt, ...);
+int tplg_save_refs(snd_tplg_t *tplg, struct tplg_elem *elem, unsigned int type,
+		   const char *id, char **dst, const char *pfx);
+int tplg_save_channels(snd_tplg_t *tplg, struct snd_soc_tplg_channel *channel,
+		       unsigned int channel_count, char **dst, const char *pfx);
+int tplg_save_ops(snd_tplg_t *tplg, struct snd_soc_tplg_ctl_hdr *hdr,
+		  char **dst, const char *pfx);
+int tplg_save_ext_ops(snd_tplg_t *tplg, struct snd_soc_tplg_bytes_control *be,
+		      char **dst, const char *pfx);
+int tplg_save_manifest_data(snd_tplg_t *tplg, struct tplg_elem *elem,
+			    char **dst, const char *pfx);
+int tplg_save_control_mixer(snd_tplg_t *tplg, struct tplg_elem *elem,
+			    char **dst, const char *pfx);
+int tplg_save_control_enum(snd_tplg_t *tplg, struct tplg_elem *elem,
+			   char **dst, const char *pfx);
+int tplg_save_control_bytes(snd_tplg_t *tplg, struct tplg_elem *elem,
+			    char **dst, const char *pfx);
+int tplg_save_tlv(snd_tplg_t *tplg, struct tplg_elem *elem,
+		  char **dst, const char *pfx);
+int tplg_save_data(snd_tplg_t *tplg, struct tplg_elem *elem,
+		   char **dst, const char *pfx);
+int tplg_save_text(snd_tplg_t *tplg, struct tplg_elem *elem,
+		   char **dst, const char *pfx);
+int tplg_save_tokens(snd_tplg_t *tplg, struct tplg_elem *elem,
+		     char **dst, const char *pfx);
+int tplg_save_tuples(snd_tplg_t *tplg, struct tplg_elem *elem,
+		     char **dst, const char *pfx);
+int tplg_save_dapm_graph(snd_tplg_t *tplg, int index,
+			 char **dst, const char *pfx);
+int tplg_save_dapm_widget(snd_tplg_t *tplg, struct tplg_elem *elem,
+			  char **dst, const char *pfx);
+int tplg_save_link(snd_tplg_t *tplg, struct tplg_elem *elem,
+		   char **dst, const char *pfx);
+int tplg_save_cc(snd_tplg_t *tplg, struct tplg_elem *elem,
+		 char **dst, const char *pfx);
+int tplg_save_pcm(snd_tplg_t *tplg, struct tplg_elem *elem,
+		  char **dst, const char *pfx);
+int tplg_save_hw_config(snd_tplg_t *tplg, struct tplg_elem *elem,
+			char **dst, const char *pfx);
+int tplg_save_stream_caps(snd_tplg_t *tplg, struct tplg_elem *elem,
+			  char **dst, const char *pfx);
+int tplg_save_dai(snd_tplg_t *tplg, struct tplg_elem *elem,
+		  char **dst, const char *pfx);

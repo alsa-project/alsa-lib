@@ -73,6 +73,18 @@ static int lookup_channel(const char *c)
 	return -EINVAL;
 }
 
+const char *tplg_channel_name(int type)
+{
+	unsigned int i;
+
+	for (i = 0; i < ARRAY_SIZE(channel_map); i++) {
+		if (channel_map[i].id == type)
+			return channel_map[i].name;
+	}
+
+	return NULL;
+}
+
 /* Parse a channel mapping. */
 int tplg_parse_channel(snd_tplg_t *tplg, snd_config_t *cfg,
 		       void *private)
@@ -122,4 +134,37 @@ int tplg_parse_channel(snd_tplg_t *tplg, snd_config_t *cfg,
 
 	tplg->channel_idx++;
 	return 0;
+}
+
+int tplg_save_channels(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
+		       struct snd_soc_tplg_channel *channel,
+		       unsigned int count, char **dst, const char *pfx)
+{
+	struct snd_soc_tplg_channel *c;
+	const char *s;
+	unsigned int index;
+	int err;
+
+	if (count == 0)
+		return 0;
+	err = tplg_save_printf(dst, pfx, "channel {\n");
+	for (index = 0; err >= 0 && index < count; index++) {
+		c = channel + index;
+		s = tplg_channel_name(c->id);
+		if (s == NULL)
+			err = tplg_save_printf(dst, pfx, "\t%u", c->id);
+		else
+			err = tplg_save_printf(dst, pfx, "\t%s", s);
+		if (err >= 0)
+			err = tplg_save_printf(dst, NULL, " {\n");
+		if (err >= 0)
+			err = tplg_save_printf(dst, pfx, "\t\treg %d\n", c->reg);
+		if (err >= 0 && c->shift > 0)
+			err = tplg_save_printf(dst, pfx, "\t\tshift %u\n", c->shift);
+		if (err >= 0)
+			err = tplg_save_printf(dst, pfx, "\t}\n");
+	}
+	if (err >= 0)
+		err = tplg_save_printf(dst, pfx, "}\n");
+	return err;
 }

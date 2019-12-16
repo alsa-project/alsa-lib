@@ -345,6 +345,13 @@ static int get_rate_value(const char* name)
 	return SND_PCM_RATE_UNKNOWN;
 }
 
+static const char *get_rate_name(int rate)
+{
+	if (rate >= 0 && rate <= SND_PCM_RATE_LAST)
+		return snd_pcm_rate_names[rate];
+	return NULL;
+}
+
 static int split_rate(struct snd_soc_tplg_stream_caps *caps, char *str)
 {
 	char *s = NULL;
@@ -527,6 +534,80 @@ int tplg_parse_stream_caps(snd_tplg_t *tplg,
 	return 0;
 }
 
+/* save stream caps */
+int tplg_save_stream_caps(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
+			  struct tplg_elem *elem,
+			  char **dst, const char *pfx)
+{
+	struct snd_soc_tplg_stream_caps *sc = elem->stream_caps;
+	const char *s;
+	unsigned int i;
+	int err, first;
+
+	err = tplg_save_printf(dst, NULL, "'%s' {\n", elem->id);
+	if (err >= 0 && sc->formats) {
+		err = tplg_save_printf(dst, pfx, "\tformats '");
+		first = 1;
+		for (i = 0; err >= 0 && i < SND_PCM_FORMAT_LAST; i++) {
+			if (sc->formats & (1ULL << i)) {
+				s = snd_pcm_format_name(i);
+				err = tplg_save_printf(dst, NULL, "%s%s",
+						       !first ? ", " : "", s);
+				first = 0;
+			}
+		}
+		if (err >= 0)
+			err = tplg_save_printf(dst, NULL, "'\n");
+	}
+	if (err >= 0 && sc->rates) {
+		err = tplg_save_printf(dst, pfx, "\trates '");
+		first = 1;
+		for (i = 0; err >= 0 && i < SND_PCM_RATE_LAST; i++) {
+			if (sc->rates & (1ULL << i)) {
+				s = get_rate_name(i);
+				err = tplg_save_printf(dst, NULL, "%s%s",
+						       !first ? ", " : "", s);
+				first = 0;
+			}
+		}
+		if (err >= 0)
+			err = tplg_save_printf(dst, NULL, "'\n");
+	}
+	if (err >= 0 && sc->rate_min)
+		err = tplg_save_printf(dst, pfx, "\trate_min %u\n",
+				       sc->rate_min);
+	if (err >= 0 && sc->rate_max)
+		err = tplg_save_printf(dst, pfx, "\trate_max %u\n",
+				       sc->rate_max);
+	if (err >= 0 && sc->channels_min)
+		err = tplg_save_printf(dst, pfx, "\tchannels_min %u\n",
+				       sc->channels_min);
+	if (err >= 0 && sc->channels_max)
+		err = tplg_save_printf(dst, pfx, "\tchannels_max %u\n",
+				       sc->channels_max);
+	if (err >= 0 && sc->periods_min)
+		err = tplg_save_printf(dst, pfx, "\tperiods_min %u\n",
+				       sc->periods_min);
+	if (err >= 0 && sc->periods_max)
+		err = tplg_save_printf(dst, pfx, "\tperiods_max %u\n",
+				       sc->periods_max);
+	if (err >= 0 && sc->period_size_min)
+		err = tplg_save_printf(dst, pfx, "\tperiod_size_min %u\n",
+				       sc->period_size_min);
+	if (err >= 0 && sc->period_size_max)
+		err = tplg_save_printf(dst, pfx, "\tperiod_size_max %u\n",
+				       sc->period_size_max);
+	if (err >= 0 && sc->buffer_size_min)
+		err = tplg_save_printf(dst, pfx, "\tbuffer_size_min %u\n",
+				       sc->buffer_size_min);
+	if (err >= 0 && sc->buffer_size_max)
+		err = tplg_save_printf(dst, pfx, "\tbuffer_size_max %u\n",
+				       sc->buffer_size_max);
+	if (err >= 0)
+		err = tplg_save_printf(dst, pfx, "}\n");
+	return err;
+}
+
 /* Parse the caps and config of a pcm stream */
 static int tplg_parse_streams(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 			      snd_config_t *cfg, void *private)
@@ -598,6 +679,61 @@ static int tplg_parse_streams(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 	return 0;
 }
 
+/* Save the caps and config of a pcm stream */
+int tplg_save_streams(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
+		      struct tplg_elem *elem,
+		      char **dst, const char *pfx)
+{
+	static const char *stream_ids[2] = {
+		"playback",
+		"capture"
+	};
+	static unsigned int stream_types[2] = {
+		SND_SOC_TPLG_STREAM_PLAYBACK,
+		SND_SOC_TPLG_STREAM_CAPTURE
+	};
+	struct snd_soc_tplg_stream_caps *caps;
+	unsigned int streams[2], stream;
+	const char *s;
+	int err;
+
+	switch (elem->type) {
+	case SND_TPLG_TYPE_PCM:
+		streams[0] = elem->pcm->playback;
+		streams[1] = elem->pcm->capture;
+		caps = elem->pcm->caps;
+		break;
+	case SND_TPLG_TYPE_DAI:
+		streams[0] = elem->dai->playback;
+		streams[1] = elem->dai->capture;
+		caps = elem->dai->caps;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	for (stream = 0; stream < 2; stream++) {
+		if (streams[stream] == 0)
+			continue;
+		if (!caps)
+			continue;
+		s = caps[stream_types[stream]].name;
+		if (s[0] == '\0')
+			continue;
+		err = tplg_save_printf(dst, pfx, "pcm.%s {\n", stream_ids[stream]);
+		if (err < 0)
+			return err;
+		err = tplg_save_printf(dst, pfx, "\tcapabilities '%s'\n", s);
+		if (err < 0)
+			return err;
+		err = tplg_save_printf(dst, pfx, "}\n");
+		if (err < 0)
+			return err;
+	}
+
+	return 0;
+}
+
 /* Parse name and id of a front-end DAI (ie. cpu dai of a FE DAI link) */
 static int tplg_parse_fe_dai(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 			     snd_config_t *cfg, void *private)
@@ -633,6 +769,19 @@ static int tplg_parse_fe_dai(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 	return 0;
 }
 
+/* Save the caps and config of a pcm stream */
+int tplg_save_fe_dai(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
+		     struct tplg_elem *elem,
+		     char **dst, const char *pfx)
+{
+	struct snd_soc_tplg_pcm *pcm = elem->pcm;
+	int err = 0;
+
+	if (pcm->dai_id > 0)
+		err = tplg_save_printf(dst, pfx, "dai.0.id %u\n", pcm->dai_id);
+	return err;
+}
+
 /* parse a flag bit of the given mask */
 static int parse_flag(snd_config_t *n, unsigned int mask_in,
 		      unsigned int *mask, unsigned int *flags)
@@ -650,6 +799,32 @@ static int parse_flag(snd_config_t *n, unsigned int mask_in,
 		*flags &= ~mask_in;
 
 	return 0;
+}
+
+static int save_flags(unsigned int flags, unsigned int mask,
+		      char **dst, const char *pfx)
+{
+	static unsigned int flag_masks[3] = {
+		SND_SOC_TPLG_LNK_FLGBIT_SYMMETRIC_RATES,
+		SND_SOC_TPLG_LNK_FLGBIT_SYMMETRIC_CHANNELS,
+		SND_SOC_TPLG_LNK_FLGBIT_SYMMETRIC_SAMPLEBITS,
+	};
+	static const char *flag_ids[3] = {
+		"symmetric_rates",
+		"symmetric_channels",
+		"symmetric_sample_bits",
+	};
+	unsigned int i;
+	int err = 0;
+
+	for (i = 0; err >= 0 && i < ARRAY_SIZE(flag_masks); i++) {
+		if (mask & flag_masks[i]) {
+			unsigned int v = (flags & flag_masks[i]) ? 1 : 0;
+			err = tplg_save_printf(dst, pfx, "%s %u\n",
+					       flag_ids[i], v);
+		}
+	}
+	return err;
 }
 
 /* Parse PCM (for front end DAI & DAI link) in text conf file */
@@ -748,7 +923,7 @@ int tplg_parse_pcm(snd_tplg_t *tplg, snd_config_t *cfg,
 
 		/* private data */
 		if (strcmp(id, "data") == 0) {
-			err = tplg_parse_data_refs(n, elem);
+			err = tplg_parse_refs(n, elem, SND_TPLG_TYPE_DATA);
 			if (err < 0)
 				return err;
 			continue;
@@ -756,6 +931,40 @@ int tplg_parse_pcm(snd_tplg_t *tplg, snd_config_t *cfg,
 	}
 
 	return 0;
+}
+
+/* save PCM */
+int tplg_save_pcm(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
+		  struct tplg_elem *elem,
+		  char **dst, const char *pfx)
+{
+	struct snd_soc_tplg_pcm *pcm = elem->pcm;
+	char pfx2[16];
+	int err;
+
+	snprintf(pfx2, sizeof(pfx2), "%s\t", pfx ?: "");
+	err = tplg_save_printf(dst, NULL, "'%s' {\n", elem->id);
+	if (err >= 0 && elem->index)
+		err = tplg_save_printf(dst, pfx, "\tindex %u\n",
+				       elem->index);
+	if (err >= 0 && pcm->pcm_id)
+		err = tplg_save_printf(dst, pfx, "\tid %u\n",
+				       pcm->pcm_id);
+	if (err >= 0 && pcm->compress)
+		err = tplg_save_printf(dst, pfx, "\tcompress 1\n");
+	snprintf(pfx2, sizeof(pfx2), "%s\t", pfx ?: "");
+	if (err >= 0)
+		err = tplg_save_fe_dai(tplg, elem, dst, pfx2);
+	if (err >= 0)
+		err = tplg_save_streams(tplg, elem, dst, pfx2);
+	if (err >= 0)
+		err = save_flags(pcm->flags, pcm->flag_mask, dst, pfx);
+	if (err >= 0)
+		err = tplg_save_refs(tplg, elem, SND_TPLG_TYPE_DATA,
+				     "data", dst, pfx2);
+	if (err >= 0)
+		err = tplg_save_printf(dst, pfx, "}\n");
+	return err;
 }
 
 /* Parse physical DAI */
@@ -766,7 +975,7 @@ int tplg_parse_dai(snd_tplg_t *tplg, snd_config_t *cfg,
 	struct tplg_elem *elem;
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
-	const char *id, *val = NULL;
+	const char *id;
 	int err;
 
 	elem = tplg_elem_new_common(tplg, cfg, NULL, SND_TPLG_TYPE_DAI);
@@ -851,16 +1060,51 @@ int tplg_parse_dai(snd_tplg_t *tplg, snd_config_t *cfg,
 
 		/* private data */
 		if (strcmp(id, "data") == 0) {
-			if (snd_config_get_string(n, &val) < 0)
-				return -EINVAL;
-
-			tplg_ref_add(elem, SND_TPLG_TYPE_DATA, val);
-			tplg_dbg("\t%s: %s\n", id, val);
+			err = tplg_parse_refs(n, elem, SND_TPLG_TYPE_DATA);
+			if (err < 0)
+				return err;
 			continue;
 		}
 	}
 
 	return 0;
+}
+
+/* save DAI */
+int tplg_save_dai(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
+		  struct tplg_elem *elem,
+		  char **dst, const char *pfx)
+{
+	struct snd_soc_tplg_dai *dai = elem->dai;
+	char pfx2[16];
+	int err;
+
+	if (!dai)
+		return 0;
+	snprintf(pfx2, sizeof(pfx2), "%s\t", pfx ?: "");
+	err = tplg_save_printf(dst, NULL, "'%s' {\n", elem->id);
+	if (err >= 0 && elem->index)
+		err = tplg_save_printf(dst, pfx, "\tindex %u\n",
+				       elem->index);
+	if (err >= 0 && dai->dai_id)
+		err = tplg_save_printf(dst, pfx, "\tid %u\n",
+				       dai->dai_id);
+	if (err >= 0 && dai->playback)
+		err = tplg_save_printf(dst, pfx, "\tplayback %u\n",
+				       dai->playback);
+	if (err >= 0 && dai->capture)
+		err = tplg_save_printf(dst, pfx, "\tcapture %u\n",
+				       dai->capture);
+	if (err >= 0)
+		err = tplg_save_streams(tplg, elem, dst, pfx2);
+	if (err >= 0)
+		err = save_flags(dai->flags, dai->flag_mask, dst, pfx);
+	if (err >= 0)
+		err = tplg_save_refs(tplg, elem, SND_TPLG_TYPE_DATA,
+				     "data", dst, pfx2);
+	if (err >= 0)
+		err = tplg_save_printf(dst, pfx, "}\n");
+	return err;
 }
 
 /* parse physical link runtime supported HW configs in text conf file */
@@ -869,49 +1113,12 @@ static int parse_hw_config_refs(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 				struct tplg_elem *elem)
 {
 	struct snd_soc_tplg_link_config *link = elem->link;
-	snd_config_type_t  type;
-	snd_config_iterator_t i, next;
-	snd_config_t *n;
-	const char *id, *val = NULL;
+	int err;
 
-	if (snd_config_get_id(cfg, &id) < 0)
-		return -EINVAL;
-	type = snd_config_get_type(cfg);
-
-	/* refer to a single HW config */
-	if (type == SND_CONFIG_TYPE_STRING) {
-		if (snd_config_get_string(cfg, &val) < 0)
-			return -EINVAL;
-
-		link->num_hw_configs = 1;
-		return tplg_ref_add(elem, SND_TPLG_TYPE_HW_CONFIG, val);
-	}
-
-	if (type != SND_CONFIG_TYPE_COMPOUND) {
-		SNDERR("error: compound type expected for %s", id);
-		return -EINVAL;
-	}
-
-	/* refer to a list of HW configs */
-	snd_config_for_each(i, next, cfg) {
-		const char *val;
-		int err;
-
-		n = snd_config_iterator_entry(i);
-		if (snd_config_get_string(n, &val) < 0)
-			continue;
-
-		if (link->num_hw_configs >= SND_SOC_TPLG_HW_CONFIG_MAX) {
-			SNDERR("error: exceed max hw configs for link %s", id);
-			return -EINVAL;
-		}
-
-		link->num_hw_configs++;
-		err = tplg_ref_add(elem, SND_TPLG_TYPE_HW_CONFIG, val);
-		if (err < 0)
-			return err;
-	}
-
+	err = tplg_parse_refs(cfg, elem, SND_TPLG_TYPE_HW_CONFIG);
+	if (err < 0)
+		return err;
+	link->num_hw_configs = err;
 	return 0;
 }
 
@@ -1007,7 +1214,7 @@ int tplg_parse_link(snd_tplg_t *tplg,
 
 		/* private data */
 		if (strcmp(id, "data") == 0) {
-			err = tplg_parse_data_refs(n, elem);
+			err = tplg_parse_refs(n, elem, SND_TPLG_TYPE_DATA);
 			if (err < 0)
 				return err;
 			continue;
@@ -1015,6 +1222,44 @@ int tplg_parse_link(snd_tplg_t *tplg,
 	}
 
 	return 0;
+}
+
+/* save physical link */
+int tplg_save_link(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
+		   struct tplg_elem *elem,
+		   char **dst, const char *pfx)
+{
+	struct snd_soc_tplg_link_config *link = elem->link;
+	char pfx2[16];
+	int err;
+
+	if (!link)
+		return 0;
+	snprintf(pfx2, sizeof(pfx2), "%s\t", pfx ?: "");
+	err = tplg_save_printf(dst, NULL, "'%s' {\n", elem->id);
+	if (err >= 0 && elem->index)
+		err = tplg_save_printf(dst, pfx, "\tindex %u\n",
+				       elem->index);
+	if (err >= 0 && link->id)
+		err = tplg_save_printf(dst, pfx, "\tid %u\n",
+				       link->id);
+	if (err >= 0 && link->stream_name[0])
+		err = tplg_save_printf(dst, pfx, "\tstream_name '%s'\n",
+				       link->stream_name);
+	if (err >= 0 && link->default_hw_config_id)
+		err = tplg_save_printf(dst, pfx, "\tdefault_hw_conf_id %u\n",
+				       link->default_hw_config_id);
+	if (err >= 0)
+		err = save_flags(link->flags, link->flag_mask, dst, pfx);
+	if (err >= 0)
+		err = tplg_save_refs(tplg, elem, SND_TPLG_TYPE_HW_CONFIG,
+				     "hw_configs", dst, pfx2);
+	if (err >= 0)
+		err = tplg_save_refs(tplg, elem, SND_TPLG_TYPE_DATA,
+				     "data", dst, pfx2);
+	if (err >= 0)
+		err = tplg_save_printf(dst, pfx, "}\n");
+	return err;
 }
 
 /* Parse cc */
@@ -1059,34 +1304,93 @@ int tplg_parse_cc(snd_tplg_t *tplg,
 	return 0;
 }
 
+/* save CC */
+int tplg_save_cc(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
+		   struct tplg_elem *elem,
+		   char **dst, const char *pfx)
+{
+	struct snd_soc_tplg_link_config *link = elem->link;
+	char pfx2[16];
+	int err;
+
+	if (!link)
+		return 0;
+	snprintf(pfx2, sizeof(pfx2), "%s\t", pfx ?: "");
+	err = tplg_save_printf(dst, NULL, "'%s' {\n", elem->id);
+	if (err >= 0 && elem->index)
+		err = tplg_save_printf(dst, pfx, "\tindex %u\n",
+				       elem->index);
+	if (err >= 0 && link->id)
+		err = tplg_save_printf(dst, pfx, "\tid %u\n",
+				       link->id);
+	if (err >= 0)
+		err = tplg_save_printf(dst, pfx, "}\n");
+	return err;
+}
+
+struct audio_hw_format {
+	unsigned int type;
+	const char *name;
+};
+
+static struct audio_hw_format audio_hw_formats[] = {
+	{
+		.type = SND_SOC_DAI_FORMAT_I2S,
+		.name = "I2S",
+	},
+	{
+		.type = SND_SOC_DAI_FORMAT_RIGHT_J,
+		.name = "RIGHT_J",
+	},
+	{
+		.type = SND_SOC_DAI_FORMAT_LEFT_J,
+		.name = "LEFT_J",
+	},
+	{
+		.type = SND_SOC_DAI_FORMAT_DSP_A,
+		.name = "DSP_A",
+	},
+	{
+		.type = SND_SOC_DAI_FORMAT_DSP_B,
+		.name = "DSP_B",
+	},
+	{
+		.type = SND_SOC_DAI_FORMAT_AC97,
+		.name = "AC97",
+	},
+	{
+		.type = SND_SOC_DAI_FORMAT_AC97,
+		.name = "AC97",
+	},
+	{
+		.type = SND_SOC_DAI_FORMAT_PDM,
+		.name = "PDM",
+	},
+};
+
 static int get_audio_hw_format(const char *val)
 {
-	if (!strlen(val))
+	unsigned int i;
+
+	if (val[0] == '\0')
 		return -EINVAL;
 
-	if (!strcmp(val, "I2S"))
-		return SND_SOC_DAI_FORMAT_I2S;
-
-	if (!strcmp(val, "RIGHT_J"))
-		return SND_SOC_DAI_FORMAT_RIGHT_J;
-
-	if (!strcmp(val, "LEFT_J"))
-		return SND_SOC_DAI_FORMAT_LEFT_J;
-
-	if (!strcmp(val, "DSP_A"))
-		return SND_SOC_DAI_FORMAT_DSP_A;
-
-	if (!strcmp(val, "DSP_B"))
-		return SND_SOC_DAI_FORMAT_DSP_B;
-
-	if (!strcmp(val, "AC97"))
-		return SND_SOC_DAI_FORMAT_AC97;
-
-	if (!strcmp(val, "PDM"))
-		return SND_SOC_DAI_FORMAT_PDM;
+	for (i = 0; i < ARRAY_SIZE(audio_hw_formats); i++)
+		if (strcasecmp(audio_hw_formats[i].name, val) == 0)
+			return audio_hw_formats[i].type;
 
 	SNDERR("error: invalid audio HW format %s\n", val);
 	return -EINVAL;
+}
+
+static const char *get_audio_hw_format_name(unsigned int type)
+{
+	unsigned int i;
+
+	for (i = 0; i < ARRAY_SIZE(audio_hw_formats); i++)
+		if (audio_hw_formats[i].type == type)
+			return audio_hw_formats[i].name;
+	return NULL;
 }
 
 int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
@@ -1297,6 +1601,71 @@ int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
 	}
 
 	return 0;
+}
+
+/* save hw config */
+int tplg_save_hw_config(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
+			struct tplg_elem *elem,
+			char **dst, const char *pfx)
+{
+	struct snd_soc_tplg_hw_config *hc = elem->hw_cfg;
+	int err;
+
+	err = tplg_save_printf(dst, NULL, "'%s' {\n", elem->id);
+	if (err >= 0 && hc->id)
+		err = tplg_save_printf(dst, pfx, "\tid %u\n",
+				       hc->id);
+	if (err >= 0 && hc->fmt)
+		err = tplg_save_printf(dst, pfx, "\tformat '%s'\n",
+				       get_audio_hw_format_name(hc->fmt));
+	if (err >= 0 && hc->bclk_master)
+		err = tplg_save_printf(dst, pfx, "\tbclk '%s'\n",
+				       hc->bclk_master == SND_SOC_TPLG_BCLK_CS ?
+						"codec_slave" : "codec_master");
+	if (err >= 0 && hc->bclk_rate)
+		err = tplg_save_printf(dst, pfx, "\tbclk_freq %u\n",
+				       hc->bclk_rate);
+	if (err >= 0 && hc->invert_bclk)
+		err = tplg_save_printf(dst, pfx, "\tbclk_invert 1\n");
+	if (err >= 0 && hc->fsync_master)
+		err = tplg_save_printf(dst, pfx, "\tfsync_master '%s'\n",
+				       hc->fsync_master == SND_SOC_TPLG_FSYNC_CS ?
+						"codec_slave" : "codec_master");
+	if (err >= 0 && hc->fsync_rate)
+		err = tplg_save_printf(dst, pfx, "\tfsync_freq %u\n",
+				       hc->fsync_rate);
+	if (err >= 0 && hc->invert_fsync)
+		err = tplg_save_printf(dst, pfx, "\tfsync_invert 1\n");
+	if (err >= 0 && hc->mclk_rate)
+		err = tplg_save_printf(dst, pfx, "\tmclk_freq %u\n",
+				       hc->mclk_rate);
+	if (err >= 0 && hc->mclk_direction)
+		err = tplg_save_printf(dst, pfx, "\tmclk '%s'\n",
+				       hc->mclk_direction == SND_SOC_TPLG_MCLK_CI ?
+						"codec_mclk_in" : "codec_mclk_out");
+	if (err >= 0 && hc->clock_gated)
+		err = tplg_save_printf(dst, pfx, "\tpm_gate_clocks 1\n");
+	if (err >= 0 && hc->tdm_slots)
+		err = tplg_save_printf(dst, pfx, "\ttdm_slots %u\n",
+				       hc->tdm_slots);
+	if (err >= 0 && hc->tdm_slot_width)
+		err = tplg_save_printf(dst, pfx, "\ttdm_slot_width %u\n",
+				       hc->tdm_slot_width);
+	if (err >= 0 && hc->tx_slots)
+		err = tplg_save_printf(dst, pfx, "\ttx_slots %u\n",
+				       hc->tx_slots);
+	if (err >= 0 && hc->rx_slots)
+		err = tplg_save_printf(dst, pfx, "\trx_slots %u\n",
+				       hc->rx_slots);
+	if (err >= 0 && hc->tx_channels)
+		err = tplg_save_printf(dst, pfx, "\ttx_channels %u\n",
+				       hc->tx_channels);
+	if (err >= 0 && hc->rx_channels)
+		err = tplg_save_printf(dst, pfx, "\trx_channels %u\n",
+				       hc->rx_channels);
+	if (err >= 0)
+		err = tplg_save_printf(dst, pfx, "}\n");
+	return err;
 }
 
 /* copy stream object */

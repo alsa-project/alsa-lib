@@ -1124,6 +1124,21 @@ int snd_tplg_set_manifest_data(snd_tplg_t *tplg, const void *data, int len);
  */
 int snd_tplg_set_version(snd_tplg_t *tplg, unsigned int version);
 
+/*
+ * Flags for the snd_tplg_save()
+ */
+#define SND_TPLG_SAVE_SORT	(1<<0)	/*!< sort identifiers */
+#define SND_TPLG_SAVE_GROUPS	(1<<1)	/*!< create the structure by group index */
+#define SND_TPLG_SAVE_NOCHECK	(1<<16)	/*!< unchecked output for debugging */
+
+/**
+ * \brief Save the topology to the text configuration string.
+ * \param tplg Topology instance.
+ * \param dst A pointer to string with result (malloc).
+ * \return Zero on success, otherwise a negative error code
+ */
+int snd_tplg_save(snd_tplg_t *tplg, char **dst, int flags);
+
 /* \} */
 
 #ifdef __cplusplus
