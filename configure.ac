@@ -764,14 +764,3 @@ test "$build_seq" = "yes" && echo "#include <alsa/seq.h>" >> include/asoundlib.h
 test "$build_seq" = "yes" && echo "#include <alsa/seqmid.h>" >> include/asoundlib.h
 test "$build_seq" = "yes" && echo "#include <alsa/seq_midi_event.h>" >> include/asoundlib.h
 cat "$srcdir"/include/asoundlib-tail.h >> include/asoundlib.h
-
-dnl Taken from https://wiki.debian.org/RpathIssue
-case $host in
-   *-*-linux-gnu)
-   AC_MSG_RESULT([Fixing libtool for -rpath problems.])
-   sed < libtool > libtool-2 \
-     's/^hardcode_libdir_flag_spec.*$'/'hardcode_libdir_flag_spec=" -D__LIBTOOL_IS_A_FOOL__ "/'
-   mv libtool-2 libtool
-   chmod 755 libtool
- ;;
-esac
