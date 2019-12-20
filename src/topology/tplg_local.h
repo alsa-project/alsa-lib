@@ -66,6 +66,7 @@ struct snd_tplg {
 	size_t bin_size;
 
 	int verbose;
+	unsigned int dapm_sort: 1;
 	unsigned int version;
 
 	/* runtime state */

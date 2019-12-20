@@ -432,7 +432,7 @@ static bool is_little_endian(void)
 	return false;
 }
 
-snd_tplg_t *snd_tplg_new(void)
+snd_tplg_t *snd_tplg_create(int flags)
 {
 	snd_tplg_t *tplg;
 
@@ -444,6 +444,9 @@ snd_tplg_t *snd_tplg_new(void)
 	tplg = calloc(1, sizeof(snd_tplg_t));
 	if (!tplg)
 		return NULL;
+
+	tplg->verbose = !!(flags & SND_TPLG_CREATE_VERBOSE);
+	tplg->dapm_sort = (flags & SND_TPLG_CREATE_DAPM_NOSORT) == 0;
 
 	tplg->manifest.size = sizeof(struct snd_soc_tplg_manifest);
 
@@ -467,6 +470,11 @@ snd_tplg_t *snd_tplg_new(void)
 	INIT_LIST_HEAD(&tplg->hw_cfg_list);
 
 	return tplg;
+}
+
+snd_tplg_t *snd_tplg_new(void)
+{
+	return snd_tplg_create(0);
 }
 
 void snd_tplg_free(snd_tplg_t *tplg)

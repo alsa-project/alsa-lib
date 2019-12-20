@@ -268,7 +268,10 @@ struct tplg_elem *tplg_elem_new_route(snd_tplg_t *tplg, int index)
 		return NULL;
 
 	elem->index = index;
-	tplg_elem_insert(elem, &tplg->route_list);
+	if (tplg->dapm_sort)
+		tplg_elem_insert(elem, &tplg->route_list);
+	else
+		list_add_tail(&elem->list, &tplg->route_list);
 	strcpy(elem->id, "line");
 	elem->type = SND_TPLG_TYPE_DAPM_GRAPH;
 	elem->size = sizeof(*line);

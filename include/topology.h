@@ -771,11 +771,21 @@ enum snd_tplg_type {
 /** Fit for all user cases */
 #define SND_TPLG_INDEX_ALL  0
 
+/** Flags for the snd_tplg_create */
+#define SND_TPLG_CREATE_VERBOSE		(1<<0)	/*!< Verbose output */
+#define SND_TPLG_CREATE_DAPM_NOSORT	(1<<1)	/*!< Do not sort DAPM objects by index */
+
 /**
  * \brief Create a new topology parser instance.
  * \return New topology parser instance
  */
 snd_tplg_t *snd_tplg_new(void);
+
+/**
+ * \brief Create a new topology parser instance.
+ * \return New topology parser instance
+ */
+snd_tplg_t *snd_tplg_create(int flags);
 
 /**
  * \brief Free a topology parser instance.
