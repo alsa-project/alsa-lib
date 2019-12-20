@@ -122,7 +122,7 @@ int tplg_parse_compound(snd_tplg_t *tplg, snd_config_t *cfg,
 		return -EINVAL;
 
 	if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
-		SNDERR("error: compound type expected for %s", id);
+		SNDERR("compound type expected for %s", id);
 		return -EINVAL;
 	}
 
@@ -131,7 +131,7 @@ int tplg_parse_compound(snd_tplg_t *tplg, snd_config_t *cfg,
 		n = snd_config_iterator_entry(i);
 
 		if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
-			SNDERR("error: compound type expected for %s, is %d",
+			SNDERR("compound type expected for %s, is %d",
 				id, snd_config_get_type(cfg));
 			return -EINVAL;
 		}
@@ -155,7 +155,7 @@ static int tplg_parse_config(snd_tplg_t *tplg, snd_config_t *cfg)
 	int err;
 
 	if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
-		SNDERR("error: compound type expected at top level");
+		SNDERR("compound type expected at top level");
 		return -EINVAL;
 	}
 
@@ -180,7 +180,7 @@ static int tplg_parse_config(snd_tplg_t *tplg, snd_config_t *cfg)
 		}
 
 		if (parser == NULL) {
-			SNDERR("error: unknown section %s\n", id);
+			SNDERR("unknown section %s", id);
 			continue;
 		}
 
@@ -202,7 +202,7 @@ static int tplg_load_config(snd_tplg_t *tplg, snd_input_t *in)
 
 	ret = snd_config_load(top, in);
 	if (ret < 0) {
-		SNDERR("error: could not load configuration");
+		SNDERR("could not load configuration");
 		snd_config_delete(top);
 		return ret;
 	}
@@ -210,7 +210,7 @@ static int tplg_load_config(snd_tplg_t *tplg, snd_input_t *in)
 	ret = tplg_parse_config(tplg, top);
 	snd_config_delete(top);
 	if (ret < 0) {
-		SNDERR("error: failed to parse topology");
+		SNDERR("failed to parse topology");
 		return ret;
 	}
 
@@ -267,7 +267,7 @@ int snd_tplg_load(snd_tplg_t *tplg, const char *buf, size_t size)
 
 	err = snd_input_buffer_open(&in, buf, size);
 	if (err < 0) {
-		SNDERR("error: could not create input buffer");
+		SNDERR("could not create input buffer");
 		return err;
 	}
 
@@ -282,13 +282,13 @@ static int tplg_build(snd_tplg_t *tplg)
 
 	err = tplg_build_integ(tplg);
 	if (err < 0) {
-		SNDERR("error: failed to check topology integrity\n");
+		SNDERR("failed to check topology integrity");
 		return err;
 	}
 
 	err = tplg_write_data(tplg);
 	if (err < 0) {
-		SNDERR("error: failed to write data %d\n", err);
+		SNDERR("failed to write data %d", err);
 		return err;
 	}
 	return 0;
@@ -304,15 +304,14 @@ int snd_tplg_build_file(snd_tplg_t *tplg,
 
 	fp = fopen(infile, "r");
 	if (fp == NULL) {
-		SNDERR("error: could not open configuration file %s",
-		       infile);
+		SNDERR("could not open configuration file %s", infile);
 		return -errno;
 	}
 
 	err = snd_input_stdio_attach(&in, fp, 1);
 	if (err < 0) {
 		fclose(fp);
-		SNDERR("error: could not attach stdio %s", infile);
+		SNDERR("could not attach stdio %s", infile);
 		return err;
 	}
 
@@ -346,7 +345,7 @@ int snd_tplg_add_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 	case SND_TPLG_TYPE_CC:
 		return tplg_add_link_object(tplg, t);
 	default:
-		SNDERR("error: invalid object type %d\n", t->type);
+		SNDERR("invalid object type %d", t->type);
 		return -EINVAL;
 	};
 }
@@ -362,18 +361,18 @@ int snd_tplg_build(snd_tplg_t *tplg, const char *outfile)
 
 	fd = open(outfile, O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
 	if (fd < 0) {
-		SNDERR("error: failed to open %s err %d\n", outfile, -errno);
+		SNDERR("failed to open %s err %d", outfile, -errno);
 		return -errno;
 	}
 	r = write(fd, tplg->bin, tplg->bin_size);
 	close(fd);
 	if (r < 0) {
 		err = -errno;
-		SNDERR("error: write error: %s\n", strerror(errno));
+		SNDERR("write error: %s", strerror(errno));
 		return err;
 	}
 	if ((size_t)r != tplg->bin_size) {
-		SNDERR("error: partial write (%zd != %zd)\n", r, tplg->bin_size);
+		SNDERR("partial write (%zd != %zd)", r, tplg->bin_size);
 		return -EIO;
 	}
 	return 0;
@@ -437,7 +436,7 @@ snd_tplg_t *snd_tplg_create(int flags)
 	snd_tplg_t *tplg;
 
 	if (!is_little_endian()) {
-		SNDERR("error: cannot support big-endian machines\n");
+		SNDERR("cannot support big-endian machines");
 		return NULL;
 	}
 

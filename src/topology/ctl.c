@@ -94,7 +94,7 @@ int parse_access(snd_config_t *cfg,
 		if (strcmp(id, "access") == 0) {
 			err = parse_access_values(n, hdr);
 			if (err < 0) {
-				SNDERR("error: failed to parse access");
+				SNDERR("failed to parse access");
 				return err;
 			}
 			continue;
@@ -187,8 +187,8 @@ static int tplg_build_mixer_control(snd_tplg_t *tplg,
 		}
 
 		if (!ref->elem) {
-			SNDERR("error: cannot find '%s' referenced by"
-				" control '%s'\n", ref->id, elem->id);
+			SNDERR("cannot find '%s' referenced by"
+				" control '%s'", ref->id, elem->id);
 			return -EINVAL;
 		} else if (err < 0)
 			return err;
@@ -236,8 +236,8 @@ static int tplg_build_enum_control(snd_tplg_t *tplg,
 				return err;
 		}
 		if (!ref->elem) {
-			SNDERR("error: cannot find '%s' referenced by"
-				" control '%s'\n", ref->id, elem->id);
+			SNDERR("cannot find '%s' referenced by"
+				" control '%s'", ref->id, elem->id);
 			return -EINVAL;
 		}
 	}
@@ -341,10 +341,8 @@ static int tplg_parse_tlv_dbscale(snd_config_t *cfg, struct tplg_elem *elem)
 		n = snd_config_iterator_entry(i);
 
 		/* get ID */
-		if (snd_config_get_id(n, &id) < 0) {
-			SNDERR("error: cant get ID\n");
+		if (snd_config_get_id(n, &id) < 0)
 			return -EINVAL;
-		}
 
 		/* get value */
 		if (tplg_get_integer(n, &val, 0))
@@ -360,7 +358,7 @@ static int tplg_parse_tlv_dbscale(snd_config_t *cfg, struct tplg_elem *elem)
 		else if (strcmp(id, "mute") == 0)
 			scale->mute = val;
 		else
-			SNDERR("error: unknown key %s\n", id);
+			SNDERR("unknown id '%s'", id);
 	}
 
 	return 0;
@@ -389,7 +387,7 @@ int tplg_parse_tlv(snd_tplg_t *tplg, snd_config_t *cfg,
 		if (strcmp(id, "scale") == 0) {
 			err = tplg_parse_tlv_dbscale(n, elem);
 			if (err < 0) {
-				SNDERR("error: failed to DBScale");
+				SNDERR("failed to DBScale");
 				return err;
 			}
 			continue;
@@ -651,8 +649,7 @@ int tplg_parse_control_enum(snd_tplg_t *tplg, snd_config_t *cfg,
 
 		if (strcmp(id, "channel") == 0) {
 			if (ec->num_channels >= SND_SOC_TPLG_MAX_CHAN) {
-				SNDERR("error: too many channels %s\n",
-					elem->id);
+				SNDERR("too many channels %s", elem->id);
 				return -EINVAL;
 			}
 
@@ -779,8 +776,7 @@ int tplg_parse_control_mixer(snd_tplg_t *tplg,
 
 		if (strcmp(id, "channel") == 0) {
 			if (mc->num_channels >= SND_SOC_TPLG_MAX_CHAN) {
-				SNDERR("error: too many channels %s\n",
-					elem->id);
+				SNDERR("too many channels %s", elem->id);
 				return -EINVAL;
 			}
 
@@ -933,7 +929,7 @@ static int init_ctl_hdr(struct snd_soc_tplg_ctl_hdr *hdr,
 		struct snd_soc_tplg_tlv_dbscale *scale;
 
 		if (!tlvt) {
-			SNDERR("error: missing TLV data\n");
+			SNDERR("missing TLV data");
 			return -EINVAL;
 		}
 
@@ -952,7 +948,7 @@ static int init_ctl_hdr(struct snd_soc_tplg_ctl_hdr *hdr,
 
 		/* TODO: add support for other TLV types */
 		default:
-			SNDERR("error: unsupported TLV type %d\n", tlv->type);
+			SNDERR("unsupported TLV type %d", tlv->type);
 			break;
 		}
 	}
@@ -971,7 +967,7 @@ int tplg_add_mixer(snd_tplg_t *tplg, struct snd_tplg_mixer_template *mixer,
 	tplg_dbg(" Control Mixer: %s\n", mixer->hdr.name);
 
 	if (mixer->hdr.type != SND_SOC_TPLG_TYPE_MIXER) {
-		SNDERR("error: invalid mixer type %d\n", mixer->hdr.type);
+		SNDERR("invalid mixer type %d", mixer->hdr.type);
 		return -EINVAL;
 	}
 
@@ -1039,7 +1035,7 @@ int tplg_add_enum(snd_tplg_t *tplg, struct snd_tplg_enum_template *enum_ctl,
 	tplg_dbg(" Control Enum: %s\n", enum_ctl->hdr.name);
 
 	if (enum_ctl->hdr.type != SND_SOC_TPLG_TYPE_ENUM) {
-		SNDERR("error: invalid enum type %d\n", enum_ctl->hdr.type);
+		SNDERR("invalid enum type %d", enum_ctl->hdr.type);
 		return -EINVAL;
 	}
 
@@ -1113,7 +1109,7 @@ int tplg_add_bytes(snd_tplg_t *tplg, struct snd_tplg_bytes_template *bytes_ctl,
 	tplg_dbg(" Control Bytes: %s\n", bytes_ctl->hdr.name);
 
 	if (bytes_ctl->hdr.type != SND_SOC_TPLG_TYPE_BYTES) {
-		SNDERR("error: invalid bytes type %d\n", bytes_ctl->hdr.type);
+		SNDERR("invalid bytes type %d", bytes_ctl->hdr.type);
 		return -EINVAL;
 	}
 
@@ -1157,7 +1153,7 @@ int tplg_add_bytes(snd_tplg_t *tplg, struct snd_tplg_bytes_template *bytes_ctl,
 	if (be->hdr.access & SNDRV_CTL_ELEM_ACCESS_TLV_CALLBACK) {
 		if ((be->hdr.access & SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE)
 			!= SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE) {
-			SNDERR("error: Invalid TLV bytes control access 0x%x\n",
+			SNDERR("Invalid TLV bytes control access 0x%x",
 				be->hdr.access);
 			tplg_elem_free(elem);
 			return -EINVAL;

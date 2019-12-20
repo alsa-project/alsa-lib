@@ -38,7 +38,7 @@ static int parse_text_values(snd_config_t *cfg, struct tplg_elem *elem)
 		n = snd_config_iterator_entry(i);
 
 		if (j == SND_SOC_TPLG_NUM_TEXTS) {
-			tplg_dbg("error: text string number exceeds %d\n", j);
+			tplg_dbg("text string number exceeds %d\n", j);
 			return -ENOMEM;
 		}
 

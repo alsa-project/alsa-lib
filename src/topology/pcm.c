@@ -116,8 +116,8 @@ static int build_pcm(snd_tplg_t *tplg, struct tplg_elem *elem)
 				return err;
 		}
 		if (!ref->elem) {
-			SNDERR("error: cannot find '%s' referenced by"
-				" PCM '%s'\n", ref->id, elem->id);
+			SNDERR("cannot find '%s' referenced by"
+				" PCM '%s'", ref->id, elem->id);
 			return -EINVAL;
 		}
 	}
@@ -137,7 +137,7 @@ int tplg_build_pcms(snd_tplg_t *tplg, unsigned int type)
 
 		elem = list_entry(pos, struct tplg_elem, list);
 		if (elem->type != type) {
-			SNDERR("error: invalid elem '%s'\n", elem->id);
+			SNDERR("invalid elem '%s'", elem->id);
 			return -EINVAL;
 		}
 
@@ -196,7 +196,7 @@ int tplg_build_dais(snd_tplg_t *tplg, unsigned int type)
 
 		elem = list_entry(pos, struct tplg_elem, list);
 		if (elem->type != type) {
-			SNDERR("error: invalid elem '%s'\n", elem->id);
+			SNDERR("invalid elem '%s'", elem->id);
 			return -EINVAL;
 		}
 
@@ -251,8 +251,8 @@ static int build_link(snd_tplg_t *tplg, struct tplg_elem *elem)
 			ref->elem = tplg_elem_lookup(&tplg->hw_cfg_list,
 				ref->id, SND_TPLG_TYPE_HW_CONFIG, elem->index);
 			if (!ref->elem) {
-				SNDERR("error: cannot find HW config '%s'"
-				" referenced by link '%s'\n",
+				SNDERR("cannot find HW config '%s'"
+				" referenced by link '%s'",
 				ref->id, elem->id);
 				return -EINVAL;
 			}
@@ -320,7 +320,7 @@ static int split_format(struct snd_soc_tplg_stream_caps *caps, char *str)
 	while ((s != NULL) && (i < SND_SOC_TPLG_MAX_FORMATS)) {
 		format = snd_pcm_format_value(s);
 		if (format == SND_PCM_FORMAT_UNKNOWN) {
-			SNDERR("error: unsupported stream format %s\n", s);
+			SNDERR("unsupported stream format %s", s);
 			return -EINVAL;
 		}
 
@@ -363,7 +363,7 @@ static int split_rate(struct snd_soc_tplg_stream_caps *caps, char *str)
 		rate = get_rate_value(s);
 
 		if (rate == SND_PCM_RATE_UNKNOWN) {
-			SNDERR("error: unsupported stream rate %s\n", s);
+			SNDERR("unsupported stream rate %s", s);
 			return -EINVAL;
 		}
 
@@ -758,7 +758,7 @@ static int tplg_parse_fe_dai(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 
 		if (strcmp(id, "id") == 0) {
 			if (tplg_get_unsigned(n, &pcm->dai_id, 0)) {
-				SNDERR("error: invalid fe dai ID\n");
+				SNDERR("invalid fe dai ID");
 				return -EINVAL;
 			}
 
@@ -1379,7 +1379,7 @@ static int get_audio_hw_format(const char *val)
 		if (strcasecmp(audio_hw_formats[i].name, val) == 0)
 			return audio_hw_formats[i].type;
 
-	SNDERR("error: invalid audio HW format %s\n", val);
+	SNDERR("invalid audio HW format %s", val);
 	return -EINVAL;
 }
 
@@ -1452,8 +1452,7 @@ int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
 				/* For backwards capability,
 				 * "master" == "codec is slave"
 				 */
-				SNDERR("warning: deprecated bclk value '%s'\n",
-				       val);
+				SNDERR("deprecated bclk value '%s'", val);
 
 				hw_cfg->bclk_master = SND_SOC_TPLG_BCLK_CS;
 			} else if (!strcmp(val, "codec_slave")) {
@@ -1490,8 +1489,7 @@ int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
 				/* For backwards capability,
 				 * "master" == "codec is slave"
 				 */
-				SNDERR("warning: deprecated fsync value '%s'\n",
-				       val);
+				SNDERR("deprecated fsync value '%s'", val);
 
 				hw_cfg->fsync_master = SND_SOC_TPLG_FSYNC_CS;
 			} else if (!strcmp(val, "codec_slave")) {
@@ -1535,8 +1533,7 @@ int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
 				/* For backwards capability,
 				 * "master" == "for codec, mclk is input"
 				 */
-				SNDERR("warning: deprecated mclk value '%s'\n",
-				       val);
+				SNDERR("deprecated mclk value '%s'", val);
 
 				hw_cfg->mclk_direction = SND_SOC_TPLG_MCLK_CI;
 			} else if (!strcmp(val, "codec_mclk_in")) {

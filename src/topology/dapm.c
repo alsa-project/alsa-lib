@@ -154,8 +154,7 @@ static int tplg_build_widget(snd_tplg_t *tplg, struct tplg_elem *elem)
 		}
 
 		if (!ref->elem) {
-			SNDERR("error: cannot find '%s'"
-				" referenced by widget '%s'\n",
+			SNDERR("cannot find '%s' referenced by widget '%s'",
 				ref->id, elem->id);
 			return -EINVAL;
 		}
@@ -179,8 +178,7 @@ int tplg_build_widgets(snd_tplg_t *tplg)
 
 		elem = list_entry(pos, struct tplg_elem, list);
 		if (!elem->widget || elem->type != SND_TPLG_TYPE_DAPM_WIDGET) {
-			SNDERR("error: invalid widget '%s'\n",
-				elem->id);
+			SNDERR("invalid widget '%s'", elem->id);
 			return -EINVAL;
 		}
 
@@ -207,8 +205,7 @@ int tplg_build_routes(snd_tplg_t *tplg)
 		elem = list_entry(pos, struct tplg_elem, list);
 
 		if (!elem->route || elem->type != SND_TPLG_TYPE_DAPM_GRAPH) {
-			SNDERR("error: invalid route '%s'\n",
-				elem->id);
+			SNDERR("invalid route '%s'", elem->id);
 			return -EINVAL;
 		}
 
@@ -218,14 +215,13 @@ int tplg_build_routes(snd_tplg_t *tplg)
 
 		/* validate sink */
 		if (strlen(route->sink) <= 0) {
-			SNDERR("error: no sink\n");
+			SNDERR("no sink");
 			return -EINVAL;
 
 		}
 		if (!tplg_elem_lookup(&tplg->widget_list, route->sink,
 			SND_TPLG_TYPE_DAPM_WIDGET, SND_TPLG_INDEX_ALL)) {
-			SNDERR("warning: undefined sink widget/stream '%s'\n",
-				route->sink);
+			SNDERR("undefined sink widget/stream '%s'", route->sink);
 		}
 
 		/* validate control name */
@@ -234,21 +230,21 @@ int tplg_build_routes(snd_tplg_t *tplg)
 					SND_TPLG_TYPE_MIXER, elem->index) &&
 			!tplg_elem_lookup(&tplg->enum_list, route->control,
 					SND_TPLG_TYPE_ENUM, elem->index)) {
-				SNDERR("warning: Undefined mixer/enum control '%s'\n",
-					route->control);
+				SNDERR("Undefined mixer/enum control '%s'",
+				       route->control);
 			}
 		}
 
 		/* validate source */
 		if (strlen(route->source) <= 0) {
-			SNDERR("error: no source\n");
+			SNDERR("no source");
 			return -EINVAL;
 
 		}
 		if (!tplg_elem_lookup(&tplg->widget_list, route->source,
 			SND_TPLG_TYPE_DAPM_WIDGET, SND_TPLG_INDEX_ALL)) {
-			SNDERR("warning: Undefined source widget/stream '%s'\n",
-				route->source);
+			SNDERR("Undefined source widget/stream '%s'",
+			       route->source);
 		}
 
 		/* add graph to manifest */
@@ -300,7 +296,7 @@ static int tplg_parse_line(const char *text,
 
 	len = strlen(buf);
 	if (len <= 2) {
-		SNDERR("error: invalid route \"%s\"\n", buf);
+		SNDERR("invalid route \"%s\"", buf);
 		return -EINVAL;
 	}
 
@@ -309,7 +305,7 @@ static int tplg_parse_line(const char *text,
 		if (buf[i] == ',')
 			goto second;
 	}
-	SNDERR("error: invalid route \"%s\"\n", buf);
+	SNDERR("invalid route \"%s\"", buf);
 	return -EINVAL;
 
 second:
@@ -323,7 +319,7 @@ second:
 			goto done;
 	}
 
-	SNDERR("error: invalid route \"%s\"\n", buf);
+	SNDERR("invalid route \"%s\"", buf);
 	return -EINVAL;
 
 done:
@@ -378,7 +374,7 @@ int tplg_parse_dapm_graph(snd_tplg_t *tplg, snd_config_t *cfg,
 	int index = -1;
 
 	if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
-		SNDERR("error: compound is expected for dapm graph definition\n");
+		SNDERR("compound is expected for dapm graph definition");
 		return -EINVAL;
 	}
 
@@ -401,13 +397,13 @@ int tplg_parse_dapm_graph(snd_tplg_t *tplg, snd_config_t *cfg,
 
 		if (strcmp(id, "lines") == 0) {
 			if (index < 0) {
-				SNDERR("error: failed to parse dapm graph %s, missing index\n",
+				SNDERR("failed to parse dapm graph %s, missing index",
 					graph_id);
 				return -EINVAL;
 			}
 			err = tplg_parse_routes(tplg, n, index);
 			if (err < 0) {
-				SNDERR("error: failed to parse dapm graph %s\n",
+				SNDERR("failed to parse dapm graph %s",
 					graph_id);
 				return err;
 			}
@@ -528,7 +524,7 @@ int tplg_parse_dapm_widget(snd_tplg_t *tplg,
 
 			widget_type = lookup_widget(val);
 			if (widget_type < 0){
-				SNDERR("Widget '%s': Unsupported widget type %s\n",
+				SNDERR("widget '%s': Unsupported widget type %s",
 					elem->id, val);
 				return -EINVAL;
 			}
@@ -821,7 +817,7 @@ int tplg_add_widget_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 			break;
 
 		default:
-			SNDERR("error: widget %s: invalid type %d for ctl %d\n",
+			SNDERR("widget %s: invalid type %d for ctl %d",
 				wt->name, ct->type, i);
 			break;
 		}

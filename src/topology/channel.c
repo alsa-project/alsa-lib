@@ -104,7 +104,7 @@ int tplg_parse_channel(snd_tplg_t *tplg, snd_config_t *cfg,
 
 	channel_id = lookup_channel(id);
 	if (channel_id < 0) {
-		SNDERR("error: invalid channel %s\n", id);
+		SNDERR("invalid channel %s", id);
 		return -EINVAL;
 	}
 
