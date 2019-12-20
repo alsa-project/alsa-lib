@@ -776,6 +776,12 @@ enum snd_tplg_type {
 #define SND_TPLG_CREATE_DAPM_NOSORT	(1<<1)	/*!< Do not sort DAPM objects by index */
 
 /**
+ * \brief Return the version of the topology library.
+ * \return A static string with the version number.
+ */
+const char *snd_tplg_version(void);
+
+/**
  * \brief Create a new topology parser instance.
  * \return New topology parser instance
  */

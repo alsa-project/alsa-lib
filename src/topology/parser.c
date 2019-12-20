@@ -503,3 +503,8 @@ void snd_tplg_free(snd_tplg_t *tplg)
 
 	free(tplg);
 }
+
+const char *snd_tplg_version(void)
+{
+	return SND_LIB_VERSION_STR;
+}
