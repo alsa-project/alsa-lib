@@ -3,6 +3,9 @@
 
 #ifndef DOC_HIDDEN
 #include <stdint.h>
+#ifdef __linux__
+#include <linux/types.h>
+#else
 typedef uint8_t __u8;
 typedef uint16_t __u16;
 typedef uint32_t __u32;
@@ -37,6 +40,16 @@ typedef int32_t __s32;
 #define __be32 __u32
 #define __be16 __u16
 #define __be8  __u8
+#endif
+
+#ifndef __user
+#define __user
+#endif
+
+#ifndef __packed
+#define __packed __attribute__((__packed__))
+#endif
+
 #endif /* DOC_HIDDEN */
 
 #endif /* __TYPE_COMPAT_H */

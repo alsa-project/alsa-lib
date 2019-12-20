@@ -18,8 +18,7 @@
 #include "list.h"
 #include "topology.h"
 
-#define __packed __attribute__((__packed__))
-
+#include <sound/type_compat.h>
 #include <sound/asound.h>
 #include <sound/asoc.h>
 #include <sound/tlv.h>
