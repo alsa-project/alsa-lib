@@ -230,7 +230,7 @@ int tplg_build_routes(snd_tplg_t *tplg)
 					SND_TPLG_TYPE_MIXER, elem->index) &&
 			!tplg_elem_lookup(&tplg->enum_list, route->control,
 					SND_TPLG_TYPE_ENUM, elem->index)) {
-				SNDERR("Undefined mixer/enum control '%s'",
+				SNDERR("undefined mixer/enum control '%s'",
 				       route->control);
 			}
 		}
@@ -243,7 +243,7 @@ int tplg_build_routes(snd_tplg_t *tplg)
 		}
 		if (!tplg_elem_lookup(&tplg->widget_list, route->source,
 			SND_TPLG_TYPE_DAPM_WIDGET, SND_TPLG_INDEX_ALL)) {
-			SNDERR("Undefined source widget/stream '%s'",
+			SNDERR("undefined source widget/stream '%s'",
 			       route->source);
 		}
 
