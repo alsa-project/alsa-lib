@@ -601,6 +601,7 @@ static int copy_tuples(struct tplg_elem *elem,
 		elem->data = priv;
 
 		array = (struct snd_soc_tplg_vendor_array *)(priv->data + off);
+		memset(array, 0, set_size);
 		array->size = set_size;
 		array->type = tuple_set->type;
 		array->num_elems = tuple_set->num_tuples;
