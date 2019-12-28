@@ -22,8 +22,8 @@
 #include <ctype.h>
 
 #define UUID_FORMAT "\
-0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, \
-0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x"
+%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:\
+%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x"
 
 /* Get private data buffer of an element */
 struct snd_soc_tplg_private *get_priv_data(struct tplg_elem *elem)
@@ -316,7 +316,6 @@ format2:
 				values++;
 				s += 2;
 			}
-			s++;
 		}
 
 		s++;
@@ -341,6 +340,32 @@ static int get_uuid(const char *str, unsigned char *uuid_le)
 	if (tmp == NULL)
 		return -ENOMEM;
 
+	if (strchr(tmp, ':') == NULL)
+		goto data2;
+
+	s = strtok(tmp, ":");
+	while (s != NULL) {
+		errno = 0;
+		val = strtoul(s, NULL, 16);
+		if ((errno == ERANGE && val == ULONG_MAX)
+			|| (errno != 0 && val == 0)
+			|| (val > UCHAR_MAX)) {
+			SNDERR("invalid value for uuid");
+			ret = -EINVAL;
+			goto out;
+		}
+
+		*(uuid_le + values) = (unsigned char)val;
+
+		values++;
+		if (values >= 16)
+			break;
+
+		s = strtok(NULL, ":");
+	}
+	goto out;
+
+data2:
 	s = strtok(tmp, ",");
 
 	while (s != NULL) {
@@ -354,7 +379,7 @@ static int get_uuid(const char *str, unsigned char *uuid_le)
 			goto out;
 		}
 
-		 *(uuid_le + values) = (unsigned char)val;
+		*(uuid_le + values) = (unsigned char)val;
 
 		values++;
 		if (values >= 16)
@@ -413,7 +438,7 @@ static int copy_data_hex(char *data, int off, const char *str, int width)
 		return -ENOMEM;
 
 	p += off;
-	s = strtok(tmp, ",");
+	s = strtok(tmp, ",:");
 
 	while (s != NULL) {
 		ret = write_hex(p, s, width);
@@ -422,7 +447,7 @@ static int copy_data_hex(char *data, int off, const char *str, int width)
 			return ret;
 		}
 
-		s = strtok(NULL, ",");
+		s = strtok(NULL, ",:");
 		p += width;
 	}
 
