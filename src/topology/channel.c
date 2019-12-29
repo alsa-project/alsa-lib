@@ -129,7 +129,7 @@ int tplg_parse_channel(snd_tplg_t *tplg, snd_config_t *cfg,
 		else if (strcmp(id, "shift") == 0)
 			channel->shift = value;
 
-		tplg_dbg("\t\t%s = %s\n", id, value);
+		tplg_dbg("\t\t%s = %d\n", id, value);
 	}
 
 	tplg->channel_idx++;

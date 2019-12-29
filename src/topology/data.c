@@ -230,9 +230,11 @@ err:
 	return ret;
 }
 
-static void dump_priv_data(struct tplg_elem *elem)
+static void dump_priv_data(struct tplg_elem *elem ATTRIBUTE_UNUSED)
 {
+#ifdef TPLG_DEBUG
 	struct snd_soc_tplg_private *priv = elem->data;
+	unsigned char *p = (unsigned char *)priv->data;
 	unsigned int i;
 
 	tplg_dbg(" elem size = %d, priv data size = %d\n",
@@ -246,6 +248,7 @@ static void dump_priv_data(struct tplg_elem *elem)
 	}
 
 	tplg_dbg("\n\n");
+#endif
 }
 
 static inline int check_nibble(unsigned char c)

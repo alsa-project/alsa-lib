@@ -881,7 +881,7 @@ int tplg_parse_pcm(snd_tplg_t *tplg, snd_config_t *cfg,
 
 			pcm->compress = ival;
 
-			tplg_dbg("\t%s: %s\n", id, val);
+			tplg_dbg("\t%s: %d\n", id, ival);
 			continue;
 		}
 
