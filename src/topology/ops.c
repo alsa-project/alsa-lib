@@ -67,6 +67,7 @@ int tplg_parse_ops(snd_tplg_t *tplg ATTRIBUTE_UNUSED, snd_config_t *cfg,
 	snd_config_t *n;
 	struct snd_soc_tplg_ctl_hdr *hdr = private;
 	const char *id, *value;
+	int ival;
 
 	tplg_dbg("\tOps\n");
 	hdr->size = sizeof(*hdr);
@@ -80,17 +81,23 @@ int tplg_parse_ops(snd_tplg_t *tplg ATTRIBUTE_UNUSED, snd_config_t *cfg,
 			continue;
 
 		/* get value - try strings then ints */
-		if (snd_config_get_string(n, &value) < 0)
-			continue;
+		if (snd_config_get_type(n) == SND_CONFIG_TYPE_STRING) {
+			if (snd_config_get_string(n, &value) < 0)
+				continue;
+			ival = lookup_ops(value);
+		} else {
+			if (tplg_get_integer(n, &ival, 0))
+				continue;
+		}
 
 		if (strcmp(id, "info") == 0)
-			hdr->ops.info = lookup_ops(value);
+			hdr->ops.info = ival;
 		else if (strcmp(id, "put") == 0)
-			hdr->ops.put = lookup_ops(value);
+			hdr->ops.put = ival;
 		else if (strcmp(id, "get") == 0)
-			hdr->ops.get = lookup_ops(value);
+			hdr->ops.get = ival;
 
-		tplg_dbg("\t\t%s = %s\n", id, value);
+		tplg_dbg("\t\t%s = %d\n", id, ival);
 	}
 
 	return 0;
@@ -146,6 +153,7 @@ int tplg_parse_ext_ops(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 	snd_config_t *n;
 	struct snd_soc_tplg_bytes_control *be = private;
 	const char *id, *value;
+	int ival;
 
 	tplg_dbg("\tExt Ops\n");
 
@@ -158,15 +166,21 @@ int tplg_parse_ext_ops(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 			continue;
 
 		/* get value - try strings then ints */
-		if (snd_config_get_string(n, &value) < 0)
-			continue;
+		if (snd_config_get_type(n) == SND_CONFIG_TYPE_STRING) {
+			if (snd_config_get_string(n, &value) < 0)
+				continue;
+			ival = lookup_ops(value);
+		} else {
+			if (tplg_get_integer(n, &ival, 0))
+				continue;
+		}
 
 		if (strcmp(id, "info") == 0)
-			be->ext_ops.info = lookup_ops(value);
+			be->ext_ops.info = ival;
 		else if (strcmp(id, "put") == 0)
-			be->ext_ops.put = lookup_ops(value);
+			be->ext_ops.put = ival;
 		else if (strcmp(id, "get") == 0)
-			be->ext_ops.get = lookup_ops(value);
+			be->ext_ops.get = ival;
 
 		tplg_dbg("\t\t%s = %s\n", id, value);
 	}
