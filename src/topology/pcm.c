@@ -252,8 +252,8 @@ static int build_link(snd_tplg_t *tplg, struct tplg_elem *elem)
 				ref->id, SND_TPLG_TYPE_HW_CONFIG, elem->index);
 			if (!ref->elem) {
 				SNDERR("cannot find HW config '%s'"
-				" referenced by link '%s'",
-				ref->id, elem->id);
+				       " referenced by link '%s'",
+				       ref->id, elem->id);
 				return -EINVAL;
 			}
 
@@ -267,6 +267,7 @@ static int build_link(snd_tplg_t *tplg, struct tplg_elem *elem)
 			err = tplg_copy_data(tplg, elem, ref);
 			if (err < 0)
 				return err;
+			link = elem->link; /* realloc */
 			break;
 
 		default:
