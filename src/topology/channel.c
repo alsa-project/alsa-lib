@@ -100,7 +100,7 @@ int tplg_parse_channel(snd_tplg_t *tplg, snd_config_t *cfg,
 
 	channel += tplg->channel_idx;
 	snd_config_get_id(cfg, &id);
-	tplg_dbg("\tChannel %s at index %d\n", id, tplg->channel_idx);
+	tplg_dbg("\tChannel %s at index %d", id, tplg->channel_idx);
 
 	channel_id = lookup_channel(id);
 	if (channel_id < 0) {
@@ -110,7 +110,7 @@ int tplg_parse_channel(snd_tplg_t *tplg, snd_config_t *cfg,
 
 	channel->id = channel_id;
 	channel->size = sizeof(*channel);
-	tplg_dbg("\tChan %s = %d\n", id, channel->id);
+	tplg_dbg("\tChan %s = %d", id, channel->id);
 
 	snd_config_for_each(i, next, cfg) {
 
@@ -129,7 +129,7 @@ int tplg_parse_channel(snd_tplg_t *tplg, snd_config_t *cfg,
 		else if (strcmp(id, "shift") == 0)
 			channel->shift = value;
 
-		tplg_dbg("\t\t%s = %d\n", id, value);
+		tplg_dbg("\t\t%s = %d", id, value);
 	}
 
 	tplg->channel_idx++;

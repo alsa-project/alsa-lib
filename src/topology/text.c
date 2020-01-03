@@ -32,13 +32,13 @@ static int parse_text_values(snd_config_t *cfg, struct tplg_elem *elem)
 	const char *value = NULL;
 	int j = 0;
 
-	tplg_dbg(" Text Values: %s\n", elem->id);
+	tplg_dbg(" Text Values: %s", elem->id);
 
 	snd_config_for_each(i, next, cfg) {
 		n = snd_config_iterator_entry(i);
 
 		if (j == SND_SOC_TPLG_NUM_TEXTS) {
-			tplg_dbg("text string number exceeds %d\n", j);
+			tplg_dbg("text string number exceeds %d", j);
 			return -ENOMEM;
 		}
 
@@ -48,7 +48,7 @@ static int parse_text_values(snd_config_t *cfg, struct tplg_elem *elem)
 
 		snd_strlcpy(&texts->items[j][0], value,
 			SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
-		tplg_dbg("\t%s\n", &texts->items[j][0]);
+		tplg_dbg("\t%s", &texts->items[j][0]);
 
 		j++;
 	}

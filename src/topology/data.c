@@ -87,7 +87,7 @@ int tplg_parse_refs(snd_config_t *cfg, struct tplg_elem *elem,
 		if (snd_config_get_string(cfg, &val) < 0)
 			return -EINVAL;
 
-		tplg_dbg("\tref data: %s\n", val);
+		tplg_dbg("\tref data: %s", val);
 		err = tplg_ref_add(elem, type, val);
 		if (err < 0)
 			return err;
@@ -108,7 +108,7 @@ int tplg_parse_refs(snd_config_t *cfg, struct tplg_elem *elem,
 		if (snd_config_get_string(n, &val) < 0)
 			continue;
 
-		tplg_dbg("\tref data: %s\n", val);
+		tplg_dbg("\tref data: %s", val);
 		err = tplg_ref_add(elem, type, val);
 		if (err < 0)
 			return err;
@@ -169,7 +169,7 @@ static int tplg_parse_data_file(snd_config_t *cfg, struct tplg_elem *elem)
 	size_t size, bytes_read;
 	int ret = 0;
 
-	tplg_dbg("data DataFile: %s\n", elem->id);
+	tplg_dbg("data DataFile: %s", elem->id);
 
 	if (snd_config_get_string(cfg, &value) < 0)
 		return -EINVAL;
@@ -235,19 +235,25 @@ static void dump_priv_data(struct tplg_elem *elem ATTRIBUTE_UNUSED)
 #ifdef TPLG_DEBUG
 	struct snd_soc_tplg_private *priv = elem->data;
 	unsigned char *p = (unsigned char *)priv->data;
+	char buf[128], buf2[8];
 	unsigned int i;
 
-	tplg_dbg(" elem size = %d, priv data size = %d\n",
+	tplg_dbg(" elem size = %d, priv data size = %d",
 		elem->size, priv->size);
 
+	buf[0] = '\0';
 	for (i = 0; i < priv->size; i++) {
-		if (i > 0 && (i % 16) == 0)
-			tplg_dbg("\n");
+		if (i > 0 && (i % 16) == 0) {
+			tplg_dbg("%s", buf);
+			buf[0] = '\0';
+		}
 
-		tplg_dbg(" %02x:", *p++);
+		snprintf(buf2, sizeof(buf2), " %02x", *p++);
+		strcat(buf, buf2);
 	}
 
-	tplg_dbg("\n\n");
+	if (buf[0])
+		tplg_dbg("%s", buf);
 #endif
 }
 
@@ -466,7 +472,7 @@ static int tplg_parse_data_hex(snd_config_t *cfg, struct tplg_elem *elem,
 	int size, esize, off, num;
 	int ret;
 
-	tplg_dbg(" data: %s\n", elem->id);
+	tplg_dbg(" data: %s", elem->id);
 
 	if (snd_config_get_string(cfg, &value) < 0)
 		return -EINVAL;
@@ -683,7 +689,7 @@ static int build_tuples(snd_tplg_t *tplg, struct tplg_elem *elem)
 		if (ref->type != SND_TPLG_TYPE_TUPLE)
 			continue;
 
-		tplg_dbg("tuples '%s' used by data '%s'\n", ref->id, elem->id);
+		tplg_dbg("tuples '%s' used by data '%s'", ref->id, elem->id);
 
 		if (!ref->elem)
 			ref->elem = tplg_elem_lookup(&tplg->tuple_list,
@@ -799,7 +805,7 @@ static int parse_tuple_set(snd_config_t *cfg,
 	if (!num_tuples)
 		return 0;
 
-	tplg_dbg("\t %d %s tuples:\n", num_tuples, id);
+	tplg_dbg("\t %d %s tuples:", num_tuples, id);
 	set = calloc(1, sizeof(*set) + num_tuples * sizeof(struct tplg_tuple));
 	if (!set)
 		return -ENOMEM;
@@ -831,7 +837,7 @@ static int parse_tuple_set(snd_config_t *cfg,
 				continue;
 			snd_strlcpy(tuple->string, value,
 				SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
-			tplg_dbg("\t\t%s = %s\n", tuple->token, tuple->string);
+			tplg_dbg("\t\t%s = %s", tuple->token, tuple->string);
 			break;
 
 		case SND_SOC_TPLG_TUPLE_TYPE_BOOL:
@@ -839,7 +845,7 @@ static int parse_tuple_set(snd_config_t *cfg,
 			if (ival < 0)
 				continue;
 			tuple->value = ival;
-			tplg_dbg("\t\t%s = %d\n", tuple->token, tuple->value);
+			tplg_dbg("\t\t%s = %d", tuple->token, tuple->value);
 			break;
 
 		case SND_SOC_TPLG_TUPLE_TYPE_BYTE:
@@ -862,7 +868,7 @@ static int parse_tuple_set(snd_config_t *cfg,
 			}
 
 			tuple->value = tuple_val;
-			tplg_dbg("\t\t%s = 0x%x\n", tuple->token, tuple->value);
+			tplg_dbg("\t\t%s = 0x%x", tuple->token, tuple->value);
 			break;
 
 		default:
@@ -1047,7 +1053,7 @@ int tplg_parse_tokens(snd_tplg_t *tplg, snd_config_t *cfg,
 	if (!num_tokens)
 		return 0;
 
-	tplg_dbg(" Vendor tokens: %s, %d tokens\n", elem->id, num_tokens);
+	tplg_dbg(" Vendor tokens: %s, %d tokens", elem->id, num_tokens);
 
 	tokens = calloc(1, sizeof(*tokens)
 			+ num_tokens * sizeof(struct tplg_token));
@@ -1067,7 +1073,7 @@ int tplg_parse_tokens(snd_tplg_t *tplg, snd_config_t *cfg,
 		snd_strlcpy(tokens->token[tokens->num_tokens].id, id,
 				SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 		tokens->token[tokens->num_tokens].value = value;
-		tplg_dbg("\t\t %s : %d\n", tokens->token[tokens->num_tokens].id,
+		tplg_dbg("\t\t %s : %d", tokens->token[tokens->num_tokens].id,
 			tokens->token[tokens->num_tokens].value);
 		tokens->num_tokens++;
 	}
@@ -1116,7 +1122,7 @@ int tplg_parse_tuples(snd_tplg_t *tplg, snd_config_t *cfg,
 	if (!elem)
 		return -ENOMEM;
 
-	tplg_dbg(" Vendor Tuples: %s\n", elem->id);
+	tplg_dbg(" Vendor Tuples: %s", elem->id);
 
 	tuples = calloc(1, sizeof(*tuples));
 	if (!tuples)
@@ -1133,7 +1139,7 @@ int tplg_parse_tuples(snd_tplg_t *tplg, snd_config_t *cfg,
 			if (snd_config_get_string(n, &value) < 0)
 				return -EINVAL;
 			tplg_ref_add(elem, SND_TPLG_TYPE_TOKEN, value);
-			tplg_dbg("\t refer to vendor tokens: %s\n", value);
+			tplg_dbg("\t refer to vendor tokens: %s", value);
 		}
 
 		if (strcmp(id, "tuples") == 0) {
@@ -1208,7 +1214,7 @@ int tplg_parse_manifest_data(snd_tplg_t *tplg, snd_config_t *cfg,
 	manifest = elem->manifest;
 	manifest->size = elem->size;
 
-	tplg_dbg(" Manifest: %s\n", elem->id);
+	tplg_dbg(" Manifest: %s", elem->id);
 
 	snd_config_for_each(i, next, cfg) {
 		n = snd_config_iterator_entry(i);
@@ -1402,7 +1408,7 @@ int tplg_parse_data(snd_tplg_t *tplg, snd_config_t *cfg,
 				return -EINVAL;
 
 			elem->vendor_type = ival;
-			tplg_dbg("\t%s: %d\n", id, elem->index);
+			tplg_dbg("\t%s: %d", id, elem->index);
 			continue;
 		}
 	}
@@ -1506,7 +1512,7 @@ int tplg_copy_data(snd_tplg_t *tplg, struct tplg_elem *elem,
 		return -EINVAL;
 	}
 
-	tplg_dbg("Data '%s' used by '%s'\n", ref->id, elem->id);
+	tplg_dbg("Data '%s' used by '%s'", ref->id, elem->id);
 	/* overlook empty private data */
 	if (!ref_elem->data || !ref_elem->data->size) {
 		ref->elem = ref_elem;

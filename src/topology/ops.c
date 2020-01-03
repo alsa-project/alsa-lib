@@ -69,7 +69,7 @@ int tplg_parse_ops(snd_tplg_t *tplg ATTRIBUTE_UNUSED, snd_config_t *cfg,
 	const char *id, *value;
 	int ival;
 
-	tplg_dbg("\tOps\n");
+	tplg_dbg("\tOps");
 	hdr->size = sizeof(*hdr);
 
 	snd_config_for_each(i, next, cfg) {
@@ -97,7 +97,7 @@ int tplg_parse_ops(snd_tplg_t *tplg ATTRIBUTE_UNUSED, snd_config_t *cfg,
 		else if (strcmp(id, "get") == 0)
 			hdr->ops.get = ival;
 
-		tplg_dbg("\t\t%s = %d\n", id, ival);
+		tplg_dbg("\t\t%s = %d", id, ival);
 	}
 
 	return 0;
@@ -155,7 +155,7 @@ int tplg_parse_ext_ops(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 	const char *id, *value;
 	int ival;
 
-	tplg_dbg("\tExt Ops\n");
+	tplg_dbg("\tExt Ops");
 
 	snd_config_for_each(i, next, cfg) {
 
@@ -182,7 +182,7 @@ int tplg_parse_ext_ops(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 		else if (strcmp(id, "get") == 0)
 			be->ext_ops.get = ival;
 
-		tplg_dbg("\t\t%s = %s\n", id, value);
+		tplg_dbg("\t\t%s = %s", id, value);
 	}
 
 	return 0;

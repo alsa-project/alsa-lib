@@ -54,7 +54,7 @@ static int parse_access_values(snd_config_t *cfg,
 	const char *value = NULL;
 	unsigned int j;
 
-	tplg_dbg(" Access:\n");
+	tplg_dbg(" Access:");
 
 	snd_config_for_each(i, next, cfg) {
 		n = snd_config_iterator_entry(i);
@@ -67,7 +67,7 @@ static int parse_access_values(snd_config_t *cfg,
 		for (j = 0; j < ARRAY_SIZE(ctl_access); j++) {
 			if (strcmp(value, ctl_access[j].name) == 0) {
 				hdr->access |= ctl_access[j].value;
-				tplg_dbg("\t%s\n", value);
+				tplg_dbg("\t%s", value);
 				break;
 			}
 		}
@@ -150,7 +150,7 @@ static int copy_tlv(struct tplg_elem *elem, struct tplg_elem *ref)
 	struct snd_soc_tplg_mixer_control *mixer_ctrl =  elem->mixer_ctrl;
 	struct snd_soc_tplg_ctl_tlv *tlv = ref->tlv;
 
-	tplg_dbg("TLV '%s' used by '%s\n", ref->id, elem->id);
+	tplg_dbg("TLV '%s' used by '%s", ref->id, elem->id);
 
 	/* TLV has a fixed size */
 	mixer_ctrl->hdr.tlv = *tlv;
@@ -330,7 +330,7 @@ static int tplg_parse_tlv_dbscale(snd_config_t *cfg, struct tplg_elem *elem)
 	const char *id = NULL;
 	int val;
 
-	tplg_dbg(" scale: %s\n", elem->id);
+	tplg_dbg(" scale: %s", elem->id);
 
 	tplg_tlv->size = sizeof(struct snd_soc_tplg_ctl_tlv);
 	tplg_tlv->type = SNDRV_CTL_TLVT_DB_SCALE;
@@ -348,7 +348,7 @@ static int tplg_parse_tlv_dbscale(snd_config_t *cfg, struct tplg_elem *elem)
 		if (tplg_get_integer(n, &val, 0))
 			continue;
 
-		tplg_dbg("\t%s = %i\n", id, val);
+		tplg_dbg("\t%s = %i", id, val);
 
 		/* get TLV data */
 		if (strcmp(id, "min") == 0)
@@ -450,7 +450,7 @@ int tplg_parse_control_bytes(snd_tplg_t *tplg,
 	snd_strlcpy(be->hdr.name, elem->id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 	be->hdr.type = SND_SOC_TPLG_TYPE_BYTES;
 
-	tplg_dbg(" Control Bytes: %s\n", elem->id);
+	tplg_dbg(" Control Bytes: %s", elem->id);
 
 	snd_config_for_each(i, next, cfg) {
 		n = snd_config_iterator_entry(i);
@@ -468,7 +468,7 @@ int tplg_parse_control_bytes(snd_tplg_t *tplg,
 				return -EINVAL;
 
 			be->base = ival;
-			tplg_dbg("\t%s: %d\n", id, be->base);
+			tplg_dbg("\t%s: %d", id, be->base);
 			continue;
 		}
 
@@ -477,7 +477,7 @@ int tplg_parse_control_bytes(snd_tplg_t *tplg,
 				return -EINVAL;
 
 			be->num_regs = ival;
-			tplg_dbg("\t%s: %d\n", id, be->num_regs);
+			tplg_dbg("\t%s: %d", id, be->num_regs);
 			continue;
 		}
 
@@ -486,7 +486,7 @@ int tplg_parse_control_bytes(snd_tplg_t *tplg,
 				return -EINVAL;
 
 			be->max = ival;
-			tplg_dbg("\t%s: %d\n", id, be->max);
+			tplg_dbg("\t%s: %d", id, be->max);
 			continue;
 		}
 
@@ -495,7 +495,7 @@ int tplg_parse_control_bytes(snd_tplg_t *tplg,
 				return -EINVAL;
 
 			be->mask = ival;
-			tplg_dbg("\t%s: %d\n", id, be->mask);
+			tplg_dbg("\t%s: %d", id, be->mask);
 			continue;
 		}
 
@@ -515,7 +515,7 @@ int tplg_parse_control_bytes(snd_tplg_t *tplg,
 				return err;
 
 			tlv_set = true;
-			tplg_dbg("\t%s: %s\n", id, val);
+			tplg_dbg("\t%s: %s", id, val);
 			continue;
 		}
 
@@ -625,7 +625,7 @@ int tplg_parse_control_enum(snd_tplg_t *tplg, snd_config_t *cfg,
 		ec->channel[j].reg = -1;
 	}
 
-	tplg_dbg(" Control Enum: %s\n", elem->id);
+	tplg_dbg(" Control Enum: %s", elem->id);
 
 	snd_config_for_each(i, next, cfg) {
 
@@ -644,7 +644,7 @@ int tplg_parse_control_enum(snd_tplg_t *tplg, snd_config_t *cfg,
 				return -EINVAL;
 
 			tplg_ref_add(elem, SND_TPLG_TYPE_TEXT, val);
-			tplg_dbg("\t%s: %s\n", id, val);
+			tplg_dbg("\t%s: %s", id, val);
 			continue;
 		}
 
@@ -761,7 +761,7 @@ int tplg_parse_control_mixer(snd_tplg_t *tplg,
 	for (j = 0; j < SND_SOC_TPLG_MAX_CHAN; j++)
 		mc->channel[j].reg = -1;
 
-	tplg_dbg(" Control Mixer: %s\n", elem->id);
+	tplg_dbg(" Control Mixer: %s", elem->id);
 
 	/* giterate trough each mixer elment */
 	snd_config_for_each(i, next, cfg) {
@@ -795,7 +795,7 @@ int tplg_parse_control_mixer(snd_tplg_t *tplg,
 				return -EINVAL;
 
 			mc->max = ival;
-			tplg_dbg("\t%s: %d\n", id, mc->max);
+			tplg_dbg("\t%s: %d", id, mc->max);
 			continue;
 		}
 
@@ -805,7 +805,7 @@ int tplg_parse_control_mixer(snd_tplg_t *tplg,
 				return -EINVAL;
 			mc->invert = ival;
 
-			tplg_dbg("\t%s: %d\n", id, mc->invert);
+			tplg_dbg("\t%s: %d", id, mc->invert);
 			continue;
 		}
 
@@ -826,7 +826,7 @@ int tplg_parse_control_mixer(snd_tplg_t *tplg,
 				return err;
 
 			tlv_set = true;
-			tplg_dbg("\t%s: %s\n", id, val);
+			tplg_dbg("\t%s: %s", id, val);
 			continue;
 		}
 
@@ -981,7 +981,7 @@ int tplg_add_mixer(snd_tplg_t *tplg, struct snd_tplg_mixer_template *mixer,
 	struct tplg_elem *elem;
 	int ret, i, num_channels;
 
-	tplg_dbg(" Control Mixer: %s\n", mixer->hdr.name);
+	tplg_dbg(" Control Mixer: %s", mixer->hdr.name);
 
 	if (mixer->hdr.type != SND_SOC_TPLG_TYPE_MIXER) {
 		SNDERR("invalid mixer type %d", mixer->hdr.type);
@@ -1045,7 +1045,7 @@ int tplg_add_enum(snd_tplg_t *tplg, struct snd_tplg_enum_template *enum_ctl,
 	struct tplg_elem *elem;
 	int ret, i, num_items, num_channels;
 
-	tplg_dbg(" Control Enum: %s\n", enum_ctl->hdr.name);
+	tplg_dbg(" Control Enum: %s", enum_ctl->hdr.name);
 
 	if (enum_ctl->hdr.type != SND_SOC_TPLG_TYPE_ENUM) {
 		SNDERR("invalid enum type %d", enum_ctl->hdr.type);
@@ -1128,7 +1128,7 @@ int tplg_add_bytes(snd_tplg_t *tplg, struct snd_tplg_bytes_template *bytes_ctl,
 	struct tplg_elem *elem;
 	int ret;
 
-	tplg_dbg(" Control Bytes: %s\n", bytes_ctl->hdr.name);
+	tplg_dbg(" Control Bytes: %s", bytes_ctl->hdr.name);
 
 	if (bytes_ctl->hdr.type != SND_SOC_TPLG_TYPE_BYTES) {
 		SNDERR("invalid bytes type %d", bytes_ctl->hdr.type);

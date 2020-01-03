@@ -76,8 +76,8 @@ static int copy_dapm_control(struct tplg_elem *elem, struct tplg_elem *ref)
 {
 	struct snd_soc_tplg_dapm_widget *widget = elem->widget;
 
-	tplg_dbg("Control '%s' used by '%s'\n", ref->id, elem->id);
-	tplg_dbg("\tparent size: %d + %d -> %d, priv size -> %d\n",
+	tplg_dbg("Control '%s' used by '%s'", ref->id, elem->id);
+	tplg_dbg("\tparent size: %d + %d -> %d, priv size -> %d",
 		elem->size, ref->size, elem->size + ref->size,
 		widget->priv.size);
 
@@ -210,8 +210,8 @@ int tplg_build_routes(snd_tplg_t *tplg)
 		}
 
 		route = elem->route;
-		tplg_dbg("\nCheck route: sink '%s', control '%s', source '%s'\n",
-			route->sink, route->control, route->source);
+		tplg_dbg("Check route: sink '%s', control '%s', source '%s'",
+			 route->sink, route->control, route->source);
 
 		/* validate sink */
 		if (strlen(route->sink) <= 0) {
@@ -357,7 +357,7 @@ static int tplg_parse_routes(snd_tplg_t *tplg, snd_config_t *cfg, int index)
 		if (err < 0)
 			return err;
 
-		tplg_dbg("route: sink '%s', control '%s', source '%s'\n",
+		tplg_dbg("route: sink '%s', control '%s', source '%s'",
 				line->sink, line->control, line->source);
 	}
 
@@ -520,7 +520,7 @@ int tplg_parse_dapm_widget(snd_tplg_t *tplg,
 	if (!elem)
 		return -ENOMEM;
 
-	tplg_dbg(" Widget: %s\n", elem->id);
+	tplg_dbg(" Widget: %s", elem->id);
 
 	widget = elem->widget;
 	snd_strlcpy(widget->name, elem->id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
@@ -550,7 +550,7 @@ int tplg_parse_dapm_widget(snd_tplg_t *tplg,
 			}
 
 			widget->id = widget_type;
-			tplg_dbg("\t%s: %s\n", id, val);
+			tplg_dbg("\t%s: %s", id, val);
 			continue;
 		}
 
@@ -560,7 +560,7 @@ int tplg_parse_dapm_widget(snd_tplg_t *tplg,
 
 			snd_strlcpy(widget->sname, val,
 				       SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
-			tplg_dbg("\t%s: %s\n", id, val);
+			tplg_dbg("\t%s: %s", id, val);
 			continue;
 		}
 
@@ -571,7 +571,7 @@ int tplg_parse_dapm_widget(snd_tplg_t *tplg,
 
 			widget->reg = ival ? -1 : 0;
 
-			tplg_dbg("\t%s: %s\n", id, val);
+			tplg_dbg("\t%s: %s", id, val);
 			continue;
 		}
 
@@ -580,7 +580,7 @@ int tplg_parse_dapm_widget(snd_tplg_t *tplg,
 				return -EINVAL;
 
 			widget->shift = ival;
-			tplg_dbg("\t%s: %d\n", id, widget->shift);
+			tplg_dbg("\t%s: %d", id, widget->shift);
 			continue;
 		}
 
@@ -589,7 +589,7 @@ int tplg_parse_dapm_widget(snd_tplg_t *tplg,
 				return -EINVAL;
 
 			widget->reg = ival;
-			tplg_dbg("\t%s: %d\n", id, widget->reg);
+			tplg_dbg("\t%s: %d", id, widget->reg);
 			continue;
 		}
 
@@ -598,7 +598,7 @@ int tplg_parse_dapm_widget(snd_tplg_t *tplg,
 				return -EINVAL;
 
 			widget->invert = ival;
-			tplg_dbg("\t%s: %d\n", id, widget->invert);
+			tplg_dbg("\t%s: %d", id, widget->invert);
 			continue;
 		}
 
@@ -607,7 +607,7 @@ int tplg_parse_dapm_widget(snd_tplg_t *tplg,
 				return -EINVAL;
 
 			widget->subseq = ival;
-			tplg_dbg("\t%s: %d\n", id, widget->subseq);
+			tplg_dbg("\t%s: %d", id, widget->subseq);
 			continue;
 		}
 
@@ -616,7 +616,7 @@ int tplg_parse_dapm_widget(snd_tplg_t *tplg,
 				return -EINVAL;
 
 			widget->event_type = ival;
-			tplg_dbg("\t%s: %d\n", id, widget->event_type);
+			tplg_dbg("\t%s: %d", id, widget->event_type);
 			continue;
 		}
 
@@ -625,7 +625,7 @@ int tplg_parse_dapm_widget(snd_tplg_t *tplg,
 				return -EINVAL;
 
 			widget->event_flags = ival;
-			tplg_dbg("\t%s: %d\n", id, widget->event_flags);
+			tplg_dbg("\t%s: %d", id, widget->event_flags);
 			continue;
 		}
 
@@ -767,7 +767,7 @@ int tplg_add_widget_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 	struct tplg_elem *elem;
 	int i, ret = 0;
 
-	tplg_dbg("Widget: %s\n", wt->name);
+	tplg_dbg("Widget: %s", wt->name);
 
 	elem = tplg_elem_new_common(tplg, NULL, wt->name,
 		SND_TPLG_TYPE_DAPM_WIDGET);

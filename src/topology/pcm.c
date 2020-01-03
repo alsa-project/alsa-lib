@@ -68,7 +68,7 @@ static void copy_stream_caps(const char *id ATTRIBUTE_UNUSED,
 {
 	struct snd_soc_tplg_stream_caps *ref_caps = ref_elem->stream_caps;
 
-	tplg_dbg("Copy pcm caps (%ld bytes) from '%s' to '%s' \n",
+	tplg_dbg("Copy pcm caps (%ld bytes) from '%s' to '%s'",
 		sizeof(*caps), ref_elem->id, id);
 
 	*caps =  *ref_caps;
@@ -388,7 +388,7 @@ static int parse_unsigned(snd_config_t *n, unsigned int *dst)
 	{
 		const char *id;
 		if (snd_config_get_id(n, &id) >= 0)
-			tplg_dbg("\t\t%s: %d\n", id, *dst);
+			tplg_dbg("\t\t%s: %d", id, *dst);
 	}
 #endif
 	return 0;
@@ -415,7 +415,7 @@ int tplg_parse_stream_caps(snd_tplg_t *tplg,
 	sc->size = elem->size;
 	snd_strlcpy(sc->name, elem->id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 
-	tplg_dbg(" PCM Capabilities: %s\n", elem->id);
+	tplg_dbg(" PCM Capabilities: %s", elem->id);
 
 	snd_config_for_each(i, next, cfg) {
 		n = snd_config_iterator_entry(i);
@@ -442,7 +442,7 @@ int tplg_parse_stream_caps(snd_tplg_t *tplg,
 			if (err < 0)
 				return err;
 
-			tplg_dbg("\t\t%s: %s\n", id, val);
+			tplg_dbg("\t\t%s: %s", id, val);
 			continue;
 		}
 
@@ -460,7 +460,7 @@ int tplg_parse_stream_caps(snd_tplg_t *tplg,
 			if (err < 0)
 				return err;
 
-			tplg_dbg("\t\t%s: %s\n", id, val);
+			tplg_dbg("\t\t%s: %s", id, val);
 			continue;
 		}
 
@@ -625,7 +625,7 @@ static int tplg_parse_streams(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 
 	snd_config_get_id(cfg, &id);
 
-	tplg_dbg("\t%s:\n", id);
+	tplg_dbg("\t%s:", id);
 
 	switch (elem->type) {
 	case SND_TPLG_TYPE_PCM:
@@ -672,7 +672,7 @@ static int tplg_parse_streams(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 			snd_strlcpy(caps[stream].name, value,
 				SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 
-			tplg_dbg("\t\t%s\n\t\t\t%s\n", id, value);
+			tplg_dbg("\t\t%s\n\t\t\t%s", id, value);
 			continue;
 		}
 	}
@@ -746,7 +746,7 @@ static int tplg_parse_fe_dai(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 	const char *id;
 
 	snd_config_get_id(cfg, &id);
-	tplg_dbg("\t\tFE DAI %s:\n", id);
+	tplg_dbg("\t\tFE DAI %s:", id);
 	snd_strlcpy(pcm->dai_name, id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 
 	snd_config_for_each(i, next, cfg) {
@@ -763,7 +763,7 @@ static int tplg_parse_fe_dai(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 				return -EINVAL;
 			}
 
-			tplg_dbg("\t\t\tindex: %d\n", pcm->dai_id);
+			tplg_dbg("\t\t\tindex: %d", pcm->dai_id);
 		}
 	}
 
@@ -847,7 +847,7 @@ int tplg_parse_pcm(snd_tplg_t *tplg, snd_config_t *cfg,
 	pcm->size = elem->size;
 	snd_strlcpy(pcm->pcm_name, elem->id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 
-	tplg_dbg(" PCM: %s\n", elem->id);
+	tplg_dbg(" PCM: %s", elem->id);
 
 	snd_config_for_each(i, next, cfg) {
 
@@ -882,7 +882,7 @@ int tplg_parse_pcm(snd_tplg_t *tplg, snd_config_t *cfg,
 
 			pcm->compress = ival;
 
-			tplg_dbg("\t%s: %d\n", id, ival);
+			tplg_dbg("\t%s: %d", id, ival);
 			continue;
 		}
 
@@ -988,7 +988,7 @@ int tplg_parse_dai(snd_tplg_t *tplg, snd_config_t *cfg,
 	snd_strlcpy(dai->dai_name, elem->id,
 		SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 
-	tplg_dbg(" DAI: %s\n", elem->id);
+	tplg_dbg(" DAI: %s", elem->id);
 
 	snd_config_for_each(i, next, cfg) {
 
@@ -1142,7 +1142,7 @@ int tplg_parse_link(snd_tplg_t *tplg,
 	link->size = elem->size;
 	snd_strlcpy(link->name, elem->id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 
-	tplg_dbg(" Link: %s\n", elem->id);
+	tplg_dbg(" Link: %s", elem->id);
 
 	snd_config_for_each(i, next, cfg) {
 
@@ -1168,7 +1168,7 @@ int tplg_parse_link(snd_tplg_t *tplg,
 
 			snd_strlcpy(link->stream_name, val,
 				       SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
-			tplg_dbg("\t%s: %s\n", id, val);
+			tplg_dbg("\t%s: %s", id, val);
 			continue;
 		}
 
@@ -1280,7 +1280,7 @@ int tplg_parse_cc(snd_tplg_t *tplg,
 	link = elem->link;
 	link->size = elem->size;
 
-	tplg_dbg(" CC: %s\n", elem->id);
+	tplg_dbg(" CC: %s", elem->id);
 
 	snd_config_for_each(i, next, cfg) {
 
@@ -1412,7 +1412,7 @@ int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
 	hw_cfg = elem->hw_cfg;
 	hw_cfg->size = elem->size;
 
-	tplg_dbg(" Link HW config: %s\n", elem->id);
+	tplg_dbg(" Link HW config: %s", elem->id);
 
 	snd_config_for_each(i, next, cfg) {
 
@@ -1719,7 +1719,7 @@ int tplg_add_pcm_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 	struct tplg_elem *elem;
 	int ret, i;
 
-	tplg_dbg("PCM: %s, DAI %s\n", pcm_tpl->pcm_name, pcm_tpl->dai_name);
+	tplg_dbg("PCM: %s, DAI %s", pcm_tpl->pcm_name, pcm_tpl->dai_name);
 
 	if (pcm_tpl->num_streams > SND_SOC_TPLG_STREAM_CONFIG_MAX)
 		return -EINVAL;
@@ -1881,7 +1881,7 @@ int tplg_add_dai_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 	struct tplg_elem *elem;
 	int ret, i;
 
-	tplg_dbg("DAI %s\n", dai_tpl->dai_name);
+	tplg_dbg("DAI %s", dai_tpl->dai_name);
 
 	elem = tplg_elem_new_common(tplg, NULL, dai_tpl->dai_name,
 				    SND_TPLG_TYPE_DAI);
