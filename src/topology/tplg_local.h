@@ -226,6 +226,13 @@ struct tplg_table {
 extern struct tplg_table tplg_table[];
 extern unsigned int tplg_table_items;
 
+#define tplg_log(tplg, type, pos, fmt, args...) do { \
+	if ((tplg)->verbose) \
+		tplg_log_((tplg), (type), (pos), (fmt), ##args); \
+} while (0)
+
+void tplg_log_(snd_tplg_t *tplg, char type, size_t pos, const char *fmt, ...);
+
 void *tplg_calloc(struct list_head *heap, size_t size);
 void tplg_free(struct list_head *heap);
 
@@ -373,7 +380,6 @@ int tplg_save_stream_caps(snd_tplg_t *tplg, struct tplg_elem *elem,
 int tplg_save_dai(snd_tplg_t *tplg, struct tplg_elem *elem,
 		  char **dst, const char *pfx);
 
-void tplg_dv(snd_tplg_t *tplg, size_t pos, const char *fmt, ...);
 int tplg_decode_template(snd_tplg_t *tplg,
 			 size_t pos,
 			 struct snd_soc_tplg_hdr *hdr,

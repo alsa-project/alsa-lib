@@ -1604,7 +1604,7 @@ int tplg_decode_manifest_data(snd_tplg_t *tplg,
 	if (!elem)
 		return -ENOMEM;
 
-	tplg_dv(tplg, pos, "manifest: private size %d", size);
+	tplg_log(tplg, 'D', pos, "manifest: private size %d", size);
 	return tplg_add_data(tplg, elem, bin, size);
 }
 
@@ -1664,7 +1664,7 @@ static int tplg_verify_tuple_set(snd_tplg_t *tplg, size_t pos,
 
 	va = bin;
 	if (size < sizeof(*va) || size < va->size) {
-		tplg_dv(tplg, pos, "tuple set verify: wrong size %d", size);
+		tplg_log(tplg, 'A', pos, "tuple set verify: wrong size %d", size);
 		return -EINVAL;
 	}
 
@@ -1677,20 +1677,20 @@ static int tplg_verify_tuple_set(snd_tplg_t *tplg, size_t pos,
 	case SND_SOC_TPLG_TUPLE_TYPE_SHORT:
 		break;
 	default:
-		tplg_dv(tplg, pos, "tuple set verify: unknown array type %d", va->type);
+		tplg_log(tplg, 'A', pos, "tuple set verify: unknown array type %d", va->type);
 		return -EINVAL;
 	}
 
 	j = tplg_get_tuple_size(va->type) * va->num_elems;
 	if (j + sizeof(*va) != va->size) {
-		tplg_dv(tplg, pos, "tuple set verify: wrong vendor array size %d "
-			"(expected %d for %d count %d)",
-			va->size, j + sizeof(*va), va->type, va->num_elems);
+		tplg_log(tplg, 'A', pos, "tuple set verify: wrong vendor array size %d "
+			 "(expected %d for %d count %d)",
+			 va->size, j + sizeof(*va), va->type, va->num_elems);
 		return -EINVAL;
 	}
 
 	if (va->num_elems > 4096) {
-		tplg_dv(tplg, pos, "tuple set verify: tuples overflow %d", va->num_elems);
+		tplg_log(tplg, 'A', pos, "tuple set verify: tuples overflow %d", va->num_elems);
 		return -EINVAL;
 	}
 
@@ -1748,8 +1748,8 @@ static int tplg_decode_tuple_set(snd_tplg_t *tplg,
 	set->type = va->type;
 	set->num_tuples = va->num_elems;
 
-	tplg_dv(tplg, pos, "tuple set: type %d (%s) tuples %d size %d", set->type,
-		get_tuple_type_name(set->type), set->num_tuples, va->size);
+	tplg_log(tplg, 'A', pos, "tuple set: type %d (%s) tuples %d size %d", set->type,
+		 get_tuple_type_name(set->type), set->num_tuples, va->size);
 	for (j = 0; j < set->num_tuples; j++) {
 		tuple = &set->tuple[j];
 		switch (va->type) {
@@ -1798,14 +1798,14 @@ static int tplg_verify_tuples(snd_tplg_t *tplg, size_t pos,
 	int err;
 
 	if (size < sizeof(*va)) {
-		tplg_dv(tplg, pos, "tuples: small size %d", size);
+		tplg_log(tplg, 'A', pos, "tuples: small size %d", size);
 		return -EINVAL;
 	}
 
 next:
 	va = bin;
 	if (size < sizeof(*va)) {
-		tplg_dv(tplg, pos, "tuples: unexpected vendor arry size %d", size);
+		tplg_log(tplg, 'A', pos, "tuples: unexpected vendor arry size %d", size);
 		return -EINVAL;
 	}
 
@@ -1903,7 +1903,7 @@ next:
 				return err;
 			tuples = NULL;
 		}
-		tplg_dv(tplg, pos, "add bytes: size %d", tp->size);
+		tplg_log(tplg, 'A', pos, "add bytes: size %d", tp->size);
 		snprintf(suffix, sizeof(suffix), "data%u", block++);
 		err = tplg_add_data_bytes(tplg, parent, suffix, tp->array, tp->size);
 	} else {
@@ -1929,7 +1929,7 @@ next:
 				return -ENOMEM;
 			}
 		}
-		tplg_dv(tplg, pos, "decode tuples: size %d", tp->size);
+		tplg_log(tplg, 'A', pos, "decode tuples: size %d", tp->size);
 		err = tplg_decode_tuples(tplg, pos, parent, tuples, tp->array, tp->size);
 		num_tuples++;
 	}

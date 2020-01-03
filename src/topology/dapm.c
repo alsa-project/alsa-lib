@@ -895,8 +895,8 @@ next:
 		return -EINVAL;
 	}
 
-	tplg_dv(tplg, pos, "dapm widget: size %d private size %d kcontrols %d",
-		w->size, w->priv.size, w->num_kcontrols);
+	tplg_log(tplg, 'D', pos, "dapm widget: size %d private size %d kcontrols %d",
+		 w->size, w->priv.size, w->num_kcontrols);
 
 	wt = tplg_calloc(&heap, sizeof(*wt) + sizeof(void *) * w->num_kcontrols);
 	if (wt == NULL)
@@ -913,7 +913,8 @@ next:
 	wt->event_flags = w->event_flags;
 	wt->event_type = w->event_type;
 
-	tplg_dv(tplg, pos, "dapm widget: name '%s' sname '%s'", wt->name, wt->sname);
+	tplg_log(tplg, 'D', pos, "dapm widget: name '%s' sname '%s'",
+		 wt->name, wt->sname);
 
 	if (sizeof(*w) + w->priv.size > size) {
 		SNDERR("dapm widget: wrong private data size %d",
@@ -921,8 +922,8 @@ next:
 		return -EINVAL;
 	}
 
-	tplg_dv(tplg, pos + offsetof(struct snd_soc_tplg_dapm_widget, priv),
-		"dapm widget: private start");
+	tplg_log(tplg, 'D', pos + offsetof(struct snd_soc_tplg_dapm_widget, priv),
+		 "dapm widget: private start");
 
 	wt->priv = &w->priv;
 	bin += sizeof(*w) + w->priv.size;
@@ -942,7 +943,7 @@ next:
 			wt->num_ctls++;
 			mc = bin;
 			size2 = mc->size + mc->priv.size;
-			tplg_dv(tplg, pos, "kcontrol mixer size %zd", size2);
+			tplg_log(tplg, 'D', pos, "kcontrol mixer size %zd", size2);
 			if (size2 > size) {
 				SNDERR("dapm widget: small mixer size %d",
 				       size2);
@@ -962,7 +963,7 @@ next:
 			wt->num_ctls++;
 			ec = bin;
 			size2 = ec->size + ec->priv.size;
-			tplg_dv(tplg, pos, "kcontrol enum size %zd", size2);
+			tplg_log(tplg, 'D', pos, "kcontrol enum size %zd", size2);
 			if (size2 > size) {
 				SNDERR("dapm widget: small enum size %d",
 				       size2);
@@ -982,7 +983,7 @@ next:
 			wt->num_ctls++;
 			bc = bin;
 			size2 = bc->size + bc->priv.size;
-			tplg_dv(tplg, pos, "kcontrol bytes size %zd", size2);
+			tplg_log(tplg, 'D', pos, "kcontrol bytes size %zd", size2);
 			if (size2 > size) {
 				SNDERR("dapm widget: small bytes size %d",
 				       size2);
@@ -1049,7 +1050,7 @@ int tplg_decode_dapm_graph(snd_tplg_t *tplg,
 		ge->ctl = g->control;
 		ge->sink = g->sink;
 		gt->count++;
-		tplg_dv(tplg, pos, "dapm graph: src='%s' ctl='%s' sink='%s'",
+		tplg_log(tplg, 'D', pos, "dapm graph: src='%s' ctl='%s' sink='%s'",
 			ge->src, ge->ctl, ge->sink);
 		bin += sizeof(*g);
 		size -= sizeof(*g);

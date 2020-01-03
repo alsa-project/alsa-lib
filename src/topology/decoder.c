@@ -18,21 +18,6 @@
 #include "list.h"
 #include "tplg_local.h"
 
-/* verbose output detailing each object size and file position */
-void tplg_dv(snd_tplg_t *tplg, size_t pos, const char *fmt, ...)
-{
-	va_list va;
-
-	if (!tplg->verbose)
-		return;
-
-	va_start(va, fmt);
-	fprintf(stdout, "D0x%6.6zx/%6.6zd - ", pos, pos);
-	vfprintf(stdout, fmt, va);
-	va_end(va);
-	putc('\n', stdout);
-}
-
 int tplg_decode_template(snd_tplg_t *tplg,
 			 size_t pos,
 			 struct snd_soc_tplg_hdr *hdr,
@@ -41,7 +26,8 @@ int tplg_decode_template(snd_tplg_t *tplg,
 	int type;
 
 	type = tplg_get_type(hdr->type);
-	tplg_dv(tplg, pos, "template: asoc type %d library type %d", hdr->type, type);
+	tplg_log(tplg, 'D', pos, "template: asoc type %d library type %d",
+		 hdr->type, type);
 	if (type < 0)
 		return type;
 
@@ -50,8 +36,8 @@ int tplg_decode_template(snd_tplg_t *tplg,
 	t->index = hdr->index;
 	t->version = hdr->version;
 	t->vendor_type = hdr->vendor_type;
-	tplg_dv(tplg, pos, "template: index %d version %d vendor_type %d",
-		hdr->index, hdr->version, hdr->vendor_type);
+	tplg_log(tplg, 'D', pos, "template: index %d version %d vendor_type %d",
+		 hdr->index, hdr->version, hdr->vendor_type);
 	return 0;
 }
 
@@ -71,11 +57,11 @@ int snd_tplg_decode(snd_tplg_t *tplg, void *bin, size_t size, int dflags)
 	while (1) {
 		pos = b - bin;
 		if (size == pos) {
-			tplg_dv(tplg, pos, "block: success (total %zd)", size);
+			tplg_log(tplg, 'D', pos, "block: success (total %zd)", size);
 			return 0;
 		}
 		if (size - pos < sizeof(*hdr)) {
-			tplg_dv(tplg, pos, "block: small size");
+			tplg_log(tplg, 'D', pos, "block: small size");
 			SNDERR("incomplete header data to decode");
 			return -EINVAL;
 		}
@@ -85,8 +71,8 @@ int snd_tplg_decode(snd_tplg_t *tplg, void *bin, size_t size, int dflags)
 			return -EINVAL;
 		}
 
-		tplg_dv(tplg, pos, "block: abi %d size %d payload size %d",
-			hdr->abi, hdr->size, hdr->payload_size);
+		tplg_log(tplg, 'D', pos, "block: abi %d size %d payload size %d",
+			 hdr->abi, hdr->size, hdr->payload_size);
 		if (hdr->abi != SND_SOC_TPLG_ABI_VERSION) {
 			SNDERR("unsupported ABI version %d", hdr->abi);
 			return -EINVAL;
@@ -127,7 +113,7 @@ int snd_tplg_decode(snd_tplg_t *tplg, void *bin, size_t size, int dflags)
 			SNDERR("unknown block type %d", hdr->type);
 			return -EINVAL;
 		}
-		tplg_dv(tplg, pos, "block: type %d - %s", hdr->type, tptr->name);
+		tplg_log(tplg, 'D', pos, "block: type %d - %s", hdr->type, tptr->name);
 		err = tptr->decod(tplg, pos, hdr, b + hdr->size, hdr->payload_size);
 		if (err < 0)
 			return err;

@@ -1969,21 +1969,21 @@ next:
 		return -EINVAL;
 	}
 
-	tplg_dv(tplg, pos, "pcm: size %d private size %d streams %d",
-		pcm->size, pcm->priv.size, pcm->num_streams);
+	tplg_log(tplg, 'D', pos, "pcm: size %d private size %d streams %d",
+		 pcm->size, pcm->priv.size, pcm->num_streams);
 
 	pt->pcm_name = pcm->pcm_name;
-	tplg_dv(tplg, pos, "pcm: pcm_name '%s'", pt->pcm_name);
+	tplg_log(tplg, 'D', pos, "pcm: pcm_name '%s'", pt->pcm_name);
 	pt->dai_name = pcm->dai_name;
-	tplg_dv(tplg, pos, "pcm: dai_name '%s'", pt->dai_name);
+	tplg_log(tplg, 'D', pos, "pcm: dai_name '%s'", pt->dai_name);
 	pt->pcm_id = pcm->pcm_id;
 	pt->dai_id = pcm->dai_id;
-	tplg_dv(tplg, pos, "pcm: pcm_id %d dai_id %d", pt->pcm_id, pt->dai_id);
+	tplg_log(tplg, 'D', pos, "pcm: pcm_id %d dai_id %d", pt->pcm_id, pt->dai_id);
 	pt->playback = pcm->playback;
 	pt->capture = pcm->capture;
 	pt->compress = pcm->compress;
-	tplg_dv(tplg, pos, "pcm: playback %d capture %d compress",
-		pt->playback, pt->capture, pt->compress);
+	tplg_log(tplg, 'D', pos, "pcm: playback %d capture %d compress",
+		 pt->playback, pt->capture, pt->compress);
 	pt->num_streams = pcm->num_streams;
 	pt->flag_mask = pcm->flag_mask;
 	pt->flags = pcm->flags;
@@ -1995,8 +1995,8 @@ next:
 			return -EINVAL;
 		}
 		stream->name = pcm->stream[i].name;
-		tplg_dv(tplg, pos + offsetof(struct snd_soc_tplg_pcm, stream[i]),
-			"stream %d: '%s'", i, stream->name);
+		tplg_log(tplg, 'D', pos + offsetof(struct snd_soc_tplg_pcm, stream[i]),
+			 "stream %d: '%s'", i, stream->name);
 		stream->format = pcm->stream[i].format;
 		stream->rate = pcm->stream[i].rate;
 		stream->period_bytes = pcm->stream[i].period_bytes;
@@ -2016,8 +2016,8 @@ next:
 			return -EINVAL;
 		}
 		cap->name = pcm->caps[i].name;
-		tplg_dv(tplg, pos + offsetof(struct snd_soc_tplg_pcm, caps[i]),
-			"caps %d: '%s'", i, cap->name);
+		tplg_log(tplg, 'D', pos + offsetof(struct snd_soc_tplg_pcm, caps[i]),
+			 "caps %d: '%s'", i, cap->name);
 		cap->formats = pcm->caps[i].formats;
 		cap->rates = pcm->caps[i].rates;
 		cap->rate_min = pcm->caps[i].rate_min;
@@ -2033,8 +2033,8 @@ next:
 		cap->sig_bits = pcm->caps[i].sig_bits;
 	}
 
-	tplg_dv(tplg, pos + offsetof(struct snd_soc_tplg_pcm, priv),
-		"pcm: private start");
+	tplg_log(tplg, 'D', pos + offsetof(struct snd_soc_tplg_pcm, priv),
+		 "pcm: private start");
 	pt->priv = &pcm->priv;
 
 	bin += sizeof(*pcm) + pcm->priv.size;
@@ -2120,16 +2120,16 @@ next:
 		return -EINVAL;
 	}
 
-	tplg_dv(tplg, pos, "link: size %d private size %d streams %d "
-		"hw_configs %d",
-		link->size, link->priv.size, link->num_streams,
-		link->num_hw_configs);
+	tplg_log(tplg, 'D', pos, "link: size %d private size %d streams %d "
+		 "hw_configs %d",
+		 link->size, link->priv.size, link->num_streams,
+		 link->num_hw_configs);
 
 	lt.id = link->id;
 	lt.name = link->name;
-	tplg_dv(tplg, pos, "link: name '%s'", lt.name);
+	tplg_log(tplg, 'D', pos, "link: name '%s'", lt.name);
 	lt.stream_name = link->stream_name;
-	tplg_dv(tplg, pos, "link: stream_name '%s'", lt.stream_name);
+	tplg_log(tplg, 'D', pos, "link: stream_name '%s'", lt.stream_name);
 	lt.num_streams = link->num_streams;
 	lt.num_hw_configs = link->num_hw_configs;
 	lt.default_hw_config_id = link->default_hw_config_id;
@@ -2143,9 +2143,9 @@ next:
 			return -EINVAL;
 		}
 		stream->name = link->stream[i].name;
-		tplg_dv(tplg,
-			pos + offsetof(struct snd_soc_tplg_link_config, stream[i]),
-			"stream %d: '%s'", i, stream->name);
+		tplg_log(tplg, 'D',
+			 pos + offsetof(struct snd_soc_tplg_link_config, stream[i]),
+			 "stream %d: '%s'", i, stream->name);
 		stream->format = link->stream[i].format;
 		stream->rate = link->stream[i].rate;
 		stream->period_bytes = link->stream[i].period_bytes;
@@ -2192,8 +2192,8 @@ next:
 	}
 	lt.hw_config = hws;
 
-	tplg_dv(tplg, pos + offsetof(struct snd_soc_tplg_pcm, priv),
-		"link: private start");
+	tplg_log(tplg, 'D', pos + offsetof(struct snd_soc_tplg_pcm, priv),
+		 "link: private start");
 	lt.priv = &link->priv;
 
 	bin += sizeof(*link) + link->priv.size;

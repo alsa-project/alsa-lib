@@ -20,20 +20,6 @@
 #include "list.h"
 #include "tplg_local.h"
 
-/* verbose output detailing each object size and file position */
-static void verbose(snd_tplg_t *tplg, const char *fmt, ...)
-{
-	va_list va;
-
-	if (!tplg->verbose)
-		return;
-
-	va_start(va, fmt);
-	fprintf(stdout, "0x%6.6zx/%6.6zd - ", tplg->bin_pos, tplg->bin_pos);
-	vfprintf(stdout, fmt, va);
-	va_end(va);
-}
-
 /* write a block, track the position */
 static ssize_t twrite(snd_tplg_t *tplg, void *data, size_t data_size)
 {
@@ -73,10 +59,11 @@ static ssize_t write_block_header(snd_tplg_t *tplg, unsigned int type,
 		return -EINVAL;
 	}
 
-	verbose(tplg, "header index %d type %d count %d size 0x%lx/%ld vendor %d "
-		"version %d\n", index, type, count,
-		(long unsigned int)payload_size, (long int)payload_size,
-		vendor_type, version);
+	tplg_log(tplg, 'B', tplg->bin_pos,
+		 "header index %d type %d count %d size 0x%lx/%ld vendor %d "
+		 "version %d", index, type, count,
+		 (long unsigned int)payload_size, (long int)payload_size,
+		 vendor_type, version);
 
 	tplg->next_hdr_pos += hdr.payload_size + sizeof(hdr);
 
@@ -121,13 +108,15 @@ static int write_elem_block(snd_tplg_t *tplg,
 					continue;
 
 				if (elem->type != SND_TPLG_TYPE_DAPM_GRAPH)
-					verbose(tplg, "%s '%s': write %d bytes\n",
-						obj_name, elem->id, elem->size);
+					tplg_log(tplg, 'B', tplg->bin_pos,
+						 "%s '%s': write %d bytes",
+						 obj_name, elem->id, elem->size);
 				else
-					verbose(tplg, "%s '%s -> %s -> %s': write %d bytes\n",
-						obj_name, elem->route->source,
-						elem->route->control,
-						elem->route->sink, elem->size);
+					tplg_log(tplg, 'B', tplg->bin_pos,
+						 "%s '%s -> %s -> %s': write %d bytes",
+						 obj_name, elem->route->source,
+						 elem->route->control,
+						 elem->route->sink, elem->size);
 
 				wsize = twrite(tplg, elem->obj, elem->size);
 				if (wsize < 0)
@@ -225,10 +214,13 @@ static ssize_t write_manifest_data(snd_tplg_t *tplg)
 		return ret;
 	}
 
-	verbose(tplg, "manifest: write %d bytes\n", sizeof(tplg->manifest));
+	tplg_log(tplg, 'B', tplg->bin_pos, "manifest: write %d bytes",
+		 sizeof(tplg->manifest));
 	ret = twrite(tplg, &tplg->manifest, sizeof(tplg->manifest));
 	if (ret >= 0) {
-		verbose(tplg, "manifest: write %d priv bytes\n", tplg->manifest.priv.size);
+		tplg_log(tplg, 'B', tplg->bin_pos,
+			 "manifest: write %d priv bytes",
+			 tplg->manifest.priv.size);
 		ret = twrite(tplg, tplg->manifest_pdata, tplg->manifest.priv.size);
 	}
 	return ret;
@@ -280,9 +272,10 @@ int tplg_write_data(snd_tplg_t *tplg)
 		size = calc_block_size(list);
 		if (size == 0)
 			continue;
-		verbose(tplg, "block size for type %s (%d:%d) is 0x%zx/%zd\n",
-						tptr->name, tptr->type,
-						tptr->tsoc, size, size);
+		tplg_log(tplg, 'B', tplg->bin_pos,
+			 "block size for type %s (%d:%d) is 0x%zx/%zd",
+			 tptr->name, tptr->type,
+			 tptr->tsoc, size, size);
 		ret = write_elem_block(tplg, list, size,
 				       tptr->tsoc, tptr->name);
 		if (ret < 0) {
@@ -292,7 +285,8 @@ int tplg_write_data(snd_tplg_t *tplg)
 		}
 	}
 
-	verbose(tplg, "total size is 0x%zx/%zd\n", tplg->bin_pos, tplg->bin_pos);
+	tplg_log(tplg, 'B', tplg->bin_pos, "total size is 0x%zx/%zd",
+		 tplg->bin_pos, tplg->bin_pos);
 
 	if (total_size != tplg->bin_pos) {
 		SNDERR("total size mismatch (%zd != %zd)",
