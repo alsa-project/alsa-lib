@@ -1124,8 +1124,8 @@ static int parse_hw_config_refs(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 }
 
 /* Parse a physical link element in text conf file */
-int tplg_parse_link(snd_tplg_t *tplg,
-	snd_config_t *cfg, void *private ATTRIBUTE_UNUSED)
+int tplg_parse_link(snd_tplg_t *tplg, snd_config_t *cfg,
+		    void *private ATTRIBUTE_UNUSED)
 {
 	struct snd_soc_tplg_link_config *link;
 	struct tplg_elem *elem;
@@ -1264,8 +1264,8 @@ int tplg_save_link(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 }
 
 /* Parse cc */
-int tplg_parse_cc(snd_tplg_t *tplg,
-	snd_config_t *cfg, void *private ATTRIBUTE_UNUSED)
+int tplg_parse_cc(snd_tplg_t *tplg, snd_config_t *cfg,
+		  void *private ATTRIBUTE_UNUSED)
 {
 	struct snd_soc_tplg_link_config *link;
 	struct tplg_elem *elem;
@@ -1307,8 +1307,8 @@ int tplg_parse_cc(snd_tplg_t *tplg,
 
 /* save CC */
 int tplg_save_cc(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
-		   struct tplg_elem *elem,
-		   char **dst, const char *pfx)
+		 struct tplg_elem *elem,
+		 char **dst, const char *pfx)
 {
 	struct snd_soc_tplg_link_config *link = elem->link;
 	char pfx2[16];
@@ -1668,7 +1668,7 @@ int tplg_save_hw_config(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 
 /* copy stream object */
 static void tplg_add_stream_object(struct snd_soc_tplg_stream *strm,
-				struct snd_tplg_stream_template *strm_tpl)
+				   struct snd_tplg_stream_template *strm_tpl)
 {
 	snd_strlcpy(strm->name, strm_tpl->name,
 		SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
@@ -1773,7 +1773,7 @@ int tplg_add_pcm_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 
 /* Set link HW config from C API template */
 static int set_link_hw_config(struct snd_soc_tplg_hw_config *cfg,
-			struct snd_tplg_hw_config_template *tpl)
+			      struct snd_tplg_hw_config_template *tpl)
 {
 	unsigned int i;
 

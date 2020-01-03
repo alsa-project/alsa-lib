@@ -600,7 +600,7 @@ int tplg_save_control_bytes(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 
 /* Parse Control Enums. */
 int tplg_parse_control_enum(snd_tplg_t *tplg, snd_config_t *cfg,
-	void *private ATTRIBUTE_UNUSED)
+			    void *private ATTRIBUTE_UNUSED)
 {
 	struct snd_soc_tplg_enum_control *ec;
 	struct tplg_elem *elem;
@@ -736,7 +736,8 @@ int tplg_save_control_enum(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
  * Mixer control. Supports multiple channels.
  */
 int tplg_parse_control_mixer(snd_tplg_t *tplg,
-	snd_config_t *cfg, void *private ATTRIBUTE_UNUSED)
+			     snd_config_t *cfg,
+			     void *private ATTRIBUTE_UNUSED)
 {
 	struct snd_soc_tplg_mixer_control *mc;
 	struct tplg_elem *elem;

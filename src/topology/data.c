@@ -516,7 +516,7 @@ static int tplg_parse_data_hex(snd_config_t *cfg, struct tplg_elem *elem,
 
 /* get the token integer value from its id */
 static int get_token_value(const char *token_id,
-	struct tplg_vendor_tokens *tokens)
+			   struct tplg_vendor_tokens *tokens)
 {
 	unsigned int i;
 
@@ -589,7 +589,8 @@ unsigned int tplg_get_tuple_size(int type)
 
 /* Add a tuples object to the private buffer of its parent data element */
 static int copy_tuples(struct tplg_elem *elem,
-	struct tplg_vendor_tuples *tuples, struct tplg_vendor_tokens *tokens)
+		       struct tplg_vendor_tuples *tuples,
+		       struct tplg_vendor_tokens *tokens)
 {
 	struct snd_soc_tplg_private *priv = elem->data, *priv2;
 	struct tplg_tuple_set *tuple_set;
@@ -781,7 +782,7 @@ static const char *get_tuple_type_name(unsigned int type)
 }
 
 static int parse_tuple_set(snd_config_t *cfg,
-	struct tplg_tuple_set **s)
+			   struct tplg_tuple_set **s)
 {
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
@@ -965,7 +966,7 @@ static int tplg_save_tuple_set(struct tplg_vendor_tuples *tuples,
 }
 
 static int parse_tuple_sets(snd_config_t *cfg,
-	struct tplg_vendor_tuples *tuples)
+			    struct tplg_vendor_tuples *tuples)
 {
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
@@ -1033,7 +1034,7 @@ int tplg_save_tuple_sets(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 /* Parse vendor tokens
  */
 int tplg_parse_tokens(snd_tplg_t *tplg, snd_config_t *cfg,
-	void *private ATTRIBUTE_UNUSED)
+		      void *private ATTRIBUTE_UNUSED)
 {
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
@@ -1109,7 +1110,7 @@ int tplg_save_tokens(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 /* Parse vendor tuples.
  */
 int tplg_parse_tuples(snd_tplg_t *tplg, snd_config_t *cfg,
-	void *private ATTRIBUTE_UNUSED)
+		      void *private ATTRIBUTE_UNUSED)
 {
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
@@ -1193,7 +1194,7 @@ void tplg_free_tuples(void *obj)
 /* Parse manifest's data references
  */
 int tplg_parse_manifest_data(snd_tplg_t *tplg, snd_config_t *cfg,
-	void *private ATTRIBUTE_UNUSED)
+			     void *private ATTRIBUTE_UNUSED)
 {
 	struct snd_soc_tplg_manifest *manifest;
 	struct tplg_elem *elem;
@@ -1341,7 +1342,7 @@ int tplg_build_manifest_data(snd_tplg_t *tplg)
  * words, tuples.
  */
 int tplg_parse_data(snd_tplg_t *tplg, snd_config_t *cfg,
-	void *private ATTRIBUTE_UNUSED)
+		    void *private ATTRIBUTE_UNUSED)
 {
 	snd_config_iterator_t i, next;
 	snd_config_t *n;

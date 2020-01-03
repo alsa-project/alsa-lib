@@ -110,8 +110,8 @@ int tplg_get_unsigned(snd_config_t *n, unsigned *val, int base)
  * Parse compound
  */
 int tplg_parse_compound(snd_tplg_t *tplg, snd_config_t *cfg,
-	int (*fcn)(snd_tplg_t *, snd_config_t *, void *),
-	void *private)
+			int (*fcn)(snd_tplg_t *, snd_config_t *, void *),
+			void *private)
 {
 	const char *id;
 	snd_config_iterator_t i, next;

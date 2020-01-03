@@ -71,7 +71,8 @@ static ssize_t write_block_header(snd_tplg_t *tplg, unsigned int type,
 }
 
 static int write_elem_block(snd_tplg_t *tplg,
-	struct list_head *base, size_t size, int tplg_type, const char *obj_name)
+			    struct list_head *base, size_t size,
+			    int tplg_type, const char *obj_name)
 {
 	struct list_head *pos, *sub_pos, *sub_base;
 	struct tplg_elem *elem, *elem_next;
