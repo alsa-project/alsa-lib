@@ -301,6 +301,8 @@ struct tplg_elem *tplg_elem_new(void)
 
 void tplg_elem_free(struct tplg_elem *elem)
 {
+	list_del(&elem->list);
+
 	tplg_ref_free_list(&elem->ref_list);
 
 	/* free struct snd_tplg_ object,
@@ -323,7 +325,6 @@ void tplg_elem_free_list(struct list_head *base)
 
 	list_for_each_safe(pos, npos, base) {
 		elem = list_entry(pos, struct tplg_elem, list);
-		list_del(&elem->list);
 		tplg_elem_free(elem);
 	}
 }
