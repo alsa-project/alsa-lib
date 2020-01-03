@@ -1,6 +1,6 @@
 dnl Macros to check the presence of generic (non-typed) symbols.
-dnl Copyright (c) 2006-2007 Diego Pettenò <flameeyes@gmail.com>
-dnl Copyright (c) 2006-2007 xine project
+dnl Copyright (c) 2006-2008 Diego Pettenò <flameeyes@gmail.com>
+dnl Copyright (c) 2006-2008 xine project
 dnl
 dnl This program is free software; you can redistribute it and/or modify
 dnl it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@ dnl License when using or distributing such scripts, even though portions
 dnl of the text of the Macro appear in them. The GNU General Public
 dnl License (GPL) does govern all other use of the material that
 dnl constitutes the Autoconf Macro.
-dnl 
+dnl
 dnl This special exception to the GPL applies to versions of the
 dnl Autoconf Macro released by this project. When you make and
 dnl distribute a modified version of the Autoconf Macro, you may extend
@@ -39,7 +39,7 @@ AC_DEFUN([CC_CHECK_CFLAGS_SILENT], [
   AC_CACHE_VAL(AS_TR_SH([cc_cv_cflags_$1]),
     [ac_save_CFLAGS="$CFLAGS"
      CFLAGS="$CFLAGS $1"
-     AC_COMPILE_IFELSE([int a;],
+     AC_COMPILE_IFELSE([AC_LANG_SOURCE([int a;])],
        [eval "AS_TR_SH([cc_cv_cflags_$1])='yes'"],
        [eval "AS_TR_SH([cc_cv_cflags_$1])='no'"])
      CFLAGS="$ac_save_CFLAGS"
@@ -71,7 +71,7 @@ AC_DEFUN([CC_CHECK_CFLAG_APPEND], [
   )
 
   AS_IF([eval test x$]AS_TR_SH([cc_cv_cflags_$1])[ = xyes],
-    [CFLAGS="$CFLAGS $1"; $2], [$3])
+    [CFLAGS="$CFLAGS $1"; DEBUG_CFLAGS="$DEBUG_CFLAGS $1"; $2], [$3])
 ])
 
 dnl CC_CHECK_CFLAGS_APPEND([FLAG1 FLAG2], [action-if-found], [action-if-not])
@@ -89,7 +89,7 @@ AC_DEFUN([CC_CHECK_LDFLAGS], [
     AS_TR_SH([cc_cv_ldflags_$1]),
     [ac_save_LDFLAGS="$LDFLAGS"
      LDFLAGS="$LDFLAGS $1"
-     AC_LINK_IFELSE([int main() { return 1; }],
+     AC_LINK_IFELSE([AC_LANG_SOURCE([int main() { return 1; }])],
        [eval "AS_TR_SH([cc_cv_ldflags_$1])='yes'"],
        [eval "AS_TR_SH([cc_cv_ldflags_$1])="])
      LDFLAGS="$ac_save_LDFLAGS"
@@ -109,14 +109,21 @@ AC_DEFUN([CC_NOUNDEFINED], [
      dnl FreeBSD (et al.) does not complete linking for shared objects when pthreads
      dnl are requested, as different implementations are present; to avoid problems
      dnl use -Wl,-z,defs only for those platform not behaving this way.
-     *-freebsd*) ;;
+     dnl
+     dnl MinGW platforms: for libraries required -no-undefined,
+     dnl use it only for libraries in mingw32-w64 
+
+     *-freebsd* | *-openbsd*) ;;
+     *-mingw*)
+        LDFLAGS_NOUNDEFINED="-no-undefined"
+        ;;
      *)
         dnl First of all check for the --no-undefined variant of GNU ld. This allows
         dnl for a much more readable commandline, so that people can understand what
         dnl it does without going to look for what the heck -z defs does.
-   	for possible_flags in "-Wl,--no-undefined" "-Wl,-z,defs"; do
+	for possible_flags in "-Wl,--no-undefined" "-Wl,-z,defs"; do
           CC_CHECK_LDFLAGS([$possible_flags], [LDFLAGS_NOUNDEFINED="$possible_flags"])
-	  break
+	  if test "x$LDFLAGS_NOUNDEFINED" = "x"; then break; fi
         done
 	;;
   esac
@@ -147,7 +154,7 @@ AC_DEFUN([CC_CHECK_ATTRIBUTE], [
     AS_TR_SH([cc_cv_attribute_$1]),
     [ac_save_CFLAGS="$CFLAGS"
      CFLAGS="$CFLAGS $cc_cv_werror"
-     AC_COMPILE_IFELSE([$3],
+     AC_COMPILE_IFELSE([AC_LANG_SOURCE([$3])],
        [eval "AS_TR_SH([cc_cv_attribute_$1])='yes'"],
        [eval "AS_TR_SH([cc_cv_attribute_$1])='no'"])
      CFLAGS="$ac_save_CFLAGS"
@@ -257,7 +264,7 @@ AC_DEFUN([CC_FLAG_VISIBILITY], [
 	cc_cv_flag_visibility='yes',
 	cc_cv_flag_visibility='no')
      CFLAGS="$cc_flag_visibility_save_CFLAGS"])
-  
+
   AS_IF([test "x$cc_cv_flag_visibility" = "xyes"],
     [AC_DEFINE([SUPPORT_FLAG_VISIBILITY], 1,
        [Define this if the compiler supports the -fvisibility flag])
@@ -295,11 +302,11 @@ AC_DEFUN([CC_ATTRIBUTE_ALIGNED], [
     [ac_save_CFLAGS="$CFLAGS"
      CFLAGS="$CFLAGS $cc_cv_werror"
      for cc_attribute_align_try in 64 32 16 8 4 2; do
-        AC_COMPILE_IFELSE([
+        AC_COMPILE_IFELSE([AC_LANG_SOURCE([
           int main() {
             static char c __attribute__ ((aligned($cc_attribute_align_try))) = 0;
             return c;
-          }], [cc_cv_attribute_aligned=$cc_attribute_align_try; break])
+          }])], [cc_cv_attribute_aligned=$cc_attribute_align_try; break])
      done
      CFLAGS="$ac_save_CFLAGS"
   ])
