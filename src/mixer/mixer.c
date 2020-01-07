@@ -767,7 +767,7 @@ int snd_mixer_wait(snd_mixer_t *mixer, int timeout)
 	if (count < 0)
 		return count;
 	if ((unsigned int) count > sizeof(spfds) / sizeof(spfds[0])) {
-		pfds = malloc(count * sizeof(*pfds));
+		pfds = alloca(count * sizeof(*pfds));
 		if (!pfds)
 			return -ENOMEM;
 		err = snd_mixer_poll_descriptors(mixer, pfds, 
