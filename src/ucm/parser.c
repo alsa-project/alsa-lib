@@ -1649,7 +1649,9 @@ __longname:
 
 		if (err == 0) {
 			/* got device-specific file that matches the card long name */
-			snd_strlcpy(uc_mgr->conf_file_name, longname, sizeof(uc_mgr->conf_file_name));
+			if (uc_mgr->conf_format < 2)
+				snd_strlcpy(uc_mgr->conf_file_name, longname,
+					    sizeof(uc_mgr->conf_file_name));
 			goto __parse;
 		}
 	}
