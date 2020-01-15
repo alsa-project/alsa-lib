@@ -1167,7 +1167,7 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 	snd_config_t *n;
 	struct use_case_verb *verb;
 	snd_config_t *cfg;
-	char filename[MAX_FILE];
+	char filename[PATH_MAX];
 	int err;
 
 	/* allocate verb */
@@ -1582,7 +1582,7 @@ static int get_by_card(snd_use_case_mgr_t *mgr, const char *ctl_name, char *long
 static int load_master_config(snd_use_case_mgr_t *uc_mgr,
 			      const char *card_name, snd_config_t **cfg, int longname)
 {
-	char filename[MAX_FILE];
+	char filename[PATH_MAX];
 	int err;
 
 	if (strnlen(card_name, MAX_CARD_LONG_NAME) == MAX_CARD_LONG_NAME) {
@@ -1733,7 +1733,7 @@ static int is_component_directory(const char *dir)
  */
 int uc_mgr_scan_master_configs(const char **_list[])
 {
-	char filename[MAX_FILE], dfl[MAX_FILE];
+	char filename[PATH_MAX], dfl[PATH_MAX];
 	char *env = getenv(ALSA_CONFIG_UCM2_VAR);
 	const char **list, *d_name;
 	snd_config_t *cfg, *c;

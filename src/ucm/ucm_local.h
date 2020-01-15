@@ -42,7 +42,6 @@
 
 #define SYNTAX_VERSION_MAX	2
 
-#define MAX_FILE		256
 #define MAX_CARD_SHORT_NAME	32
 #define MAX_CARD_LONG_NAME	80
 
