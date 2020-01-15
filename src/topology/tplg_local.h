@@ -29,7 +29,6 @@
 #define tplg_dbg(fmt, arg...) do { } while (0)
 #endif
 
-#define MAX_FILE		256
 #define TPLG_MAX_PRIV_SIZE	(1024 * 128)
 
 /** The name of the environment variable containing the tplg directory */

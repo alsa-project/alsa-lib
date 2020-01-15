@@ -163,7 +163,7 @@ static int tplg_parse_data_file(snd_config_t *cfg, struct tplg_elem *elem)
 {
 	struct snd_soc_tplg_private *priv = NULL;
 	const char *value = NULL;
-	char filename[MAX_FILE];
+	char filename[PATH_MAX];
 	char *env = getenv(ALSA_CONFIG_TPLG_VAR);
 	FILE *fp;
 	size_t size, bytes_read;
