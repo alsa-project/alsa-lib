@@ -31,7 +31,7 @@
 
 static char *rval_conf_name(snd_use_case_mgr_t *uc_mgr)
 {
-	if (uc_mgr->conf_file_name[0])
+	if (uc_mgr->conf_file_name && uc_mgr->conf_file_name[0])
 		return strdup(uc_mgr->conf_file_name);
 	return NULL;
 }

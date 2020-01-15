@@ -187,7 +187,6 @@ struct use_case_verb {
 	/* verb transition list */
 	struct list_head transition_list;
 
-	/* hardware devices that can be used with this use case */
 	struct list_head device_list;
 
 	/* component device list */
@@ -205,7 +204,8 @@ struct use_case_verb {
  */
 struct snd_use_case_mgr {
 	char *card_name;
-	char conf_file_name[MAX_CARD_LONG_NAME];
+	char *conf_file_name;
+	char *conf_dir_name;
 	char *comment;
 	int conf_format;
 

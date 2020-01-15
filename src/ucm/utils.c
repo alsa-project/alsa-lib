@@ -441,7 +441,11 @@ void uc_mgr_free_verb(snd_use_case_mgr_t *uc_mgr)
 	uc_mgr_free_sequence(&uc_mgr->default_list);
 	uc_mgr_free_value(&uc_mgr->value_list);
 	free(uc_mgr->comment);
+	free(uc_mgr->conf_dir_name);
+	free(uc_mgr->conf_file_name);
 	uc_mgr->comment = NULL;
+	uc_mgr->conf_dir_name = NULL;
+	uc_mgr->conf_file_name = NULL;
 	uc_mgr->active_verb = NULL;
 	INIT_LIST_HEAD(&uc_mgr->active_devices);
 	INIT_LIST_HEAD(&uc_mgr->active_modifiers);

@@ -125,6 +125,16 @@ static void configuration_filename(snd_use_case_mgr_t *uc_mgr,
 }
 
 /*
+ * Replace mallocated string
+ */
+static char *replace_string(char **dst, const char *value)
+{
+	free(*dst);
+	*dst = strdup(value);
+	return *dst;
+}
+
+/*
  * Parse string
  */
 int parse_string(snd_config_t *n, char **res)
@@ -1186,7 +1196,7 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 
 	/* open Verb file for reading */
 	configuration_filename(uc_mgr, filename, sizeof(filename),
-			       uc_mgr->conf_file_name, file, "");
+			       uc_mgr->conf_dir_name, file, "");
 	err = uc_mgr_config_load(uc_mgr->conf_format, filename, &cfg);
 	if (err < 0) {
 		uc_error("error: failed to open verb file %s : %d",
@@ -1404,16 +1414,16 @@ static int parse_master_file(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 	if (uc_mgr->conf_format >= 2) {
 		err = snd_config_search(cfg, "Syntax", &n);
 		if (err < 0) {
-			uc_error("Syntax field not found in %s", uc_mgr->conf_file_name);
+			uc_error("Syntax field not found in %s", uc_mgr->conf_dir_name);
 			return -EINVAL;
 		}
 		err = snd_config_get_integer(n, &l);
 		if (err < 0) {
-			uc_error("Syntax field is invalid in %s", uc_mgr->conf_file_name);
+			uc_error("Syntax field is invalid in %s", uc_mgr->conf_dir_name);
 			return err;
 		}
 		if (l < 2 || l > SYNTAX_VERSION_MAX) {
-			uc_error("Incompatible syntax %d in %s", l, uc_mgr->conf_file_name);
+			uc_error("Incompatible syntax %d in %s", l, uc_mgr->conf_dir_name);
 			return -EINVAL;
 		}
 		/* delete this field to avoid strcmp() call in the loop */
@@ -1561,8 +1571,9 @@ static int get_by_card(snd_use_case_mgr_t *mgr, const char *ctl_name, char *long
 		return err;
 
 	_name = snd_ctl_card_info_get_name(info);
+	if (replace_string(&mgr->conf_dir_name, _name) == NULL)
+		return -ENOMEM;
 	_long_name = snd_ctl_card_info_get_longname(info);
-	snd_strlcpy(mgr->conf_file_name, _name, sizeof(mgr->conf_file_name));
 	snd_strlcpy(longname, _long_name, MAX_CARD_LONG_NAME);
 
 	return 0;
@@ -1585,7 +1596,7 @@ static int load_master_config(snd_use_case_mgr_t *uc_mgr,
 		if (getenv(ALSA_CONFIG_UCM2_VAR) || !getenv(ALSA_CONFIG_UCM_VAR)) {
 			uc_mgr->conf_format = 2;
 			configuration_filename(uc_mgr, filename, sizeof(filename),
-					       uc_mgr->conf_file_name, card_name, ".conf");
+					       uc_mgr->conf_dir_name, card_name, ".conf");
 			if (access(filename, R_OK) == 0)
 				goto __load;
 		}
@@ -1607,6 +1618,9 @@ __load:
 				card_name);
 		return err;
 	}
+
+	if (replace_string(&uc_mgr->conf_file_name, card_name) == NULL)
+		return -ENOMEM;
 
 	return 0;
 }
@@ -1632,7 +1646,8 @@ int uc_mgr_import_master_config(snd_use_case_mgr_t *uc_mgr)
 	char longname[MAX_CARD_LONG_NAME];
 	int err;
 
-	snd_strlcpy(uc_mgr->conf_file_name, uc_mgr->card_name, sizeof(uc_mgr->conf_file_name));
+	if (replace_string(&uc_mgr->conf_dir_name, uc_mgr->card_name) == NULL)
+		return -ENOMEM;
 
 	if (strncmp(name, "hw:", 3) == 0) {
 		err = get_by_card(uc_mgr, name, longname);
@@ -1650,14 +1665,14 @@ __longname:
 		if (err == 0) {
 			/* got device-specific file that matches the card long name */
 			if (uc_mgr->conf_format < 2)
-				snd_strlcpy(uc_mgr->conf_file_name, longname,
-					    sizeof(uc_mgr->conf_file_name));
+				snd_strlcpy(uc_mgr->conf_dir_name, longname,
+					    sizeof(uc_mgr->conf_dir_name));
 			goto __parse;
 		}
 	}
 
 	/* standard path */
-	err = load_master_config(uc_mgr, uc_mgr->conf_file_name, &cfg, 0);
+	err = load_master_config(uc_mgr, uc_mgr->conf_dir_name, &cfg, 0);
 	if (err < 0)
 		goto __error;
 
@@ -1673,7 +1688,7 @@ __parse:
 
 __error:
 	uc_mgr_free_ctl_list(uc_mgr);
-	uc_mgr->conf_file_name[0] = '\0';
+	uc_mgr->conf_dir_name[0] = '\0';
 	return err;
 }
 
