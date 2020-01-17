@@ -676,42 +676,41 @@ static int parse_value(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
 /*
  * Parse Modifier Use cases
  *
- *	# Each modifier is described in new section. N modifiers are allowed
- *	SectionModifier."Capture Voice" {
+ * # Each modifier is described in new section. N modifiers are allowed
+ * SectionModifier."Capture Voice" {
  *
- *		Comment "Record voice call"
+ *	Comment "Record voice call"
  *
- *		SupportedDevice [
- *			"x"
- *			"y"
- *		]
+ *	SupportedDevice [
+ *		"x"
+ *		"y"
+ *	]
  *
- *		ConflictingDevice [
- *			"x"
- *			"y"
- *		]
+ *	ConflictingDevice [
+ *		"x"
+ *		"y"
+ *	]
  *
- *		EnableSequence [
- *			....
- *		]
+ *	EnableSequence [
+ *		....
+ *	]
  *
- *		DisableSequence [
- *			...
- *		]
+ *	DisableSequence [
+ *		...
+ *	]
  *
- *              TransitionSequence."ToModifierName" [
- *			...
- *		]
+ *      TransitionSequence."ToModifierName" [
+ *		...
+ *	]
  *
- *		# Optional TQ and ALSA PCMs
- *		Value {
- *			TQ Voice
- *			CapturePCM "hw:1"
- *			PlaybackVolume "name='Master Playback Volume',index=2"
- *			PlaybackSwitch "name='Master Playback Switch',index=2"
- *		}
- *
- *	 }
+ *	# Optional TQ and ALSA PCMs
+ *	Value {
+ *		TQ Voice
+ *		CapturePCM "hw:1"
+ *		PlaybackVolume "name='Master Playback Volume',index=2"
+ *		PlaybackSwitch "name='Master Playback Switch',index=2"
+ *	}
+ * }
  *
  * SupportedDevice and ConflictingDevice cannot be specified together.
  * Both are optional.
@@ -836,11 +835,11 @@ static int parse_modifier(snd_use_case_mgr_t *uc_mgr,
 /*
  * Parse Device Use Cases
  *
- *# Each device is described in new section. N devices are allowed
- *SectionDevice."Headphones" {
+ * # Each device is described in new section. N devices are allowed
+ * SectionDevice."Headphones" {
  *	Comment "Headphones connected to 3.5mm jack"
  *
- *	upportedDevice [
+ *	SupportedDevice [
  *		"x"
  *		"y"
  *	]
