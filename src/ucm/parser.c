@@ -1515,7 +1515,7 @@ static int get_card_long_name(snd_use_case_mgr_t *mgr, char *longname)
 	int card, err;
 	snd_ctl_t *ctl;
 	snd_ctl_card_info_t *info;
-	const char *_name, *_long_name;
+	const char *_driver, *_name, *_long_name;
 
 	snd_ctl_card_info_alloca(&info);
 
@@ -1535,9 +1535,11 @@ static int get_card_long_name(snd_use_case_mgr_t *mgr, char *longname)
 		err = get_card_info(mgr, name, &ctl, info);
 
 		if (err == 0) {
+			_driver = snd_ctl_card_info_get_driver(info);
 			_name = snd_ctl_card_info_get_name(info);
 			_long_name = snd_ctl_card_info_get_longname(info);
-			if (!strcmp(card_name, _name) ||
+			if (!strcmp(card_name, _driver) ||
+			    !strcmp(card_name, _name) ||
 			    !strcmp(card_name, _long_name)) {
 				snd_strlcpy(longname, _long_name, MAX_CARD_LONG_NAME);
 				return 0;
@@ -1560,7 +1562,7 @@ static int get_by_card(snd_use_case_mgr_t *mgr, const char *ctl_name, char *long
 {
 	snd_ctl_t *ctl;
 	snd_ctl_card_info_t *info;
-	const char *_name, *_long_name;
+	const char *_driver, *_long_name;
 	int err;
 
 	snd_ctl_card_info_alloca(&info);
@@ -1569,8 +1571,8 @@ static int get_by_card(snd_use_case_mgr_t *mgr, const char *ctl_name, char *long
 	if (err)
 		return err;
 
-	_name = snd_ctl_card_info_get_name(info);
-	if (replace_string(&mgr->conf_dir_name, _name) == NULL)
+	_driver = snd_ctl_card_info_get_driver(info);
+	if (replace_string(&mgr->conf_dir_name, _driver) == NULL)
 		return -ENOMEM;
 	_long_name = snd_ctl_card_info_get_longname(info);
 	snd_strlcpy(longname, _long_name, MAX_CARD_LONG_NAME);
