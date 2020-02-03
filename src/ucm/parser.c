@@ -1413,16 +1413,16 @@ static int parse_master_file(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 	if (uc_mgr->conf_format >= 2) {
 		err = snd_config_search(cfg, "Syntax", &n);
 		if (err < 0) {
-			uc_error("Syntax field not found in %s", uc_mgr->conf_dir_name);
+			uc_error("Syntax field not found in %s", uc_mgr->conf_file_name);
 			return -EINVAL;
 		}
 		err = snd_config_get_integer(n, &l);
 		if (err < 0) {
-			uc_error("Syntax field is invalid in %s", uc_mgr->conf_dir_name);
+			uc_error("Syntax field is invalid in %s", uc_mgr->conf_file_name);
 			return err;
 		}
 		if (l < 2 || l > SYNTAX_VERSION_MAX) {
-			uc_error("Incompatible syntax %d in %s", l, uc_mgr->conf_dir_name);
+			uc_error("Incompatible syntax %d in %s", l, uc_mgr->conf_file_name);
 			return -EINVAL;
 		}
 		/* delete this field to avoid strcmp() call in the loop */
