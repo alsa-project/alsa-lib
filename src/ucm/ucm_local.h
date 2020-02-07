@@ -117,6 +117,12 @@ struct ctl_list {
 	snd_ctl_card_info_t *ctl_info;
 };
 
+struct ucm_dev_name {
+	struct list_head list;
+	char *name1;
+	char *name2;
+};
+
 /*
  * Describes a Use Case Modifier and it's enable and disable sequences.
  * A use case verb can have N modifiers.
@@ -196,6 +202,10 @@ struct use_case_verb {
 
 	/* value list */
 	struct list_head value_list;
+
+	/* temporary modifications lists */
+	struct list_head rename_list;
+	struct list_head remove_list;
 };
 
 /*
@@ -252,6 +262,11 @@ int uc_mgr_config_load(int format, const char *file, snd_config_t **cfg);
 int uc_mgr_import_master_config(snd_use_case_mgr_t *uc_mgr);
 int uc_mgr_scan_master_configs(const char **_list[]);
 
+int uc_mgr_remove_device(struct use_case_verb *verb, const char *name);
+int uc_mgr_rename_device(struct use_case_verb *verb, const char *src,
+			 const char *dst);
+
+void uc_mgr_free_dev_name_list(struct list_head *base);
 void uc_mgr_free_sequence_element(struct sequence_element *seq);
 void uc_mgr_free_transition_element(struct transition_sequence *seq);
 void uc_mgr_free_verb(snd_use_case_mgr_t *uc_mgr);

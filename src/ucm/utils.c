@@ -328,6 +328,44 @@ void uc_mgr_free_dev_list(struct dev_list *dev_list)
 	}
 }
 
+int uc_mgr_rename_in_dev_list(struct dev_list *dev_list, const char *src,
+			      const char *dst)
+{
+	struct list_head *pos;
+	struct dev_list_node *dlist;
+	char *dst1;
+
+	list_for_each(pos, &dev_list->list) {
+		dlist = list_entry(pos, struct dev_list_node, list);
+		if (strcmp(dlist->name, src) == 0) {
+			dst1 = strdup(dst);
+			if (dst1 == NULL)
+				return -ENOMEM;
+			free(dlist->name);
+			dlist->name = dst1;
+			return 0;
+		}
+	}
+	return -ENOENT;
+}
+
+int uc_mgr_remove_from_dev_list(struct dev_list *dev_list, const char *name)
+{
+	struct list_head *pos;
+	struct dev_list_node *dlist;
+
+	list_for_each(pos, &dev_list->list) {
+		dlist = list_entry(pos, struct dev_list_node, list);
+		if (strcmp(dlist->name, name) == 0) {
+			free(dlist->name);
+			list_del(&dlist->list);
+			free(dlist);
+			return 0;
+		}
+	}
+	return -ENODEV;
+}
+
 void uc_mgr_free_sequence_element(struct sequence_element *seq)
 {
 	if (seq == NULL)
@@ -381,6 +419,20 @@ void uc_mgr_free_transition(struct list_head *base)
 	}
 }
 
+void uc_mgr_free_dev_name_list(struct list_head *base)
+{
+	struct list_head *pos, *npos;
+	struct ucm_dev_name *dev;
+
+	list_for_each_safe(pos, npos, base) {
+		dev = list_entry(pos, struct ucm_dev_name, list);
+		list_del(&dev->list);
+		free(dev->name1);
+		free(dev->name2);
+		free(dev);
+	}
+}
+
 void uc_mgr_free_modifier(struct list_head *base)
 {
 	struct list_head *pos, *npos;
@@ -400,23 +452,68 @@ void uc_mgr_free_modifier(struct list_head *base)
 	}
 }
 
-void uc_mgr_free_device(struct list_head *base)
+void uc_mgr_free_device(struct use_case_device *dev)
+{
+	free(dev->name);
+	free(dev->comment);
+	uc_mgr_free_sequence(&dev->enable_list);
+	uc_mgr_free_sequence(&dev->disable_list);
+	uc_mgr_free_transition(&dev->transition_list);
+	uc_mgr_free_dev_list(&dev->dev_list);
+	uc_mgr_free_value(&dev->value_list);
+	list_del(&dev->list);
+	free(dev);
+}
+
+void uc_mgr_free_device_list(struct list_head *base)
 {
 	struct list_head *pos, *npos;
 	struct use_case_device *dev;
 	
 	list_for_each_safe(pos, npos, base) {
 		dev = list_entry(pos, struct use_case_device, list);
-		free(dev->name);
-		free(dev->comment);
-		uc_mgr_free_sequence(&dev->enable_list);
-		uc_mgr_free_sequence(&dev->disable_list);
-		uc_mgr_free_transition(&dev->transition_list);
-		uc_mgr_free_dev_list(&dev->dev_list);
-		uc_mgr_free_value(&dev->value_list);
-		list_del(&dev->list);
-		free(dev);
+		uc_mgr_free_device(dev);
 	}
+}
+
+int uc_mgr_rename_device(struct use_case_verb *verb, const char *src,
+			 const char *dst)
+{
+	struct use_case_device *device;
+	struct list_head *pos, *npos;
+	char *dst1;
+
+	/* no errors when device is not found */
+	list_for_each_safe(pos, npos, &verb->device_list) {
+		device = list_entry(pos, struct use_case_device, list);
+		if (strcmp(device->name, src) == 0) {
+			dst1 = strdup(dst);
+			if (dst1 == NULL)
+				return -ENOMEM;
+			free(device->name);
+			device->name = dst1;
+			continue;
+		}
+		uc_mgr_rename_in_dev_list(&device->dev_list, src, dst);
+	}
+	return 0;
+}
+
+int uc_mgr_remove_device(struct use_case_verb *verb, const char *name)
+{
+	struct use_case_device *device;
+	struct list_head *pos, *npos;
+
+	list_for_each_safe(pos, npos, &verb->device_list) {
+		device = list_entry(pos, struct use_case_device, list);
+		if (strcmp(device->name, name) == 0) {
+			uc_mgr_free_device(device);
+			continue;
+		}
+		uc_mgr_remove_from_dev_list(&device->dev_list, name);
+		return 0;
+	}
+	return -ENOENT;
 }
 
 void uc_mgr_free_verb(snd_use_case_mgr_t *uc_mgr)
@@ -432,9 +529,11 @@ void uc_mgr_free_verb(snd_use_case_mgr_t *uc_mgr)
 		uc_mgr_free_sequence(&verb->disable_list);
 		uc_mgr_free_transition(&verb->transition_list);
 		uc_mgr_free_value(&verb->value_list);
-		uc_mgr_free_device(&verb->device_list);
-		uc_mgr_free_device(&verb->cmpt_device_list);
+		uc_mgr_free_device_list(&verb->device_list);
+		uc_mgr_free_device_list(&verb->cmpt_device_list);
 		uc_mgr_free_modifier(&verb->modifier_list);
+		uc_mgr_free_dev_name_list(&verb->rename_list);
+		uc_mgr_free_dev_name_list(&verb->remove_list);
 		list_del(&verb->list);
 		free(verb);
 	}

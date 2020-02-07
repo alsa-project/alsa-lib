@@ -985,6 +985,71 @@ static int parse_device(snd_use_case_mgr_t *uc_mgr,
 	return 0;
 }
 
+/*
+ * Parse Device Rename/Delete Command
+ *
+ * # The devices might be renamed to allow the better conditional runtime
+ * # evaluation. Bellow example renames Speaker1 device to Speaker and
+ * # removes Speaker2 device.
+ * RenameDevice."Speaker1" "Speaker"
+ * RemoveDevice."Speaker2" "Speaker2"
+ */
+static int parse_dev_name_list(snd_config_t *cfg,
+			       struct list_head *list)
+{
+	snd_config_t *n;
+	snd_config_iterator_t i, next;
+	const char *id, *name1;
+	char *name2;
+	struct ucm_dev_name *dev;
+	snd_config_iterator_t pos;
+	int err;
+
+	if (snd_config_get_id(cfg, &id) < 0)
+		return -EINVAL;
+
+	if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
+		uc_error("compound type expected for %s", id);
+		return -EINVAL;
+	}
+
+	snd_config_for_each(i, next, cfg) {
+		n = snd_config_iterator_entry(i);
+
+		if (snd_config_get_id(n, &name1) < 0)
+			return -EINVAL;
+
+		err = parse_string(n, &name2);
+		if (err < 0) {
+			uc_error("error: failed to get target device name for '%s'", name1);
+			return err;
+		}
+
+		/* skip duplicates */
+		list_for_each(pos, list) {
+			dev = list_entry(pos, struct ucm_dev_name, list);
+			if (strcmp(dev->name1, name1) == 0) {
+				free(name2);
+				return 0;
+			}
+		}
+
+		dev = calloc(1, sizeof(*dev));
+		if (dev == NULL)
+			return -ENOMEM;
+		dev->name1 = strdup(name1);
+		if (dev->name1 == NULL) {
+			free(dev);
+			free(name2);
+			return -ENOMEM;
+		}
+		dev->name2 = name2;
+		list_add_tail(&dev->list, list);
+	}
+
+	return 0;
+}
+
 static int parse_compound_check_legacy(snd_use_case_mgr_t *uc_mgr,
 	  snd_config_t *cfg,
 	  int (*fcn)(snd_use_case_mgr_t *, snd_config_t *, void *, void *),
@@ -1044,7 +1109,39 @@ static int parse_modifier_name(snd_use_case_mgr_t *uc_mgr,
 			     void *data1,
 			     void *data2 ATTRIBUTE_UNUSED)
 {
-	return parse_compound_check_legacy(uc_mgr, cfg, parse_modifier, data1);
+	return parse_compound(uc_mgr, cfg, parse_modifier, data1, data2);
+}
+
+static int verb_device_management(struct use_case_verb *verb)
+{
+	struct list_head *pos;
+	struct ucm_dev_name *dev;
+	int err;
+
+	/* rename devices */
+	list_for_each(pos, &verb->rename_list) {
+		dev = list_entry(pos, struct ucm_dev_name, list);
+		err = uc_mgr_rename_device(verb, dev->name1, dev->name2);
+		if (err < 0) {
+			uc_error("error: cannot rename device '%s' to '%s'", dev->name1, dev->name2);
+			return err;
+		}
+	}
+
+	/* remove devices */
+	list_for_each(pos, &verb->rename_list) {
+		dev = list_entry(pos, struct ucm_dev_name, list);
+		err = uc_mgr_remove_device(verb, dev->name2);
+		if (err < 0) {
+			uc_error("error: cannot remove device '%s'", dev->name2);
+			return err;
+		}
+	}
+
+	/* those lists are no longer used */
+	uc_mgr_free_dev_name_list(&verb->rename_list);
+	uc_mgr_free_dev_name_list(&verb->remove_list);
+	return 0;
 }
 
 /*
@@ -1180,6 +1277,8 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 	INIT_LIST_HEAD(&verb->cmpt_device_list);
 	INIT_LIST_HEAD(&verb->modifier_list);
 	INIT_LIST_HEAD(&verb->value_list);
+	INIT_LIST_HEAD(&verb->rename_list);
+	INIT_LIST_HEAD(&verb->remove_list);
 	list_add_tail(&verb->list, &uc_mgr->verb_list);
 	if (use_case_name == NULL)
 		return -EINVAL;
@@ -1249,6 +1348,26 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 			}
 			continue;
 		}
+
+		/* device renames */
+		if (strcmp(id, "RenameDevice") == 0) {
+			err = parse_dev_name_list(n, &verb->rename_list);
+			if (err < 0) {
+				uc_error("error: %s failed to parse device rename",
+						file);
+				goto _err;
+			}
+		}
+
+		/* device remove */
+		if (strcmp(id, "RemoveDevice") == 0) {
+			err = parse_dev_name_list(n, &verb->remove_list);
+			if (err < 0) {
+				uc_error("error: %s failed to parse device remove",
+						file);
+				goto _err;
+			}
+		}
 	}
 
 	snd_config_delete(cfg);
@@ -1258,6 +1377,14 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 		uc_error("error: no use case device defined", file);
 		return -EINVAL;
 	}
+
+	/* do device rename and delete */
+	err = verb_device_management(verb);
+	if (err < 0) {
+		uc_error("error: device management error in verb '%s'", verb->name);
+		return err;
+	}
+
 	return 0;
 
        _err:
