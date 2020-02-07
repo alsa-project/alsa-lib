@@ -1112,6 +1112,52 @@ static int parse_modifier_name(snd_use_case_mgr_t *uc_mgr,
 	return parse_compound(uc_mgr, cfg, parse_modifier, data1, data2);
 }
 
+static int verb_dev_list_add(struct use_case_verb *verb,
+			     enum dev_list_type dst_type,
+			     const char *dst,
+			     const char *src)
+{
+	struct use_case_device *device;
+	struct list_head *pos;
+
+	list_for_each(pos, &verb->device_list) {
+		device = list_entry(pos, struct use_case_device, list);
+		if (strcmp(device->name, dst) != 0)
+			continue;
+		if (device->dev_list.type != dst_type) {
+			if (list_empty(&device->dev_list.list)) {
+				device->dev_list.type = dst_type;
+			} else {
+				uc_error("error: incompatible device list type ('%s', '%s')",
+					 device->name, src);
+				return -EINVAL;
+			}
+		}
+		return uc_mgr_put_to_dev_list(&device->dev_list, src);
+	}
+	return -ENOENT;
+}
+
+static int verb_dev_list_check(struct use_case_verb *verb)
+{
+	struct list_head *pos, *pos2;
+	struct use_case_device *device;
+	struct dev_list_node *dlist;
+	int err;
+
+	list_for_each(pos, &verb->device_list) {
+		device = list_entry(pos, struct use_case_device, list);
+		list_for_each(pos2, &device->dev_list.list) {
+			dlist = list_entry(pos2, struct dev_list_node, list);
+			err = verb_dev_list_add(verb, device->dev_list.type,
+						dlist->name, device->name);
+			if (err < 0)
+				return err;
+		}
+	}
+	return 0;
+}
+
 static int verb_device_management(struct use_case_verb *verb)
 {
 	struct list_head *pos;
@@ -1141,7 +1187,9 @@ static int verb_device_management(struct use_case_verb *verb)
 	/* those lists are no longer used */
 	uc_mgr_free_dev_name_list(&verb->rename_list);
 	uc_mgr_free_dev_name_list(&verb->remove_list);
-	return 0;
+
+	/* handle conflicting/supported lists */
+	return verb_dev_list_check(verb);
 }
 
 /*

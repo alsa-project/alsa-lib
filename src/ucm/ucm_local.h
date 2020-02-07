@@ -262,6 +262,7 @@ int uc_mgr_config_load(int format, const char *file, snd_config_t **cfg);
 int uc_mgr_import_master_config(snd_use_case_mgr_t *uc_mgr);
 int uc_mgr_scan_master_configs(const char **_list[]);
 
+int uc_mgr_put_to_dev_list(struct dev_list *dev_list, const char *name);
 int uc_mgr_remove_device(struct use_case_verb *verb, const char *name);
 int uc_mgr_rename_device(struct use_case_verb *verb, const char *src,
 			 const char *dst);

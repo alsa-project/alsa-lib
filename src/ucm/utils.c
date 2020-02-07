@@ -328,6 +328,31 @@ void uc_mgr_free_dev_list(struct dev_list *dev_list)
 	}
 }
 
+int uc_mgr_put_to_dev_list(struct dev_list *dev_list, const char *name)
+{
+	struct list_head *pos;
+	struct dev_list_node *dlist;
+	char *n;
+
+	list_for_each(pos, &dev_list->list) {
+		dlist = list_entry(pos, struct dev_list_node, list);
+		if (strcmp(dlist->name, name) == 0)
+			return 0;
+	}
+
+	dlist = calloc(1, sizeof(*dlist));
+	if (dlist == NULL)
+		return -ENOMEM;
+	n = strdup(name);
+	if (n == NULL) {
+		free(dlist);
+		return -ENOMEM;
+	}
+	dlist->name = n;
+	list_add(&dlist->list, &dev_list->list);
+	return 0;
+}
+
 int uc_mgr_rename_in_dev_list(struct dev_list *dev_list, const char *src,
 			      const char *dst)
 {
