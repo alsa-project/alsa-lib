@@ -17,7 +17,6 @@
 #define __LINUX_UAPI_SND_ASOC_H
 
 #include <linux/types.h>
-#include <sound/asound.h>
 
 /*
  * Maximum number of channels topology kcontrol can represent.
@@ -587,7 +586,7 @@ struct snd_soc_tplg_manifest_v4 {
 	__le32 pcm_elems;	/* number of PCM elements */
 	__le32 dai_link_elems;	/* number of DAI link elements */
 	struct snd_soc_tplg_private priv;
-} __packed;
+} __attribute__((packed));
 
 /* Stream Capabilities v4 */
 struct snd_soc_tplg_stream_caps_v4 {
@@ -605,7 +604,7 @@ struct snd_soc_tplg_stream_caps_v4 {
 	__le32 period_size_max;	/* max period size bytes */
 	__le32 buffer_size_min;	/* min buffer size bytes */
 	__le32 buffer_size_max;	/* max buffer size bytes */
-} __packed;
+} __attribute__((packed));
 
 /* PCM v4 */
 struct snd_soc_tplg_pcm_v4 {
@@ -620,7 +619,7 @@ struct snd_soc_tplg_pcm_v4 {
 	struct snd_soc_tplg_stream stream[SND_SOC_TPLG_STREAM_CONFIG_MAX]; /* for DAI link */
 	__le32 num_streams;	/* number of streams */
 	struct snd_soc_tplg_stream_caps_v4 caps[2]; /* playback and capture for DAI */
-} __packed;
+} __attribute__((packed));
 
 /* Physical link config v4 */
 struct snd_soc_tplg_link_config_v4 {
@@ -628,6 +627,6 @@ struct snd_soc_tplg_link_config_v4 {
 	__le32 id;              /* unique ID - used to match */
 	struct snd_soc_tplg_stream stream[SND_SOC_TPLG_STREAM_CONFIG_MAX]; /* supported configs playback and captrure */
 	__le32 num_streams;     /* number of streams */
-} __packed;
+} __attribute__((packed));
 
 #endif

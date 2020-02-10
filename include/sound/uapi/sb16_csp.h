@@ -20,8 +20,8 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  *
  */
-#ifndef _UAPI__SOUND_SB16_CSP_H
-#define _UAPI__SOUND_SB16_CSP_H
+#ifndef __SOUND_SB16_CSP_H
+#define __SOUND_SB16_CSP_H
 
 
 /* CSP modes */
@@ -120,4 +120,4 @@ struct snd_sb_csp_info {
 #define SNDRV_SB_CSP_IOCTL_RESTART	_IO('H', 0x16)
 
 
-#endif /* _UAPI__SOUND_SB16_CSP_H */
+#endif /* __SOUND_SB16_CSP_H */

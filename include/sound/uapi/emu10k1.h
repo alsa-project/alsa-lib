@@ -20,8 +20,12 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  *
  */
-#ifndef _UAPI__SOUND_EMU10K1_H
-#define _UAPI__SOUND_EMU10K1_H
+#ifndef __SOUND_EMU10K1_H
+#define __SOUND_EMU10K1_H
+
+#ifdef __linux__
+#include <linux/types.h>
+#endif
 
 /*
  * ---- FX8010 ----
@@ -256,13 +260,11 @@
 #define EMU10K1_DBG_SINGLE_STEP_ADDR	0x000001ff	/* single step address */
 
 /* tank memory address line */
-#ifndef __KERNEL__
 #define TANKMEMADDRREG_ADDR_MASK 0x000fffff	/* 20 bit tank address field			*/
 #define TANKMEMADDRREG_CLEAR	 0x00800000	/* Clear tank memory				*/
 #define TANKMEMADDRREG_ALIGN	 0x00400000	/* Align read or write relative to tank access	*/
 #define TANKMEMADDRREG_WRITE	 0x00200000	/* Write to tank memory				*/
 #define TANKMEMADDRREG_READ	 0x00100000	/* Read from tank memory			*/
-#endif
 
 struct snd_emu10k1_fx8010_info {
 	unsigned int internal_tram_size;	/* in samples */
@@ -382,4 +384,4 @@ struct snd_emu10k1_fx8010_pcm_rec {
 #define SNDRV_EMU10K1_IOCTL_SINGLE_STEP	_IOW ('H', 0x83, int)
 #define SNDRV_EMU10K1_IOCTL_DBG_READ	_IOR ('H', 0x84, int)
 
-#endif /* _UAPI__SOUND_EMU10K1_H */
+#endif /* __SOUND_EMU10K1_H */
