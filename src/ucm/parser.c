@@ -1135,6 +1135,7 @@ static int verb_dev_list_add(struct use_case_verb *verb,
 		}
 		return uc_mgr_put_to_dev_list(&device->dev_list, src);
 	}
+	uc_error("error: unable to find device '%s'", dst);
 	return -ENOENT;
 }
 
