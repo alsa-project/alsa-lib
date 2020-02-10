@@ -303,6 +303,7 @@ int snd_ctl_elem_info(snd_ctl_t *ctl, snd_ctl_elem_info_t *info)
 	return ctl->ops->element_info(ctl, info);
 }
 
+#if 0 /* deprecated */
 static bool validate_element_member_dimension(snd_ctl_elem_info_t *info)
 {
 	unsigned int members;
@@ -328,6 +329,9 @@ static bool validate_element_member_dimension(snd_ctl_elem_info_t *info)
 
 	return members == info->count;
 }
+#else /* deprecated */
+#define validate_element_member_dimension(info)		true
+#endif /* deprecated */
 
 /**
  * \brief Create and add some user-defined control elements of integer type.
@@ -2510,11 +2514,12 @@ const char *snd_ctl_elem_info_get_item_name(const snd_ctl_elem_info_t *obj)
  * #snd_ctl_elem_info_get_dimensions is deprecated without any replacement.
  */
 #ifndef DOXYGEN
-EXPORT_SYMBOL int INTERNAL(snd_ctl_elem_info_get_dimensions)(const snd_ctl_elem_info_t *obj)
+EXPORT_SYMBOL int INTERNAL(snd_ctl_elem_info_get_dimensions)(const snd_ctl_elem_info_t *obj ATTRIBUTE_UNUSED)
 #else
 int snd_ctl_elem_info_get_dimensions(const snd_ctl_elem_info_t *obj)
 #endif
 {
+#if 0 /* deprecated */
 	int i;
 
 	assert(obj);
@@ -2522,6 +2527,9 @@ int snd_ctl_elem_info_get_dimensions(const snd_ctl_elem_info_t *obj)
 		if (obj->dimen.d[i])
 			break;
 	return i + 1;
+#else
+	return -EINVAL;
+#endif
 }
 use_default_symbol_version(__snd_ctl_elem_info_get_dimensions, snd_ctl_elem_info_get_dimensions, ALSA_0.9.3);
 
@@ -2535,15 +2543,19 @@ use_default_symbol_version(__snd_ctl_elem_info_get_dimensions, snd_ctl_elem_info
  * #snd_ctl_elem_info_get_dimension is deprecated without any replacement.
  */
 #ifndef DOXYGEN
-EXPORT_SYMBOL int INTERNAL(snd_ctl_elem_info_get_dimension)(const snd_ctl_elem_info_t *obj, unsigned int idx)
+EXPORT_SYMBOL int INTERNAL(snd_ctl_elem_info_get_dimension)(const snd_ctl_elem_info_t *obj ATTRIBUTE_UNUSED, unsigned int idx ATTRIBUTE_UNUSED)
 #else
 int snd_ctl_elem_info_get_dimension(const snd_ctl_elem_info_t *obj, unsigned int idx)
 #endif
 {
+#if 0 /* deprecated */
 	assert(obj);
 	if (idx > 3)
 		return 0;
 	return obj->dimen.d[idx];
+#else /* deprecated */
+	return -EINVAL;
+#endif /* deprecated */
 }
 use_default_symbol_version(__snd_ctl_elem_info_get_dimension, snd_ctl_elem_info_get_dimension, ALSA_0.9.3);
 
@@ -2565,9 +2577,10 @@ use_default_symbol_version(__snd_ctl_elem_info_get_dimension, snd_ctl_elem_info_
  * \deprecated Since 1.1.5
  * #snd_ctl_elem_info_set_dimension is deprecated without any replacement.
  */
-int snd_ctl_elem_info_set_dimension(snd_ctl_elem_info_t *info,
-				    const int dimension[4])
+int snd_ctl_elem_info_set_dimension(snd_ctl_elem_info_t *info ATTRIBUTE_UNUSED,
+				    const int dimension[4] ATTRIBUTE_UNUSED)
 {
+#if 0 /* deprecated */
 	unsigned int i;
 
 	if (info == NULL)
@@ -2581,6 +2594,9 @@ int snd_ctl_elem_info_set_dimension(snd_ctl_elem_info_t *info,
 	}
 
 	return 0;
+#else /* deprecated */
+	return -EINVAL;
+#endif /* deprecated */
 }
 
 /**
