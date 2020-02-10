@@ -35,7 +35,6 @@ static const struct ctl_access_elem ctl_access[] = {
 	{"read", SNDRV_CTL_ELEM_ACCESS_READ},
 	{"write", SNDRV_CTL_ELEM_ACCESS_WRITE},
 	{"volatile", SNDRV_CTL_ELEM_ACCESS_VOLATILE},
-	{"timestamp", SNDRV_CTL_ELEM_ACCESS_TIMESTAMP},
 	{"tlv_read", SNDRV_CTL_ELEM_ACCESS_TLV_READ},
 	{"tlv_write", SNDRV_CTL_ELEM_ACCESS_TLV_WRITE},
 	{"tlv_command", SNDRV_CTL_ELEM_ACCESS_TLV_COMMAND},
