@@ -320,8 +320,10 @@ static inline int snd_open_device(const char *filename, int fmode)
 			fd = rsm_open_device(filename, fmode);
 	}
 #endif
+#ifndef O_CLOEXEC
 	if (fd >= 0)
 		fcntl(fd, F_SETFD, FD_CLOEXEC);
+#endif
 	return fd;
 }
 
