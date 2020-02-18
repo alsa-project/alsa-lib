@@ -160,11 +160,13 @@ AC_CHECK_LIB([asound], [snd_ctl_open],,
 )
 if test "x$enable_atopology" = "xyes"; then
 alsa_topology_found=yes
+alsa_save_LIBS2="$LIBS"
 AC_CHECK_LIB([atopology], [snd_tplg_new],,
 	[ifelse([$3], , [AC_MSG_ERROR(No linkable libatopology was found.)])
 	 alsa_topology_found=no,
 ]
 )
+LIBS="$alsa_save_LIBS2"
 fi
 else
 if test "x$enable_atopology" = "xyes"; then
