@@ -1,0 +1,97 @@
+name: Build alsa-lib
+
+on: [push, pull_request]
+
+jobs:
+  fedora_latest_build:
+    runs-on: ubuntu-latest
+    container:
+      image: fedora:latest
+    steps:
+    - name: Prepare environment
+      run: |
+        dnf -y upgrade
+        dnf -y install @development-tools libtool bzip2
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Checkout all tags
+      run: |
+        git fetch --prune --unshallow
+    - name: Modify version
+      run: |
+        mv configure.ac configure.ac.old
+        version=$(git describe | sed -e 's/v//')
+        echo "Version: ${version}"
+        sed -r "s/AC_INIT\(alsa-lib,.*\)/AC_INIT(alsa-lib, ${version})/" < configure.ac.old > configure.ac
+        grep AC_INIT configure.ac
+    - name: Configure
+      run: |
+        libtoolize --force --copy --automake
+        aclocal
+        autoheader
+        automake --foreign --copy --add-missing
+        autoconf
+        export CFLAGS="-O2 -Wall -W -Wunused-const-variable=0 -pipe -g"
+        ./configure --disable-aload
+        echo "Version: $(cat version)"
+    - name: Build
+      run: |
+        make
+    - name: Install test
+      run: |
+        make install
+    - name: Create package
+      run: |
+        make dist-bzip2
+    - name: Unpack package
+      run: |
+        tar xjf alsa-lib-$(cat version).tar.bz2
+        mkdir artifacts
+        cp alsa-lib-$(cat version).tar.bz2 artifacts
+    - name: Configure package
+      run: |
+        cd alsa-lib-$(cat version)
+        export CFLAGS="-O2 -Wall -W -Wunused-const-variable=0 -pipe -g"
+        ./configure --disable-aload
+    - name: Build package
+      run: |
+        cd alsa-lib-$(cat version)
+        make
+    - name: Install package
+      run: |
+        cd alsa-lib-$(cat version)
+        make install
+    - name: Archive package
+      uses: actions/upload-artifact@v1
+      with:
+        name: alsa-lib-test-package
+        path: artifacts/
+
+  ubuntu_last_build:
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Prepare build environment.
+      run: |
+        apt-get update
+        apt-get -y install apt-utils
+        apt-get -y full-upgrade
+        apt-get install -y git build-essential m4 autoconf automake libtool
+    - name: Configure
+      run: |
+        libtoolize --force --copy --automake
+        aclocal
+        autoheader
+        automake --foreign --copy --add-missing
+        autoconf
+        export CFLAGS="-O2 -Wall -W -Wunused-const-variable=0 -pipe -g"
+        ./configure --disable-aload
+    - name: Build
+      run: |
+        make
+    - name: Install test
+      run: |
+        make install
