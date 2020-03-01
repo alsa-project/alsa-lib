@@ -287,10 +287,14 @@ static int try_config(snd_config_t *config,
 			err = -EINVAL;
 			goto __cleanup;
 		}
+		if (list->card < 0 &&
+		    snd_config_search(cfg, "omit_noargs", &n) >= 0 &&
+		    snd_config_get_bool(n) > 0)
+			goto __skip_add;
 		if (level == 1 &&
 		    snd_config_search(cfg, "show", &n) >= 0 &&
 		    snd_config_get_bool(n) <= 0)
-		    	goto __skip_add;
+			goto __skip_add;
 		if (buf1 == NULL &&
 		    snd_config_search(cfg, "description", &n) >= 0 &&
 		    snd_config_get_string(n, &str) >= 0) {
