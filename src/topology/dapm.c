@@ -43,6 +43,7 @@ static const struct map_elem widget_map[] = {
 	{"effect", SND_SOC_TPLG_DAPM_EFFECT},
 	{"siggen", SND_SOC_TPLG_DAPM_SIGGEN},
 	{"src", SND_SOC_TPLG_DAPM_SRC},
+	{"asrc", SND_SOC_TPLG_DAPM_ASRC},
 	{"encoder", SND_SOC_TPLG_DAPM_ENCODER},
 	{"decoder", SND_SOC_TPLG_DAPM_DECODER},
 };
