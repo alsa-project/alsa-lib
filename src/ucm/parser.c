@@ -1969,6 +1969,9 @@ int uc_mgr_scan_master_configs(const char **_list[])
 
 		configuration_filename2(filename, sizeof(filename), 2,
 					d_name, d_name, ".conf");
+		if (eaccess(filename, R_OK))
+			continue;
+
 		err = uc_mgr_config_load(2, filename, &cfg);
 		if (err < 0)
 			goto __err;
