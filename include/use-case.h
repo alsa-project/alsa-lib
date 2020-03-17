@@ -117,7 +117,10 @@ extern "C" {
  *
  * If multiple devices with the same name exists, the number suffixes should
  * be added to these names like HDMI1,HDMI2,HDMI3 etc. No number gaps are
- * allowed. The names with numbers must be continuous.
+ * allowed. The names with numbers must be continuous. It is allowed to put
+ * a whitespace between name and index (like 'Line 1') for the better
+ * readability. The device names 'Line 1' and 'Line1' are equal for
+ * thus purpose.
  *
  * If EnableSequence/DisableSequence controls independent paths in the hardware
  * it is also recommended to split playback and capture UCM devices and use
