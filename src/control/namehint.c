@@ -270,8 +270,6 @@ static int try_config(snd_config_t *config,
 	if (snd_config_search(cfg1, "type", &cfg) >= 0 &&
 	    snd_config_get_string(cfg, &str) >= 0 &&
 	    strcmp(str, "hw") == 0) {
-		list->device_input = -1;
-		list->device_output = -1;
 		if (snd_config_search(cfg1, "device", &cfg) >= 0) {
 			if (snd_config_get_integer(cfg, &dev) < 0) {
 				SNDERR("(%s) device must be an integer", buf);
