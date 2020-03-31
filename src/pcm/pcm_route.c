@@ -104,6 +104,7 @@ typedef struct {
 	int schannels;
 	snd_pcm_route_params_t params;
 	snd_pcm_chmap_t *chmap;
+	snd_pcm_chmap_query_t **chmap_override;
 } snd_pcm_route_t;
 
 #endif /* DOC_HIDDEN */
@@ -441,6 +442,7 @@ static int snd_pcm_route_close(snd_pcm_t *pcm)
 		free(params->dsts);
 	}
 	free(route->chmap);
+	snd_pcm_free_chmaps(route->chmap_override);
 	return snd_pcm_generic_close(pcm);
 }
 
@@ -634,6 +636,9 @@ static snd_pcm_chmap_t *snd_pcm_route_get_chmap(snd_pcm_t *pcm)
 	snd_pcm_chmap_t *map, *slave_map;
 	unsigned int src, dst, nsrcs;
 
+	if (route->chmap_override)
+		return _snd_pcm_choose_fixed_chmap(pcm, route->chmap_override);
+
 	slave_map = snd_pcm_generic_get_chmap(pcm);
 	if (!slave_map)
 		return NULL;
@@ -660,8 +665,14 @@ static snd_pcm_chmap_t *snd_pcm_route_get_chmap(snd_pcm_t *pcm)
 
 static snd_pcm_chmap_query_t **snd_pcm_route_query_chmaps(snd_pcm_t *pcm)
 {
+	snd_pcm_route_t *route = pcm->private_data;
 	snd_pcm_chmap_query_t **maps;
-	snd_pcm_chmap_t *map = snd_pcm_route_get_chmap(pcm);
+	snd_pcm_chmap_t *map;
+
+	if (route->chmap_override)
+		return _snd_pcm_copy_chmap_query(route->chmap_override);
+
+	map = snd_pcm_route_get_chmap(pcm);
 	if (!map)
 		return NULL;
 	maps = _snd_pcm_make_single_query_chmaps(map);
@@ -818,10 +829,10 @@ err:
 	return -EINVAL;
 }
 
-static int find_matching_chmap(snd_pcm_t *spcm, snd_pcm_chmap_t *tt_chmap,
+static int find_matching_chmap(snd_pcm_chmap_query_t **chmaps,
+			       snd_pcm_chmap_t *tt_chmap,
 			       snd_pcm_chmap_t **found_chmap, int *schannels)
 {
-	snd_pcm_chmap_query_t** chmaps = snd_pcm_query_chmaps(spcm);
 	int i;
 
 	*found_chmap = NULL;
@@ -854,7 +865,6 @@ static int find_matching_chmap(snd_pcm_t *spcm, snd_pcm_chmap_t *tt_chmap,
 			int size = sizeof(snd_pcm_chmap_t) + c->channels * sizeof(unsigned int);
 			*found_chmap = malloc(size);
 			if (!*found_chmap) {
-				snd_pcm_free_chmaps(chmaps);
 				return -ENOMEM;
 			}
 			memcpy(*found_chmap, c, size);
@@ -862,8 +872,6 @@ static int find_matching_chmap(snd_pcm_t *spcm, snd_pcm_chmap_t *tt_chmap,
 			break;
 		}
 	}
-
-	snd_pcm_free_chmaps(chmaps);
 
 	if (*found_chmap == NULL) {
 		SNDERR("Found no matching channel map");
@@ -1252,6 +1260,7 @@ pcm.name {
                         SCHANNEL REAL   # route value (0.0 - 1.0)
                 }
         }
+        [chmap MAP]             # Override channel maps; MAP is a string array
 }
 \endcode
 
@@ -1292,6 +1301,7 @@ int _snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 	snd_pcm_route_ttable_entry_t *ttable = NULL;
 	unsigned int csize, ssize;
 	unsigned int cused, sused;
+	snd_pcm_chmap_query_t **chmaps = NULL;
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id;
@@ -1306,9 +1316,18 @@ int _snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 		if (strcmp(id, "ttable") == 0) {
 			if (snd_config_get_type(n) != SND_CONFIG_TYPE_COMPOUND) {
 				SNDERR("Invalid type for %s", id);
+				snd_pcm_free_chmaps(chmaps);
 				return -EINVAL;
 			}
 			tt = n;
+			continue;
+		}
+		if (strcmp(id, "chmap") == 0) {
+			chmaps = _snd_pcm_parse_config_chmaps(n);
+			if (!chmaps) {
+				SNDERR("Invalid channel map for %s", id);
+				return -EINVAL;
+			}
 			continue;
 		}
 		SNDERR("Unknown field %s", id);
@@ -1316,21 +1335,26 @@ int _snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 	}
 	if (!slave) {
 		SNDERR("slave is not defined");
+		snd_pcm_free_chmaps(chmaps);
 		return -EINVAL;
 	}
 	if (!tt) {
 		SNDERR("ttable is not defined");
+		snd_pcm_free_chmaps(chmaps);
 		return -EINVAL;
 	}
 	err = snd_pcm_slave_conf(root, slave, &sconf, 2,
 				 SND_PCM_HW_PARAM_FORMAT, 0, &sformat,
 				 SND_PCM_HW_PARAM_CHANNELS, 0, &schannels);
-	if (err < 0)
+	if (err < 0) {
+		snd_pcm_free_chmaps(chmaps);
 		return err;
+	}
 	if (sformat != SND_PCM_FORMAT_UNKNOWN &&
 	    snd_pcm_format_linear(sformat) != 1) {
 	    	snd_config_delete(sconf);
 		SNDERR("slave format is not linear");
+		snd_pcm_free_chmaps(chmaps);
 		return -EINVAL;
 	}
 
@@ -1345,13 +1369,19 @@ int _snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 	if (err < 0) {
 		free(tt_chmap);
 		free(ttable);
+		snd_pcm_free_chmaps(chmaps);
 		return err;
 	}
 
 	if (tt_chmap) {
-		err = find_matching_chmap(spcm, tt_chmap, &chmap, &schannels);
+		if (!chmaps)
+			chmaps = snd_pcm_query_chmaps(spcm);
+		if (chmaps)
+			err = find_matching_chmap(chmaps, tt_chmap, &chmap,
+						  &schannels);
 		free(tt_chmap);
-		if (err < 0) {
+		if (chmaps && err < 0) {
+			snd_pcm_free_chmaps(chmaps);
 			snd_pcm_close(spcm);
 			return err;
 		}
@@ -1360,12 +1390,14 @@ int _snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 	err = _snd_pcm_route_determine_ttable(tt, &csize, &ssize, chmap);
 	if (err < 0) {
 		free(chmap);
+		snd_pcm_free_chmaps(chmaps);
 		snd_pcm_close(spcm);
 		return err;
 	}
 	ttable = malloc(csize * ssize * sizeof(snd_pcm_route_ttable_entry_t));
 	if (ttable == NULL) {
 		free(chmap);
+		snd_pcm_free_chmaps(chmaps);
 		snd_pcm_close(spcm);
 		return -ENOMEM;
 	}
@@ -1374,6 +1406,7 @@ int _snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 	if (err < 0) {
 		free(chmap);
 		free(ttable);
+		snd_pcm_free_chmaps(chmaps);
 		snd_pcm_close(spcm);
 		return err;
 	}
@@ -1385,9 +1418,13 @@ int _snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 	free(ttable);
 	if (err < 0) {
 		free(chmap);
+		snd_pcm_free_chmaps(chmaps);
 		snd_pcm_close(spcm);
 	} else {
-		((snd_pcm_route_t*) (*pcmp)->private_data)->chmap = chmap;
+		snd_pcm_route_t *route = (*pcmp)->private_data;
+
+		route->chmap = chmap;
+		route->chmap_override = chmaps;
 	}
 
 	return err;
