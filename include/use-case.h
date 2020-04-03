@@ -120,7 +120,7 @@ extern "C" {
  * allowed. The names with numbers must be continuous. It is allowed to put
  * a whitespace between name and index (like 'Line 1') for the better
  * readability. The device names 'Line 1' and 'Line1' are equal for
- * thus purpose.
+ * this purpose.
  *
  * If EnableSequence/DisableSequence controls independent paths in the hardware
  * it is also recommended to split playback and capture UCM devices and use
@@ -148,6 +148,13 @@ extern "C" {
  *
  * The use case modifier allows runtime configuration changes to deal with
  * asynchronous events.
+ *
+ * If multiple modifiers with the same name exists, the number suffixes should
+ * be added to these names like 'Echo Reference 1','Echo Reference 2' etc.
+ * No number gaps are allowed. The names with numbers must be continuous.
+ * It is allowed to put a whitespace between name and index for the better
+ * readability. The modifier names 'Something 1' and 'Something1' are equal
+ * for this purpose.
  *
  * e.g. to record a voice call :-
  *  1. Set verb to SND_USE_CASE_VERB_VOICECALL (for voice call)
