@@ -1176,7 +1176,7 @@ static int verb_device_management(struct use_case_verb *verb)
 	}
 
 	/* remove devices */
-	list_for_each(pos, &verb->rename_list) {
+	list_for_each(pos, &verb->remove_list) {
 		dev = list_entry(pos, struct ucm_dev_name, list);
 		err = uc_mgr_remove_device(verb, dev->name2);
 		if (err < 0) {
