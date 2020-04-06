@@ -371,7 +371,7 @@ int uc_mgr_rename_in_dev_list(struct dev_list *dev_list, const char *src,
 			return 0;
 		}
 	}
-	return -ENOENT;
+	return -ENODEV;
 }
 
 int uc_mgr_remove_from_dev_list(struct dev_list *dev_list, const char *name)
@@ -528,17 +528,22 @@ int uc_mgr_remove_device(struct use_case_verb *verb, const char *name)
 {
 	struct use_case_device *device;
 	struct list_head *pos, *npos;
+	int err, found = 0;
 
 	list_for_each_safe(pos, npos, &verb->device_list) {
 		device = list_entry(pos, struct use_case_device, list);
 		if (strcmp(device->name, name) == 0) {
 			uc_mgr_free_device(device);
+			found++;
 			continue;
 		}
-		uc_mgr_remove_from_dev_list(&device->dev_list, name);
-		return 0;
+		err = uc_mgr_remove_from_dev_list(&device->dev_list, name);
+		if (err < 0 && err != -ENODEV)
+			return err;
+		if (err == 0)
+			found++;
 	}
-	return -ENOENT;
+	return found == 0 ? -ENODEV : 0;
 }
 
 void uc_mgr_free_verb(snd_use_case_mgr_t *uc_mgr)
