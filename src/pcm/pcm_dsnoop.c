@@ -591,6 +591,7 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 	dsnoop->ipc_key = opts->ipc_key;
 	dsnoop->ipc_perm = opts->ipc_perm;
 	dsnoop->ipc_gid = opts->ipc_gid;
+	dsnoop->tstamp_type = opts->tstamp_type;
 	dsnoop->semid = -1;
 	dsnoop->shmid = -1;
 
@@ -780,6 +781,9 @@ pcm.name {
 		# roundup
 		# rounddown
 		# auto (default)
+	tstamp_type STR		# timestamp type
+				# STR can be one of the below strings :
+				# default, gettimeofday, monotonic, monotonic_raw
 	slave STR
 	# or
 	slave {			# Slave definition

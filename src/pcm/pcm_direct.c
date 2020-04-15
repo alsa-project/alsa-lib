@@ -991,8 +991,11 @@ int snd_pcm_direct_hw_free(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 	return 0;
 }
 
-int snd_pcm_direct_sw_params(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t * params ATTRIBUTE_UNUSED)
+int snd_pcm_direct_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 {
+	if (params->tstamp_type != pcm->tstamp_type)
+		return -EINVAL;
+
 	/* values are cached in the pcm structure */
 	return 0;
 }
@@ -1316,6 +1319,15 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 	if (ret < 0) {
 		SNDERR("unable to tstamp mode MMAP");
 		return ret;
+	}
+
+	if (dmix->tstamp_type != -1) {
+		ret = snd_pcm_sw_params_set_tstamp_type(spcm, &sw_params,
+							dmix->tstamp_type);
+		if (ret < 0) {
+			SNDERR("unable to set tstamp type");
+			return ret;
+		}
 	}
 
 	if (dmix->type != SND_PCM_TYPE_DMIX &&
@@ -1878,6 +1890,7 @@ int snd_pcm_direct_parse_open_conf(snd_config_t *root, snd_config_t *conf,
 	rec->var_periodsize = 0;
 	rec->direct_memory_access = 1;
 	rec->hw_ptr_alignment = SND_PCM_HW_PTR_ALIGNMENT_AUTO;
+	rec->tstamp_type = -1;
 
 	/* read defaults */
 	if (snd_config_search(root, "defaults.pcm.dmix_max_periods", &n) >= 0) {
@@ -1939,6 +1952,27 @@ int snd_pcm_direct_parse_open_conf(snd_config_t *root, snd_config_t *conf,
 				return -EINVAL;
 			}
 
+			continue;
+		}
+		if (strcmp(id, "tstamp_type") == 0) {
+			const char *str;
+			err = snd_config_get_string(n, &str);
+			if (err < 0) {
+				SNDERR("Invalid type for %s", id);
+				return -EINVAL;
+			}
+			if (strcmp(str, "default") == 0)
+				rec->tstamp_type = -1;
+			else if (strcmp(str, "gettimeofday") == 0)
+				rec->tstamp_type = SND_PCM_TSTAMP_TYPE_GETTIMEOFDAY;
+			else if (strcmp(str, "monotonic") == 0)
+				rec->tstamp_type = SND_PCM_TSTAMP_TYPE_MONOTONIC;
+			else if (strcmp(str, "monotonic_raw") == 0)
+				rec->tstamp_type = SND_PCM_TSTAMP_TYPE_MONOTONIC_RAW;
+			else {
+				SNDERR("The field tstamp_type is invalid : %s", str);
+				return -EINVAL;
+			}
 			continue;
 		}
 		if (strcmp(id, "ipc_gid") == 0) {

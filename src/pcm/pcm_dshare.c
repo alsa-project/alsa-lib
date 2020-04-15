@@ -723,6 +723,7 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 	dshare->ipc_key = opts->ipc_key;
 	dshare->ipc_perm = opts->ipc_perm;
 	dshare->ipc_gid = opts->ipc_gid;
+	dshare->tstamp_type = opts->tstamp_type;
 	dshare->semid = -1;
 	dshare->shmid = -1;
 
@@ -929,6 +930,9 @@ pcm.name {
 		# roundup
 		# rounddown
 		# auto (default)
+	tstamp_type STR		# timestamp type
+				# STR can be one of the below strings :
+				# default, gettimeofday, monotonic, monotonic_raw
 	slave STR
 	# or
 	slave {			# Slave definition

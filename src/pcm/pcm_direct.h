@@ -173,6 +173,7 @@ struct snd_pcm_direct {
 	unsigned int recoveries;	/* mirror of executed recoveries on slave */
 	int direct_memory_access;	/* use arch-optimized buffer RW */
 	snd_pcm_direct_hw_ptr_alignment_t hw_ptr_alignment;
+	int tstamp_type;		/* cached from conf, can be -1(default) on top of real types */
 	union {
 		struct {
 			int shmid_sum;			/* IPC global sum ring buffer memory identification */
@@ -357,6 +358,7 @@ struct snd_pcm_direct_open_conf {
 	int var_periodsize;
 	int direct_memory_access;
 	snd_pcm_direct_hw_ptr_alignment_t hw_ptr_alignment;
+	int tstamp_type;
 	snd_config_t *slave;
 	snd_config_t *bindings;
 };

@@ -1038,6 +1038,7 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 	dmix->ipc_key = opts->ipc_key;
 	dmix->ipc_perm = opts->ipc_perm;
 	dmix->ipc_gid = opts->ipc_gid;
+	dmix->tstamp_type = opts->tstamp_type;
 	dmix->semid = -1;
 	dmix->shmid = -1;
 
@@ -1237,6 +1238,9 @@ pcm.name {
 				# roundup
 				# rounddown
 				# auto (default)
+	tstamp_type STR		# timestamp type
+				# STR can be one of the below strings :
+				# default, gettimeofday, monotonic, monotonic_raw
 	slave STR
 	# or
 	slave {			# Slave definition
