@@ -595,7 +595,8 @@ int tplg_parse_dapm_widget(snd_tplg_t *tplg,
 		}
 
 		if (strcmp(id, "invert") == 0) {
-			if (tplg_get_integer(n, &ival, 0))
+			ival = snd_config_get_bool(n);
+			if (ival < 0)
 				return -EINVAL;
 
 			widget->invert = ival;
