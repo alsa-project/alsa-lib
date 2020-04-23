@@ -1060,6 +1060,8 @@ static int snd_pcm_rate_drain(snd_pcm_t *pcm)
 		snd_pcm_sw_params(rate->gen.slave, &sw_params);
 
 		size = rate->appl_ptr - rate->last_commit_ptr;
+		if (size > pcm->boundary)
+			size -= pcm->boundary;
 		ofs = rate->last_commit_ptr % pcm->buffer_size;
 		while (size > 0) {
 			snd_pcm_uframes_t psize, spsize;
