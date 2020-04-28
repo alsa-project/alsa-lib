@@ -1051,6 +1051,7 @@ static int snd_pcm_rate_drain(snd_pcm_t *pcm)
 		/* commit the remaining fraction (if any) */
 		snd_pcm_uframes_t size, ofs, saved_avail_min;
 		snd_pcm_sw_params_t sw_params;
+		int commit_err;
 
 		__snd_pcm_lock(pcm);
 		/* temporarily set avail_min to one */
@@ -1079,14 +1080,29 @@ static int snd_pcm_rate_drain(snd_pcm_t *pcm)
 				if (! spsize)
 					break;
 			}
-			snd_pcm_rate_commit_area(pcm, rate, ofs,
+			commit_err = snd_pcm_rate_commit_area(pcm, rate, ofs,
 						 psize, spsize);
+			if (commit_err == 1) {
+				rate->last_commit_ptr += psize;
+				if (rate->last_commit_ptr >= pcm->boundary)
+					rate->last_commit_ptr = 0;
+			} else if (commit_err == 0) {
+				if (pcm->mode & SND_PCM_NONBLOCK != 0) {
+					commit_err = -EAGAIN;
+					break;
+				}
+				continue;
+			} else
+				break;
+
 			ofs = (ofs + psize) % pcm->buffer_size;
 			size -= psize;
 		}
 		sw_params.avail_min = saved_avail_min;
 		snd_pcm_sw_params(rate->gen.slave, &sw_params);
 		__snd_pcm_unlock(pcm);
+		if (commit_err < 0)
+			return commit_err;
 	}
 	return snd_pcm_drain(rate->gen.slave);
 }
