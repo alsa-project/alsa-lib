@@ -1329,7 +1329,7 @@ int snd_pcm_drain(snd_pcm_t *pcm)
 		SNDMSG("PCM not set up");
 		return -EIO;
 	}
-	err = bad_pcm_state(pcm, P_STATE_RUNNABLE);
+	err = bad_pcm_state(pcm, P_STATE_RUNNABLE | P_STATE(SETUP));
 	if (err < 0)
 		return err;
 	/* lock handled in the callback */
