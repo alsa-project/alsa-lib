@@ -114,12 +114,11 @@ static void MIX_AREAS_16(unsigned int size,
 		"\temms\n"
 		"\tmovq %[old_rbx], %%rbx\n"
 
-		: /* no output regs */
-	        : [size] "m" (size),
-		  [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
+		: [size] "+m" (size), [old_rbx] "=m" (old_rbx)
+	        : [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
 		  [dst_step] "m" (dst_step),  [src_step] "m" (src_step),
-		  [sum_step] "m" (sum_step), [old_rbx] "m" (old_rbx)
-		: "rsi", "rdi", "edx", "ecx", "eax"
+		  [sum_step] "m" (sum_step)
+		: "rsi", "rdi", "edx", "ecx", "eax", "memory", "cc"
 	);
 }
 
@@ -230,12 +229,11 @@ static void MIX_AREAS_32(unsigned int size,
 		"6:"
 		"\tmovq %[old_rbx], %%rbx\n"
 
-		: /* no output regs */
-	        : [size] "m" (size),
-		  [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
+		: [size] "+m" (size), [old_rbx] "=m" (old_rbx)
+	        : [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
 		  [dst_step] "m" (dst_step),  [src_step] "m" (src_step),
-		  [sum_step] "m" (sum_step), [old_rbx] "m" (old_rbx)
-		: "rsi", "rdi", "edx", "ecx", "eax"
+		  [sum_step] "m" (sum_step)
+		: "rsi", "rdi", "edx", "ecx", "eax", "memory", "cc"
 	);
 }
 
@@ -334,11 +332,10 @@ static void MIX_AREAS_24(unsigned int size,
 		"6:"
 		"\tmovq %[old_rbx], %%rbx\n"
 
-		: /* no output regs */
-	        : [size] "m" (size),
-		  [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
+		: [size] "+m" (size), [old_rbx] "=m" (old_rbx)
+	        : [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
 		  [dst_step] "m" (dst_step),  [src_step] "m" (src_step),
-		  [sum_step] "m" (sum_step), [old_rbx] "m" (old_rbx)
-		: "rsi", "rdi", "edx", "ecx", "eax"
+		  [sum_step] "m" (sum_step)
+		: "rsi", "rdi", "edx", "ecx", "eax", "memory", "cc"
 	);
 }

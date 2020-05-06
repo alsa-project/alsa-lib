@@ -142,12 +142,11 @@ static void MIX_AREAS_16(unsigned int size,
 		"7:"
 		"\tmovl %[old_ebx], %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
 
-		: /* no output regs */
-		: [size] "m" (size),
-		  [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
+		: [size] "+m" (size), [old_ebx] "=m" (old_ebx)
+		: [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
 		  [dst_step] "m" (dst_step),  [src_step] "m" (src_step),
-		  [sum_step] "m" (sum_step), [old_ebx] "m" (old_ebx)
-		: "esi", "edi", "edx", "ecx", "eax"
+		  [sum_step] "m" (sum_step)
+		: "esi", "edi", "edx", "ecx", "eax", "memory", "cc"
 	);
 }
 
@@ -233,12 +232,11 @@ static void MIX_AREAS_16_MMX(unsigned int size,
                 "5:"
 		"\tmovl %[old_ebx], %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
 
-		: /* no output regs */
-		: [size] "m" (size),
-		  [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
+	        : [size] "+m" (size), [old_ebx] "=m" (old_ebx)
+		: [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
 		  [dst_step] "m" (dst_step),  [src_step] "m" (src_step),
-		  [sum_step] "m" (sum_step), [old_ebx] "m" (old_ebx)
-		: "esi", "edi", "edx", "ecx", "eax"
+		  [sum_step] "m" (sum_step)
+		: "esi", "edi", "edx", "ecx", "eax", "memory", "cc"
 	);
 }
 
@@ -347,12 +345,11 @@ static void MIX_AREAS_32(unsigned int size,
 		"6:"
 		"\tmovl %[old_ebx], %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
 
-		: /* no output regs */
-		: [size] "m" (size),
-		  [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
+		: [size] "+m" (size), [old_ebx] "=m" (old_ebx)
+		: [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
 		  [dst_step] "m" (dst_step),  [src_step] "m" (src_step),
-		  [sum_step] "m" (sum_step), [old_ebx] "m" (old_ebx)
-		: "esi", "edi", "edx", "ecx", "eax"
+		  [sum_step] "m" (sum_step)
+		: "esi", "edi", "edx", "ecx", "eax", "memory", "cc"
 	);
 }
 
@@ -454,12 +451,11 @@ static void MIX_AREAS_24(unsigned int size,
 		"6:"
 		"\tmovl %[old_ebx], %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
 
-		: /* no output regs */
-		: [size] "m" (size),
-		  [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
+	        : [size] "+m" (size), [old_ebx] "=m" (old_ebx)
+		: [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
 		  [dst_step] "m" (dst_step),  [src_step] "m" (src_step),
-		  [sum_step] "m" (sum_step), [old_ebx] "m" (old_ebx)
-		: "esi", "edi", "edx", "ecx", "eax"
+		  [sum_step] "m" (sum_step)
+		: "esi", "edi", "edx", "ecx", "eax", "memory", "cc"
 	);
 }
 
@@ -554,11 +550,10 @@ static void MIX_AREAS_24_CMOV(unsigned int size,
 		"6:"
 		"\tmovl %[old_ebx], %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
 
-		: /* no output regs */
-		: [size] "m" (size),
-		  [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
+	        : [size] "+m" (size), [old_ebx] "=m" (old_ebx)
+		: [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
 		  [dst_step] "m" (dst_step),  [src_step] "m" (src_step),
-		  [sum_step] "m" (sum_step), [old_ebx] "m" (old_ebx)
-		: "esi", "edi", "edx", "ecx", "eax"
+		  [sum_step] "m" (sum_step)
+		: "esi", "edi", "edx", "ecx", "eax", "memory", "cc"
 	);
 }
