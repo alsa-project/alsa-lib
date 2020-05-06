@@ -48,18 +48,18 @@ static void MIX_AREAS_16(unsigned int size,
 	__asm__ __volatile__ (
 		"\n"
 
-		"\tmovq %%rbx, %7\n"
+		"\tmovq %%rbx, %[old_rbx]\n"
 		/*
 		 *  initialization, load RSI, RDI, RBX registers
 		 */
-		"\tmovq %1, %%rdi\n"
-		"\tmovq %2, %%rsi\n"
-		"\tmovq %3, %%rbx\n"
+		"\tmovq %[dst], %%rdi\n"
+		"\tmovq %[src], %%rsi\n"
+		"\tmovq %[sum], %%rbx\n"
 
 		/*
 		 * while (size-- > 0) {
 		 */
-		"\tcmpl $0, %0\n"
+		"\tcmpl $0, %[size]\n"
 		"jz 6f\n"
 
 		"\t.p2align 4,,15\n"
@@ -103,21 +103,22 @@ static void MIX_AREAS_16(unsigned int size,
 		/*
 		 * while (size-- > 0)
 		 */
-		"\tadd %4, %%rdi\n"
-		"\tadd %5, %%rsi\n"
-		"\tadd %6, %%rbx\n"
-		"\tdecl %0\n"
+		"\tadd %[dst_step], %%rdi\n"
+		"\tadd %[src_step], %%rsi\n"
+		"\tadd %[sum_step], %%rbx\n"
+		"\tdecl %[size]\n"
 		"\tjnz 1b\n"
 
 		"6:"
-		
+
 		"\temms\n"
-		"\tmovq %7, %%rbx\n"
+		"\tmovq %[old_rbx], %%rbx\n"
 
 		: /* no output regs */
-		: "m" (size), "m" (dst), "m" (src),
-		  "m" (sum), "m" (dst_step), "m" (src_step),
-		  "m" (sum_step), "m" (old_rbx)
+	        : [size] "m" (size),
+		  [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
+		  [dst_step] "m" (dst_step),  [src_step] "m" (src_step),
+		  [sum_step] "m" (sum_step), [old_rbx] "m" (old_rbx)
 		: "rsi", "rdi", "edx", "ecx", "eax"
 	);
 }
@@ -143,18 +144,18 @@ static void MIX_AREAS_32(unsigned int size,
 	__asm__ __volatile__ (
 		"\n"
 
-		"\tmovq %%rbx, %7\n"
+		"\tmovq %%rbx, %[old_rbx]\n"
 		/*
-		 *  initialization, load ESI, EDI, EBX registers
+		 *  initialization, load RSI, RDI, RBX registers
 		 */
-		"\tmovq %1, %%rdi\n"
-		"\tmovq %2, %%rsi\n"
-		"\tmovq %3, %%rbx\n"
+		"\tmovq %[dst], %%rdi\n"
+		"\tmovq %[src], %%rsi\n"
+		"\tmovq %[sum], %%rbx\n"
 
 		/*
 		 * while (size-- > 0) {
 		 */
-		"\tcmpl $0, %0\n"
+		"\tcmpl $0, %[size]\n"
 		"jz 6f\n"
 
 		"\t.p2align 4,,15\n"
@@ -220,19 +221,20 @@ static void MIX_AREAS_32(unsigned int size,
 		/*
 		 * while (size-- > 0)
 		 */
-		"\tadd %4, %%rdi\n"
-		"\tadd %5, %%rsi\n"
-		"\tadd %6, %%rbx\n"
-		"\tdecl %0\n"
+		"\tadd %[dst_step], %%rdi\n"
+		"\tadd %[src_step], %%rsi\n"
+		"\tadd %[sum_step], %%rbx\n"
+		"\tdecl %[size]\n"
 		"\tjnz 1b\n"
-		
+
 		"6:"
-		"\tmovq %7, %%rbx\n"
+		"\tmovq %[old_rbx], %%rbx\n"
 
 		: /* no output regs */
-		: "m" (size), "m" (dst), "m" (src),
-		  "m" (sum), "m" (dst_step), "m" (src_step),
-		  "m" (sum_step), "m" (old_rbx)
+	        : [size] "m" (size),
+		  [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
+		  [dst_step] "m" (dst_step),  [src_step] "m" (src_step),
+		  [sum_step] "m" (sum_step), [old_rbx] "m" (old_rbx)
 		: "rsi", "rdi", "edx", "ecx", "eax"
 	);
 }
@@ -258,18 +260,18 @@ static void MIX_AREAS_24(unsigned int size,
 	__asm__ __volatile__ (
 		"\n"
 
-		"\tmovq %%rbx, %7\n"
+		"\tmovq %%rbx, %[old_rbx]\n"
 		/*
-		 *  initialization, load ESI, EDI, EBX registers
+		 *  initialization, load RSI, RDI, RBX registers
 		 */
-		"\tmovq %1, %%rdi\n"
-		"\tmovq %2, %%rsi\n"
-		"\tmovq %3, %%rbx\n"
+		"\tmovq %[dst], %%rdi\n"
+		"\tmovq %[src], %%rsi\n"
+		"\tmovq %[sum], %%rbx\n"
 
 		/*
 		 * while (size-- > 0) {
 		 */
-		"\tcmpl $0, %0\n"
+		"\tcmpl $0, %[size]\n"
 		"jz 6f\n"
 
 		"\t.p2align 4,,15\n"
@@ -316,26 +318,27 @@ static void MIX_AREAS_24(unsigned int size,
 		"\tmovw %%ax, (%%rdi)\n"
 		"\tshrl $16, %%eax\n"
 		"\tmovb %%al, 2(%%rdi)\n"
-	
+
 		"\tcmpl %%ecx, (%%rbx)\n"
 		"\tjnz 3b\n"
 
 		/*
 		 * while (size-- > 0)
 		 */
-		"\tadd %4, %%rdi\n"
-		"\tadd %5, %%rsi\n"
-		"\tadd %6, %%rbx\n"
-		"\tdecl %0\n"
+		"\tadd %[dst_step], %%rdi\n"
+		"\tadd %[src_step], %%rsi\n"
+		"\tadd %[sum_step], %%rbx\n"
+		"\tdecl %[size]\n"
 		"\tjnz 1b\n"
-		
+
 		"6:"
-		"\tmovq %7, %%rbx\n"
+		"\tmovq %[old_rbx], %%rbx\n"
 
 		: /* no output regs */
-		: "m" (size), "m" (dst), "m" (src),
-		  "m" (sum), "m" (dst_step), "m" (src_step),
-		  "m" (sum_step), "m" (old_rbx)
+	        : [size] "m" (size),
+		  [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
+		  [dst_step] "m" (dst_step),  [src_step] "m" (src_step),
+		  [sum_step] "m" (sum_step), [old_rbx] "m" (old_rbx)
 		: "rsi", "rdi", "edx", "ecx", "eax"
 	);
 }

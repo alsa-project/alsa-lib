@@ -47,14 +47,14 @@ static void MIX_AREAS_16(unsigned int size,
 	__asm__ __volatile__ (
 		"\n"
 
-		"\tmovl %%ebx, %7\n"	/* ebx is GOT pointer (-fPIC) */
+		"\tmovl %%ebx, %[old_ebx]\n"	/* ebx is GOT pointer (-fPIC) */
 		/*
 		 *  initialization, load ESI, EDI, EBX registers
 		 */
-		"\tmovl %1, %%edi\n"
-		"\tmovl %2, %%esi\n"
-		"\tmovl %3, %%ebx\n"
-		"\tcmpl $0, %0\n"
+		"\tmovl %[dst], %%edi\n"
+		"\tmovl %[src], %%esi\n"
+		"\tmovl %[sum], %%ebx\n"
+		"\tcmpl $0, %[size]\n"
 		"\tjnz 2f\n"
 		"\tjmp 7f\n"
 
@@ -64,9 +64,9 @@ static void MIX_AREAS_16(unsigned int size,
 		 */
 		"\t.p2align 4,,15\n"
 		"1:"
-		"\tadd %4, %%edi\n"
-		"\tadd %5, %%esi\n"
-		"\tadd %6, %%ebx\n"
+		"\tadd %[dst_step], %%edi\n"
+		"\tadd %[src_step], %%esi\n"
+		"\tadd %[sum_step], %%ebx\n"
 
 		/*
 		 *   sample = *src;
@@ -108,7 +108,7 @@ static void MIX_AREAS_16(unsigned int size,
 		/*
 		 * while (size-- > 0)
 		 */
-		"\tdecl %0\n"
+		"\tdecl %[size]\n"
 		"\tjnz 1b\n"
 		"\tjmp 7f\n"
 
@@ -122,7 +122,7 @@ static void MIX_AREAS_16(unsigned int size,
 		"\tmovw $0x7fff, (%%edi)\n"
 		"\tcmpl %%ecx,(%%ebx)\n"
 		"\tjnz 4b\n"
-		"\tdecl %0\n"
+		"\tdecl %[size]\n"
 		"\tjnz 1b\n"
 		"\tjmp 7f\n"
 
@@ -136,16 +136,17 @@ static void MIX_AREAS_16(unsigned int size,
 		"\tmovw $-0x8000, (%%edi)\n"
 		"\tcmpl %%ecx, (%%ebx)\n"
 		"\tjnz 4b\n"
-		"\tdecl %0\n"
+		"\tdecl %[size]\n"
 		"\tjnz 1b\n"
-		
+
 		"7:"
-		"\tmovl %7, %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
+		"\tmovl %[old_ebx], %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
 
 		: /* no output regs */
-		: "m" (size), "m" (dst), "m" (src),
-		  "m" (sum), "m" (dst_step), "m" (src_step),
-		  "m" (sum_step), "m" (old_ebx)
+		: [size] "m" (size),
+		  [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
+		  [dst_step] "m" (dst_step),  [src_step] "m" (src_step),
+		  [sum_step] "m" (sum_step), [old_ebx] "m" (old_ebx)
 		: "esi", "edi", "edx", "ecx", "eax"
 	);
 }
@@ -171,22 +172,22 @@ static void MIX_AREAS_16_MMX(unsigned int size,
 	__asm__ __volatile__ (
 		"\n"
 
-		"\tmovl %%ebx, %7\n"	/* ebx is GOT pointer (-fPIC) */
+		"\tmovl %%ebx, %[old_ebx]\n"	/* ebx is GOT pointer (-fPIC) */
 		/*
 		 *  initialization, load ESI, EDI, EBX registers
 		 */
-		"\tmovl %1, %%edi\n"
-		"\tmovl %2, %%esi\n"
-		"\tmovl %3, %%ebx\n"
-		"\tcmpl $0, %0\n"
+		"\tmovl %[dst], %%edi\n"
+		"\tmovl %[src], %%esi\n"
+		"\tmovl %[sum], %%ebx\n"
+		"\tcmpl $0, %[size]\n"
 		"\tjnz 2f\n"
 		"\tjmp 5f\n"
 
 		"\t.p2align 4,,15\n"
 		"1:"
-		"\tadd %4, %%edi\n"
-		"\tadd %5, %%esi\n"
-		"\tadd %6, %%ebx\n"
+		"\tadd %[dst_step], %%edi\n"
+		"\tadd %[src_step], %%esi\n"
+		"\tadd %[sum_step], %%ebx\n"
 
 		"2:"
 		/*
@@ -226,16 +227,17 @@ static void MIX_AREAS_16_MMX(unsigned int size,
 		/*
 		 * while (size-- > 0)
 		 */
-		"\tdecl %0\n"
+		"\tdecl %[size]\n"
 		"\tjnz 1b\n"
 		"\temms\n"
                 "5:"
-		"\tmovl %7, %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
+		"\tmovl %[old_ebx], %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
 
 		: /* no output regs */
-		: "m" (size), "m" (dst), "m" (src),
-		  "m" (sum), "m" (dst_step), "m" (src_step),
-		  "m" (sum_step), "m" (old_ebx)
+		: [size] "m" (size),
+		  [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
+		  [dst_step] "m" (dst_step),  [src_step] "m" (src_step),
+		  [sum_step] "m" (sum_step), [old_ebx] "m" (old_ebx)
 		: "esi", "edi", "edx", "ecx", "eax"
 	);
 }
@@ -261,14 +263,14 @@ static void MIX_AREAS_32(unsigned int size,
 	__asm__ __volatile__ (
 		"\n"
 
-		"\tmovl %%ebx, %7\n"	/* ebx is GOT pointer (-fPIC) */
+		"\tmovl %%ebx, %[old_ebx]\n"	/* ebx is GOT pointer (-fPIC) */
 		/*
 		 *  initialization, load ESI, EDI, EBX registers
 		 */
-		"\tmovl %1, %%edi\n"
-		"\tmovl %2, %%esi\n"
-		"\tmovl %3, %%ebx\n"
-		"\tcmpl $0, %0\n"
+		"\tmovl %[dst], %%edi\n"
+		"\tmovl %[src], %%esi\n"
+		"\tmovl %[sum], %%ebx\n"
+		"\tcmpl $0, %[size]\n"
 		"\tjnz 1f\n"
 		"\tjmp 6f\n"
 
@@ -335,20 +337,21 @@ static void MIX_AREAS_32(unsigned int size,
 		/*
 		 * while (size-- > 0)
 		 */
-		"\tdecl %0\n"
+		"\tdecl %[size]\n"
 		"\tjz 6f\n"
-		"\tadd %4, %%edi\n"
-		"\tadd %5, %%esi\n"
-		"\tadd %6, %%ebx\n"
+		"\tadd %[dst_step], %%edi\n"
+		"\tadd %[src_step], %%esi\n"
+		"\tadd %[sum_step], %%ebx\n"
 		"\tjmp 1b\n"
-		
+
 		"6:"
-		"\tmovl %7, %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
+		"\tmovl %[old_ebx], %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
 
 		: /* no output regs */
-		: "m" (size), "m" (dst), "m" (src),
-		  "m" (sum), "m" (dst_step), "m" (src_step),
-		  "m" (sum_step), "m" (old_ebx)
+		: [size] "m" (size),
+		  [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
+		  [dst_step] "m" (dst_step),  [src_step] "m" (src_step),
+		  [sum_step] "m" (sum_step), [old_ebx] "m" (old_ebx)
 		: "esi", "edi", "edx", "ecx", "eax"
 	);
 }
@@ -374,14 +377,14 @@ static void MIX_AREAS_24(unsigned int size,
 	__asm__ __volatile__ (
 		"\n"
 
-		"\tmovl %%ebx, %7\n"	/* ebx is GOT pointer (-fPIC) */
+		"\tmovl %%ebx, %[old_ebx]\n"	/* ebx is GOT pointer (-fPIC) */
 		/*
 		 *  initialization, load ESI, EDI, EBX registers
 		 */
-		"\tmovl %1, %%edi\n"
-		"\tmovl %2, %%esi\n"
-		"\tmovl %3, %%ebx\n"
-		"\tcmpl $0, %0\n"
+		"\tmovl %[dst], %%edi\n"
+		"\tmovl %[src], %%esi\n"
+		"\tmovl %[sum], %%ebx\n"
+		"\tcmpl $0, %[size]\n"
 		"\tjnz 1f\n"
 		"\tjmp 6f\n"
 
@@ -441,20 +444,21 @@ static void MIX_AREAS_24(unsigned int size,
 		/*
 		 * while (size-- > 0)
 		 */
-		"\tdecl %0\n"
+		"\tdecl %[size]\n"
 		"\tjz 6f\n"
-		"\tadd %4, %%edi\n"
-		"\tadd %5, %%esi\n"
-		"\tadd %6, %%ebx\n"
+		"\tadd %[dst_step], %%edi\n"
+		"\tadd %[src_step], %%esi\n"
+		"\tadd %[sum_step], %%ebx\n"
 		"\tjmp 1b\n"
-		
+
 		"6:"
-		"\tmovl %7, %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
+		"\tmovl %[old_ebx], %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
 
 		: /* no output regs */
-		: "m" (size), "m" (dst), "m" (src),
-		  "m" (sum), "m" (dst_step), "m" (src_step),
-		  "m" (sum_step), "m" (old_ebx)
+		: [size] "m" (size),
+		  [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
+		  [dst_step] "m" (dst_step),  [src_step] "m" (src_step),
+		  [sum_step] "m" (sum_step), [old_ebx] "m" (old_ebx)
 		: "esi", "edi", "edx", "ecx", "eax"
 	);
 }
@@ -480,14 +484,14 @@ static void MIX_AREAS_24_CMOV(unsigned int size,
 	__asm__ __volatile__ (
 		"\n"
 
-		"\tmovl %%ebx, %7\n"	/* ebx is GOT pointer (-fPIC) */
+		"\tmovl %%ebx, %[old_ebx]\n"	/* ebx is GOT pointer (-fPIC) */
 		/*
 		 *  initialization, load ESI, EDI, EBX registers
 		 */
-		"\tmovl %1, %%edi\n"
-		"\tmovl %2, %%esi\n"
-		"\tmovl %3, %%ebx\n"
-		"\tcmpl $0, %0\n"
+		"\tmovl %[dst], %%edi\n"
+		"\tmovl %[src], %%esi\n"
+		"\tmovl %[sum], %%ebx\n"
+		"\tcmpl $0, %[size]\n"
 		"\tjz 6f\n"
 
 		"\t.p2align 4,,15\n"
@@ -541,19 +545,20 @@ static void MIX_AREAS_24_CMOV(unsigned int size,
 		/*
 		 * while (size-- > 0)
 		 */
-		"\tadd %4, %%edi\n"
-		"\tadd %5, %%esi\n"
-		"\tadd %6, %%ebx\n"
-		"\tdecl %0\n"
+		"\tadd %[dst_step], %%edi\n"
+		"\tadd %[src_step], %%esi\n"
+		"\tadd %[sum_step], %%ebx\n"
+		"\tdecl %[size]\n"
 		"\tjnz 1b\n"
-		
+
 		"6:"
-		"\tmovl %7, %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
+		"\tmovl %[old_ebx], %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
 
 		: /* no output regs */
-		: "m" (size), "m" (dst), "m" (src),
-		  "m" (sum), "m" (dst_step), "m" (src_step),
-		  "m" (sum_step), "m" (old_ebx)
+		: [size] "m" (size),
+		  [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
+		  [dst_step] "m" (dst_step),  [src_step] "m" (src_step),
+		  [sum_step] "m" (sum_step), [old_ebx] "m" (old_ebx)
 		: "esi", "edi", "edx", "ecx", "eax"
 	);
 }
