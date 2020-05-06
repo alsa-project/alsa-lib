@@ -237,6 +237,12 @@ static void MIX_AREAS_16_MMX(unsigned int size,
 		  [dst_step] "m" (dst_step),  [src_step] "m" (src_step),
 		  [sum_step] "m" (sum_step)
 		: "esi", "edi", "edx", "ecx", "eax", "memory", "cc"
+#ifdef HAVE_MMX
+		  , "mm0"
+#else
+		  , "st", "st(1)", "st(2)", "st(3)",
+		  "st(4)", "st(5)", "st(6)", "st(7)"
+#endif
 	);
 }
 
