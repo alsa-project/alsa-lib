@@ -149,13 +149,13 @@ static void MIX_AREAS_16(unsigned int size,
 #ifdef BOUNDED_EBX
 		"\tmovl %[old_ebx], %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
 #endif
-		: [size] "+m" (size)
+		: [size] "+&rm" (size)
 #ifdef BOUNDED_EBX
 		  , [old_ebx] "=m" (old_ebx)
 #endif
 		: [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
-		  [dst_step] "m" (dst_step),  [src_step] "m" (src_step),
-		  [sum_step] "m" (sum_step)
+		  [dst_step] "im" (dst_step),  [src_step] "im" (src_step),
+		  [sum_step] "im" (sum_step)
 		: "esi", "edi", "edx", "ecx", "eax", "memory", "cc"
 #ifndef BOUNDED_EBX
 		  , "ebx"
@@ -248,13 +248,13 @@ static void MIX_AREAS_16_MMX(unsigned int size,
 #ifdef BOUNDED_EBX
 		"\tmovl %[old_ebx], %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
 #endif
-		: [size] "+m" (size)
+		: [size] "+&rm" (size)
 #ifdef BOUNDED_EBX
 		  , [old_ebx] "=m" (old_ebx)
 #endif
 		: [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
-		  [dst_step] "m" (dst_step),  [src_step] "m" (src_step),
-		  [sum_step] "m" (sum_step)
+		  [dst_step] "im" (dst_step),  [src_step] "im" (src_step),
+		  [sum_step] "im" (sum_step)
 		: "esi", "edi", "edx", "ecx", "eax", "memory", "cc"
 #ifndef BOUNDED_EBX
 		  , "ebx"
@@ -376,13 +376,13 @@ static void MIX_AREAS_32(unsigned int size,
 #ifdef BOUNDED_EBX
 		"\tmovl %[old_ebx], %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
 #endif
-		: [size] "+m" (size)
+		: [size] "+&rm" (size)
 #ifdef BOUNDED_EBX
 		  , [old_ebx] "=m" (old_ebx)
 #endif
 		: [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
-		  [dst_step] "m" (dst_step),  [src_step] "m" (src_step),
-		  [sum_step] "m" (sum_step)
+		  [dst_step] "im" (dst_step),  [src_step] "im" (src_step),
+		  [sum_step] "im" (sum_step)
 		: "esi", "edi", "edx", "ecx", "eax", "memory", "cc"
 #ifndef BOUNDED_EBX
 		  , "ebx"
@@ -491,13 +491,13 @@ static void MIX_AREAS_24(unsigned int size,
 #ifdef BOUNDED_EBX
 		"\tmovl %[old_ebx], %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
 #endif
-		: [size] "+m" (size)
+		: [size] "+&rm" (size)
 #ifdef BOUNDED_EBX
 		  , [old_ebx] "=m" (old_ebx)
 #endif
 		: [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
-		  [dst_step] "m" (dst_step),  [src_step] "m" (src_step),
-		  [sum_step] "m" (sum_step)
+		  [dst_step] "im" (dst_step),  [src_step] "im" (src_step),
+		  [sum_step] "im" (sum_step)
 		: "esi", "edi", "edx", "ecx", "eax", "memory", "cc"
 #ifndef BOUNDED_EBX
 		  , "ebx"
@@ -599,13 +599,13 @@ static void MIX_AREAS_24_CMOV(unsigned int size,
 #ifdef BOUNDED_EBX
 		"\tmovl %[old_ebx], %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
 #endif
-		: [size] "+m" (size)
+		: [size] "+&rm" (size)
 #ifdef BOUNDED_EBX
 		  , [old_ebx] "=m" (old_ebx)
 #endif
 		: [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
-		  [dst_step] "m" (dst_step),  [src_step] "m" (src_step),
-		  [sum_step] "m" (sum_step)
+		  [dst_step] "im" (dst_step),  [src_step] "im" (src_step),
+		  [sum_step] "im" (sum_step)
 		: "esi", "edi", "edx", "ecx", "eax", "memory", "cc"
 #ifndef BOUNDED_EBX
 		  , "ebx"

@@ -121,13 +121,13 @@ static void MIX_AREAS_16(unsigned int size,
 #ifdef BOUNDED_RBX
 		"\tmovq %[old_rbx], %%rbx\n"
 #endif
-		: [size] "+m" (size)
+		: [size] "+&rm" (size)
 #ifdef BOUNDED_RBX
 		  , [old_rbx] "=m" (old_rbx)
 #endif
 	        : [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
-		  [dst_step] "m" (dst_step),  [src_step] "m" (src_step),
-		  [sum_step] "m" (sum_step)
+		  [dst_step] "im" (dst_step),  [src_step] "im" (src_step),
+		  [sum_step] "im" (sum_step)
 		: "rsi", "rdi", "edx", "ecx", "eax", "memory", "cc"
 #ifndef BOUNDED_RBX
 		  , "rbx"
@@ -251,13 +251,13 @@ static void MIX_AREAS_32(unsigned int size,
 #ifdef BOUNDED_RBX
 		"\tmovq %[old_rbx], %%rbx\n"
 #endif
-		: [size] "+m" (size)
+		: [size] "+&rm" (size)
 #ifdef BOUNDED_RBX
 		  , [old_rbx] "=m" (old_rbx)
 #endif
 	        : [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
-		  [dst_step] "m" (dst_step),  [src_step] "m" (src_step),
-		  [sum_step] "m" (sum_step)
+		  [dst_step] "im" (dst_step),  [src_step] "im" (src_step),
+		  [sum_step] "im" (sum_step)
 		: "rsi", "rdi", "edx", "ecx", "eax", "memory", "cc"
 #ifndef BOUNDED_RBX
 		  , "rbx"
@@ -363,13 +363,13 @@ static void MIX_AREAS_24(unsigned int size,
 #ifdef BOUNDED_RBX
 		"\tmovq %[old_rbx], %%rbx\n"
 #endif
-		: [size] "+m" (size)
+		: [size] "+&rm" (size)
 #ifdef BOUNDED_RBX
 		  , [old_rbx] "=m" (old_rbx)
 #endif
 	        : [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
-		  [dst_step] "m" (dst_step),  [src_step] "m" (src_step),
-		  [sum_step] "m" (sum_step)
+		  [dst_step] "im" (dst_step),  [src_step] "im" (src_step),
+		  [sum_step] "im" (sum_step)
 		: "rsi", "rdi", "edx", "ecx", "eax", "memory", "cc"
 #ifndef BOUNDED_RBX
 		  , "rbx"
