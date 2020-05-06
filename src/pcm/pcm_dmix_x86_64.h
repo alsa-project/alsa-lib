@@ -27,6 +27,10 @@
  *
  */
 
+#if defined(__GNUC__) && __GNUC__ < 5 && defined(__PIC__)
+#  define BOUNDED_RBX
+#endif
+
 /*
  *  MMX optimized
  */
@@ -35,8 +39,9 @@ static void MIX_AREAS_16(unsigned int size,
 			 volatile signed int *sum, size_t dst_step,
 			 size_t src_step, size_t sum_step)
 {
+#ifdef BOUNDED_RBX
 	unsigned long long old_rbx;
-
+#endif
 	/*
 	 *  RSI - src
 	 *  RDI - dst
@@ -47,8 +52,9 @@ static void MIX_AREAS_16(unsigned int size,
 	 */
 	__asm__ __volatile__ (
 		"\n"
-
+#ifdef BOUNDED_RBX
 		"\tmovq %%rbx, %[old_rbx]\n"
+#endif
 		/*
 		 *  initialization, load RSI, RDI, RBX registers
 		 */
@@ -112,13 +118,20 @@ static void MIX_AREAS_16(unsigned int size,
 		"6:"
 
 		"\temms\n"
+#ifdef BOUNDED_RBX
 		"\tmovq %[old_rbx], %%rbx\n"
-
-		: [size] "+m" (size), [old_rbx] "=m" (old_rbx)
+#endif
+		: [size] "+m" (size)
+#ifdef BOUNDED_RBX
+		  , [old_rbx] "=m" (old_rbx)
+#endif
 	        : [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
 		  [dst_step] "m" (dst_step),  [src_step] "m" (src_step),
 		  [sum_step] "m" (sum_step)
 		: "rsi", "rdi", "edx", "ecx", "eax", "memory", "cc"
+#ifndef BOUNDED_RBX
+		  , "rbx"
+#endif
 #ifdef HAVE_MMX
 		  , "mm0"
 #else
@@ -136,8 +149,9 @@ static void MIX_AREAS_32(unsigned int size,
 			 volatile signed int *sum, size_t dst_step,
 			 size_t src_step, size_t sum_step)
 {
+#ifdef BOUNDED_RBX
 	unsigned long long old_rbx;
-
+#endif
 	/*
 	 *  RSI - src
 	 *  RDI - dst
@@ -148,8 +162,9 @@ static void MIX_AREAS_32(unsigned int size,
 	 */
 	__asm__ __volatile__ (
 		"\n"
-
+#ifdef BOUNDED_RBX
 		"\tmovq %%rbx, %[old_rbx]\n"
+#endif
 		/*
 		 *  initialization, load RSI, RDI, RBX registers
 		 */
@@ -233,13 +248,20 @@ static void MIX_AREAS_32(unsigned int size,
 		"\tjnz 1b\n"
 
 		"6:"
+#ifdef BOUNDED_RBX
 		"\tmovq %[old_rbx], %%rbx\n"
-
-		: [size] "+m" (size), [old_rbx] "=m" (old_rbx)
+#endif
+		: [size] "+m" (size)
+#ifdef BOUNDED_RBX
+		  , [old_rbx] "=m" (old_rbx)
+#endif
 	        : [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
 		  [dst_step] "m" (dst_step),  [src_step] "m" (src_step),
 		  [sum_step] "m" (sum_step)
 		: "rsi", "rdi", "edx", "ecx", "eax", "memory", "cc"
+#ifndef BOUNDED_RBX
+		  , "rbx"
+#endif
 	);
 }
 
@@ -251,8 +273,9 @@ static void MIX_AREAS_24(unsigned int size,
 			 volatile signed int *sum, size_t dst_step,
 			 size_t src_step, size_t sum_step)
 {
+#ifdef BOUNDED_RBX
 	unsigned long long old_rbx;
-
+#endif
 	/*
 	 *  RSI - src
 	 *  RDI - dst
@@ -263,8 +286,9 @@ static void MIX_AREAS_24(unsigned int size,
 	 */
 	__asm__ __volatile__ (
 		"\n"
-
+#ifdef BOUNDED_RBX
 		"\tmovq %%rbx, %[old_rbx]\n"
+#endif
 		/*
 		 *  initialization, load RSI, RDI, RBX registers
 		 */
@@ -336,12 +360,23 @@ static void MIX_AREAS_24(unsigned int size,
 		"\tjnz 1b\n"
 
 		"6:"
+#ifdef BOUNDED_RBX
 		"\tmovq %[old_rbx], %%rbx\n"
-
-		: [size] "+m" (size), [old_rbx] "=m" (old_rbx)
+#endif
+		: [size] "+m" (size)
+#ifdef BOUNDED_RBX
+		  , [old_rbx] "=m" (old_rbx)
+#endif
 	        : [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
 		  [dst_step] "m" (dst_step),  [src_step] "m" (src_step),
 		  [sum_step] "m" (sum_step)
 		: "rsi", "rdi", "edx", "ecx", "eax", "memory", "cc"
+#ifndef BOUNDED_RBX
+		  , "rbx"
+#endif
 	);
 }
+
+#ifdef BOUNDED_RBX
+#  undef BOUNDED_RBX
+#endif

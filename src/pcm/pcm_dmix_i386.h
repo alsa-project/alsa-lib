@@ -26,6 +26,10 @@
  *
  */
 
+#if defined(__GNUC__) && __GNUC__ < 5 && defined(__PIC__)
+#  define BOUNDED_EBX
+#endif
+
 /*
  *  for plain i386
  */
@@ -34,8 +38,9 @@ static void MIX_AREAS_16(unsigned int size,
 			 volatile signed int *sum, size_t dst_step,
 			 size_t src_step, size_t sum_step)
 {
+#ifdef BOUNDED_EBX
 	unsigned int old_ebx;
-
+#endif
 	/*
 	 *  ESI - src
 	 *  EDI - dst
@@ -46,8 +51,9 @@ static void MIX_AREAS_16(unsigned int size,
 	 */
 	__asm__ __volatile__ (
 		"\n"
-
+#ifdef BOUNDED_EBX
 		"\tmovl %%ebx, %[old_ebx]\n"	/* ebx is GOT pointer (-fPIC) */
+#endif
 		/*
 		 *  initialization, load ESI, EDI, EBX registers
 		 */
@@ -140,13 +146,20 @@ static void MIX_AREAS_16(unsigned int size,
 		"\tjnz 1b\n"
 
 		"7:"
+#ifdef BOUNDED_EBX
 		"\tmovl %[old_ebx], %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
-
-		: [size] "+m" (size), [old_ebx] "=m" (old_ebx)
+#endif
+		: [size] "+m" (size)
+#ifdef BOUNDED_EBX
+		  , [old_ebx] "=m" (old_ebx)
+#endif
 		: [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
 		  [dst_step] "m" (dst_step),  [src_step] "m" (src_step),
 		  [sum_step] "m" (sum_step)
 		: "esi", "edi", "edx", "ecx", "eax", "memory", "cc"
+#ifndef BOUNDED_EBX
+		  , "ebx"
+#endif
 	);
 }
 
@@ -158,8 +171,9 @@ static void MIX_AREAS_16_MMX(unsigned int size,
 			     volatile signed int *sum, size_t dst_step,
 			     size_t src_step, size_t sum_step)
 {
+#ifdef BOUNDED_EBX
 	unsigned int old_ebx;
-
+#endif
 	/*
 	 *  ESI - src
 	 *  EDI - dst
@@ -170,8 +184,9 @@ static void MIX_AREAS_16_MMX(unsigned int size,
 	 */
 	__asm__ __volatile__ (
 		"\n"
-
+#ifdef BOUNDED_EBX
 		"\tmovl %%ebx, %[old_ebx]\n"	/* ebx is GOT pointer (-fPIC) */
+#endif
 		/*
 		 *  initialization, load ESI, EDI, EBX registers
 		 */
@@ -230,13 +245,20 @@ static void MIX_AREAS_16_MMX(unsigned int size,
 		"\tjnz 1b\n"
 		"\temms\n"
                 "5:"
+#ifdef BOUNDED_EBX
 		"\tmovl %[old_ebx], %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
-
-	        : [size] "+m" (size), [old_ebx] "=m" (old_ebx)
+#endif
+		: [size] "+m" (size)
+#ifdef BOUNDED_EBX
+		  , [old_ebx] "=m" (old_ebx)
+#endif
 		: [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
 		  [dst_step] "m" (dst_step),  [src_step] "m" (src_step),
 		  [sum_step] "m" (sum_step)
 		: "esi", "edi", "edx", "ecx", "eax", "memory", "cc"
+#ifndef BOUNDED_EBX
+		  , "ebx"
+#endif
 #ifdef HAVE_MMX
 		  , "mm0"
 #else
@@ -254,8 +276,9 @@ static void MIX_AREAS_32(unsigned int size,
 			 volatile signed int *sum, size_t dst_step,
 			 size_t src_step, size_t sum_step)
 {
+#ifdef BOUNDED_EBX
 	unsigned int old_ebx;
-
+#endif
 	/*
 	 *  ESI - src
 	 *  EDI - dst
@@ -266,8 +289,9 @@ static void MIX_AREAS_32(unsigned int size,
 	 */
 	__asm__ __volatile__ (
 		"\n"
-
+#ifdef BOUNDED_EBX
 		"\tmovl %%ebx, %[old_ebx]\n"	/* ebx is GOT pointer (-fPIC) */
+#endif
 		/*
 		 *  initialization, load ESI, EDI, EBX registers
 		 */
@@ -349,13 +373,20 @@ static void MIX_AREAS_32(unsigned int size,
 		"\tjmp 1b\n"
 
 		"6:"
+#ifdef BOUNDED_EBX
 		"\tmovl %[old_ebx], %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
-
-		: [size] "+m" (size), [old_ebx] "=m" (old_ebx)
+#endif
+		: [size] "+m" (size)
+#ifdef BOUNDED_EBX
+		  , [old_ebx] "=m" (old_ebx)
+#endif
 		: [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
 		  [dst_step] "m" (dst_step),  [src_step] "m" (src_step),
 		  [sum_step] "m" (sum_step)
 		: "esi", "edi", "edx", "ecx", "eax", "memory", "cc"
+#ifndef BOUNDED_EBX
+		  , "ebx"
+#endif
 	);
 }
 
@@ -367,8 +398,9 @@ static void MIX_AREAS_24(unsigned int size,
 			 volatile signed int *sum, size_t dst_step,
 			 size_t src_step, size_t sum_step)
 {
+#ifdef BOUNDED_EBX
 	unsigned int old_ebx;
-
+#endif
 	/*
 	 *  ESI - src
 	 *  EDI - dst
@@ -379,8 +411,9 @@ static void MIX_AREAS_24(unsigned int size,
 	 */
 	__asm__ __volatile__ (
 		"\n"
-
+#ifdef BOUNDED_EBX
 		"\tmovl %%ebx, %[old_ebx]\n"	/* ebx is GOT pointer (-fPIC) */
+#endif
 		/*
 		 *  initialization, load ESI, EDI, EBX registers
 		 */
@@ -455,13 +488,20 @@ static void MIX_AREAS_24(unsigned int size,
 		"\tjmp 1b\n"
 
 		"6:"
+#ifdef BOUNDED_EBX
 		"\tmovl %[old_ebx], %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
-
-	        : [size] "+m" (size), [old_ebx] "=m" (old_ebx)
+#endif
+		: [size] "+m" (size)
+#ifdef BOUNDED_EBX
+		  , [old_ebx] "=m" (old_ebx)
+#endif
 		: [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
 		  [dst_step] "m" (dst_step),  [src_step] "m" (src_step),
 		  [sum_step] "m" (sum_step)
 		: "esi", "edi", "edx", "ecx", "eax", "memory", "cc"
+#ifndef BOUNDED_EBX
+		  , "ebx"
+#endif
 	);
 }
 
@@ -473,8 +513,9 @@ static void MIX_AREAS_24_CMOV(unsigned int size,
 			      volatile signed int *sum, size_t dst_step,
 			      size_t src_step, size_t sum_step)
 {
+#ifdef BOUNDED_EBX
 	unsigned int old_ebx;
-
+#endif
 	/*
 	 *  ESI - src
 	 *  EDI - dst
@@ -485,8 +526,9 @@ static void MIX_AREAS_24_CMOV(unsigned int size,
 	 */
 	__asm__ __volatile__ (
 		"\n"
-
+#ifdef BOUNDED_EBX
 		"\tmovl %%ebx, %[old_ebx]\n"	/* ebx is GOT pointer (-fPIC) */
+#endif
 		/*
 		 *  initialization, load ESI, EDI, EBX registers
 		 */
@@ -554,12 +596,23 @@ static void MIX_AREAS_24_CMOV(unsigned int size,
 		"\tjnz 1b\n"
 
 		"6:"
+#ifdef BOUNDED_EBX
 		"\tmovl %[old_ebx], %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
-
-	        : [size] "+m" (size), [old_ebx] "=m" (old_ebx)
+#endif
+		: [size] "+m" (size)
+#ifdef BOUNDED_EBX
+		  , [old_ebx] "=m" (old_ebx)
+#endif
 		: [dst] "m" (dst), [src] "m" (src), [sum] "m" (sum),
 		  [dst_step] "m" (dst_step),  [src_step] "m" (src_step),
 		  [sum_step] "m" (sum_step)
 		: "esi", "edi", "edx", "ecx", "eax", "memory", "cc"
+#ifndef BOUNDED_EBX
+		  , "ebx"
+#endif
 	);
 }
+
+#ifdef BOUNDED_EBX
+#  undef BOUNDED_EBX
+#endif
