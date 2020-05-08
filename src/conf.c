@@ -416,6 +416,7 @@ beginning:</P>
 
 #include "local.h"
 #include <stdarg.h>
+#include <stdbool.h>
 #include <limits.h>
 #include <sys/stat.h>
 #include <dirent.h>
@@ -443,7 +444,7 @@ struct _snd_config {
 		const void *ptr;
 		struct {
 			struct list_head fields;
-			int join;
+			bool join;
 		} compound;
 	} u;
 	struct list_head list;
@@ -1393,7 +1394,7 @@ static int parse_def(snd_config_t *parent, input_t *input, int skip, int overrid
 					SNDERR("%s is not a compound", id);
 					return -EINVAL;
 				}
-				n->u.compound.join = 1;
+				n->u.compound.join = true;
 				parent = n;
 				free(id);
 				continue;
@@ -1408,7 +1409,7 @@ static int parse_def(snd_config_t *parent, input_t *input, int skip, int overrid
 		err = _snd_config_make_add(&n, &id, SND_CONFIG_TYPE_COMPOUND, parent);
 		if (err < 0)
 			goto __end;
-		n->u.compound.join = 1;
+		n->u.compound.join = true;
 		parent = n;
 	}
 	if (c == '=') {
