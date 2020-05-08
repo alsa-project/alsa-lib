@@ -354,7 +354,8 @@ static int compound_merge(const char *id,
 	snd_config_iterator_t i, next;
 	snd_config_t *n, *_before = NULL, *_after = NULL;
 	const char *s;
-	int err;
+	char tmpid[32];
+	int err, array, idx;
 
 	if (snd_config_get_type(src) != SND_CONFIG_TYPE_COMPOUND) {
 		uc_error("compound type expected for If True/False block");
@@ -387,11 +388,29 @@ static int compound_merge(const char *id,
 		return -EINVAL;
 	}
 
+	array = snd_config_is_array(dst);
+	if (array < 0) {
+		uc_error("destination configuration node is not a compound");
+		return array;
+	}
+	if (array && snd_config_is_array(src) <= 0) {
+		uc_error("source configuration node is not an array");
+		return -EINVAL;
+	}
+
+	idx = 0;
 	snd_config_for_each(i, next, src) {
 		n = snd_config_iterator_entry(i);
 		err = snd_config_remove(n);
 		if (err < 0)
 			return err;
+		/* for array, use a temporary non-clashing identifier */
+		if (array > 0) {
+			snprintf(tmpid, sizeof(tmpid), "_tmp_%d", idx++);
+			err = snd_config_set_id(n, tmpid);
+			if (err < 0)
+				return err;
+		}
 		if (_before) {
 			err = snd_config_add_before(_before, n);
 			if (err < 0)
@@ -405,6 +424,18 @@ static int compound_merge(const char *id,
 			_after = n;
 		} else {
 			err = snd_config_add(dst, n);
+			if (err < 0)
+				return err;
+		}
+	}
+
+	/* set new indexes for the final array */
+	if (array > 0) {
+		idx = 0;
+		snd_config_for_each(i, next, dst) {
+			n = snd_config_iterator_entry(i);
+			snprintf(tmpid, sizeof(tmpid), "%d", idx++);
+			err = snd_config_set_id(n, tmpid);
 			if (err < 0)
 				return err;
 		}
