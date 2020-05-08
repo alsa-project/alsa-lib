@@ -139,6 +139,7 @@ int snd_config_imake_safe_string(snd_config_t **config, const char *key, const c
 int snd_config_imake_pointer(snd_config_t **config, const char *key, const void *ptr);
 
 snd_config_type_t snd_config_get_type(const snd_config_t *config);
+int snd_config_is_array(const snd_config_t *config);
 
 int snd_config_set_id(snd_config_t *config, const char *id);
 int snd_config_set_integer(snd_config_t *config, long value);

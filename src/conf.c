@@ -1784,6 +1784,45 @@ snd_config_type_t snd_config_get_type(const snd_config_t *config)
 	return config->type;
 }
 
+static int check_array_item(const char *id, int index)
+{
+	const char *p;
+	long val;
+
+	for (p = id; *p; p++) {
+		if (*p < '0' || *p > '9')
+			return 0;
+	}
+
+	if (safe_strtol(id, &val))
+		return 0;
+	return val == index;
+}
+
+/**
+ * \brief Returns if the compound is an array.
+ * \param config Handle to the configuration node.
+ * \return A positive value when true, zero when false, otherwise a negative error code.
+ */
+int snd_config_is_array(const snd_config_t *config)
+{
+	int idx;
+	snd_config_iterator_t i, next;
+	snd_config_t *node;
+
+	assert(config);
+	if (config->type != SND_CONFIG_TYPE_COMPOUND)
+		return -EINVAL;
+	idx = 0;
+	snd_config_for_each(i, next, config) {
+		node = snd_config_iterator_entry(i);
+		if (!check_array_item(node->id, idx))
+			return 0;
+		idx++;
+	}
+	return 1;
+}
+
 /**
  * \brief Returns the id of a configuration node.
  * \param[in] config Handle to the configuration node.
