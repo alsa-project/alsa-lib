@@ -102,21 +102,6 @@ static int tplg_pprint_integer(snd_config_t *n, char **ret)
 	return 0;
 }
 
-static int tplg_check_array_item(const char *id, int index)
-{
-	const char *p;
-	long int val;
-
-	for (p = id; *p; p++) {
-		if (*p < '0' || *p > '9')
-			return 0;
-	}
-
-	errno = 0;
-	val = strtol(id, NULL, 10);
-	return errno == 0 && val == index;
-}
-
 static int _compar(const void *a, const void *b)
 {
 	const snd_config_t *c1 = *(snd_config_t **)a;
@@ -145,24 +130,15 @@ static snd_config_t *sort_config(const char *id, snd_config_t *src)
 	a = malloc(sizeof(dst) * count);
 	if (a == NULL)
 		return NULL;
-	index = array = 0;
-	snd_config_for_each(i, next, src) {
-		snd_config_t *s = snd_config_iterator_entry(i);
-		const char *id2;
-		a[index++] = s;
-		if (array < 0)
-			continue;
-		if (snd_config_get_id(s, &id2)) {
-			free(a);
-			return NULL;
+	array = snd_config_is_array(src);
+	if (array <= 0) {
+		index = 0;
+		snd_config_for_each(i, next, src) {
+			snd_config_t *s = snd_config_iterator_entry(i);
+			a[index++] = s;
 		}
-		if (array >= 0 && tplg_check_array_item(id2, array))
-			array++;
-		else
-			array = -1;
-	}
-	if (array < 0)
 		qsort(a, count, sizeof(a[0]), _compar);
+	}
 	if (snd_config_make_compound(&dst, id, count == 1)) {
 		free(a);
 		return NULL;
@@ -329,7 +305,7 @@ retval:
 
 	count = 0;
 	quoted = 0;
-	array = 0;
+	array = snd_config_is_array(src);
 	s = NULL;
 	snd_config_for_each(i, next, src) {
 		s = snd_config_iterator_entry(i);
@@ -338,10 +314,6 @@ retval:
 			return err;
 		if (!quoted && tplg_check_quoted((unsigned char *)id))
 			quoted = 1;
-		if (array >= 0 && tplg_check_array_item(id, array))
-			array++;
-		else
-			array = -1;
 		count++;
 	}
 	if (count == 0)
@@ -364,7 +336,7 @@ retval:
 
 	if (level > 0) {
 		err = tplg_save_printf(dst, NULL, "%s%s\n", delim,
-				       array >= 0 ? "[" : "{");
+				       array > 0 ? "[" : "{");
 		if (err < 0)
 			return err;
 	}
@@ -378,7 +350,7 @@ retval:
 		err = tplg_save_printf(dst, pfx, "");
 		if (err < 0)
 			return err;
-		if (array < 0) {
+		if (array <= 0) {
 			delim = " ";
 			if (quoted) {
 				err = tplg_save_quoted(dst, id);
@@ -398,7 +370,7 @@ retval:
 	if (level > 0) {
 		pfx[level - 1] = '\0';
 		err = tplg_save_printf(dst, pfx, "%s\n",
-				       array >= 0 ? "]" : "}");
+				       array > 0 ? "]" : "}");
 		if (err < 0)
 			return err;
 	}
