@@ -2053,20 +2053,22 @@ next:
 }
 
 /* decode dai from the binary input */
-int tplg_decode_dai(snd_tplg_t *tplg,
-		    size_t pos,
-		    struct snd_soc_tplg_hdr *hdr,
-		    void *bin, size_t size)
+int tplg_decode_dai(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
+		    size_t pos ATTRIBUTE_UNUSED,
+		    struct snd_soc_tplg_hdr *hdr ATTRIBUTE_UNUSED,
+		    void *bin ATTRIBUTE_UNUSED,
+		    size_t size ATTRIBUTE_UNUSED)
 {
 	SNDERR("not implemented");
 	return -ENXIO;
 }
 
 /* decode cc from the binary input */
-int tplg_decode_cc(snd_tplg_t *tplg,
-		   size_t pos,
-		   struct snd_soc_tplg_hdr *hdr,
-		   void *bin, size_t size)
+int tplg_decode_cc(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
+		   size_t pos ATTRIBUTE_UNUSED,
+		   struct snd_soc_tplg_hdr *hdr ATTRIBUTE_UNUSED,
+		   void *bin ATTRIBUTE_UNUSED,
+		   size_t size ATTRIBUTE_UNUSED)
 {
 	SNDERR("not implemented");
 	return -ENXIO;
