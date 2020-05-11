@@ -1051,7 +1051,7 @@ static int snd_pcm_rate_drain(snd_pcm_t *pcm)
 		/* commit the remaining fraction (if any) */
 		snd_pcm_uframes_t size, ofs, saved_avail_min;
 		snd_pcm_sw_params_t sw_params;
-		int commit_err;
+		int commit_err = 0;
 
 		__snd_pcm_lock(pcm);
 		/* temporarily set avail_min to one */
