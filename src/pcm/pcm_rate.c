@@ -1087,7 +1087,7 @@ static int snd_pcm_rate_drain(snd_pcm_t *pcm)
 				if (rate->last_commit_ptr >= pcm->boundary)
 					rate->last_commit_ptr = 0;
 			} else if (commit_err == 0) {
-				if (pcm->mode & SND_PCM_NONBLOCK != 0) {
+				if (pcm->mode & SND_PCM_NONBLOCK) {
 					commit_err = -EAGAIN;
 					break;
 				}
