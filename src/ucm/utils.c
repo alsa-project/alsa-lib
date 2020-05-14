@@ -567,6 +567,7 @@ void uc_mgr_free_verb(snd_use_case_mgr_t *uc_mgr)
 		list_del(&verb->list);
 		free(verb);
 	}
+	uc_mgr_free_sequence(&uc_mgr->once_list);
 	uc_mgr_free_sequence(&uc_mgr->default_list);
 	uc_mgr_free_value(&uc_mgr->value_list);
 	free(uc_mgr->comment);

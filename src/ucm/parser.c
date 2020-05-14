@@ -1511,12 +1511,32 @@ static int parse_master_section(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg,
 }
 
 /*
+ * parse controls which should be run only at initial boot
+ */
+static int parse_controls_once(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
+{
+	int err;
+
+	if (!list_empty(&uc_mgr->once_list)) {
+		uc_error("Once list is not empty");
+		return -EINVAL;
+	}
+	err = parse_sequence(uc_mgr, &uc_mgr->once_list, cfg);
+	if (err < 0) {
+		uc_error("Unable to parse SectionOnce");
+		return err;
+	}
+
+	return 0;
+}
+
+/*
  * parse controls
  */
 static int parse_controls(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 {
 	int err;
-	
+
 	if (!list_empty(&uc_mgr->default_list)) {
 		uc_error("Default list is not empty");
 		return -EINVAL;
@@ -1526,7 +1546,7 @@ static int parse_controls(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 		uc_error("Unable to parse SectionDefaults");
 		return err;
 	}
-	
+
 	return 0;
 }
 
@@ -1558,11 +1578,16 @@ static int parse_controls(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
  *	CaptureCTL "hw:CARD=0"
  * }
  *
+ * # The initial boot (run once) configuration.
+ *
+ * SectionOnce {
+ *      cset "name='Master Playback Switch',index=2 1,1"
+ *	cset "name='Master Playback Volume',index=2 25,25"
+ * }
+ *
  * # This file also stores the default sound card state.
  *
  * SectionDefaults [
- *	cset "name='Master Playback Switch',index=2 1,1"
- *	cset "name='Master Playback Volume',index=2 25,25"
  *	cset "name='Master Mono Playback',index=1 0"
  *	cset "name='Master Mono Playback Volume',index=1 0"
  *	cset "name='PCM Switch',index=2 1,1"
@@ -1631,6 +1656,14 @@ static int parse_master_file(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 			err = parse_compound(uc_mgr, n,
 					     parse_master_section,
 					     NULL, NULL);
+			if (err < 0)
+				return err;
+			continue;
+		}
+
+		/* find default control values section (first boot only) */
+		if (strcmp(id, "SectionOnce") == 0) {
+			err = parse_controls_once(uc_mgr, n);
 			if (err < 0)
 				return err;
 			continue;
