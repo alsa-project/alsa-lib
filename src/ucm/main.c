@@ -1830,6 +1830,24 @@ int snd_use_case_geti(snd_use_case_mgr_t *uc_mgr,
         return err;
 }
 
+static int set_once_user(snd_use_case_mgr_t *uc_mgr,
+			 const char *value)
+{
+	int err;
+
+	if (value != NULL && *value) {
+		uc_error("error: wrong value for _once (%s)", value);
+		return -EINVAL;
+	}
+	err = execute_sequence(uc_mgr, &uc_mgr->once_list,
+			       &uc_mgr->value_list, NULL, NULL);
+	if (err < 0) {
+		uc_error("Unable to execute once sequence");
+		return err;
+	}
+	return err;
+}
+
 static int handle_transition_verb(snd_use_case_mgr_t *uc_mgr,
                                   struct use_case_verb *new_verb)
 {
@@ -2041,7 +2059,9 @@ int snd_use_case_set(snd_use_case_mgr_t *uc_mgr,
 	int err = 0;
 
 	pthread_mutex_lock(&uc_mgr->mutex);
-	if (strcmp(identifier, "_verb") == 0)
+	if (strcmp(identifier, "_once") == 0)
+		err = set_once_user(uc_mgr, value);
+	else if (strcmp(identifier, "_verb") == 0)
 	        err = set_verb_user(uc_mgr, value);
         else if (strcmp(identifier, "_enadev") == 0)
                 err = set_device_user(uc_mgr, value, 1);

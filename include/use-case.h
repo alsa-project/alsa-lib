@@ -413,6 +413,7 @@ int snd_use_case_geti(snd_use_case_mgr_t *uc_mgr,
  * \return Zero if success, otherwise a negative error code
  *
  * Known identifiers:
+ *   - _once			- execute the once sequence (value = NULL)
  *   - _verb			- set current verb = value
  *   - _enadev			- enable given device = value
  *   - _disdev			- disable given device = value
