@@ -226,6 +226,7 @@ struct snd_use_case_mgr {
 
 	/* default settings - sequence */
 	struct list_head default_list;
+	int default_list_executed;
 
 	/* default settings - value list */
 	struct list_head value_list;

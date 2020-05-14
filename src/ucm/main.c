@@ -542,14 +542,7 @@ static int import_master_config(snd_use_case_mgr_t *uc_mgr)
 	err = uc_mgr_import_master_config(uc_mgr);
 	if (err < 0)
 		return err;
-	err = add_auto_values(uc_mgr);
-	if (err < 0)
-		return err;
-	err = execute_sequence(uc_mgr, &uc_mgr->default_list,
-			       &uc_mgr->value_list, NULL, NULL);
-	if (err < 0)
-		uc_error("Unable to execute default sequence");
-	return err;
+	return add_auto_values(uc_mgr);
 }
 
 /**
@@ -845,6 +838,15 @@ static int set_verb(snd_use_case_mgr_t *uc_mgr,
 	int err;
 
 	if (enable) {
+		if (!uc_mgr->default_list_executed) {
+			err = execute_sequence(uc_mgr, &uc_mgr->default_list,
+						&uc_mgr->value_list, NULL, NULL);
+			if (err < 0) {
+				uc_error("Unable to execute default sequence");
+				return err;
+			}
+			uc_mgr->default_list_executed = 1;
+		}
 		seq = &verb->enable_list;
 	} else {
 		seq = &verb->disable_list;
@@ -984,6 +986,8 @@ int snd_use_case_mgr_reload(snd_use_case_mgr_t *uc_mgr)
 	pthread_mutex_lock(&uc_mgr->mutex);
 
 	uc_mgr_free_verb(uc_mgr);
+
+	uc_mgr->default_list_executed = 0;
 
 	/* reload all use cases */
 	err = import_master_config(uc_mgr);
