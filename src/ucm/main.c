@@ -531,6 +531,27 @@ static int add_auto_values(snd_use_case_mgr_t *uc_mgr)
 }
 
 /**
+ * \brief execute default commands
+ * \param uc_mgr Use case manager
+ * \return zero on success, otherwise a negative error code
+ */
+static int set_defaults(snd_use_case_mgr_t *uc_mgr)
+{
+	int err;
+
+	if (uc_mgr->default_list_executed)
+		return 0;
+	err = execute_sequence(uc_mgr, &uc_mgr->default_list,
+			       &uc_mgr->value_list, NULL, NULL);
+	if (err < 0) {
+		uc_error("Unable to execute default sequence");
+		return err;
+	}
+	uc_mgr->default_list_executed = 1;
+	return 0;
+}
+
+/**
  * \brief Import master config and execute the default sequence
  * \param uc_mgr Use case manager
  * \return zero on success, otherwise a negative error code
@@ -838,15 +859,9 @@ static int set_verb(snd_use_case_mgr_t *uc_mgr,
 	int err;
 
 	if (enable) {
-		if (!uc_mgr->default_list_executed) {
-			err = execute_sequence(uc_mgr, &uc_mgr->default_list,
-						&uc_mgr->value_list, NULL, NULL);
-			if (err < 0) {
-				uc_error("Unable to execute default sequence");
-				return err;
-			}
-			uc_mgr->default_list_executed = 1;
-		}
+		err = set_defaults(uc_mgr);
+		if (err < 0)
+			return err;
 		seq = &verb->enable_list;
 	} else {
 		seq = &verb->disable_list;
@@ -1848,6 +1863,18 @@ static int set_once_user(snd_use_case_mgr_t *uc_mgr,
 	return err;
 }
 
+static int set_defaults_user(snd_use_case_mgr_t *uc_mgr,
+			     const char *value)
+{
+	int err;
+
+	if (value != NULL && *value) {
+		uc_error("error: wrong value for _defaults (%s)", value);
+		return -EINVAL;
+	}
+	return set_defaults(uc_mgr);
+}
+
 static int handle_transition_verb(snd_use_case_mgr_t *uc_mgr,
                                   struct use_case_verb *new_verb)
 {
@@ -2061,6 +2088,8 @@ int snd_use_case_set(snd_use_case_mgr_t *uc_mgr,
 	pthread_mutex_lock(&uc_mgr->mutex);
 	if (strcmp(identifier, "_once") == 0)
 		err = set_once_user(uc_mgr, value);
+	else if (strcmp(identifier, "_defaults") == 0)
+		err = set_defaults_user(uc_mgr, value);
 	else if (strcmp(identifier, "_verb") == 0)
 	        err = set_verb_user(uc_mgr, value);
         else if (strcmp(identifier, "_enadev") == 0)
