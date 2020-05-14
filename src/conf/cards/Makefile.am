@@ -12,6 +12,7 @@ cfg_files = aliases.conf \
 	Audigy2.conf \
 	Aureon51.conf \
 	Aureon71.conf \
+	axg-sound-card.conf \
 	CA0106.conf \
 	CMI8338.conf \
 	CMI8338-SWIEC.conf \
@@ -29,6 +30,7 @@ cfg_files = aliases.conf \
 	FWSpeakers.conf \
 	FireWave.conf \
 	GUS.conf \
+	gx-sound-card.conf \
 	HDA-Intel.conf \
 	HdmiLpeAudio.conf \
 	ICE1712.conf \
