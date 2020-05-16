@@ -262,7 +262,9 @@ struct snd_use_case_mgr {
 void uc_mgr_error(const char *fmt, ...);
 void uc_mgr_stdout(const char *fmt, ...);
 
+const char *uc_mgr_config_dir(int format);
 int uc_mgr_config_load(int format, const char *file, snd_config_t **cfg);
+int uc_mgr_config_load_file(snd_use_case_mgr_t *uc_mgr,  const char *file, snd_config_t **cfg);
 int uc_mgr_import_master_config(snd_use_case_mgr_t *uc_mgr);
 int uc_mgr_scan_master_configs(const char **_list[]);
 
@@ -290,6 +292,16 @@ int uc_mgr_add_value(struct list_head *base, const char *key, char *val);
 int uc_mgr_get_substituted_value(snd_use_case_mgr_t *uc_mgr,
 				 char **_rvalue,
 				 const char *value);
+
+int uc_mgr_config_tree_merge(snd_config_t *parent, snd_config_t *new_ctx,
+			     snd_config_t *before, snd_config_t *after);
+
+int uc_mgr_evaluate_inplace(snd_use_case_mgr_t *uc_mgr,
+			    snd_config_t *cfg);
+
+int uc_mgr_evaluate_include(snd_use_case_mgr_t *uc_mgr,
+			    snd_config_t *parent,
+			    snd_config_t *inc);
 
 int uc_mgr_evaluate_condition(snd_use_case_mgr_t *uc_mgr,
 			      snd_config_t *parent,

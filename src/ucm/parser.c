@@ -125,6 +125,25 @@ static void configuration_filename(snd_use_case_mgr_t *uc_mgr,
 }
 
 /*
+ *
+ */
+int uc_mgr_config_load_file(snd_use_case_mgr_t *uc_mgr,
+			     const char *file, snd_config_t **cfg)
+{
+	char filename[PATH_MAX];
+	int err;
+
+	configuration_filename(uc_mgr, filename, sizeof(filename),
+			       uc_mgr->conf_dir_name, file, "");
+	err = uc_mgr_config_load(uc_mgr->conf_format, filename, cfg);
+	if (err < 0) {
+		uc_error("error: failed to open file %s : %d", filename, -errno);
+		return err;
+	}
+	return 0;
+}
+
+/*
  * Replace mallocated string
  */
 static char *replace_string(char **dst, const char *value)
@@ -175,6 +194,26 @@ int parse_get_safe_id(snd_config_t *n, const char **id)
 }
 
 /*
+ * Evaluate include (in-place)
+ */
+static int evaluate_include(snd_use_case_mgr_t *uc_mgr,
+			    snd_config_t *cfg)
+{
+	snd_config_t *n;
+	int err;
+
+	err = snd_config_search(cfg, "Include", &n);
+	if (err == -ENOENT)
+		return 1;
+	if (err < 0)
+		return err;
+
+	err = uc_mgr_evaluate_include(uc_mgr, cfg, n);
+	snd_config_delete(n);
+	return err;
+}
+
+/*
  * Evaluate condition (in-place)
  */
 static int evaluate_condition(snd_use_case_mgr_t *uc_mgr,
@@ -185,13 +224,33 @@ static int evaluate_condition(snd_use_case_mgr_t *uc_mgr,
 
 	err = snd_config_search(cfg, "If", &n);
 	if (err == -ENOENT)
-		return 0;
+		return 1;
 	if (err < 0)
 		return err;
 
 	err = uc_mgr_evaluate_condition(uc_mgr, cfg, n);
 	snd_config_delete(n);
 	return err;
+}
+
+/*
+ * In-place evaluate
+ */
+int uc_mgr_evaluate_inplace(snd_use_case_mgr_t *uc_mgr,
+			    snd_config_t *cfg)
+{
+	int err1 = 0, err2 = 0;
+
+	while (err1 == 0 || err2 == 0) {
+		/* include at first */
+		err1 = evaluate_include(uc_mgr, cfg);
+		if (err1 < 0)
+			return err1;
+		err2 = evaluate_condition(uc_mgr, cfg);
+		if (err2 < 0)
+			return err2;
+	}
+	return 0;
 }
 
 /*
@@ -629,8 +688,8 @@ static int parse_value(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
 		return -EINVAL;
 	}
 
-	/* in-place condition evaluation */
-	err = evaluate_condition(uc_mgr, cfg);
+	/* in-place evaluation */
+	err = uc_mgr_evaluate_inplace(uc_mgr, cfg);
 	if (err < 0)
 		return err;
 
@@ -749,8 +808,8 @@ static int parse_modifier(snd_use_case_mgr_t *uc_mgr,
 	list_add_tail(&modifier->list, &verb->modifier_list);
 	modifier->name = strdup(name);
 
-	/* in-place condition evaluation */
-	err = evaluate_condition(uc_mgr, cfg);
+	/* in-place evaluation */
+	err = uc_mgr_evaluate_inplace(uc_mgr, cfg);
 	if (err < 0)
 		return err;
 
@@ -900,8 +959,8 @@ static int parse_device(snd_use_case_mgr_t *uc_mgr,
 	list_add_tail(&device->list, &verb->device_list);
 	device->name = strdup(name);
 
-	/* in-place condition evaluation */
-	err = evaluate_condition(uc_mgr, cfg);
+	/* in-place evaluation */
+	err = uc_mgr_evaluate_inplace(uc_mgr, cfg);
 	if (err < 0)
 		return err;
 
@@ -1238,8 +1297,8 @@ static int parse_verb(snd_use_case_mgr_t *uc_mgr,
 	snd_config_t *n;
 	int err;
 	
-	/* in-place condition evaluation */
-	err = evaluate_condition(uc_mgr, cfg);
+	/* in-place evaluation */
+	err = uc_mgr_evaluate_inplace(uc_mgr, cfg);
 	if (err < 0)
 		return err;
 
@@ -1312,7 +1371,6 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 	snd_config_t *n;
 	struct use_case_verb *verb;
 	snd_config_t *cfg;
-	char filename[PATH_MAX];
 	int err;
 
 	/* allocate verb */
@@ -1342,17 +1400,12 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 	}
 
 	/* open Verb file for reading */
-	configuration_filename(uc_mgr, filename, sizeof(filename),
-			       uc_mgr->conf_dir_name, file, "");
-	err = uc_mgr_config_load(uc_mgr->conf_format, filename, &cfg);
-	if (err < 0) {
-		uc_error("error: failed to open verb file %s : %d",
-			filename, -errno);
+	err = uc_mgr_config_load_file(uc_mgr, file, &cfg);
+	if (err < 0)
 		return err;
-	}
 
-	/* in-place condition evaluation */
-	err = evaluate_condition(uc_mgr, cfg);
+	/* in-place evaluation */
+	err = uc_mgr_evaluate_inplace(uc_mgr, cfg);
 	if (err < 0)
 		return err;
 
@@ -1463,8 +1516,8 @@ static int parse_master_section(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg,
 		return -EINVAL;
 	}
 
-	/* in-place condition evaluation */
-	err = evaluate_condition(uc_mgr, cfg);
+	/* in-place evaluation */
+	err = uc_mgr_evaluate_inplace(uc_mgr, cfg);
 	if (err < 0)
 		return err;
 
@@ -1630,8 +1683,8 @@ static int parse_master_file(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 		snd_config_delete(n);
 	}
 
-	/* in-place condition evaluation */
-	err = evaluate_condition(uc_mgr, cfg);
+	/* in-place evaluation */
+	err = uc_mgr_evaluate_inplace(uc_mgr, cfg);
 	if (err < 0)
 		return err;
 
