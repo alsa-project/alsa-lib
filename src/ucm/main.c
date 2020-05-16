@@ -960,6 +960,7 @@ int snd_use_case_mgr_open(snd_use_case_mgr_t **uc_mgr,
 	if (mgr == NULL)
 		return -ENOMEM;
 	INIT_LIST_HEAD(&mgr->verb_list);
+	INIT_LIST_HEAD(&mgr->once_list);
 	INIT_LIST_HEAD(&mgr->default_list);
 	INIT_LIST_HEAD(&mgr->value_list);
 	INIT_LIST_HEAD(&mgr->active_modifiers);
