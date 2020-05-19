@@ -29,6 +29,27 @@
 #include <sys/stat.h>
 #include <limits.h>
 
+static char *rval_conf_topdir(snd_use_case_mgr_t *uc_mgr)
+{
+	const char *dir;
+
+	if (uc_mgr->conf_format < 3)
+		return NULL;
+	dir = uc_mgr_config_dir(uc_mgr->conf_format);
+	if (dir && dir[0])
+		return strdup(dir);
+	return NULL;
+}
+
+static char *rval_conf_dir(snd_use_case_mgr_t *uc_mgr)
+{
+	if (uc_mgr->conf_format < 3)
+		return NULL;
+	if (uc_mgr->conf_dir_name && uc_mgr->conf_dir_name[0])
+		return strdup(uc_mgr->conf_dir_name);
+	return NULL;
+}
+
 static char *rval_conf_name(snd_use_case_mgr_t *uc_mgr)
 {
 	if (uc_mgr->conf_file_name && uc_mgr->conf_file_name[0])
@@ -193,6 +214,8 @@ int uc_mgr_get_substituted_value(snd_use_case_mgr_t *uc_mgr,
 		if (*value == '$' && *(value+1) == '{') {
 			bool allow_empty = false;
 
+			MATCH_VARIABLE(value, "${ConfTopDir}", rval_conf_topdir, false);
+			MATCH_VARIABLE(value, "${ConfDir}", rval_conf_dir, false);
 			MATCH_VARIABLE(value, "${ConfName}", rval_conf_name, false);
 			MATCH_VARIABLE(value, "${CardId}", rval_card_id, false);
 			MATCH_VARIABLE(value, "${CardDriver}", rval_card_driver, false);
