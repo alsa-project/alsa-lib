@@ -317,6 +317,10 @@ int uc_mgr_evaluate_condition(snd_use_case_mgr_t *uc_mgr,
 			      snd_config_t *parent,
 			      snd_config_t *cond);
 
+int uc_mgr_define_regex(snd_use_case_mgr_t *uc_mgr,
+			const char *name,
+			snd_config_t *eval);
+
 /** The name of the environment variable containing the UCM directory */
 #define ALSA_CONFIG_UCM_VAR "ALSA_CONFIG_UCM"
 

@@ -194,6 +194,42 @@ int parse_get_safe_id(snd_config_t *n, const char **id)
 }
 
 /*
+ * Evaluate variable regex definitions (in-place delete)
+ */
+static int evaluate_regex(snd_use_case_mgr_t *uc_mgr,
+			  snd_config_t *cfg)
+{
+	snd_config_iterator_t i, next;
+	snd_config_t *d, *n;
+	const char *id;
+	int err;
+
+	err = snd_config_search(cfg, "DefineRegex", &d);
+	if (err == -ENOENT)
+		return 1;
+	if (err < 0)
+		return err;
+
+	if (snd_config_get_type(d) != SND_CONFIG_TYPE_COMPOUND) {
+		uc_error("compound type expected for DefineRegex");
+		return -EINVAL;
+	}
+
+	snd_config_for_each(i, next, d) {
+		n = snd_config_iterator_entry(i);
+		err = snd_config_get_id(n, &id);
+		if (err < 0)
+			return err;
+		err = uc_mgr_define_regex(uc_mgr, id, n);
+		if (err < 0)
+			return err;
+	}
+
+	snd_config_delete(d);
+	return 0;
+}
+
+/*
  * Evaluate variable definitions (in-place delete)
  */
 static int evaluate_define(snd_use_case_mgr_t *uc_mgr,
@@ -207,7 +243,7 @@ static int evaluate_define(snd_use_case_mgr_t *uc_mgr,
 
 	err = snd_config_search(cfg, "Define", &d);
 	if (err == -ENOENT)
-		return 1;
+		return evaluate_regex(uc_mgr, cfg);
 	if (err < 0)
 		return err;
 
@@ -233,7 +269,8 @@ static int evaluate_define(snd_use_case_mgr_t *uc_mgr,
 	}
 
 	snd_config_delete(d);
-	return 0;
+
+	return evaluate_regex(uc_mgr, cfg);
 }
 
 /*
