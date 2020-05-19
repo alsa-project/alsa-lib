@@ -1867,8 +1867,6 @@ static int set_once_user(snd_use_case_mgr_t *uc_mgr,
 static int set_defaults_user(snd_use_case_mgr_t *uc_mgr,
 			     const char *value)
 {
-	int err;
-
 	if (value != NULL && *value) {
 		uc_error("error: wrong value for _defaults (%s)", value);
 		return -EINVAL;
