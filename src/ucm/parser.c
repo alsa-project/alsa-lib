@@ -1580,10 +1580,10 @@ static int parse_controls(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
  *
  * # The initial boot (run once) configuration.
  *
- * SectionOnce {
+ * SectionOnce [
  *      cset "name='Master Playback Switch',index=2 1,1"
  *	cset "name='Master Playback Volume',index=2 25,25"
- * }
+ * ]
  *
  * # This file also stores the default sound card state.
  *
