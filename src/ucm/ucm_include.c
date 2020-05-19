@@ -44,6 +44,7 @@ static int include_eval_one(snd_use_case_mgr_t *uc_mgr,
 			    snd_config_t **after)
 {
 	const char *file;
+	char *s;
 	int err;
 
 	*result = NULL;
@@ -71,10 +72,13 @@ static int include_eval_one(snd_use_case_mgr_t *uc_mgr,
 		return -EINVAL;
 	}
 
-	return uc_mgr_config_load_file(uc_mgr, file, result);
+	err = uc_mgr_get_substituted_value(uc_mgr, &s, file);
+	if (err < 0)
+		return err;
+	err = uc_mgr_config_load_file(uc_mgr, s, result);
+	free(s);
+	return err;
 }
-
-
 
 #if 0
 static void config_dump(snd_config_t *cfg)
