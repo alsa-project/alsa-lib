@@ -1804,6 +1804,7 @@ static int parse_master_file(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 		}
 		/* delete this field to avoid strcmp() call in the loop */
 		snd_config_delete(n);
+		uc_mgr->conf_format = l;
 	}
 
 	/* in-place evaluation */
