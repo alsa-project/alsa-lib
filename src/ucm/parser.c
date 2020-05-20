@@ -170,6 +170,45 @@ int parse_string(snd_config_t *n, char **res)
 }
 
 /*
+ * Parse string and substitute
+ */
+int parse_string_substitute(snd_use_case_mgr_t *uc_mgr,
+			    snd_config_t *n, char **res)
+{
+	const char *str;
+	char *s;
+	int err;
+
+	err = snd_config_get_string(n, &str);
+	if (err < 0)
+		return err;
+	err = uc_mgr_get_substituted_value(uc_mgr, &s, str);
+	if (err >= 0)
+		*res = s;
+	return err;
+}
+
+/*
+ * Parse integer with substitution
+ */
+int parse_integer_substitute(snd_use_case_mgr_t *uc_mgr,
+			    snd_config_t *n, long *res)
+{
+	char *s1, *s2;
+	int err;
+
+	err = snd_config_get_ascii(n, &s1);
+	if (err < 0)
+		return err;
+	err = uc_mgr_get_substituted_value(uc_mgr, &s2, s1);
+	if (err >= 0)
+		err = safe_strtol(s2, res);
+	free(s2);
+	free(s1);
+	return err;
+}
+
+/*
  * Parse safe ID
  */
 int parse_is_name_safe(const char *name)
@@ -625,7 +664,7 @@ static int parse_sequence(snd_use_case_mgr_t *uc_mgr,
 
 		if (strcmp(cmd, "cdev") == 0) {
 			curr->type = SEQUENCE_ELEMENT_TYPE_CDEV;
-			err = parse_string(n, &curr->data.cdev);
+			err = parse_string_substitute(uc_mgr, n, &curr->data.cdev);
 			if (err < 0) {
 				uc_error("error: cdev requires a string!");
 				return err;
@@ -635,7 +674,7 @@ static int parse_sequence(snd_use_case_mgr_t *uc_mgr,
 
 		if (strcmp(cmd, "cset") == 0) {
 			curr->type = SEQUENCE_ELEMENT_TYPE_CSET;
-			err = parse_string(n, &curr->data.cset);
+			err = parse_string_substitute(uc_mgr, n, &curr->data.cset);
 			if (err < 0) {
 				uc_error("error: cset requires a string!");
 				return err;
@@ -669,7 +708,7 @@ static int parse_sequence(snd_use_case_mgr_t *uc_mgr,
 
 		if (strcmp(cmd, "cset-bin-file") == 0) {
 			curr->type = SEQUENCE_ELEMENT_TYPE_CSET_BIN_FILE;
-			err = parse_string(n, &curr->data.cset);
+			err = parse_string_substitute(uc_mgr, n, &curr->data.cset);
 			if (err < 0) {
 				uc_error("error: cset-bin-file requires a string!");
 				return err;
@@ -679,7 +718,7 @@ static int parse_sequence(snd_use_case_mgr_t *uc_mgr,
 
 		if (strcmp(cmd, "cset-tlv") == 0) {
 			curr->type = SEQUENCE_ELEMENT_TYPE_CSET_TLV;
-			err = parse_string(n, &curr->data.cset);
+			err = parse_string_substitute(uc_mgr, n, &curr->data.cset);
 			if (err < 0) {
 				uc_error("error: cset-tlv requires a string!");
 				return err;
@@ -689,7 +728,7 @@ static int parse_sequence(snd_use_case_mgr_t *uc_mgr,
 
 		if (strcmp(cmd, "usleep") == 0) {
 			curr->type = SEQUENCE_ELEMENT_TYPE_SLEEP;
-			err = snd_config_get_integer(n, &curr->data.sleep);
+			err = parse_integer_substitute(uc_mgr, n, &curr->data.sleep);
 			if (err < 0) {
 				uc_error("error: usleep requires integer!");
 				return err;
@@ -699,7 +738,7 @@ static int parse_sequence(snd_use_case_mgr_t *uc_mgr,
 
 		if (strcmp(cmd, "msleep") == 0) {
 			curr->type = SEQUENCE_ELEMENT_TYPE_SLEEP;
-			err = snd_config_get_integer(n, &curr->data.sleep);
+			err = parse_integer_substitute(uc_mgr, n, &curr->data.sleep);
 			if (err < 0) {
 				uc_error("error: msleep requires integer!");
 				return err;
@@ -710,7 +749,7 @@ static int parse_sequence(snd_use_case_mgr_t *uc_mgr,
 
 		if (strcmp(cmd, "exec") == 0) {
 			curr->type = SEQUENCE_ELEMENT_TYPE_EXEC;
-			err = parse_string(n, &curr->data.exec);
+			err = parse_string_substitute(uc_mgr, n, &curr->data.exec);
 			if (err < 0) {
 				uc_error("error: exec requires a string!");
 				return err;
