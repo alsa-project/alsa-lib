@@ -194,6 +194,49 @@ int parse_get_safe_id(snd_config_t *n, const char **id)
 }
 
 /*
+ * Evaluate variable definitions (in-place delete)
+ */
+static int evaluate_define(snd_use_case_mgr_t *uc_mgr,
+			   snd_config_t *cfg)
+{
+	snd_config_iterator_t i, next;
+	snd_config_t *d, *n;
+	const char *id;
+	char *var, *s;
+	int err;
+
+	err = snd_config_search(cfg, "Define", &d);
+	if (err == -ENOENT)
+		return 1;
+	if (err < 0)
+		return err;
+
+	if (snd_config_get_type(d) != SND_CONFIG_TYPE_COMPOUND) {
+		uc_error("compound type expected for Define");
+		return -EINVAL;
+	}
+
+	snd_config_for_each(i, next, d) {
+		n = snd_config_iterator_entry(i);
+		err = snd_config_get_id(n, &id);
+		if (err < 0)
+			return err;
+		err = snd_config_get_ascii(n, &var);
+		if (err < 0)
+			return err;
+		err = uc_mgr_get_substituted_value(uc_mgr, &s, var);
+		free(var);
+		if (err < 0)
+			return err;
+		uc_mgr_set_variable(uc_mgr, id, s);
+		free(s);
+	}
+
+	snd_config_delete(d);
+	return 0;
+}
+
+/*
  * Evaluate include (in-place)
  */
 static int evaluate_include(snd_use_case_mgr_t *uc_mgr,
@@ -239,16 +282,20 @@ static int evaluate_condition(snd_use_case_mgr_t *uc_mgr,
 int uc_mgr_evaluate_inplace(snd_use_case_mgr_t *uc_mgr,
 			    snd_config_t *cfg)
 {
-	int err1 = 0, err2 = 0;
+	int err1 = 0, err2 = 0, err3 = 0;
 
-	while (err1 == 0 || err2 == 0) {
-		/* include at first */
-		err1 = evaluate_include(uc_mgr, cfg);
+	while (err1 == 0 || err2 == 0 || err3 == 0) {
+		/* variables at first */
+		err1 = evaluate_define(uc_mgr, cfg);
 		if (err1 < 0)
 			return err1;
-		err2 = evaluate_condition(uc_mgr, cfg);
+		/* include at second */
+		err2 = evaluate_include(uc_mgr, cfg);
 		if (err2 < 0)
 			return err2;
+		err3 = evaluate_condition(uc_mgr, cfg);
+		if (err3 < 0)
+			return err3;
 	}
 	return 0;
 }

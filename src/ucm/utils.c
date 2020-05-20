@@ -552,6 +552,56 @@ int uc_mgr_remove_device(struct use_case_verb *verb, const char *name)
 	return found == 0 ? -ENODEV : 0;
 }
 
+const char *uc_mgr_get_variable(snd_use_case_mgr_t *uc_mgr, const char *name)
+{
+	struct list_head *pos;
+	struct ucm_value *value;
+
+	list_for_each(pos, &uc_mgr->variable_list) {
+		value = list_entry(pos, struct ucm_value, list);
+		if (strcmp(value->name, name) == 0)
+			return value->data;
+	}
+	return NULL;
+}
+
+int uc_mgr_set_variable(snd_use_case_mgr_t *uc_mgr, const char *name,
+			const char *val)
+{
+	struct list_head *pos;
+	struct ucm_value *curr;
+	char *val2;
+
+	list_for_each(pos, &uc_mgr->variable_list) {
+		curr = list_entry(pos, struct ucm_value, list);
+		if (strcmp(curr->name, name) == 0) {
+			val2 = strdup(val);
+			if (val2 == NULL)
+				return -ENOMEM;
+			free(curr->data);
+			curr->data = val2;
+			return 0;
+		}
+	}
+
+	curr = calloc(1, sizeof(struct ucm_value));
+	if (curr == NULL)
+		return -ENOMEM;
+	curr->name = strdup(name);
+	if (curr->name == NULL) {
+		free(curr);
+		return -ENOMEM;
+	}
+	curr->data = strdup(val);
+	if (curr->data == NULL) {
+		free(curr->name);
+		free(curr);
+		return -ENOMEM;
+	}
+	list_add_tail(&curr->list, &uc_mgr->variable_list);
+	return 0;
+}
+
 void uc_mgr_free_verb(snd_use_case_mgr_t *uc_mgr)
 {
 	struct list_head *pos, *npos;
@@ -576,6 +626,7 @@ void uc_mgr_free_verb(snd_use_case_mgr_t *uc_mgr)
 	uc_mgr_free_sequence(&uc_mgr->once_list);
 	uc_mgr_free_sequence(&uc_mgr->default_list);
 	uc_mgr_free_value(&uc_mgr->value_list);
+	uc_mgr_free_value(&uc_mgr->variable_list);
 	free(uc_mgr->comment);
 	free(uc_mgr->conf_dir_name);
 	free(uc_mgr->conf_file_name);

@@ -167,6 +167,21 @@ static char *rval_sysfs(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED, const char 
 	return strdup(path);
 }
 
+static char *rval_var(snd_use_case_mgr_t *uc_mgr, const char *id)
+{
+	const char *v;
+
+	if (uc_mgr->conf_format < 3) {
+		uc_error("variable substitution is supported in v3+ syntax");
+		return NULL;
+	}
+
+	v = uc_mgr_get_variable(uc_mgr, id);
+	if (v)
+		return strdup(v);
+	return NULL;
+}
+
 #define MATCH_VARIABLE(name, id, fcn, empty_ok)				\
 	if (strncmp((name), (id), sizeof(id) - 1) == 0) { 		\
 		rval = fcn(uc_mgr);					\
@@ -224,6 +239,7 @@ int uc_mgr_get_substituted_value(snd_use_case_mgr_t *uc_mgr,
 			MATCH_VARIABLE(value, "${CardComponents}", rval_card_components, true);
 			MATCH_VARIABLE2(value, "${env:", rval_env);
 			MATCH_VARIABLE2(value, "${sys:", rval_sysfs);
+			MATCH_VARIABLE2(value, "${var:", rval_var);
 			err = -EINVAL;
 			tmp = strchr(value, '}');
 			if (tmp) {

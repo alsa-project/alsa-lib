@@ -966,6 +966,7 @@ int snd_use_case_mgr_open(snd_use_case_mgr_t **uc_mgr,
 	INIT_LIST_HEAD(&mgr->active_modifiers);
 	INIT_LIST_HEAD(&mgr->active_devices);
 	INIT_LIST_HEAD(&mgr->ctl_list);
+	INIT_LIST_HEAD(&mgr->variable_list);
 	pthread_mutex_init(&mgr->mutex, NULL);
 
 	mgr->card_name = strdup(card_name);

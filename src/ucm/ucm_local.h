@@ -239,6 +239,9 @@ struct snd_use_case_mgr {
 	/* locking */
 	pthread_mutex_t mutex;
 
+	/* UCM internal variables defined in configuration files */
+	struct list_head variable_list;
+
 	/* list of opened control devices */
 	struct list_head ctl_list;
 
@@ -288,6 +291,13 @@ snd_ctl_t *uc_mgr_get_ctl(snd_use_case_mgr_t *uc_mgr);
 void uc_mgr_free_ctl_list(snd_use_case_mgr_t *uc_mgr);
 
 int uc_mgr_add_value(struct list_head *base, const char *key, char *val);
+
+const char *uc_mgr_get_variable(snd_use_case_mgr_t *uc_mgr,
+				const char *name);
+
+int uc_mgr_set_variable(snd_use_case_mgr_t *uc_mgr,
+			const char *name,
+			const char *val);
 
 int uc_mgr_get_substituted_value(snd_use_case_mgr_t *uc_mgr,
 				 char **_rvalue,
