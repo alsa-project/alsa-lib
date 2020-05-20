@@ -369,6 +369,10 @@ int uc_mgr_evaluate_inplace(snd_use_case_mgr_t *uc_mgr,
 		err2 = evaluate_include(uc_mgr, cfg);
 		if (err2 < 0)
 			return err2;
+		/* include may define another variables */
+		/* conditions may depend on them */
+		if (err2 == 0)
+			continue;
 		err3 = evaluate_condition(uc_mgr, cfg);
 		if (err3 < 0)
 			return err3;
