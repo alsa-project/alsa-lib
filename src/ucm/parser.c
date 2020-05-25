@@ -1513,7 +1513,7 @@ static int parse_master_section(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg,
 /*
  * parse controls which should be run only at initial boot
  */
-static int parse_controls_once(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
+static int parse_controls_boot(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 {
 	int err;
 
@@ -1523,7 +1523,7 @@ static int parse_controls_once(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 	}
 	err = parse_sequence(uc_mgr, &uc_mgr->once_list, cfg);
 	if (err < 0) {
-		uc_error("Unable to parse SectionOnce");
+		uc_error("Unable to parse BootSequence");
 		return err;
 	}
 
@@ -1580,7 +1580,7 @@ static int parse_controls(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
  *
  * # The initial boot (run once) configuration.
  *
- * SectionOnce [
+ * BootSequence [
  *      cset "name='Master Playback Switch',index=2 1,1"
  *	cset "name='Master Playback Volume',index=2 25,25"
  * ]
@@ -1662,8 +1662,8 @@ static int parse_master_file(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 		}
 
 		/* find default control values section (first boot only) */
-		if (strcmp(id, "SectionOnce") == 0) {
-			err = parse_controls_once(uc_mgr, n);
+		if (strcmp(id, "BootSequence") == 0) {
+			err = parse_controls_boot(uc_mgr, n);
 			if (err < 0)
 				return err;
 			continue;
