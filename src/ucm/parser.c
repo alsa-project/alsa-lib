@@ -134,7 +134,8 @@ int uc_mgr_config_load_file(snd_use_case_mgr_t *uc_mgr,
 	int err;
 
 	configuration_filename(uc_mgr, filename, sizeof(filename),
-			       uc_mgr->conf_dir_name, file, "");
+			       file[0] == '/' ? "" : uc_mgr->conf_dir_name,
+			       file, "");
 	err = uc_mgr_config_load(uc_mgr->conf_format, filename, cfg);
 	if (err < 0) {
 		uc_error("error: failed to open file %s : %d", filename, -errno);
