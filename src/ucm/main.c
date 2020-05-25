@@ -1846,13 +1846,13 @@ int snd_use_case_geti(snd_use_case_mgr_t *uc_mgr,
         return err;
 }
 
-static int set_once_user(snd_use_case_mgr_t *uc_mgr,
+static int set_boot_user(snd_use_case_mgr_t *uc_mgr,
 			 const char *value)
 {
 	int err;
 
 	if (value != NULL && *value) {
-		uc_error("error: wrong value for _once (%s)", value);
+		uc_error("error: wrong value for _boot (%s)", value);
 		return -EINVAL;
 	}
 	err = execute_sequence(uc_mgr, &uc_mgr->once_list,
@@ -2085,8 +2085,8 @@ int snd_use_case_set(snd_use_case_mgr_t *uc_mgr,
 	int err = 0;
 
 	pthread_mutex_lock(&uc_mgr->mutex);
-	if (strcmp(identifier, "_once") == 0)
-		err = set_once_user(uc_mgr, value);
+	if (strcmp(identifier, "_boot") == 0)
+		err = set_boot_user(uc_mgr, value);
 	else if (strcmp(identifier, "_defaults") == 0)
 		err = set_defaults_user(uc_mgr, value);
 	else if (strcmp(identifier, "_verb") == 0)
