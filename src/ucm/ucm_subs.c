@@ -29,6 +29,15 @@
 #include <sys/stat.h>
 #include <limits.h>
 
+static char *rval_open_name(snd_use_case_mgr_t *uc_mgr)
+{
+	if (uc_mgr->conf_format < 3)
+		return NULL;
+	if (uc_mgr->card_name && uc_mgr->card_name[0])
+		return strdup(uc_mgr->card_name);
+	return NULL;
+}
+
 static char *rval_conf_topdir(snd_use_case_mgr_t *uc_mgr)
 {
 	const char *dir;
@@ -229,6 +238,7 @@ int uc_mgr_get_substituted_value(snd_use_case_mgr_t *uc_mgr,
 		if (*value == '$' && *(value+1) == '{') {
 			bool allow_empty = false;
 
+			MATCH_VARIABLE(value, "${OpenName}", rval_open_name, false);
 			MATCH_VARIABLE(value, "${ConfTopDir}", rval_conf_topdir, false);
 			MATCH_VARIABLE(value, "${ConfDir}", rval_conf_dir, false);
 			MATCH_VARIABLE(value, "${ConfName}", rval_conf_name, false);
