@@ -840,7 +840,7 @@ static int parse_value(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
 			}
 			break;
 		case SND_CONFIG_TYPE_STRING:
-			err = parse_string(n, &s);
+			err = parse_string_substitute(uc_mgr, n, &s);
 			if (err < 0) {
 				uc_error("error: unable to parse a string for id '%s'!", id);
 				return err;
