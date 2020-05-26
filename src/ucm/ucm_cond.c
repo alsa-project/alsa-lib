@@ -44,6 +44,23 @@ static int if_eval_string(snd_use_case_mgr_t *uc_mgr, snd_config_t *eval)
 	char *s1, *s2;
 	int err;
 
+	if (uc_mgr->conf_format >= 3) {
+		err = get_string(eval, "Empty", &string1);
+		if (err < 0 && err != -ENOENT) {
+			uc_error("String error (If.Condition.Empty)");
+			return -EINVAL;
+		}
+
+		if (string1) {
+			err = uc_mgr_get_substituted_value(uc_mgr, &s1, string1);
+			if (err < 0)
+				return err;
+			err = s1 == NULL || s1[0] == '\0';
+			free(s1);
+			return err;
+		}
+	}
+
 	err = get_string(eval, "String1", &string1);
 	if (err < 0 && err != -ENOENT) {
 		uc_error("String error (If.Condition.String1)");
