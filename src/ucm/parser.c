@@ -255,6 +255,11 @@ static int evaluate_regex(snd_use_case_mgr_t *uc_mgr,
 		return -EINVAL;
 	}
 
+	if (uc_mgr->conf_format < 3) {
+		uc_error("DefineRegex is supported in v3+ syntax");
+		return -EINVAL;
+	}
+
 	snd_config_for_each(i, next, d) {
 		n = snd_config_iterator_entry(i);
 		err = snd_config_get_id(n, &id);
@@ -289,6 +294,11 @@ static int evaluate_define(snd_use_case_mgr_t *uc_mgr,
 
 	if (snd_config_get_type(d) != SND_CONFIG_TYPE_COMPOUND) {
 		uc_error("compound type expected for Define");
+		return -EINVAL;
+	}
+
+	if (uc_mgr->conf_format < 3) {
+		uc_error("Define is supported in v3+ syntax");
 		return -EINVAL;
 	}
 
