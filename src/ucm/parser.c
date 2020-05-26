@@ -2038,7 +2038,8 @@ int uc_mgr_import_master_config(snd_use_case_mgr_t *uc_mgr)
 	char longname[MAX_CARD_LONG_NAME];
 	int err;
 
-	if (replace_string(&uc_mgr->conf_dir_name, uc_mgr->card_name) == NULL)
+	if (replace_string(&uc_mgr->conf_dir_name,
+			   strncmp(name, "strict:", 7) ? name : name + 7) == NULL)
 		return -ENOMEM;
 
 	if (strncmp(name, "hw:", 3) == 0) {
