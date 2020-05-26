@@ -62,66 +62,20 @@ static int parse_sequence(snd_use_case_mgr_t *uc_mgr,
 			  snd_config_t *cfg);
 
 /*
- * compose configuration file
+ * compose the absolute ucm filename
  */
-static void configuration_filename2(char *fn, size_t fn_len, int format,
-				    const char *dir, const char *file,
-				    const char *suffix)
+static void ucm_filename(char *fn, size_t fn_len, long version,
+			  const char *dir, const char *file)
 {
-	snprintf(fn, fn_len, "%s/ucm%s/%s/%s%s",
-		 snd_config_topdir(), format >= 2 ? "2" : "",
-		 dir, file, suffix);
-}
+	const char *env = getenv(version > 1 ? ALSA_CONFIG_UCM2_VAR : ALSA_CONFIG_UCM_VAR);
 
-static void configuration_filename(snd_use_case_mgr_t *uc_mgr,
-				   char *fn, size_t fn_len,
-				   const char *dir, const char *file,
-				   const char *suffix)
-{
-	const char *env;
-
-	if (uc_mgr->conf_format > 0) {
-		/* known format */
-		env = getenv(uc_mgr->conf_format >= 2 ? ALSA_CONFIG_UCM2_VAR :
-							ALSA_CONFIG_UCM_VAR);
-	} else {
-		/* auto-detect */
-		env = getenv(ALSA_CONFIG_UCM2_VAR);
-		if (env == NULL) {
-			env = getenv(ALSA_CONFIG_UCM_VAR);
-			if (env)
-				uc_mgr->conf_format = 1;
-		} else {
-			uc_mgr->conf_format = 2;
-		}
-	}
-	if (env) {
-		snprintf(fn, fn_len, "%s/%s/%s%s", env, dir, file, suffix);
-		return;
-	}
-
-	if (uc_mgr->conf_format > 0) {
-		configuration_filename2(fn, fn_len, uc_mgr->conf_format,
-					dir, file, suffix);
-		return;
-	}
-
-	configuration_filename2(fn, fn_len, 2, dir, file, suffix);
-	if (access(fn, R_OK) == 0) {
-		/* Found an ucm2 file, only look in the ucm2 dir from now on */
-		uc_mgr->conf_format = 2;
-		return;
-	}
-
-	configuration_filename2(fn, fn_len, 0, dir, file, suffix);
-	if (access(fn, R_OK) == 0) {
-		/* Found an ucm1 file, only look in the ucm dir from now on */
-		uc_mgr->conf_format = 1;
-		return;
-	}
-
-	/* make sure that the error message refers to the new path */
-	configuration_filename2(fn, fn_len, 2, dir, file, suffix);
+	if (env == NULL)
+		snprintf(fn, fn_len, "%s/%s/%s%s%s",
+			 snd_config_topdir(), version > 1 ? "ucm2" : "ucm",
+			 dir ?: "", dir ? "/" : "", file);
+	else
+		snprintf(fn, fn_len, "%s/%s%s%s",
+			 env, dir ?: "", dir ? "/" : "", file);
 }
 
 /*
@@ -133,9 +87,9 @@ int uc_mgr_config_load_file(snd_use_case_mgr_t *uc_mgr,
 	char filename[PATH_MAX];
 	int err;
 
-	configuration_filename(uc_mgr, filename, sizeof(filename),
-			       file[0] == '/' ? "" : uc_mgr->conf_dir_name,
-			       file, "");
+	ucm_filename(filename, sizeof(filename), uc_mgr->conf_format,
+		     file[0] == '/' ? NULL : uc_mgr->conf_dir_name,
+		     file);
 	err = uc_mgr_config_load(uc_mgr->conf_format, filename, cfg);
 	if (err < 0) {
 		uc_error("error: failed to open file %s : %d", filename, -errno);
@@ -150,7 +104,7 @@ int uc_mgr_config_load_file(snd_use_case_mgr_t *uc_mgr,
 static char *replace_string(char **dst, const char *value)
 {
 	free(*dst);
-	*dst = strdup(value);
+	*dst = value ? strdup(value) : NULL;
 	return *dst;
 }
 
@@ -1909,10 +1863,9 @@ static int get_card_info(snd_use_case_mgr_t *mgr,
 	return err;
 }
 
-/* find the card in the local machine and store the card long name */
-static int get_card_long_name(snd_use_case_mgr_t *mgr, char *longname)
+/* find the card in the local machine */
+static int get_by_card_name(snd_use_case_mgr_t *mgr, const char *card_name)
 {
-	const char *card_name = mgr->card_name;
 	int card, err;
 	snd_ctl_t *ctl;
 	snd_ctl_card_info_t *info;
@@ -1929,7 +1882,7 @@ static int get_card_long_name(snd_use_case_mgr_t *mgr, char *longname)
 	while (card >= 0) {
 		char name[32];
 
-		/* most probably, we do not need to cache all CTL devices here */
+		/* mandatory - clear the list, keep the only one CTL device */
 		uc_mgr_free_ctl_list(mgr);
 
 		sprintf(name, "hw:%d", card);
@@ -1941,10 +1894,8 @@ static int get_card_long_name(snd_use_case_mgr_t *mgr, char *longname)
 			_long_name = snd_ctl_card_info_get_longname(info);
 			if (!strcmp(card_name, _driver) ||
 			    !strcmp(card_name, _name) ||
-			    !strcmp(card_name, _long_name)) {
-				snd_strlcpy(longname, _long_name, MAX_CARD_LONG_NAME);
+			    !strcmp(card_name, _long_name))
 				return 0;
-			}
 		}
 
 		if (snd_card_next(&card) < 0) {
@@ -1959,11 +1910,10 @@ static int get_card_long_name(snd_use_case_mgr_t *mgr, char *longname)
 }
 
 /* set the driver name and long name by the card ctl name */
-static int get_by_card(snd_use_case_mgr_t *mgr, const char *ctl_name, char *longname)
+static int get_by_card(snd_use_case_mgr_t *mgr, const char *ctl_name)
 {
 	snd_ctl_t *ctl;
 	snd_ctl_card_info_t *info;
-	const char *_driver, *_long_name;
 	int err;
 
 	snd_ctl_card_info_alloca(&info);
@@ -1972,114 +1922,246 @@ static int get_by_card(snd_use_case_mgr_t *mgr, const char *ctl_name, char *long
 	if (err)
 		return err;
 
-	_driver = snd_ctl_card_info_get_driver(info);
-	if (replace_string(&mgr->conf_dir_name, _driver) == NULL)
-		return -ENOMEM;
-	_long_name = snd_ctl_card_info_get_longname(info);
-	snd_strlcpy(longname, _long_name, MAX_CARD_LONG_NAME);
-
 	return 0;
 }
 
-static int load_master_config(snd_use_case_mgr_t *uc_mgr,
-			      const char *card_name, snd_config_t **cfg, int longname)
+static int parse_toplevel_path(snd_use_case_mgr_t *uc_mgr,
+			       char *filename,
+			       snd_config_t *cfg)
 {
-	char filename[PATH_MAX];
+	snd_config_iterator_t i, next, i2, next2;
+	snd_config_t *n, *n2;
+	const char *id;
+	char *dir = NULL, *file = NULL, fn[PATH_MAX];
+	long version;
 	int err;
 
-	if (strnlen(card_name, MAX_CARD_LONG_NAME) == MAX_CARD_LONG_NAME) {
-		uc_error("error: invalid card name %s (at most %d chars)",
-			 card_name, MAX_CARD_LONG_NAME - 1);
+	if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
+		uc_error("compound type expected for UseCasePath node");
 		return -EINVAL;
 	}
 
-	uc_mgr->conf_format = 0;
-	if (longname) {
-		if (getenv(ALSA_CONFIG_UCM2_VAR) || !getenv(ALSA_CONFIG_UCM_VAR)) {
-			uc_mgr->conf_format = 2;
-			configuration_filename(uc_mgr, filename, sizeof(filename),
-					       uc_mgr->conf_dir_name, card_name, ".conf");
-			if (access(filename, R_OK) == 0)
-				goto __load;
+	/* parse use case path config sections */
+	snd_config_for_each(i, next, cfg) {
+		n = snd_config_iterator_entry(i);
+
+		if (snd_config_get_type(n) != SND_CONFIG_TYPE_COMPOUND) {
+			uc_error("compound type expected for UseCasePath.something node");
+			return -EINVAL;
 		}
-		/* try the old ucm directory */
-		uc_mgr->conf_format = 1;
-		configuration_filename(uc_mgr, filename, sizeof(filename),
-				       card_name, card_name, ".conf");
-		if (access(filename, R_OK) != 0)
-			return -ENOENT;
-	} else {
-		configuration_filename(uc_mgr, filename, sizeof(filename),
-				       card_name, card_name, ".conf");
+
+			if (snd_config_get_id(n, &id) < 0)
+				continue;
+
+		version = 2;
+
+		/* parse use case path config sections */
+		snd_config_for_each(i2, next2, n) {
+
+			n2 = snd_config_iterator_entry(i2);
+			if (snd_config_get_id(n2, &id) < 0)
+				continue;
+
+			if (strcmp(id, "Version") == 0) {
+				err = parse_integer_substitute(uc_mgr, n2, &version);
+				if (err < 0) {
+					uc_error("unable to parse UcmDirectory");
+					goto __error;
+				}
+				if (version < 1 || version > 2) {
+					uc_error("Version must be 1 or 2");
+					err = -EINVAL;
+					goto __error;
+				}
+				continue;
+			}
+
+			if (strcmp(id, "Directory") == 0) {
+				err = parse_string_substitute(uc_mgr, n2, &dir);
+				if (err < 0) {
+					uc_error("unable to parse Directory");
+					goto __error;
+				}
+				continue;
+			}
+
+			if (strcmp(id, "File") == 0) {
+				err = parse_string_substitute(uc_mgr, n2, &file);
+				if (err < 0) {
+					uc_error("unable to parse File");
+					goto __error;
+				}
+				continue;
+			}
+
+			uc_error("unknown UseCasePath field %s", id);
+		}
+
+		if (dir == NULL) {
+			uc_error("Directory is not defined in %s!", filename);
+			free(file);
+			continue;
+		}
+		if (file == NULL) {
+			uc_error("File is not defined in %s!", filename);
+			free(dir);
+			continue;
+		}
+
+		ucm_filename(fn, sizeof(fn), version, dir, file);
+		if (access(fn, R_OK) == 0) {
+			if (replace_string(&uc_mgr->conf_dir_name, dir) == NULL) {
+				err = -ENOMEM;
+				goto __error;
+			}
+			if (replace_string(&uc_mgr->conf_file_name, file) == NULL) {
+				err = -ENOMEM;
+				goto __error;
+			}
+			strncpy(filename, fn, PATH_MAX);
+			uc_mgr->conf_format = version;
+			goto __ok;
+		}
+
+		free(file);
+		free(dir);
+		dir = NULL;
+		file = NULL;
 	}
 
-__load:
+	err = -ENOENT;
+	goto __error;
+
+__ok:
+	err = 0;
+__error:
+	free(file);
+	free(dir);
+	return err;
+}
+
+static int parse_toplevel_config(snd_use_case_mgr_t *uc_mgr,
+				 char *filename,
+				 snd_config_t *cfg)
+{
+	snd_config_iterator_t i, next;
+	snd_config_t *n;
+	const char *id;
+	long l;
+	int err;
+
+	if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
+		uc_error("compound type expected for toplevel file");
+		return -EINVAL;
+	}
+
+	err = snd_config_search(cfg, "Syntax", &n);
+	if (err < 0) {
+		uc_error("Syntax field not found in %s", filename);
+		return -EINVAL;
+	}
+	err = snd_config_get_integer(n, &l);
+	if (err < 0) {
+		uc_error("Syntax field is invalid in %s", filename);
+		return err;
+	}
+	if (l < 2 || l > SYNTAX_VERSION_MAX) {
+		uc_error("Incompatible syntax %d in %s", l, filename);
+		return -EINVAL;
+	}
+	/* delete this field to avoid strcmp() call in the loop */
+	snd_config_delete(n);
+	uc_mgr->conf_format = l;
+
+	/* in-place evaluation */
+	err = uc_mgr_evaluate_inplace(uc_mgr, cfg);
+	if (err < 0)
+		return err;
+
+	/* parse toplevel config sections */
+	snd_config_for_each(i, next, cfg) {
+
+		n = snd_config_iterator_entry(i);
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
+
+		if (strcmp(id, "UseCasePath") == 0) {
+			err = parse_toplevel_path(uc_mgr, filename, n);
+			if (err == 0)
+				return err;
+			continue;
+		}
+
+		uc_error("uknown toplevel field %s", id);
+	}
+
+	return -ENOENT;
+}
+
+static int load_toplevel_config(snd_use_case_mgr_t *uc_mgr,
+				snd_config_t **cfg)
+{
+	char filename[PATH_MAX];
+	snd_config_t *tcfg;
+	int err;
+
+	ucm_filename(filename, sizeof(filename), 2, NULL, "ucm.conf");
+
+	if (access(filename, R_OK) != 0) {
+		uc_error("Unable to find the top-level configuration file '%s'.", filename);
+		return -ENOENT;
+	}
+
+	err = uc_mgr_config_load(2, filename, &tcfg);
+	if (err < 0)
+		goto __error;
+
+	/* filename is shared for function input and output! */
+	err = parse_toplevel_config(uc_mgr, filename, tcfg);
+	snd_config_delete(tcfg);
+	if (err < 0)
+		goto __error;
+
 	err = uc_mgr_config_load(uc_mgr->conf_format, filename, cfg);
 	if (err < 0) {
 		uc_error("error: could not parse configuration for card %s",
-				card_name);
-		return err;
+				uc_mgr->card_name);
+		goto __error;
 	}
 
-	if (replace_string(&uc_mgr->conf_file_name, card_name) == NULL)
-		return -ENOMEM;
-
 	return 0;
+
+__error:
+	return err;
 }
 
-/* load master use case file for sound card
- *
- * The same ASoC machine driver can be shared by many different devices.
- * For user space to differentiate them and get the best device-specific
- * configuration, ASoC machine drivers may use the DMI info
- * (vendor-product-version-board) as the card long name. And user space can
- * define configuration files like longnamei/longname.conf for a specific device.
- *
- * This function will try to find the card in the local machine and get its
- * long name, then load the file longname/longname.conf to get the best
- * device-specific configuration. If the card is not found in the local
- * machine or the device-specific file is not available, fall back to load
- * the default configuration file name/name.conf.
+/* load master use case file for sound card based on rules in ucm2/ucm.conf
  */
 int uc_mgr_import_master_config(snd_use_case_mgr_t *uc_mgr)
 {
 	snd_config_t *cfg;
-	const char *name = uc_mgr->card_name;
-	char longname[MAX_CARD_LONG_NAME];
+	const char *name;
 	int err;
 
-	if (replace_string(&uc_mgr->conf_dir_name,
-			   strncmp(name, "strict:", 7) ? name : name + 7) == NULL)
-		return -ENOMEM;
-
+	name = uc_mgr->card_name;
 	if (strncmp(name, "hw:", 3) == 0) {
-		err = get_by_card(uc_mgr, name, longname);
-		if (err == 0)
-			goto __longname;
-		uc_error("card '%s' is not valid", name);
-		goto __error;
+		err = get_by_card(uc_mgr, name);
+		if (err < 0) {
+			uc_error("card '%s' is not valid", name);
+			goto __error;
+		}
 	} else if (strncmp(name, "strict:", 7)) {
-		err = get_card_long_name(uc_mgr, longname);
-		if (err == 0) { /* load file that matches the card long name */
-__longname:
-			err = load_master_config(uc_mgr, longname, &cfg, 1);
-		}
-
-		if (err == 0) {
-			/* got device-specific file that matches the card long name */
-			if (uc_mgr->conf_format < 2)
-				snd_strlcpy(uc_mgr->conf_dir_name, longname,
-					    sizeof(uc_mgr->conf_dir_name));
-			goto __parse;
-		}
+		/* do not handle the error here */
+		/* we can refer the virtual UCM config */
+		get_by_card_name(uc_mgr, name);
+	} else {
+		name += 7;
 	}
 
-	/* standard path */
-	err = load_master_config(uc_mgr, uc_mgr->conf_dir_name, &cfg, 0);
+	err = load_toplevel_config(uc_mgr, &cfg);
 	if (err < 0)
 		goto __error;
 
-__parse:
 	err = parse_master_file(uc_mgr, cfg);
 	snd_config_delete(cfg);
 	if (err < 0) {
@@ -2091,7 +2173,7 @@ __parse:
 
 __error:
 	uc_mgr_free_ctl_list(uc_mgr);
-	uc_mgr->conf_dir_name[0] = '\0';
+	replace_string(&uc_mgr->conf_dir_name, NULL);
 	return err;
 }
 
@@ -2136,7 +2218,7 @@ static int is_component_directory(const char *dir)
  */
 int uc_mgr_scan_master_configs(const char **_list[])
 {
-	char filename[PATH_MAX], dfl[PATH_MAX];
+	char filename[PATH_MAX], dfl[PATH_MAX], fn[FILENAME_MAX];
 	char *env = getenv(ALSA_CONFIG_UCM2_VAR);
 	const char **list, *d_name;
 	snd_config_t *cfg, *c;
@@ -2193,8 +2275,8 @@ int uc_mgr_scan_master_configs(const char **_list[])
 		if (is_component_directory(d_name))
 			continue;
 
-		configuration_filename2(filename, sizeof(filename), 2,
-					d_name, d_name, ".conf");
+		snprintf(fn, sizeof(fn), "%s.conf", d_name);
+		ucm_filename(filename, sizeof(filename), 2, d_name, fn);
 		if (eaccess(filename, R_OK))
 			continue;
 
