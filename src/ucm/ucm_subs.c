@@ -66,6 +66,20 @@ static char *rval_conf_name(snd_use_case_mgr_t *uc_mgr)
 	return NULL;
 }
 
+static char *rval_card_number(snd_use_case_mgr_t *uc_mgr)
+{
+	struct ctl_list *ctl_list;
+	char num[16];
+
+	if (uc_mgr->conf_format < 3)
+		return NULL;
+	ctl_list = uc_mgr_get_one_ctl(uc_mgr);
+	if (ctl_list == NULL)
+		return strdup("");
+	snprintf(num, sizeof(num), "%i", snd_ctl_card_info_get_card(ctl_list->ctl_info));
+	return strdup(num);
+}
+
 static char *rval_card_id(snd_use_case_mgr_t *uc_mgr)
 {
 	struct ctl_list *ctl_list;
@@ -242,6 +256,7 @@ int uc_mgr_get_substituted_value(snd_use_case_mgr_t *uc_mgr,
 			MATCH_VARIABLE(value, "${ConfTopDir}", rval_conf_topdir, false);
 			MATCH_VARIABLE(value, "${ConfDir}", rval_conf_dir, false);
 			MATCH_VARIABLE(value, "${ConfName}", rval_conf_name, false);
+			MATCH_VARIABLE(value, "${CardNumber}", rval_card_number, true);
 			MATCH_VARIABLE(value, "${CardId}", rval_card_id, false);
 			MATCH_VARIABLE(value, "${CardDriver}", rval_card_driver, false);
 			MATCH_VARIABLE(value, "${CardName}", rval_card_name, false);
