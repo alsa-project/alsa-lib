@@ -493,7 +493,11 @@ static int parse_device_list(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
 		sdev = calloc(1, sizeof(struct dev_list_node));
 		if (sdev == NULL)
 			return -ENOMEM;
-		err = parse_string(n, &sdev->name);
+		if (uc_mgr->conf_format < 3) {
+			err = parse_string(n, &sdev->name);
+		} else {
+			err = parse_string_substitute(uc_mgr, n, &sdev->name);
+		}
 		if (err < 0) {
 			free(sdev);
 			return err;
