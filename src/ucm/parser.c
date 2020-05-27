@@ -410,10 +410,16 @@ static int parse_transition(snd_use_case_mgr_t *uc_mgr,
 			return -ENOMEM;
 		INIT_LIST_HEAD(&tseq->transition_list);
 
-		tseq->name = strdup(id);
-		if (tseq->name == NULL) {
+		if (uc_mgr->conf_format < 3) {
+			tseq->name = strdup(id);
+			if (tseq->name == NULL)
+				err = -ENOMEM;
+		} else {
+			err = uc_mgr_get_substituted_value(uc_mgr, &tseq->name, id);
+		}
+		if (err < 0) {
 			free(tseq);
-			return -ENOMEM;
+			return err;
 		}
 	
 		err = parse_sequence(uc_mgr, &tseq->transition_list, n);
@@ -940,7 +946,7 @@ static int parse_modifier(snd_use_case_mgr_t *uc_mgr,
 			continue;
 
 		if (strcmp(id, "Comment") == 0) {
-			err = parse_string(n, &modifier->comment);
+			err = parse_string_substitute3(uc_mgr, n, &modifier->comment);
 			if (err < 0) {
 				uc_error("error: failed to get modifier comment");
 				return err;
@@ -1085,7 +1091,7 @@ static int parse_device(snd_use_case_mgr_t *uc_mgr,
 			continue;
 
 		if (strcmp(id, "Comment") == 0) {
-			err = parse_string(n, &device->comment);
+			err = parse_string_substitute3(uc_mgr, n, &device->comment);
 			if (err < 0) {
 				uc_error("error: failed to get device comment");
 				return err;
