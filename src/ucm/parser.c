@@ -144,6 +144,27 @@ int parse_string_substitute(snd_use_case_mgr_t *uc_mgr,
 }
 
 /*
+ * Parse string and substitute
+ */
+int parse_string_substitute3(snd_use_case_mgr_t *uc_mgr,
+			     snd_config_t *n, char **res)
+{
+	const char *str;
+	char *s;
+	int err;
+
+	if (uc_mgr->conf_format < 3)
+		return parse_string(n, res);
+	err = snd_config_get_string(n, &str);
+	if (err < 0)
+		return err;
+	err = uc_mgr_get_substituted_value(uc_mgr, &s, str);
+	if (err >= 0)
+		*res = s;
+	return err;
+}
+
+/*
  * Parse integer with substitution
  */
 int parse_integer_substitute(snd_use_case_mgr_t *uc_mgr,
@@ -493,11 +514,7 @@ static int parse_device_list(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
 		sdev = calloc(1, sizeof(struct dev_list_node));
 		if (sdev == NULL)
 			return -ENOMEM;
-		if (uc_mgr->conf_format < 3) {
-			err = parse_string(n, &sdev->name);
-		} else {
-			err = parse_string_substitute(uc_mgr, n, &sdev->name);
-		}
+		err = parse_string_substitute3(uc_mgr, n, &sdev->name);
 		if (err < 0) {
 			free(sdev);
 			return err;
@@ -576,11 +593,7 @@ static int parse_component_seq(snd_use_case_mgr_t *uc_mgr,
 	char *val;
 	int err;
 
-	if (uc_mgr->conf_format < 3) {
-		err = parse_string(n, &val);
-	} else {
-		err = parse_string_substitute(uc_mgr, n, &val);
-	}
+	err = parse_string_substitute3(uc_mgr, n, &val);
 	if (err < 0)
 		return err;
 
@@ -1604,23 +1617,24 @@ static int parse_master_section(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg,
 {
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
-	const char *use_case_name, *file = NULL, *comment = NULL;
+	char *use_case_name, *file = NULL, *comment = NULL;
 	int err;
-
-	if (snd_config_get_id(cfg, &use_case_name) < 0) {
-		uc_error("unable to get name for use case section");
-		return -EINVAL;
-	}
 
 	if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
 		uc_error("compound type expected for use case section");
 		return -EINVAL;
 	}
 
+	err = parse_get_safe_name(uc_mgr, cfg, NULL, &use_case_name);
+	if (err < 0) {
+		uc_error("unable to get name for use case section");
+		return err;
+	}
+
 	/* in-place evaluation */
 	err = uc_mgr_evaluate_inplace(uc_mgr, cfg);
 	if (err < 0)
-		return err;
+		goto __error;
 
 	/* parse master config sections */
 	snd_config_for_each(i, next, cfg) {
@@ -1631,20 +1645,20 @@ static int parse_master_section(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg,
 
 		/* get use case verb file name */
 		if (strcmp(id, "File") == 0) {
-			err = snd_config_get_string(n, &file);
+			err = parse_string_substitute3(uc_mgr, n, &file);
 			if (err < 0) {
 				uc_error("failed to get File");
-				return err;
+				goto __error;
 			}
 			continue;
 		}
 
 		/* get optional use case comment */
 		if (strncmp(id, "Comment", 7) == 0) {
-			err = snd_config_get_string(n, &comment);
+			err = parse_string_substitute3(uc_mgr, n, &comment);
 			if (err < 0) {
 				uc_error("error: failed to get Comment");
-				return err;
+				goto __error;
 			}
 			continue;
 		}
@@ -1657,11 +1671,18 @@ static int parse_master_section(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg,
 	/* do we have both use case name and file ? */
 	if (!file) {
 		uc_error("error: use case missing file");
-		return -EINVAL;
+		err = -EINVAL;
+		goto __error;
 	}
 
 	/* parse verb file */
-	return parse_verb_file(uc_mgr, use_case_name, comment, file);
+	err = parse_verb_file(uc_mgr, use_case_name, comment, file);
+
+__error:
+	free(use_case_name);
+	free(file);
+	free(comment);
+	return err;
 }
 
 /*
