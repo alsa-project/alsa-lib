@@ -196,6 +196,17 @@ int parse_is_name_safe(const char *name)
 	return 1;
 }
 
+int get_string3(snd_use_case_mgr_t *uc_mgr, const char *s1, char **s)
+{
+	if (uc_mgr->conf_format < 3) {
+		*s = strdup(s1);
+		if (*s == NULL)
+			return -ENOMEM;
+		return 0;
+	}
+	return uc_mgr_get_substituted_value(uc_mgr, s, s1);
+}
+
 int parse_get_safe_name(snd_use_case_mgr_t *uc_mgr, snd_config_t *n,
 			const char *alt, char **name)
 {
@@ -211,13 +222,7 @@ int parse_get_safe_name(snd_use_case_mgr_t *uc_mgr, snd_config_t *n,
 	}
 	if (!parse_is_name_safe(id))
 		return -EINVAL;
-	if (uc_mgr->conf_format < 3) {
-		*name = strdup(id);
-		if (*name == NULL)
-			return -ENOMEM;
-		return 0;
-	}
-	return uc_mgr_get_substituted_value(uc_mgr, name, id);
+	return get_string3(uc_mgr, id, name);
 }
 
 /*
@@ -410,13 +415,7 @@ static int parse_transition(snd_use_case_mgr_t *uc_mgr,
 			return -ENOMEM;
 		INIT_LIST_HEAD(&tseq->transition_list);
 
-		if (uc_mgr->conf_format < 3) {
-			tseq->name = strdup(id);
-			if (tseq->name == NULL)
-				err = -ENOMEM;
-		} else {
-			err = uc_mgr_get_substituted_value(uc_mgr, &tseq->name, id);
-		}
+		err = get_string3(uc_mgr, id, &tseq->name);
 		if (err < 0) {
 			free(tseq);
 			return err;
@@ -1173,13 +1172,14 @@ static int parse_device(snd_use_case_mgr_t *uc_mgr,
  * RenameDevice."Speaker1" "Speaker"
  * RemoveDevice."Speaker2" "Speaker2"
  */
-static int parse_dev_name_list(snd_config_t *cfg,
+static int parse_dev_name_list(snd_use_case_mgr_t *uc_mgr,
+			       snd_config_t *cfg,
 			       struct list_head *list)
 {
 	snd_config_t *n;
 	snd_config_iterator_t i, next;
 	const char *id, *name1;
-	char *name2;
+	char *name1s, *name2;
 	struct ucm_dev_name *dev;
 	snd_config_iterator_t pos;
 	int err;
@@ -1198,8 +1198,13 @@ static int parse_dev_name_list(snd_config_t *cfg,
 		if (snd_config_get_id(n, &name1) < 0)
 			return -EINVAL;
 
-		err = parse_string(n, &name2);
+		err = get_string3(uc_mgr, name1, &name1s);
+		if (err < 0)
+			return err;
+
+		err = parse_string_substitute3(uc_mgr, n, &name2);
 		if (err < 0) {
+			free(name1s);
 			uc_error("error: failed to get target device name for '%s'", name1);
 			return err;
 		}
@@ -1207,15 +1212,20 @@ static int parse_dev_name_list(snd_config_t *cfg,
 		/* skip duplicates */
 		list_for_each(pos, list) {
 			dev = list_entry(pos, struct ucm_dev_name, list);
-			if (strcmp(dev->name1, name1) == 0) {
+			if (strcmp(dev->name1, name1s) == 0) {
 				free(name2);
+				free(name1s);
 				return 0;
 			}
 		}
 
+		free(name1s);
+
 		dev = calloc(1, sizeof(*dev));
-		if (dev == NULL)
+		if (dev == NULL) {
+			free(name2);
 			return -ENOMEM;
+		}
 		dev->name1 = strdup(name1);
 		if (dev->name1 == NULL) {
 			free(dev);
@@ -1573,7 +1583,7 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 
 		/* device renames */
 		if (strcmp(id, "RenameDevice") == 0) {
-			err = parse_dev_name_list(n, &verb->rename_list);
+			err = parse_dev_name_list(uc_mgr, n, &verb->rename_list);
 			if (err < 0) {
 				uc_error("error: %s failed to parse device rename",
 						file);
@@ -1583,7 +1593,7 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 
 		/* device remove */
 		if (strcmp(id, "RemoveDevice") == 0) {
-			err = parse_dev_name_list(n, &verb->remove_list);
+			err = parse_dev_name_list(uc_mgr, n, &verb->remove_list);
 			if (err < 0) {
 				uc_error("error: %s failed to parse device remove",
 						file);
