@@ -570,17 +570,22 @@ struct use_case_device *find_component_dev(snd_use_case_mgr_t *uc_mgr,
  * disable sequence is needed by its parenet device.
  */
 static int parse_component_seq(snd_use_case_mgr_t *uc_mgr,
-			  snd_config_t *n, int enable,
-			  struct component_sequence *cmpt_seq)
+			       snd_config_t *n, int enable,
+			       struct component_sequence *cmpt_seq)
 {
-	const char *val;
+	char *val;
 	int err;
 
-	err = snd_config_get_string(n, &val);
+	if (uc_mgr->conf_format < 3) {
+		err = parse_string(n, &val);
+	} else {
+		err = parse_string_substitute(uc_mgr, n, &val);
+	}
 	if (err < 0)
 		return err;
 
 	cmpt_seq->device = find_component_dev(uc_mgr, val);
+	free(val);
 	if (!cmpt_seq->device) {
 		uc_error("error: Cannot find component device %s", val);
 		return -EINVAL;
