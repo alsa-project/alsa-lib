@@ -175,16 +175,28 @@ int parse_is_name_safe(const char *name)
 	return 1;
 }
 
-int parse_get_safe_id(snd_config_t *n, const char **id)
+int parse_get_safe_name(snd_use_case_mgr_t *uc_mgr, snd_config_t *n,
+			const char *alt, char **name)
 {
+	const char *id;
 	int err;
 
-	err = snd_config_get_id(n, id);
-	if (err < 0)
-		return err;
-	if (!parse_is_name_safe((char *)(*id)))
+	if (alt) {
+		id = alt;
+	} else {
+		err = snd_config_get_id(n, &id);
+		if (err < 0)
+			return err;
+	}
+	if (!parse_is_name_safe(id))
 		return -EINVAL;
-	return 0;
+	if (uc_mgr->conf_format < 3) {
+		*name = strdup(id);
+		if (*name == NULL)
+			return -ENOMEM;
+		return 0;
+	}
+	return uc_mgr_get_substituted_value(uc_mgr, name, id);
 }
 
 /*
@@ -867,38 +879,32 @@ static int parse_value(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
  * Both are optional.
  */
 static int parse_modifier(snd_use_case_mgr_t *uc_mgr,
-		snd_config_t *cfg,
-		void *data1,
-		void *data2)
+			  snd_config_t *cfg,
+			  void *data1, void *data2)
 {
 	struct use_case_verb *verb = data1;
 	struct use_case_modifier *modifier;
-	const char *name;
+	char *name;
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
 	int err;
 
-	if (data2) {
-		name = data2;
-		if (!parse_is_name_safe(name))
-			return -EINVAL;
-	}
-	else {
-		if (parse_get_safe_id(cfg, &name) < 0)
-			return -EINVAL;
-	}
+	if (parse_get_safe_name(uc_mgr, cfg, data2, &name) < 0)
+		return -EINVAL;
 
 	/* allocate modifier */
 	modifier = calloc(1, sizeof(*modifier));
-	if (modifier == NULL)
+	if (modifier == NULL) {
+		free(name);
 		return -ENOMEM;
+	}
 	INIT_LIST_HEAD(&modifier->enable_list);
 	INIT_LIST_HEAD(&modifier->disable_list);
 	INIT_LIST_HEAD(&modifier->transition_list);
 	INIT_LIST_HEAD(&modifier->dev_list.list);
 	INIT_LIST_HEAD(&modifier->value_list);
 	list_add_tail(&modifier->list, &verb->modifier_list);
-	modifier->name = strdup(name);
+	modifier->name = name;
 
 	/* in-place evaluation */
 	err = uc_mgr_evaluate_inplace(uc_mgr, cfg);
@@ -1020,36 +1026,30 @@ static int parse_modifier(snd_use_case_mgr_t *uc_mgr,
  */
 static int parse_device(snd_use_case_mgr_t *uc_mgr,
 			snd_config_t *cfg,
-			void *data1,
-			void *data2)
+			void *data1, void *data2)
 {
 	struct use_case_verb *verb = data1;
-	const char *name;
+	char *name;
 	struct use_case_device *device;
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
 	int err;
 
-	if (data2) {
-		name = data2;
-		if (!parse_is_name_safe(name))
-			return -EINVAL;
-	}
-	else {
-		if (parse_get_safe_id(cfg, &name) < 0)
-			return -EINVAL;
-	}
+	if (parse_get_safe_name(uc_mgr, cfg, data2, &name) < 0)
+		return -EINVAL;
 
 	device = calloc(1, sizeof(*device));
-	if (device == NULL)
+	if (device == NULL) {
+		free(name);
 		return -ENOMEM;
+	}
 	INIT_LIST_HEAD(&device->enable_list);
 	INIT_LIST_HEAD(&device->disable_list);
 	INIT_LIST_HEAD(&device->transition_list);
 	INIT_LIST_HEAD(&device->dev_list.list);
 	INIT_LIST_HEAD(&device->value_list);
 	list_add_tail(&device->list, &verb->device_list);
-	device->name = strdup(name);
+	device->name = name;
 
 	/* in-place evaluation */
 	err = uc_mgr_evaluate_inplace(uc_mgr, cfg);
