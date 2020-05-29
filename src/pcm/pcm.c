@@ -292,6 +292,14 @@ This error can happen when device is physically removed (for example
 some hotplug devices like USB or PCMCIA, CardBus or ExpressCard
 can be removed on the fly).
 
+\par -ENODATA
+
+This error can happen if the device data transfer is dependent on
+an external condition and that condition is not met. For example,
+PCM device for echo reference as described by SND_USE_CASE_MOD_ECHO_REF
+UCM token, may return -ENODATA if the linked playback stream has not been
+started.
+
 \section pcm_params Managing parameters
 
 The ALSA PCM device uses two groups of PCM related parameters. The hardware
