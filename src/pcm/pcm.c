@@ -284,7 +284,7 @@ supports resume and the snd_pcm_prepare() call can be ommited.
 \par -EBADFD
 
 This error means that the device is in a bad state. It means that
-the handskahe between application and alsa-lib is corrupted.
+the handshake between application and alsa-lib is corrupted.
 
 \par -ENOTTY, -ENODEV
 
