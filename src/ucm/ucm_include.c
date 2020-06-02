@@ -91,13 +91,29 @@ static void config_dump(snd_config_t *cfg)
 }
 #endif
 
+static int find_position_node(snd_config_t **res, snd_config_t *dst,
+			      const char *id, snd_config_t *pos)
+{
+	const char *s;
+	int err;
+
+	err = get_string(pos, id, &s);
+	if (err < 0 && err != -ENOENT)
+		return err;
+	if (err == 0) {
+		err = snd_config_search(dst, s, res);
+		if (err < 0 && err != -ENOENT)
+			return err;
+	}
+	return 0;
+}
+
 static int compound_merge(const char *id,
 			  snd_config_t *dst, snd_config_t *src,
 			  snd_config_t *before, snd_config_t *after)
 {
 	snd_config_iterator_t i, next;
 	snd_config_t *n, *_before = NULL, *_after = NULL;
-	const char *s;
 	char tmpid[32];
 	int err, array, idx;
 
@@ -107,24 +123,14 @@ static int compound_merge(const char *id,
 	}
 
 	if (before) {
-		err = get_string(before, id, &s);
-		if (err < 0 && err != -ENOENT)
+		err = find_position_node(&_before, dst, id, before);
+		if (err < 0)
 			return err;
-		if (err == 0) {
-			err = snd_config_search(dst, s, &_before);
-			if (err < 0 && err != -ENOENT)
-				return err;
-		}
 	}
 	if (after) {
-		err = get_string(after, id, &s);
-		if (err < 0 && err != -ENOENT)
+		err = find_position_node(&_after, dst, id, after);
+		if (err < 0)
 			return err;
-		if (err == 0) {
-			err = snd_config_search(dst, s, &_after);
-			if (err < 0 && err != -ENOENT)
-				return err;
-		}
 	}
 
 	if (_before && _after) {
