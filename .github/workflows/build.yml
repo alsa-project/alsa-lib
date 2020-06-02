@@ -76,6 +76,7 @@ jobs:
       uses: actions/checkout@v2
     - name: Prepare environment
       run: |
+        export DEBIAN_FRONTEND=noninteractive
         apt-get update
         apt-get -y install apt-utils
         apt-get -y full-upgrade
