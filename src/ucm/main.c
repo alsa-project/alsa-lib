@@ -333,6 +333,7 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 	struct sequence_element *s;
 	char *cdev = NULL;
 	snd_ctl_t *ctl = NULL;
+	struct ctl_list *ctl_list;
 	int err = 0;
 
 	list_for_each(pos, seq) {
@@ -400,11 +401,12 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 				}
 			}
 			if (ctl == NULL) {
-				err = uc_mgr_open_ctl(uc_mgr, &ctl, cdev);
+				err = uc_mgr_open_ctl(uc_mgr, &ctl_list, cdev, 1);
 				if (err < 0) {
 					uc_error("unable to open ctl device '%s'", cdev);
 					goto __fail;
 				}
+				ctl = ctl_list->ctl;
 			}
 			err = execute_cset(ctl, s->data.cset, s->type);
 			if (err < 0) {
@@ -516,7 +518,7 @@ static int add_auto_values(snd_use_case_mgr_t *uc_mgr)
 	char buf[40];
 	int err;
 
-	ctl_list = uc_mgr_get_one_ctl(uc_mgr);
+	ctl_list = uc_mgr_get_master_ctl(uc_mgr);
 	if (ctl_list) {
 		id = snd_ctl_card_info_get_id(ctl_list->ctl_info);
 		snprintf(buf, sizeof(buf), "hw:%s", id);

@@ -115,6 +115,7 @@ struct ctl_list {
 	struct list_head dev_list;
 	snd_ctl_t *ctl;
 	snd_ctl_card_info_t *ctl_info;
+	int slave;
 };
 
 struct ucm_dev_name {
@@ -283,10 +284,13 @@ void uc_mgr_free_verb(snd_use_case_mgr_t *uc_mgr);
 void uc_mgr_free(snd_use_case_mgr_t *uc_mgr);
 
 int uc_mgr_open_ctl(snd_use_case_mgr_t *uc_mgr,
-                    snd_ctl_t **ctl,
-                    const char *device);
+		    struct ctl_list **ctl_list,
+		    const char *device,
+		    int slave);
 
-struct ctl_list *uc_mgr_get_one_ctl(snd_use_case_mgr_t *uc_mgr);
+struct ctl_list *uc_mgr_get_master_ctl(snd_use_case_mgr_t *uc_mgr);
+struct ctl_list *uc_mgr_get_ctl_by_name(snd_use_case_mgr_t *uc_mgr,
+					const char *name, int idx);
 snd_ctl_t *uc_mgr_get_ctl(snd_use_case_mgr_t *uc_mgr);
 void uc_mgr_free_ctl_list(snd_use_case_mgr_t *uc_mgr);
 

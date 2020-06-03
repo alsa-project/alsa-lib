@@ -228,7 +228,7 @@ static int if_eval_control_exists(snd_use_case_mgr_t *uc_mgr, snd_config_t *eval
 		err = uc_mgr_get_substituted_value(uc_mgr, &s, device);
 		if (err < 0)
 			return err;
-		err = uc_mgr_open_ctl(uc_mgr, &ctl, s);
+		err = uc_mgr_open_ctl(uc_mgr, &ctl, s, 1);
 		free(s);
 		if (err < 0)
 			return err;

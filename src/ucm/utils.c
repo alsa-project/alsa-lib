@@ -49,26 +49,73 @@ void uc_mgr_stdout(const char *fmt,...)
 	va_end(va);
 }
 
-struct ctl_list *uc_mgr_get_one_ctl(snd_use_case_mgr_t *uc_mgr)
+struct ctl_list *uc_mgr_get_master_ctl(snd_use_case_mgr_t *uc_mgr)
 {
 	struct list_head *pos;
-	struct ctl_list *ctl_list = NULL;
+	struct ctl_list *ctl_list = NULL, *ctl_list2;
 
 	list_for_each(pos, &uc_mgr->ctl_list) {
+		ctl_list2 = list_entry(pos, struct ctl_list, list);
+		if (ctl_list2->slave)
+			continue;
 		if (ctl_list) {
 			uc_error("multiple control device names were found!");
 			return NULL;
 		}
-		ctl_list = list_entry(pos, struct ctl_list, list);
+		ctl_list = ctl_list2;
 	}
 	return ctl_list;
+}
+
+struct ctl_list *uc_mgr_get_ctl_by_name(snd_use_case_mgr_t *uc_mgr, const char *name, int idx)
+{
+	struct list_head *pos;
+	struct ctl_list *ctl_list = NULL;
+	const char *s;
+	char cname[32];
+	int idx2, card, err;
+
+	idx2 = idx;
+	list_for_each(pos, &uc_mgr->ctl_list) {
+		ctl_list = list_entry(pos, struct ctl_list, list);
+		s = snd_ctl_card_info_get_name(ctl_list->ctl_info);
+		if (s == NULL)
+			continue;
+		if (strcmp(s, name) == 0) {
+			if (idx2 == 0)
+				return ctl_list;
+			idx2--;
+		}
+	}
+
+	idx2 = idx;
+	card = -1;
+	if (snd_card_next(&card) < 0 || card < 0)
+		return NULL;
+
+	while (card >= 0) {
+		sprintf(cname, "hw:%d", card);
+		err = uc_mgr_open_ctl(uc_mgr, &ctl_list, cname, 1);
+		if (err < 0)
+			continue;	/* really? */
+		s = snd_ctl_card_info_get_name(ctl_list->ctl_info);
+		if (s && strcmp(s, name) == 0) {
+			if (idx2 == 0)
+				return ctl_list;
+			idx2--;
+		}
+		if (snd_card_next(&card) < 0)
+			break;
+	}
+
+	return NULL;
 }
 
 snd_ctl_t *uc_mgr_get_ctl(snd_use_case_mgr_t *uc_mgr)
 {
 	struct ctl_list *ctl_list;
 
-	ctl_list = uc_mgr_get_one_ctl(uc_mgr);
+	ctl_list = uc_mgr_get_master_ctl(uc_mgr);
 	if (ctl_list)
 		return ctl_list->ctl;
 	return NULL;
@@ -127,10 +174,11 @@ static int uc_mgr_ctl_add_dev(struct ctl_list *ctl_list, const char *device)
 }
 
 static int uc_mgr_ctl_add(snd_use_case_mgr_t *uc_mgr,
-			  struct ctl_list *ctl_list,
+			  struct ctl_list **ctl_list,
 			  snd_ctl_t *ctl, int card,
 			  snd_ctl_card_info_t *info,
-			  const char *device)
+			  const char *device,
+			  int slave)
 {
 	struct ctl_list *cl = NULL;
 	const char *id = snd_ctl_card_info_get_id(info);
@@ -139,7 +187,7 @@ static int uc_mgr_ctl_add(snd_use_case_mgr_t *uc_mgr,
 
 	if (id == NULL || id[0] == '\0')
 		return -ENOENT;
-	if (!ctl_list) {
+	if (!(*ctl_list)) {
 		cl = malloc(sizeof(*cl));
 		if (cl == NULL)
 			return -ENOMEM;
@@ -150,41 +198,49 @@ static int uc_mgr_ctl_add(snd_use_case_mgr_t *uc_mgr,
 			return -ENOMEM;
 		}
 		snd_ctl_card_info_copy(cl->ctl_info, info);
-		ctl_list = cl;
+		cl->slave = slave;
+		*ctl_list = cl;
+	} else {
+		if (!slave)
+			(*ctl_list)->slave = slave;
 	}
 	if (card >= 0) {
 		snprintf(dev, sizeof(dev), "hw:%d", card);
 		hit |= !!(device && (strcmp(dev, device) == 0));
-		err = uc_mgr_ctl_add_dev(ctl_list, dev);
+		err = uc_mgr_ctl_add_dev(*ctl_list, dev);
 		if (err < 0)
 			goto __nomem;
 	}
 	snprintf(dev, sizeof(dev), "hw:%s", id);
 	hit |= !!(device && (strcmp(dev, device) == 0));
-	err = uc_mgr_ctl_add_dev(ctl_list, dev);
+	err = uc_mgr_ctl_add_dev(*ctl_list, dev);
 	if (err < 0)
 		goto __nomem;
 	/* the UCM name not based on the card name / id */
 	if (!hit && device) {
-		err = uc_mgr_ctl_add_dev(ctl_list, device);
+		err = uc_mgr_ctl_add_dev(*ctl_list, device);
 		if (err < 0)
 			goto __nomem;
 	}
 
-	list_add_tail(&ctl_list->list, &uc_mgr->ctl_list);
+	list_add_tail(&(*ctl_list)->list, &uc_mgr->ctl_list);
 	return 0;
 
 __nomem:
-	if (ctl_list == cl)
+	if (*ctl_list == cl) {
 		uc_mgr_free_ctl(cl);
+		*ctl_list = NULL;
+	}
 	return -ENOMEM;
 }
 
 int uc_mgr_open_ctl(snd_use_case_mgr_t *uc_mgr,
-		    snd_ctl_t **ctl,
-		    const char *device)
+		    struct ctl_list **ctll,
+		    const char *device,
+		    int slave)
 {
 	struct list_head *pos1, *pos2;
+	snd_ctl_t *ctl;
 	struct ctl_list *ctl_list;
 	struct ctl_dev *ctl_dev;
 	snd_ctl_card_info_t *info;
@@ -199,24 +255,25 @@ int uc_mgr_open_ctl(snd_use_case_mgr_t *uc_mgr,
 		list_for_each(pos2, &ctl_list->dev_list) {
 			ctl_dev = list_entry(pos2, struct ctl_dev, list);
 			if (strcmp(ctl_dev->device, device) == 0) {
-				*ctl = ctl_list->ctl;
+				*ctll = ctl_list;
+				if (!slave)
+					ctl_list->slave = 0;
 				return 0;
 			}
 		}
 	}
 
-	err = snd_ctl_open(ctl, device, 0);
+	err = snd_ctl_open(&ctl, device, 0);
 	if (err < 0)
 		return err;
 
 	id = NULL;
-	err = snd_ctl_card_info(*ctl, info);
+	err = snd_ctl_card_info(ctl, info);
 	if (err == 0)
 		id = snd_ctl_card_info_get_id(info);
 	if (err < 0 || id == NULL || id[0] == '\0') {
 		uc_error("control hardware info (%s): %s", device, snd_strerror(err));
-		snd_ctl_close(*ctl);
-		*ctl = NULL;
+		snd_ctl_close(ctl);
 		return err;
 	}
 
@@ -225,24 +282,25 @@ int uc_mgr_open_ctl(snd_use_case_mgr_t *uc_mgr,
 		ctl_list = list_entry(pos1, struct ctl_list, list);
 		if (strcmp(id, snd_ctl_card_info_get_id(ctl_list->ctl_info)) == 0) {
 			card = snd_card_get_index(id);
-			err = uc_mgr_ctl_add(uc_mgr, ctl_list, *ctl, card, info, device);
+			err = uc_mgr_ctl_add(uc_mgr, &ctl_list, ctl, card, info, device, slave);
 			if (err < 0)
 				goto __nomem;
-			snd_ctl_close(*ctl);
-			*ctl = ctl_list->ctl;
+			snd_ctl_close(ctl);
+			*ctll = ctl_list;
 			return 0;
 		}
 	}
 
-	err = uc_mgr_ctl_add(uc_mgr, NULL, *ctl, -1, info, device);
+	ctl_list = NULL;
+	err = uc_mgr_ctl_add(uc_mgr, &ctl_list, ctl, -1, info, device, slave);
 	if (err < 0)
 		goto __nomem;
 
+	*ctll = ctl_list;
 	return 0;
 
 __nomem:
-	snd_ctl_close(*ctl);
-	*ctl = NULL;
+	snd_ctl_close(ctl);
 	return -ENOMEM;
 }
 

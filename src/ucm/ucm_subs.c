@@ -73,7 +73,7 @@ static char *rval_card_number(snd_use_case_mgr_t *uc_mgr)
 
 	if (uc_mgr->conf_format < 3)
 		return NULL;
-	ctl_list = uc_mgr_get_one_ctl(uc_mgr);
+	ctl_list = uc_mgr_get_master_ctl(uc_mgr);
 	if (ctl_list == NULL)
 		return strdup("");
 	snprintf(num, sizeof(num), "%i", snd_ctl_card_info_get_card(ctl_list->ctl_info));
@@ -84,7 +84,7 @@ static char *rval_card_id(snd_use_case_mgr_t *uc_mgr)
 {
 	struct ctl_list *ctl_list;
 
-	ctl_list = uc_mgr_get_one_ctl(uc_mgr);
+	ctl_list = uc_mgr_get_master_ctl(uc_mgr);
 	if (ctl_list == NULL)
 		return NULL;
 	return strdup(snd_ctl_card_info_get_id(ctl_list->ctl_info));
@@ -94,7 +94,7 @@ static char *rval_card_driver(snd_use_case_mgr_t *uc_mgr)
 {
 	struct ctl_list *ctl_list;
 
-	ctl_list = uc_mgr_get_one_ctl(uc_mgr);
+	ctl_list = uc_mgr_get_master_ctl(uc_mgr);
 	if (ctl_list == NULL)
 		return NULL;
 	return strdup(snd_ctl_card_info_get_driver(ctl_list->ctl_info));
@@ -104,7 +104,7 @@ static char *rval_card_name(snd_use_case_mgr_t *uc_mgr)
 {
 	struct ctl_list *ctl_list;
 
-	ctl_list = uc_mgr_get_one_ctl(uc_mgr);
+	ctl_list = uc_mgr_get_master_ctl(uc_mgr);
 	if (ctl_list == NULL)
 		return NULL;
 	return strdup(snd_ctl_card_info_get_name(ctl_list->ctl_info));
@@ -114,7 +114,7 @@ static char *rval_card_longname(snd_use_case_mgr_t *uc_mgr)
 {
 	struct ctl_list *ctl_list;
 
-	ctl_list = uc_mgr_get_one_ctl(uc_mgr);
+	ctl_list = uc_mgr_get_master_ctl(uc_mgr);
 	if (ctl_list == NULL)
 		return NULL;
 	return strdup(snd_ctl_card_info_get_longname(ctl_list->ctl_info));
@@ -124,10 +124,35 @@ static char *rval_card_components(snd_use_case_mgr_t *uc_mgr)
 {
 	struct ctl_list *ctl_list;
 
-	ctl_list = uc_mgr_get_one_ctl(uc_mgr);
+	ctl_list = uc_mgr_get_master_ctl(uc_mgr);
 	if (ctl_list == NULL)
 		return NULL;
 	return strdup(snd_ctl_card_info_get_components(ctl_list->ctl_info));
+}
+
+static char *rval_card_id_by_name(snd_use_case_mgr_t *uc_mgr, const char *id)
+{
+	struct ctl_list *ctl_list;
+	char *name, *index;
+	long idx = 0;
+
+	if (uc_mgr->conf_format < 3) {
+		uc_error("CardIdByName substitution is supported in v3+ syntax");
+		return NULL;
+	}
+
+	name = alloca(strlen(id) + 1);
+	strcpy(name, id);
+	index = strchr(name, '#');
+	if (index) {
+		*index = '\0';
+		if (safe_strtol(index + 1, &idx))
+			return NULL;
+	}
+	ctl_list = uc_mgr_get_ctl_by_name(uc_mgr, name, idx);
+	if (ctl_list == NULL)
+		return NULL;
+	return strdup(snd_ctl_card_info_get_id(ctl_list->ctl_info));
 }
 
 static char *rval_env(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED, const char *id)
@@ -265,6 +290,7 @@ int uc_mgr_get_substituted_value(snd_use_case_mgr_t *uc_mgr,
 			MATCH_VARIABLE2(value, "${env:", rval_env);
 			MATCH_VARIABLE2(value, "${sys:", rval_sysfs);
 			MATCH_VARIABLE2(value, "${var:", rval_var);
+			MATCH_VARIABLE2(value, "${CardIdByName:", rval_card_id_by_name);
 			err = -EINVAL;
 			tmp = strchr(value, '}');
 			if (tmp) {

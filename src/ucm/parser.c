@@ -1901,25 +1901,16 @@ static int parse_master_file(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 /* get the card info */
 static int get_card_info(snd_use_case_mgr_t *mgr,
 			 const char *ctl_name,
-			 snd_ctl_t **_handle,
-			 snd_ctl_card_info_t *info)
+			 snd_ctl_card_info_t **info)
 {
-	snd_ctl_t *handle;
+	struct ctl_list *ctl_list;
 	int err;
 
-	*_handle = NULL;
-
-	err = uc_mgr_open_ctl(mgr, &handle, ctl_name);
+	err = uc_mgr_open_ctl(mgr, &ctl_list, ctl_name, 0);
 	if (err < 0)
 		return err;
 
-	err = snd_ctl_card_info(handle, info);
-	if (err < 0) {
-		uc_error("control hardware info (%s): %s", ctl_name, snd_strerror(err));
-	} else {
-		*_handle = handle;
-	}
-
+	*info = ctl_list->ctl_info;
 	return err;
 }
 
@@ -1927,7 +1918,6 @@ static int get_card_info(snd_use_case_mgr_t *mgr,
 static int get_by_card_name(snd_use_case_mgr_t *mgr, const char *card_name)
 {
 	int card, err;
-	snd_ctl_t *ctl;
 	snd_ctl_card_info_t *info;
 	const char *_driver, *_name, *_long_name;
 
@@ -1942,11 +1932,11 @@ static int get_by_card_name(snd_use_case_mgr_t *mgr, const char *card_name)
 	while (card >= 0) {
 		char name[32];
 
-		/* mandatory - clear the list, keep the only one CTL device */
+		/* clear the list, keep the only one CTL device */
 		uc_mgr_free_ctl_list(mgr);
 
 		sprintf(name, "hw:%d", card);
-		err = get_card_info(mgr, name, &ctl, info);
+		err = get_card_info(mgr, name, &info);
 
 		if (err == 0) {
 			_driver = snd_ctl_card_info_get_driver(info);
@@ -1972,13 +1962,12 @@ static int get_by_card_name(snd_use_case_mgr_t *mgr, const char *card_name)
 /* set the driver name and long name by the card ctl name */
 static int get_by_card(snd_use_case_mgr_t *mgr, const char *ctl_name)
 {
-	snd_ctl_t *ctl;
 	snd_ctl_card_info_t *info;
 	int err;
 
 	snd_ctl_card_info_alloca(&info);
 
-	err = get_card_info(mgr, ctl_name, &ctl, info);
+	err = get_card_info(mgr, ctl_name, &info);
 	if (err)
 		return err;
 
