@@ -40,7 +40,7 @@
 
 #ifndef DOC_HIDDEN
 
-#define SO_PATH ALSA_PLUGIN_DIR "/smixer"
+#define SO_PATH "smixer"
 
 typedef struct _class_priv {
 	char *device;

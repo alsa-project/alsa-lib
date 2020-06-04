@@ -2578,13 +2578,13 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 			build_in++;
 		}
 		if (*build_in == NULL) {
-			buf1 = malloc(strlen(str) + sizeof(ALSA_PLUGIN_DIR) + 32);
+			buf1 = malloc(strlen(str) + 32);
 			if (buf1 == NULL) {
 				err = -ENOMEM;
 				goto _err;
 			}
 			lib = buf1;
-			sprintf(buf1, "%s/libasound_module_pcm_%s.so", ALSA_PLUGIN_DIR, str);
+			sprintf(buf1, "libasound_module_pcm_%s.so", str);
 		}
 	}
 #ifndef PIC

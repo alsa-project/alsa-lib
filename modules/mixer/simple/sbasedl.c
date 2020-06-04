@@ -33,7 +33,7 @@
 #include "mixer_abst.h"
 #include "sbase.h"
 
-#define SO_PATH ALSA_PLUGIN_DIR "/smixer"
+#define SO_PATH "smixer"
 
 int mixer_simple_basic_dlopen(snd_mixer_class_t *class,
 			      bclass_base_ops_t **ops)

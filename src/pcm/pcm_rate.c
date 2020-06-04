@@ -1281,7 +1281,7 @@ static const char *const default_rate_plugins[] = {
 
 static int rate_open_func(snd_pcm_rate_t *rate, const char *type, const snd_config_t *converter_conf, int verbose)
 {
-	char open_name[64], open_conf_name[64], lib_name[128], *lib = NULL;
+	char open_name[64], open_conf_name[64], lib_name[64], *lib = NULL;
 	snd_pcm_rate_open_func_t open_func;
 	snd_pcm_rate_open_conf_func_t open_conf_func;
 	int err;
@@ -1290,7 +1290,7 @@ static int rate_open_func(snd_pcm_rate_t *rate, const char *type, const snd_conf
 	snprintf(open_conf_name, sizeof(open_conf_name), "_snd_pcm_rate_%s_open_conf", type);
 	if (!is_builtin_plugin(type)) {
 		snprintf(lib_name, sizeof(lib_name),
-				 "%s/libasound_module_rate_%s.so", ALSA_PLUGIN_DIR, type);
+				 "libasound_module_rate_%s.so", type);
 		lib = lib_name;
 	}
 
