@@ -3819,6 +3819,63 @@ static int config_file_open(snd_config_t *root, const char *filename)
 	return err;
 }
 
+static int config_file_load(snd_config_t *root, const char *fn, int errors)
+{
+	struct stat st;
+	struct dirent **namelist;
+	int err, n;
+
+	if (!errors && access(fn, R_OK) < 0)
+		return 1;
+	if (stat(fn, &st) < 0) {
+		SNDERR("cannot stat file/directory %s", fn);
+		return 1;
+	}
+	if (!S_ISDIR(st.st_mode))
+		return config_file_open(root, fn);
+#ifndef DOC_HIDDEN
+#if defined(_GNU_SOURCE) && !defined(__NetBSD__) && !defined(__FreeBSD__) && !defined(__sun) && !defined(ANDROID)
+#define SORTFUNC	versionsort
+#else
+#define SORTFUNC	alphasort
+#endif
+#endif
+	n = scandir(fn, &namelist, config_filename_filter, SORTFUNC);
+	if (n > 0) {
+		int j;
+		err = 0;
+		for (j = 0; j < n; ++j) {
+			if (err >= 0) {
+				int sl = strlen(fn) + strlen(namelist[j]->d_name) + 2;
+				char *filename = malloc(sl);
+				snprintf(filename, sl, "%s/%s", fn, namelist[j]->d_name);
+				filename[sl-1] = '\0';
+
+				err = config_file_open(root, filename);
+				free(filename);
+			}
+			free(namelist[j]);
+		}
+		free(namelist);
+		if (err < 0)
+			return err;
+	}
+	return 0;
+}
+
+static int config_file_load_user(snd_config_t *root, const char *fn, int errors)
+{
+	char *fn2;
+	int err;
+
+	err = snd_user_file(fn, &fn2);
+	if (err < 0)
+		return config_file_load(root, fn, errors);
+	err = config_file_load(root, fn2, errors);
+	free(fn2);
+	return err;
+}
+
 /**
  * \brief Loads and parses the given configurations files.
  * \param[in] root Handle to the root configuration node.
@@ -3835,8 +3892,7 @@ int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t 
 {
 	snd_config_t *n;
 	snd_config_iterator_t i, next;
-	struct finfo *fi = NULL;
-	int err, idx = 0, fi_count = 0, errors = 1, hit;
+	int err, idx = 0, errors = 1, hit;
 
 	assert(root && dst);
 	if ((err = snd_config_search(config, "errors", &n)) >= 0) {
@@ -3863,20 +3919,6 @@ int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t 
 		SNDERR("Invalid type for field filenames");
 		goto _err;
 	}
-	snd_config_for_each(i, next, n) {
-		snd_config_t *c = snd_config_iterator_entry(i);
-		const char *str;
-		if ((err = snd_config_get_string(c, &str)) < 0) {
-			SNDERR("Field %s is not a string", c->id);
-			goto _err;
-		}
-		fi_count++;
-	}
-	fi = calloc(fi_count, sizeof(*fi));
-	if (fi == NULL) {
-		err = -ENOMEM;
-		goto _err;
-	}
 	do {
 		hit = 0;
 		snd_config_for_each(i, next, n) {
@@ -3890,67 +3932,36 @@ int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t 
 				goto _err;
 			}
 			if (i == idx) {
-				char *name;
+				char *name, *name2, *remain;
 				if ((err = snd_config_get_ascii(n, &name)) < 0)
 					goto _err;
-				if ((err = snd_user_file(name, &fi[idx].name)) < 0)
-					fi[idx].name = name;
-				else
-					free(name);
+				name2 = name;
+				remain = strstr(name, "|||");
+				while (1) {
+					if (remain) {
+						*remain = '\0';
+						remain += 3;
+					}
+					printf("name2 = '%s', remain = '%s'\n", name2, remain);
+					err = config_file_load_user(root, name2, errors);
+					if (err < 0)
+						goto _err;
+					if (err == 0)	/* first hit wins */
+						break;
+					if (!remain)
+						break;
+					name2 = remain;
+					remain = strstr(remain, "|||");
+				}
+				free(name);
 				idx++;
 				hit = 1;
 			}
 		}
 	} while (hit);
-	for (idx = 0; idx < fi_count; idx++) {
-		struct stat st;
-		if (!errors && access(fi[idx].name, R_OK) < 0)
-			continue;
-		if (stat(fi[idx].name, &st) < 0) {
-			SNDERR("cannot stat file/directory %s", fi[idx].name);
-			continue;
-		}
-		if (S_ISDIR(st.st_mode)) {
-			struct dirent **namelist;
-			int n;
-
-#ifndef DOC_HIDDEN
-#if defined(_GNU_SOURCE) && !defined(__NetBSD__) && !defined(__FreeBSD__) && !defined(__sun) && !defined(ANDROID)
-#define SORTFUNC	versionsort
-#else
-#define SORTFUNC	alphasort
-#endif
-#endif
-			n = scandir(fi[idx].name, &namelist, config_filename_filter, SORTFUNC);
-			if (n > 0) {
-				int j;
-				err = 0;
-				for (j = 0; j < n; ++j) {
-					if (err >= 0) {
-						int sl = strlen(fi[idx].name) + strlen(namelist[j]->d_name) + 2;
-						char *filename = malloc(sl);
-						snprintf(filename, sl, "%s/%s", fi[idx].name, namelist[j]->d_name);
-						filename[sl-1] = '\0';
-
-						err = config_file_open(root, filename);
-						free(filename);
-					}
-					free(namelist[j]);
-				}
-				free(namelist);
-				if (err < 0)
-					goto _err;
-			}
-		} else if ((err = config_file_open(root, fi[idx].name)) < 0)
-			goto _err;
-	}
 	*dst = NULL;
 	err = 0;
        _err:
-	if (fi)
-		for (idx = 0; idx < fi_count; idx++)
-			free(fi[idx].name);
-	free(fi);
 	snd_config_delete(n);
 	return err;
 }
