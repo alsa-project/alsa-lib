@@ -97,6 +97,7 @@ extern struct snd_dlsym_link *snd_dlsym_start;
 /** \brief Returns the version of a dynamic symbol as a string. */
 #define SND_DLSYM_VERSION(version) __STRING(version)
 
+int snd_dlpath(char *path, size_t path_len, const char *name);
 void *snd_dlopen(const char *file, int mode, char *errbuf, size_t errbuflen);
 void *snd_dlsym(void *handle, const char *name, const char *version);
 int snd_dlclose(void *handle);

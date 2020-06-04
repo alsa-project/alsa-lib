@@ -21,6 +21,7 @@
 
 #include "Python.h"
 #include <stddef.h>
+#include <limits.h>
 #include "config.h"
 #include "asoundlib.h"
 #include "mixer_abst.h"
@@ -36,7 +37,7 @@ struct python_priv {
 	PyObject *py_mixer;
 };
 
-#define SCRIPT ALSA_PLUGIN_DIR "/smixer/python/main.py"
+#define SCRIPT "smixer/python/main.py"
 
 struct pymelem {
 	PyObject_HEAD
@@ -1110,6 +1111,7 @@ int alsa_mixer_simple_finit(snd_mixer_class_t *class,
 	FILE *fp;
 	const char *file;
 	PyObject *obj, *py_mod;
+	char path[PATH_MAX];
 
 	priv = calloc(1, sizeof(*priv));
 	if (priv == NULL)
@@ -1119,8 +1121,10 @@ int alsa_mixer_simple_finit(snd_mixer_class_t *class,
 	snd_mixer_sbasic_set_private_free(class, alsa_mixer_simple_free);
 
 	file = getenv("ALSA_MIXER_SIMPLE_MPYTHON");
-	if (file == NULL)
-		file = SCRIPT;
+	if (file == NULL) {
+		snd_dlpath(path, sizeof(path), SCRIPT);
+		file = path;
+	}
 
 	fp = fopen(file, "r");
 	if (fp == NULL) {
