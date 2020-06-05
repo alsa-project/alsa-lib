@@ -300,6 +300,11 @@ PCM device for echo reference as described by SND_USE_CASE_MOD_ECHO_REF
 UCM token, may return -ENODATA if the linked playback stream has not been
 started.
 
+There is no defined recovery or event mechanism to signal the data / link
+availability at the moment. The PCM must be completely restarted until
+the mechanism is designed. The #snd_pcm_recover() function cannot be
+used for this.
+
 \section pcm_params Managing parameters
 
 The ALSA PCM device uses two groups of PCM related parameters. The hardware
