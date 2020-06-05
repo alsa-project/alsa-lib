@@ -3942,7 +3942,6 @@ int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t 
 						*remain = '\0';
 						remain += 3;
 					}
-					printf("name2 = '%s', remain = '%s'\n", name2, remain);
 					err = config_file_load_user(root, name2, errors);
 					if (err < 0)
 						goto _err;
