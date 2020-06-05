@@ -376,7 +376,8 @@ int snd_mixer_selem_ask_playback_vol_dB(snd_mixer_elem_t *elem, long value, long
  * \brief Return corresponding integer playback volume for given dB value for a mixer simple element
  * \param elem Mixer simple element handle
  * \param value value to be converted to dB range
- * \param dir rounding mode - rounds up if dir > 0, otherwise rounds down
+ * \param dir rounding mode - rounds up if dir > 0, round to nearest if dir == 0,
+ *            rounds down if dir < 0
  * \param dBvalue pointer to returned dB value
  * \return 0 on success otherwise a negative error code
  */
@@ -454,7 +455,8 @@ int snd_mixer_selem_set_playback_volume(snd_mixer_elem_t *elem, snd_mixer_selem_
  * \param elem Mixer simple element handle
  * \param channel mixer simple element channel identifier
  * \param value control value in dB * 100
- * \param dir rounding mode - rounds up if dir > 0, otherwise rounds down
+ * \param dir rounding mode - rounds up if dir > 0, round to nearest if dir == 0,
+ *            rounds down if dir < 0
  * \return 0 on success otherwise a negative error code
  */
 int snd_mixer_selem_set_playback_dB(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, long value, int dir)
@@ -491,7 +493,8 @@ int snd_mixer_selem_set_playback_volume_all(snd_mixer_elem_t *elem, long value)
  * \brief Set value in dB of playback volume control for all channels of a mixer simple element
  * \param elem Mixer simple element handle
  * \param value control value in dB * 100
- * \param dir rounding mode - rounds up if dir > 0, otherwise rounds down
+ * \param dir rounding mode - rounds up if dir > 0, round to nearest if dir == 0,
+ *            rounds down if dir < 0
  * \return 0 on success otherwise a negative error code
  */
 int snd_mixer_selem_set_playback_dB_all(snd_mixer_elem_t *elem, long value, int dir)
@@ -706,7 +709,8 @@ int snd_mixer_selem_ask_capture_vol_dB(snd_mixer_elem_t *elem, long value, long 
  * \param elem Mixer simple element handle
  * \param dBvalue dB value to be converted to integer range
  * \param value pointer to returned integer value
- * \param dir rounding mode - rounds up if dir > 0, otherwise rounds down
+ * \param dir rounding mode - rounds up if dir > 0, round to nearest if dir == 0,
+ *            rounds down if dir < 0
  * \return 0 on success otherwise a negative error code
  */
 int snd_mixer_selem_ask_capture_dB_vol(snd_mixer_elem_t *elem, long dBvalue, int dir, long *value)
@@ -777,7 +781,8 @@ int snd_mixer_selem_set_capture_volume(snd_mixer_elem_t *elem, snd_mixer_selem_c
  * \param elem Mixer simple element handle
  * \param channel mixer simple element channel identifier
  * \param value control value in dB * 100
- * \param dir rounding mode - rounds up if dir > 0, otherwise rounds down
+ * \param dir rounding mode - rounds up if dir > 0, round to nearest if dir == 0,
+ *            rounds down if dir < 0
  * \return 0 on success otherwise a negative error code
  */
 int snd_mixer_selem_set_capture_dB(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, long value, int dir)
@@ -814,7 +819,8 @@ int snd_mixer_selem_set_capture_volume_all(snd_mixer_elem_t *elem, long value)
  * \brief Set value in dB of capture volume control for all channels of a mixer simple element
  * \param elem Mixer simple element handle
  * \param value control value in dB * 100
- * \param dir rounding mode - rounds up if dir > 0, otherwise rounds down
+ * \param dir rounding mode - rounds up if dir > 0, round to nearest if dir == 0,
+ *            rounds down if dir < 0
  * \return 0 on success otherwise a negative error code
  */
 int snd_mixer_selem_set_capture_dB_all(snd_mixer_elem_t *elem, long value, int dir)

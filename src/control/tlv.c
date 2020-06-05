@@ -286,7 +286,8 @@ int snd_tlv_convert_to_dB(unsigned int *tlv, long rangemin, long rangemax,
  * \param db_gain the dB gain to convert (in 0.01dB unit)
  * \param value the pointer to store the converted raw volume value
  * \param xdir the direction for round-up. The value is round up
- *        when this is positive.
+ *        when this is positive. A negative value means round down.
+ *        Zero means round-up to nearest.
  * \return 0 if successful, or a negative error code
  */
 int snd_tlv_convert_from_dB(unsigned int *tlv, long rangemin, long rangemax,
@@ -346,6 +347,8 @@ int snd_tlv_convert_from_dB(unsigned int *tlv, long rangemin, long rangemax,
 			long v = (db_gain - min) * (rangemax - rangemin);
 			if (xdir > 0)
 				v += (max - min) - 1;
+			else if (xdir == 0)
+				v += ((max - min) + 1) / 2;
 			v = v / (max - min) + rangemin;
 			*value = v;
 		}
@@ -368,6 +371,8 @@ int snd_tlv_convert_from_dB(unsigned int *tlv, long rangemin, long rangemax,
 			long v = (db_gain - min) * (rangemax - rangemin);
 			if (xdir > 0)
 				v += (max - min) - 1;
+			else if (xdir == 0)
+				v += ((max - min) + 1) / 2;
 			v = v / (max - min) + rangemin;
 			*value = v;
 		}
@@ -392,6 +397,8 @@ int snd_tlv_convert_from_dB(unsigned int *tlv, long rangemin, long rangemax,
 			v = (v - vmin) * (rangemax - rangemin) / (vmax - vmin);
 			if (xdir > 0)
 				v = ceil(v);
+			else if (xdir == 0)
+				v = lrint(v);
 			*value = (long)v + rangemin;
 		}
 		return 0;
