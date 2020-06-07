@@ -283,6 +283,11 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
  *                              "=Variable/Modifier/Verb"
  *
  * Recommended names for values:
+ *   - Linked
+ *      - value "True" or "1" (case insensitive)
+ *      - this is a linked UCM card
+ *      - don't use this UCM card, because the other UCM card refers devices
+ *      - valid only in the ValueDefaults section (query '=Linked')
  *   - TQ
  *      - Tone Quality
  *   - Priority
