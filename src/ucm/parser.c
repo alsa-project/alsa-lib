@@ -617,11 +617,12 @@ static int parse_component_seq(snd_use_case_mgr_t *uc_mgr,
 		return err;
 
 	cmpt_seq->device = find_component_dev(uc_mgr, val);
-	free(val);
 	if (!cmpt_seq->device) {
 		uc_error("error: Cannot find component device %s", val);
+		free(val);
 		return -EINVAL;
 	}
+	free(val);
 
 	/* Parent needs its enable or disable sequence */
 	cmpt_seq->enable = enable;
