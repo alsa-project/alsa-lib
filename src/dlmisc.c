@@ -140,7 +140,7 @@ void *snd_dlopen(const char *name, int mode, char *errbuf, size_t errbuflen)
 
 	if (name && name[0] != '/') {
 		if (snd_dlpath(path, sizeof(path), name) == 0) {
-			filename = name;
+			filename = path;
 			handle = dlopen(filename, mode);
 			if (!handle) {
 				/* if the filename exists and cannot be opened */
