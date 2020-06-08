@@ -42,20 +42,20 @@ static char *snd_libdir_origin = NULL;
 #endif
 
 #ifdef HAVE_LIBPTHREAD
-static pthread_mutex_t snd_dlobj_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t snd_dlpath_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-static inline void snd_dlobj_lock(void)
+static inline void snd_dlpath_lock(void)
 {
-	pthread_mutex_lock(&snd_dlobj_mutex);
+	pthread_mutex_lock(&snd_dlpath_mutex);
 }
 
-static inline void snd_dlobj_unlock(void)
+static inline void snd_dlpath_unlock(void)
 {
-	pthread_mutex_unlock(&snd_dlobj_mutex);
+	pthread_mutex_unlock(&snd_dlpath_mutex);
 }
 #else
-static inline void snd_dlobj_lock(void) {}
-static inline void snd_dlobj_unlock(void) {}
+static inline void snd_dlpath_lock(void) {}
+static inline void snd_dlpath_unlock(void) {}
 #endif
 
 /**
@@ -71,7 +71,7 @@ int snd_dlpath(char *path, size_t path_len, const char *name)
 #ifdef HAVE_LIBDL
 #ifdef __GLIBC__
 	static int plugin_dir_set = 0;
-	snd_dlobj_lock();
+	snd_dlpath_lock();
 	if (!plugin_dir_set) {
 		struct link_map *links;
 		Dl_info info;
@@ -85,7 +85,7 @@ int snd_dlpath(char *path, size_t path_len, const char *name)
 		}
 		plugin_dir_set = 1;
 	}
-	snd_dlobj_unlock();
+	snd_dlpath_unlock();
 #endif
 #endif
 	if (snd_libdir_origin)
@@ -286,6 +286,23 @@ struct dlobj_cache {
 	unsigned int refcnt;
 	struct list_head list;
 };
+
+#ifdef HAVE_LIBPTHREAD
+static pthread_mutex_t snd_dlobj_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+static inline void snd_dlobj_lock(void)
+{
+	pthread_mutex_lock(&snd_dlobj_mutex);
+}
+
+static inline void snd_dlobj_unlock(void)
+{
+	pthread_mutex_unlock(&snd_dlobj_mutex);
+}
+#else
+static inline void snd_dlobj_lock(void) {}
+static inline void snd_dlobj_unlock(void) {}
+#endif
 
 static LIST_HEAD(pcm_dlobj_list);
 
