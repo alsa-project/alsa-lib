@@ -38,6 +38,24 @@
 #ifndef PIC
 struct snd_dlsym_link *snd_dlsym_start = NULL;
 #endif
+static char *snd_libdir_origin = NULL;
+#endif
+
+#ifdef HAVE_LIBPTHREAD
+static pthread_mutex_t snd_dlobj_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+static inline void snd_dlobj_lock(void)
+{
+	pthread_mutex_lock(&snd_dlobj_mutex);
+}
+
+static inline void snd_dlobj_unlock(void)
+{
+	pthread_mutex_unlock(&snd_dlobj_mutex);
+}
+#else
+static inline void snd_dlobj_lock(void) {}
+static inline void snd_dlobj_unlock(void) {}
 #endif
 
 /**
@@ -50,10 +68,10 @@ struct snd_dlsym_link *snd_dlsym_start = NULL;
  */
 int snd_dlpath(char *path, size_t path_len, const char *name)
 {
-	static const char *origin_dir = NULL;
 #ifdef HAVE_LIBDL
 #ifdef __GLIBC__
 	static int plugin_dir_set = 0;
+	snd_dlobj_lock();
 	if (!plugin_dir_set) {
 		struct link_map *links;
 		Dl_info info;
@@ -63,14 +81,15 @@ int snd_dlpath(char *path, size_t path_len, const char *name)
 		if (links != NULL && dlinfo(links, RTLD_DI_ORIGIN, origin) == 0) {
 			snprintf(path, path_len, "%s/alsa-lib", origin);
 			if (access(path, X_OK) == 0)
-				origin_dir = origin;
+				snd_libdir_origin = strdup(origin);
 		}
 		plugin_dir_set = 1;
 	}
+	snd_dlobj_unlock();
 #endif
 #endif
-	if (origin_dir)
-		snprintf(path, path_len, "%s/alsa-lib/%s", origin_dir, name);
+	if (snd_libdir_origin)
+		snprintf(path, path_len, "%s/alsa-lib/%s", snd_libdir_origin, name);
 	else
 		snprintf(path, path_len, "%s/%s", ALSA_PLUGIN_DIR, name);
 	return 0;
@@ -268,23 +287,6 @@ struct dlobj_cache {
 	struct list_head list;
 };
 
-#ifdef HAVE_LIBPTHREAD
-static pthread_mutex_t snd_dlobj_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-static inline void snd_dlobj_lock(void)
-{
-	pthread_mutex_lock(&snd_dlobj_mutex);
-}
-
-static inline void snd_dlobj_unlock(void)
-{
-	pthread_mutex_unlock(&snd_dlobj_mutex);
-}
-#else
-static inline void snd_dlobj_lock(void) {}
-static inline void snd_dlobj_unlock(void) {}
-#endif
-
 static LIST_HEAD(pcm_dlobj_list);
 
 static struct dlobj_cache *
@@ -421,7 +423,7 @@ void snd_dlobj_cache_cleanup(void)
 		free((void *)c->lib); /* shut up gcc warning */
 		free(c);
 	}
-
+	free(snd_libdir_origin);
 	snd_dlobj_unlock();
 }
 #endif
