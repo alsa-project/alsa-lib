@@ -274,7 +274,7 @@ int uc_mgr_open_ctl(snd_use_case_mgr_t *uc_mgr,
 	if (err < 0 || id == NULL || id[0] == '\0') {
 		uc_error("control hardware info (%s): %s", device, snd_strerror(err));
 		snd_ctl_close(ctl);
-		return err;
+		return err >= 0 ? -EINVAL : err;
 	}
 
 	/* insert to cache, if just name differs */
