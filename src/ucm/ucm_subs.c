@@ -31,10 +31,15 @@
 
 static char *rval_open_name(snd_use_case_mgr_t *uc_mgr)
 {
+	const char *name;
 	if (uc_mgr->conf_format < 3)
 		return NULL;
-	if (uc_mgr->card_name && uc_mgr->card_name[0])
-		return strdup(uc_mgr->card_name);
+	name = uc_mgr->card_name;
+	if (name) {
+		if (strncmp(name, "strict:", 7) == 0)
+			name += 7;
+		return strdup(name);
+	}
 	return NULL;
 }
 

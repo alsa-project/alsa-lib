@@ -2202,8 +2202,6 @@ int uc_mgr_import_master_config(snd_use_case_mgr_t *uc_mgr)
 		/* do not handle the error here */
 		/* we can refer the virtual UCM config */
 		get_by_card_name(uc_mgr, name);
-	} else {
-		name += 7;
 	}
 
 	err = load_toplevel_config(uc_mgr, &cfg);
