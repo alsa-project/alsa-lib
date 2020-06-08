@@ -180,6 +180,7 @@ static int if_eval_regex_match(snd_use_case_mgr_t *uc_mgr, snd_config_t *eval)
 static int if_eval_control_exists(snd_use_case_mgr_t *uc_mgr, snd_config_t *eval)
 {
 	snd_ctl_t *ctl;
+	struct ctl_list *ctl_list;
 	const char *device = NULL, *ctldef, *enumval = NULL, *name;
 	snd_ctl_elem_id_t *elem_id;
 	snd_ctl_elem_info_t *elem_info;
@@ -228,10 +229,11 @@ static int if_eval_control_exists(snd_use_case_mgr_t *uc_mgr, snd_config_t *eval
 		err = uc_mgr_get_substituted_value(uc_mgr, &s, device);
 		if (err < 0)
 			return err;
-		err = uc_mgr_open_ctl(uc_mgr, &ctl, s, 1);
+		err = uc_mgr_open_ctl(uc_mgr, &ctl_list, s, 1);
 		free(s);
 		if (err < 0)
 			return err;
+		ctl = ctl_list->ctl;
 	}
 
 	snd_ctl_elem_info_set_id(elem_info, elem_id);
