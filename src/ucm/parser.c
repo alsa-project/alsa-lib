@@ -2048,13 +2048,11 @@ static int parse_toplevel_path(snd_use_case_mgr_t *uc_mgr,
 
 		if (dir == NULL) {
 			uc_error("Directory is not defined in %s!", filename);
-			free(file);
-			continue;
+			goto __next;
 		}
 		if (file == NULL) {
 			uc_error("File is not defined in %s!", filename);
-			free(dir);
-			continue;
+			goto __next;
 		}
 
 		ucm_filename(fn, sizeof(fn), version, dir, file);
@@ -2072,6 +2070,7 @@ static int parse_toplevel_path(snd_use_case_mgr_t *uc_mgr,
 			goto __ok;
 		}
 
+__next:
 		free(file);
 		free(dir);
 		dir = NULL;
