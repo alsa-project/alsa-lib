@@ -69,7 +69,7 @@ static inline void snd_dlpath_unlock(void) {}
 int snd_dlpath(char *path, size_t path_len, const char *name)
 {
 #ifdef HAVE_LIBDL
-#ifdef __GLIBC__
+#if defined(__GLIBC__) && !defined(__UCLIBC__)
 	static int plugin_dir_set = 0;
 	snd_dlpath_lock();
 	if (!plugin_dir_set) {
