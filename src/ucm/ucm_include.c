@@ -149,6 +149,18 @@ static int compound_merge(const char *id,
 	}
 
 	idx = 0;
+
+	/* for array, use a temporary non-clashing identifier */
+	if (array > 0) {
+		snd_config_for_each(i, next, dst) {
+			n = snd_config_iterator_entry(i);
+			snprintf(tmpid, sizeof(tmpid), "_tmp_%d", idx++);
+			err = snd_config_set_id(n, tmpid);
+			if (err < 0)
+				return err;
+		}
+	}
+
 	snd_config_for_each(i, next, src) {
 		n = snd_config_iterator_entry(i);
 		err = snd_config_remove(n);
