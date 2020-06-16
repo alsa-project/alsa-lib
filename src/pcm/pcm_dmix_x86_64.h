@@ -58,9 +58,15 @@ static void MIX_AREAS_16(unsigned int size,
 		/*
 		 *  initialization, load RSI, RDI, RBX registers
 		 */
+#ifndef _ILP32
 		"\tmovq %[dst], %%rdi\n"
 		"\tmovq %[src], %%rsi\n"
 		"\tmovq %[sum], %%rbx\n"
+#else
+		"\tmovl %[dst], %%edi\n"
+		"\tmovl %[src], %%esi\n"
+		"\tmovl %[sum], %%ebx\n"
+#endif
 
 		/*
 		 * while (size-- > 0) {
@@ -109,9 +115,15 @@ static void MIX_AREAS_16(unsigned int size,
 		/*
 		 * while (size-- > 0)
 		 */
-		"\tadd %[dst_step], %%rdi\n"
-		"\tadd %[src_step], %%rsi\n"
-		"\tadd %[sum_step], %%rbx\n"
+#ifndef _ILP32
+		"\taddq %[dst_step], %%rdi\n"
+		"\taddq %[src_step], %%rsi\n"
+		"\taddq %[sum_step], %%rbx\n"
+#else
+		"\taddl %[dst_step], %%edi\n"
+		"\taddl %[src_step], %%esi\n"
+		"\taddl %[sum_step], %%ebx\n"
+#endif
 		"\tdecl %[size]\n"
 		"\tjnz 1b\n"
 
@@ -168,9 +180,15 @@ static void MIX_AREAS_32(unsigned int size,
 		/*
 		 *  initialization, load RSI, RDI, RBX registers
 		 */
+#ifndef _ILP32
 		"\tmovq %[dst], %%rdi\n"
 		"\tmovq %[src], %%rsi\n"
 		"\tmovq %[sum], %%rbx\n"
+#else
+		"\tmovl %[dst], %%edi\n"
+		"\tmovl %[src], %%esi\n"
+		"\tmovl %[sum], %%ebx\n"
+#endif
 
 		/*
 		 * while (size-- > 0) {
@@ -241,9 +259,15 @@ static void MIX_AREAS_32(unsigned int size,
 		/*
 		 * while (size-- > 0)
 		 */
-		"\tadd %[dst_step], %%rdi\n"
-		"\tadd %[src_step], %%rsi\n"
-		"\tadd %[sum_step], %%rbx\n"
+#ifndef _ILP32
+		"\taddq %[dst_step], %%rdi\n"
+		"\taddq %[src_step], %%rsi\n"
+		"\taddq %[sum_step], %%rbx\n"
+#else
+		"\taddl %[dst_step], %%edi\n"
+		"\taddl %[src_step], %%esi\n"
+		"\taddl %[sum_step], %%ebx\n"
+#endif
 		"\tdecl %[size]\n"
 		"\tjnz 1b\n"
 
@@ -292,9 +316,15 @@ static void MIX_AREAS_24(unsigned int size,
 		/*
 		 *  initialization, load RSI, RDI, RBX registers
 		 */
+#ifndef _ILP32
 		"\tmovq %[dst], %%rdi\n"
 		"\tmovq %[src], %%rsi\n"
 		"\tmovq %[sum], %%rbx\n"
+#else
+		"\tmovl %[dst], %%edi\n"
+		"\tmovl %[src], %%esi\n"
+		"\tmovl %[sum], %%ebx\n"
+#endif
 
 		/*
 		 * while (size-- > 0) {
@@ -353,9 +383,15 @@ static void MIX_AREAS_24(unsigned int size,
 		/*
 		 * while (size-- > 0)
 		 */
-		"\tadd %[dst_step], %%rdi\n"
-		"\tadd %[src_step], %%rsi\n"
-		"\tadd %[sum_step], %%rbx\n"
+#ifndef _ILP32
+		"\taddq %[dst_step], %%rdi\n"
+		"\taddq %[src_step], %%rsi\n"
+		"\taddq %[sum_step], %%rbx\n"
+#else
+		"\taddl %[dst_step], %%edi\n"
+		"\taddl %[src_step], %%esi\n"
+		"\taddl %[sum_step], %%ebx\n"
+#endif
 		"\tdecl %[size]\n"
 		"\tjnz 1b\n"
 
