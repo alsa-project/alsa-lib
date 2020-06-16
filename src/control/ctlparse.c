@@ -304,6 +304,25 @@ static int get_ctl_enum_item_index(snd_ctl_t *handle,
 	return -1;
 }
 
+static unsigned int get_ctl_type_max_elements(snd_ctl_elem_type_t type)
+{
+	struct snd_ctl_elem_value value;
+
+	switch (type) {
+	case SND_CTL_ELEM_TYPE_BOOLEAN:
+	case SND_CTL_ELEM_TYPE_INTEGER:
+		return ARRAY_SIZE(value.value.integer.value);
+	case SND_CTL_ELEM_TYPE_INTEGER64:
+		return ARRAY_SIZE(value.value.integer64.value);
+	case SND_CTL_ELEM_TYPE_ENUMERATED:
+		return ARRAY_SIZE(value.value.enumerated.item);
+	case SND_CTL_ELEM_TYPE_BYTES:
+		return ARRAY_SIZE(value.value.bytes.data);
+	default:
+		return 0;
+	}
+}
+
 /**
  * \brief parse ASCII string as CTL element value
  * \param handle CTL handle
@@ -331,8 +350,11 @@ int snd_ctl_ascii_value_parse(snd_ctl_t *handle,
 	type = snd_ctl_elem_info_get_type(info);
 	count = snd_ctl_elem_info_get_count(info);
 	snd_ctl_elem_value_set_id(dst, &myid);
+
+	if (count > get_ctl_type_max_elements(type))
+		count = get_ctl_type_max_elements(type);
 	
-	for (idx = 0; idx < count && idx < 128 && ptr && *ptr; idx++) {
+	for (idx = 0; idx < count && ptr && *ptr; idx++) {
 		if (*ptr == ',')
 			goto skip;
 		switch (type) {
