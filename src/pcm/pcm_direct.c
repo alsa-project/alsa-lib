@@ -929,10 +929,14 @@ int snd_pcm_direct_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 			return err;
 		if (dshare->var_periodsize) {
 			/* more tolerant settings... */
-			if (dshare->shmptr->hw.buffer_size.max / 2 > period_size.max)
+			if (dshare->shmptr->hw.buffer_size.max / 2 > period_size.max) {
 				period_size.max = dshare->shmptr->hw.buffer_size.max / 2;
-			if (dshare->shmptr->hw.buffer_time.max / 2 > period_time.max)
+				period_size.openmax = dshare->shmptr->hw.buffer_size.openmax;
+			}
+			if (dshare->shmptr->hw.buffer_time.max / 2 > period_time.max) {
 				period_time.max = dshare->shmptr->hw.buffer_time.max / 2;
+				period_time.openmax = dshare->shmptr->hw.buffer_time.openmax;
+			}
 		}
 
 		err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_PERIOD_SIZE,
