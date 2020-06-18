@@ -246,19 +246,8 @@ static char *rval_var(snd_use_case_mgr_t *uc_mgr, const char *id)
 #define MATCH_VARIABLE2(name, id, fcn)					\
 	if (strncmp((name), (id), sizeof(id) - 1) == 0) {		\
 		idsize = sizeof(id) - 1;				\
-		tmp = strchr(value + idsize, '}');			\
-		if (tmp) {						\
-			rvalsize = tmp - (value + idsize);		\
-			if (rvalsize > sizeof(v2)) {			\
-				err = -ENOMEM;				\
-				goto __error;				\
-			}						\
-			strncpy(v2, value + idsize, rvalsize);		\
-			v2[rvalsize] = '\0';				\
-			idsize += rvalsize + 1;				\
-			rval = fcn(uc_mgr, v2);				\
-			goto __rval;					\
-		}							\
+		fcn2 = (fcn);						\
+		goto __match2;						\
 	}
 
 int uc_mgr_get_substituted_value(snd_use_case_mgr_t *uc_mgr,
@@ -267,8 +256,9 @@ int uc_mgr_get_substituted_value(snd_use_case_mgr_t *uc_mgr,
 {
 	size_t size, nsize, idsize, rvalsize, dpos = 0;
 	const char *tmp;
-	char *r, *nr, *rval, v2[32];
+	char *r, *nr, *rval, v2[48];
 	bool ignore_error, allow_empty;
+	char *(*fcn2)(snd_use_case_mgr_t *, const char *id);
 	int err;
 
 	if (value == NULL)
@@ -294,6 +284,7 @@ __std:
 			goto __std;
 		}
 		allow_empty = false;
+		fcn2 = NULL;
 		MATCH_VARIABLE(value, "${OpenName}", rval_open_name, false);
 		MATCH_VARIABLE(value, "${ConfTopDir}", rval_conf_topdir, false);
 		MATCH_VARIABLE(value, "${ConfDir}", rval_conf_dir, false);
@@ -308,6 +299,7 @@ __std:
 		MATCH_VARIABLE2(value, "${sys:", rval_sysfs);
 		MATCH_VARIABLE2(value, "${var:", rval_var);
 		MATCH_VARIABLE2(value, "${CardIdByName:", rval_card_id_by_name);
+__merr:
 		err = -EINVAL;
 		tmp = strchr(value, '}');
 		if (tmp) {
@@ -318,6 +310,31 @@ __std:
 			uc_error("variable reference '%s' is not complete", value);
 		}
 		goto __error;
+__match2:
+		tmp = strchr(value + idsize, '}');
+		if (tmp) {
+			rvalsize = tmp - (value + idsize);
+			if (rvalsize > sizeof(v2)) {
+				err = -ENOMEM;
+				goto __error;
+			}
+			strncpy(v2, value + idsize, rvalsize);
+			v2[rvalsize] = '\0';
+			idsize += rvalsize + 1;
+			if (*v2 == '$' && uc_mgr->conf_format >= 3) {
+				tmp = uc_mgr_get_variable(uc_mgr, v2 + 1);
+				if (tmp == NULL) {
+					uc_error("define '%s' is not reachable in this context!", v2 + 1);
+					rval = NULL;
+				} else {
+					rval = fcn2(uc_mgr, tmp);
+				}
+			} else {
+				rval = fcn2(uc_mgr, v2);
+			}
+			goto __rval;
+		}
+		goto __merr;
 __rval:
 		if (rval == NULL || (!allow_empty && rval[0] == '\0')) {
 			free(rval);
