@@ -71,18 +71,21 @@ static char *rval_conf_name(snd_use_case_mgr_t *uc_mgr)
 	return NULL;
 }
 
-static char *rval_card_number(snd_use_case_mgr_t *uc_mgr)
+static char *get_card_number(struct ctl_list *ctl_list)
 {
-	struct ctl_list *ctl_list;
 	char num[16];
 
-	if (uc_mgr->conf_format < 3)
-		return NULL;
-	ctl_list = uc_mgr_get_master_ctl(uc_mgr);
 	if (ctl_list == NULL)
 		return strdup("");
 	snprintf(num, sizeof(num), "%i", snd_ctl_card_info_get_card(ctl_list->ctl_info));
 	return strdup(num);
+}
+
+static char *rval_card_number(snd_use_case_mgr_t *uc_mgr)
+{
+	if (uc_mgr->conf_format < 3)
+		return NULL;
+	return get_card_number(uc_mgr_get_master_ctl(uc_mgr));
 }
 
 static char *rval_card_id(snd_use_case_mgr_t *uc_mgr)
@@ -135,16 +138,10 @@ static char *rval_card_components(snd_use_case_mgr_t *uc_mgr)
 	return strdup(snd_ctl_card_info_get_components(ctl_list->ctl_info));
 }
 
-static char *rval_card_id_by_name(snd_use_case_mgr_t *uc_mgr, const char *id)
+static struct ctl_list *get_ctl_list_by_name(snd_use_case_mgr_t *uc_mgr, const char *id)
 {
-	struct ctl_list *ctl_list;
 	char *name, *index;
 	long idx = 0;
-
-	if (uc_mgr->conf_format < 3) {
-		uc_error("CardIdByName substitution is supported in v3+ syntax");
-		return NULL;
-	}
 
 	name = alloca(strlen(id) + 1);
 	strcpy(name, id);
@@ -154,7 +151,29 @@ static char *rval_card_id_by_name(snd_use_case_mgr_t *uc_mgr, const char *id)
 		if (safe_strtol(index + 1, &idx))
 			return NULL;
 	}
-	ctl_list = uc_mgr_get_ctl_by_name(uc_mgr, name, idx);
+	return uc_mgr_get_ctl_by_name(uc_mgr, name, idx);
+}
+
+static char *rval_card_number_by_name(snd_use_case_mgr_t *uc_mgr, const char *id)
+{
+	if (uc_mgr->conf_format < 3) {
+		uc_error("CardNumberByName substitution is supported in v3+ syntax");
+		return NULL;
+	}
+
+	return get_card_number(get_ctl_list_by_name(uc_mgr, id));
+}
+
+static char *rval_card_id_by_name(snd_use_case_mgr_t *uc_mgr, const char *id)
+{
+	struct ctl_list *ctl_list;
+
+	if (uc_mgr->conf_format < 3) {
+		uc_error("CardIdByName substitution is supported in v3+ syntax");
+		return NULL;
+	}
+
+	ctl_list = get_ctl_list_by_name(uc_mgr, id);
 	if (ctl_list == NULL)
 		return NULL;
 	return strdup(snd_ctl_card_info_get_id(ctl_list->ctl_info));
@@ -298,6 +317,7 @@ __std:
 		MATCH_VARIABLE2(value, "${env:", rval_env);
 		MATCH_VARIABLE2(value, "${sys:", rval_sysfs);
 		MATCH_VARIABLE2(value, "${var:", rval_var);
+		MATCH_VARIABLE2(value, "${CardNumberByName:", rval_card_number_by_name);
 		MATCH_VARIABLE2(value, "${CardIdByName:", rval_card_id_by_name);
 __merr:
 		err = -EINVAL;
