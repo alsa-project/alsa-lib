@@ -34,14 +34,21 @@
 #endif
 #include <limits.h>
 
+#if defined(HAVE_LIBDL) && defined(__GLIBC__) && !defined(__UCLIBC__)
+#define DL_ORIGIN_AVAILABLE 1
+#endif
+
 #ifndef DOC_HIDDEN
 #ifndef PIC
 struct snd_dlsym_link *snd_dlsym_start = NULL;
 #endif
+#ifdef DL_ORIGIN_AVAILABLE
+static int snd_libdir_plugin_dir_set = 0;
 static char *snd_libdir_origin = NULL;
 #endif
+#endif
 
-#ifdef HAVE_LIBPTHREAD
+#if defined(DL_ORIGIN_AVAILABLE) && defined(HAVE_LIBPTHREAD)
 static pthread_mutex_t snd_dlpath_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static inline void snd_dlpath_lock(void)
@@ -68,11 +75,9 @@ static inline void snd_dlpath_unlock(void) {}
  */
 int snd_dlpath(char *path, size_t path_len, const char *name)
 {
-#ifdef HAVE_LIBDL
-#if defined(__GLIBC__) && !defined(__UCLIBC__)
-	static int plugin_dir_set = 0;
+#ifdef DL_ORIGIN_AVAILABLE
 	snd_dlpath_lock();
-	if (!plugin_dir_set) {
+	if (!snd_libdir_plugin_dir_set) {
 		struct link_map *links;
 		Dl_info info;
 		char origin[PATH_MAX];
@@ -83,15 +88,17 @@ int snd_dlpath(char *path, size_t path_len, const char *name)
 			if (access(path, X_OK) == 0)
 				snd_libdir_origin = strdup(origin);
 		}
-		plugin_dir_set = 1;
+		snd_libdir_plugin_dir_set = 1;
+	}
+	if (snd_libdir_origin) {
+		snprintf(path, path_len, "%s/alsa-lib/%s", snd_libdir_origin, name);
+	} else {
+		snprintf(path, path_len, "%s/%s", ALSA_PLUGIN_DIR, name);
 	}
 	snd_dlpath_unlock();
+#else
+	snprintf(path, path_len, "%s/%s", ALSA_PLUGIN_DIR, name);
 #endif
-#endif
-	if (snd_libdir_origin)
-		snprintf(path, path_len, "%s/alsa-lib/%s", snd_libdir_origin, name);
-	else
-		snprintf(path, path_len, "%s/%s", ALSA_PLUGIN_DIR, name);
 	return 0;
 }
 
@@ -440,7 +447,13 @@ void snd_dlobj_cache_cleanup(void)
 		free((void *)c->lib); /* shut up gcc warning */
 		free(c);
 	}
-	free(snd_libdir_origin);
 	snd_dlobj_unlock();
+#ifdef DL_ORIGIN_AVAILABLE
+	snd_dlpath_lock();
+	snd_libdir_plugin_dir_set = 0;
+	free(snd_libdir_origin);
+	snd_libdir_origin = NULL;
+	snd_dlpath_unlock();
+#endif
 }
 #endif
