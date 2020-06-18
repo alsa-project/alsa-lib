@@ -268,6 +268,7 @@ int uc_mgr_get_substituted_value(snd_use_case_mgr_t *uc_mgr,
 	size_t size, nsize, idsize, rvalsize, dpos = 0;
 	const char *tmp;
 	char *r, *nr, *rval, v2[32];
+	bool ignore_error, allow_empty;
 	int err;
 
 	if (value == NULL)
@@ -279,62 +280,73 @@ int uc_mgr_get_substituted_value(snd_use_case_mgr_t *uc_mgr,
 		return -ENOMEM;
 
 	while (*value) {
-		if (*value == '$' && *(value+1) == '{') {
-			bool allow_empty = false;
-
-			MATCH_VARIABLE(value, "${OpenName}", rval_open_name, false);
-			MATCH_VARIABLE(value, "${ConfTopDir}", rval_conf_topdir, false);
-			MATCH_VARIABLE(value, "${ConfDir}", rval_conf_dir, false);
-			MATCH_VARIABLE(value, "${ConfName}", rval_conf_name, false);
-			MATCH_VARIABLE(value, "${CardNumber}", rval_card_number, true);
-			MATCH_VARIABLE(value, "${CardId}", rval_card_id, false);
-			MATCH_VARIABLE(value, "${CardDriver}", rval_card_driver, false);
-			MATCH_VARIABLE(value, "${CardName}", rval_card_name, false);
-			MATCH_VARIABLE(value, "${CardLongName}", rval_card_longname, false);
-			MATCH_VARIABLE(value, "${CardComponents}", rval_card_components, true);
-			MATCH_VARIABLE2(value, "${env:", rval_env);
-			MATCH_VARIABLE2(value, "${sys:", rval_sysfs);
-			MATCH_VARIABLE2(value, "${var:", rval_var);
-			MATCH_VARIABLE2(value, "${CardIdByName:", rval_card_id_by_name);
-			err = -EINVAL;
-			tmp = strchr(value, '}');
-			if (tmp) {
-				strncpy(r, value, tmp + 1 - value);
-				r[tmp + 1 - value] = '\0';
-				uc_error("variable '%s' is not known!", r);
-			} else {
-				uc_error("variable reference '%s' is not complete", value);
-			}
-			goto __error;
-__rval:
-			if (rval == NULL || (!allow_empty && rval[0] == '\0')) {
-				free(rval);
-				strncpy(r, value, idsize);
-				r[idsize] = '\0';
-				uc_error("variable '%s' is not defined in this context!", r);
-				err = -EINVAL;
-				goto __error;
-			}
-			value += idsize;
-			rvalsize = strlen(rval);
-			nsize = size + rvalsize - idsize;
-			if (nsize > size) {
-				nr = realloc(r, nsize);
-				if (nr == NULL) {
-					free(rval);
-					err = -ENOMEM;
-					goto __error;
-				}
-				size = nsize;
-				r = nr;
-			}
-			strcpy(r + dpos, rval);
-			dpos += rvalsize;
-			free(rval);
-		} else {
+		if (*value != '$') {
+__std:
 			r[dpos++] = *value;
 			value++;
+			continue;
 		}
+		ignore_error = false;
+		if (value[1] == '$' && value[2] == '{' && uc_mgr->conf_format >= 3) {
+			value++;
+			ignore_error = true;
+		} else if (value[1] != '{') {
+			goto __std;
+		}
+		allow_empty = false;
+		MATCH_VARIABLE(value, "${OpenName}", rval_open_name, false);
+		MATCH_VARIABLE(value, "${ConfTopDir}", rval_conf_topdir, false);
+		MATCH_VARIABLE(value, "${ConfDir}", rval_conf_dir, false);
+		MATCH_VARIABLE(value, "${ConfName}", rval_conf_name, false);
+		MATCH_VARIABLE(value, "${CardNumber}", rval_card_number, true);
+		MATCH_VARIABLE(value, "${CardId}", rval_card_id, false);
+		MATCH_VARIABLE(value, "${CardDriver}", rval_card_driver, false);
+		MATCH_VARIABLE(value, "${CardName}", rval_card_name, false);
+		MATCH_VARIABLE(value, "${CardLongName}", rval_card_longname, false);
+		MATCH_VARIABLE(value, "${CardComponents}", rval_card_components, true);
+		MATCH_VARIABLE2(value, "${env:", rval_env);
+		MATCH_VARIABLE2(value, "${sys:", rval_sysfs);
+		MATCH_VARIABLE2(value, "${var:", rval_var);
+		MATCH_VARIABLE2(value, "${CardIdByName:", rval_card_id_by_name);
+		err = -EINVAL;
+		tmp = strchr(value, '}');
+		if (tmp) {
+			strncpy(r, value, tmp + 1 - value);
+			r[tmp + 1 - value] = '\0';
+			uc_error("variable '%s' is not known!", r);
+		} else {
+			uc_error("variable reference '%s' is not complete", value);
+		}
+		goto __error;
+__rval:
+		if (rval == NULL || (!allow_empty && rval[0] == '\0')) {
+			free(rval);
+			if (ignore_error) {
+				value += idsize;
+				continue;
+			}
+			strncpy(r, value, idsize);
+			r[idsize] = '\0';
+			uc_error("variable '%s' is not defined in this context!", r);
+			err = -EINVAL;
+			goto __error;
+		}
+		value += idsize;
+		rvalsize = strlen(rval);
+		nsize = size + rvalsize - idsize;
+		if (nsize > size) {
+			nr = realloc(r, nsize);
+			if (nr == NULL) {
+				free(rval);
+				err = -ENOMEM;
+				goto __error;
+			}
+			size = nsize;
+			r = nr;
+		}
+		strcpy(r + dpos, rval);
+		dpos += rvalsize;
+		free(rval);
 	}
 	r[dpos] = '\0';
 
