@@ -732,6 +732,7 @@ int snd_pcm_extplug_create(snd_pcm_extplug_t *extplug, const char *name,
 	pcm->private_data = ext;
 	pcm->poll_fd = spcm->poll_fd;
 	pcm->poll_events = spcm->poll_events;
+	pcm->tstamp_type = spcm->tstamp_type;
 	snd_pcm_set_hw_ptr(pcm, &ext->plug.hw_ptr, -1, 0);
 	snd_pcm_set_appl_ptr(pcm, &ext->plug.appl_ptr, -1, 0);
 
