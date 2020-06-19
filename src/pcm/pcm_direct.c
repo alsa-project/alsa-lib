@@ -82,7 +82,13 @@ int snd_pcm_direct_semaphore_create_or_connect(snd_pcm_direct_t *dmix)
 	return 0;
 }
 
-#define SND_PCM_DIRECT_MAGIC	(0xa15ad300 + sizeof(snd_pcm_direct_share_t))
+static unsigned int snd_pcm_direct_magic(snd_pcm_direct_t *dmix)
+{
+	if (!dmix->direct_memory_access)
+		return 0xa15ad300 + sizeof(snd_pcm_direct_share_t);
+	else
+		return 0xb15ad300 + sizeof(snd_pcm_direct_share_t);
+}
 
 /*
  *  global shared memory area 
@@ -132,10 +138,10 @@ retryget:
 			buf.shm_perm.gid = dmix->ipc_gid;
 			shmctl(dmix->shmid, IPC_SET, &buf);
 		}
-		dmix->shmptr->magic = SND_PCM_DIRECT_MAGIC;
+		dmix->shmptr->magic = snd_pcm_direct_magic(dmix);
 		return 1;
 	} else {
-		if (dmix->shmptr->magic != SND_PCM_DIRECT_MAGIC) {
+		if (dmix->shmptr->magic != snd_pcm_direct_magic(dmix)) {
 			snd_pcm_direct_shm_discard(dmix);
 			return -EINVAL;
 		}
@@ -1892,7 +1898,11 @@ int snd_pcm_direct_parse_open_conf(snd_config_t *root, snd_config_t *conf,
 	rec->slowptr = 1;
 	rec->max_periods = 0;
 	rec->var_periodsize = 0;
+#ifdef LOCKLESS_DMIX_DEFAULT
 	rec->direct_memory_access = 1;
+#else
+	rec->direct_memory_access = 0;
+#endif
 	rec->hw_ptr_alignment = SND_PCM_HW_PTR_ALIGNMENT_AUTO;
 	rec->tstamp_type = -1;
 

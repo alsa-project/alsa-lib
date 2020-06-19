@@ -629,6 +629,19 @@ if test "$build_pcm_mmap_emul" = "yes"; then
   AC_DEFINE([BUILD_PCM_PLUGIN_MMAP_EMUL], "1", [Build PCM mmap-emul plugin])
 fi
 
+if test "$build_pcm_dmix" = "yes"; then
+AC_MSG_CHECKING(for default lockless dmix)
+AC_ARG_ENABLE(lockless-dmix,
+  AS_HELP_STRING([--enable-lockless-dmix],
+    [use lockless dmix as default on x86]),
+  lockless_dmix="$enableval", lockless_dmix="no")
+if test "$lockless_dmix" = "yes"; then
+  AC_MSG_RESULT(yes)
+  AC_DEFINE([LOCKLESS_DMIX_DEFAULT], "1", [Lockless dmix as default])
+else
+  AC_MSG_RESULT(no)
+fi
+fi
 
 dnl Create PCM plugin symbol list for static library
 rm -f "$srcdir"/src/pcm/pcm_symbols_list.c
