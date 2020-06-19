@@ -43,7 +43,6 @@ static inline unsigned long __cmpxchg(volatile void *ptr, unsigned long old,
 #ifndef ARCH_ADD
 #define ARCH_ADD(p,a) (*(p) += (a))
 #define ARCH_CMPXCHG(p,a,b) (*(p)) /* fake */
-#define NO_CONCURRENT_ACCESS	/* use semaphore to avoid race */
 #define IS_CONCURRENT	0	/* no race check */
 #endif
 
@@ -530,6 +529,7 @@ static void generic_mix_select_callbacks(snd_pcm_direct_t *dmix)
 	dmix->u.dmix.mix_areas_u8 = generic_mix_areas_u8;
 	dmix->u.dmix.remix_areas_24 = generic_remix_areas_24;
 	dmix->u.dmix.remix_areas_u8 = generic_remix_areas_u8;
+	dmix->u.dmix.use_sem = 1;
 }
 
 #endif

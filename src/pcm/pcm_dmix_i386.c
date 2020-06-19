@@ -135,4 +135,5 @@ static void mix_select_callbacks(snd_pcm_direct_t *dmix)
 		dmix->u.dmix.mix_areas_24 = smp > 1 ? mix_areas_24_smp: mix_areas_24;
 		dmix->u.dmix.remix_areas_24 = smp > 1 ? remix_areas_24_smp: remix_areas_24;
 	}
+	dmix->u.dmix.use_sem = 0;
 }

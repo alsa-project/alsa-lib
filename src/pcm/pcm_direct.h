@@ -186,6 +186,7 @@ struct snd_pcm_direct {
 			mix_areas_32_t *remix_areas_32;
 			mix_areas_24_t *remix_areas_24;
 			mix_areas_u8_t *remix_areas_u8;
+			unsigned int use_sem;
 		} dmix;
 		struct {
 			unsigned long long chn_mask;

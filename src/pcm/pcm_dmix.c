@@ -292,13 +292,17 @@ static void remix_areas(snd_pcm_direct_t *dmix,
  * the area via semaphore
  */
 #ifndef DOC_HIDDEN
-#ifdef NO_CONCURRENT_ACCESS
-#define dmix_down_sem(dmix) snd_pcm_direct_semaphore_down(dmix, DIRECT_IPC_SEM_CLIENT)
-#define dmix_up_sem(dmix) snd_pcm_direct_semaphore_up(dmix, DIRECT_IPC_SEM_CLIENT)
-#else
-#define dmix_down_sem(dmix)
-#define dmix_up_sem(dmix)
-#endif
+static void dmix_down_sem(snd_pcm_direct_t *dmix)
+{
+	if (dmix->u.dmix.use_sem)
+		snd_pcm_direct_semaphore_down(dmix, DIRECT_IPC_SEM_CLIENT);
+}
+
+static void dmix_up_sem(snd_pcm_direct_t *dmix)
+{
+	if (dmix->u.dmix.use_sem)
+		snd_pcm_direct_semaphore_up(dmix, DIRECT_IPC_SEM_CLIENT);
+}
 #endif
 
 /*
