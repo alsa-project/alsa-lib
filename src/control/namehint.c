@@ -543,10 +543,10 @@ static int add_software_devices(snd_config_t *config, snd_config_t *rw_config,
  * User-defined hints are gathered from namehint.IFACE tree like:
  *
  * <code>
- * namehint.pcm {<br>
+ * namehint.pcm [<br>
  *   myfile "file:FILE=/tmp/soundwave.raw|Save sound output to /tmp/soundwave.raw"<br>
- *   myplug "plug:front:Do all conversions for front speakers"<br>
- * }
+ *   myplug "plug:front|Do all conversions for front speakers"<br>
+ * ]
  * </code>
  *
  * Note: The device description is separated with '|' char.
