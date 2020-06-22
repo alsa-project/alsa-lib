@@ -1911,7 +1911,8 @@ static int get_card_info(snd_use_case_mgr_t *mgr,
 	if (err < 0)
 		return err;
 
-	*info = ctl_list->ctl_info;
+	if (info)
+		*info = ctl_list->ctl_info;
 	return err;
 }
 
@@ -1961,18 +1962,9 @@ static int get_by_card_name(snd_use_case_mgr_t *mgr, const char *card_name)
 }
 
 /* set the driver name and long name by the card ctl name */
-static int get_by_card(snd_use_case_mgr_t *mgr, const char *ctl_name)
+static inline int get_by_card(snd_use_case_mgr_t *mgr, const char *ctl_name)
 {
-	snd_ctl_card_info_t *info;
-	int err;
-
-	snd_ctl_card_info_alloca(&info);
-
-	err = get_card_info(mgr, ctl_name, &info);
-	if (err)
-		return err;
-
-	return 0;
+	return get_card_info(mgr, ctl_name, NULL);
 }
 
 static int parse_toplevel_path(snd_use_case_mgr_t *uc_mgr,
