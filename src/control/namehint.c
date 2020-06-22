@@ -78,6 +78,31 @@ static int hint_list_add(struct hint_list *list,
 	return 0;
 }
 
+/**
+ * Add a namehint from string given in a user configuration file
+ */
+static int hint_list_add_custom(struct hint_list *list,
+				const char *entry)
+{
+	int err;
+	const char *sep;
+	char *name;
+
+	assert(entry);
+
+	sep = strchr(entry, '|');
+	if (sep == NULL)
+		return hint_list_add(list, entry, NULL);
+
+	name = strndup(entry, sep - entry);
+	if (name == NULL)
+		return -ENOMEM;
+
+	err = hint_list_add(list, name, sep + 1);
+	free(name);
+	return err;
+}
+
 static void zero_handler(const char *file ATTRIBUTE_UNUSED,
 			 int line ATTRIBUTE_UNUSED,
 			 const char *function ATTRIBUTE_UNUSED,
@@ -626,7 +651,7 @@ int snd_device_name_hint(int card, const char *iface, void ***hints)
 			if (snd_config_get_string(snd_config_iterator_entry(i),
 						  &str) < 0)
 				continue;
-			err = hint_list_add(&list, str, NULL);
+			err = hint_list_add_custom(&list, str);
 			if (err < 0)
 				goto __error;
 		}
