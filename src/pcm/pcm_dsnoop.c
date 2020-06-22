@@ -165,7 +165,7 @@ static int snd_pcm_dsnoop_sync_ptr(snd_pcm_t *pcm)
 	// printf("sync ptr diff = %li\n", diff);
 	if (pcm->stop_threshold >= pcm->boundary)	/* don't care */
 		return 0;
-	if ((avail = snd_pcm_mmap_capture_hw_avail(pcm)) >= pcm->stop_threshold) {
+	if ((avail = snd_pcm_mmap_capture_avail(pcm)) >= pcm->stop_threshold) {
 		gettimestamp(&dsnoop->trigger_tstamp, pcm->tstamp_type);
 		dsnoop->state = SND_PCM_STATE_XRUN;
 		dsnoop->avail_max = avail;
