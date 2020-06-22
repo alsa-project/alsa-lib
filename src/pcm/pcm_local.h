@@ -582,11 +582,17 @@ static inline snd_pcm_uframes_t snd_pcm_mmap_hw_offset(snd_pcm_t *pcm)
 	return *pcm->hw.ptr % pcm->buffer_size;
 }
 
+/*
+ * \retval number of frames pending from application to hardware
+ */
 static inline snd_pcm_uframes_t snd_pcm_mmap_playback_delay(snd_pcm_t *pcm)
 {
 	return snd_pcm_mmap_playback_hw_avail(pcm);
 }
 
+/*
+ * \retval number of frames pending from hardware to application
+ */
 static inline snd_pcm_uframes_t snd_pcm_mmap_capture_delay(snd_pcm_t *pcm)
 {
 	return snd_pcm_mmap_capture_avail(pcm);
