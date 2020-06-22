@@ -480,6 +480,13 @@ static inline int snd_pcm_check_error(snd_pcm_t *pcm, int err)
 	return err;
 }
 
+/**
+ * \retval number of frames available to the application for playback
+ *
+ * This is how far ahead the hardware position in the ring buffer is,
+ * compared to the application position. ie. for playback it's the
+ * number of frames in the empty part of the ring buffer.
+ */
 static inline snd_pcm_uframes_t __snd_pcm_playback_avail(snd_pcm_t *pcm,
 							 const snd_pcm_uframes_t hw_ptr,
 							 const snd_pcm_uframes_t appl_ptr)
@@ -498,6 +505,13 @@ static inline snd_pcm_uframes_t snd_pcm_mmap_playback_avail(snd_pcm_t *pcm)
 	return __snd_pcm_playback_avail(pcm, *pcm->hw.ptr, *pcm->appl.ptr);
 }
 
+/*
+ * \retval number of frames available to the application for capture
+ *
+ * This is how far ahead the hardware position in the ring buffer is
+ * compared to the application position.  ie. for capture, it's the
+ * number of frames in the filled part of the ring buffer.
+ */
 static inline snd_pcm_uframes_t __snd_pcm_capture_avail(snd_pcm_t *pcm,
 							const snd_pcm_uframes_t hw_ptr,
 							const snd_pcm_uframes_t appl_ptr)
@@ -529,11 +543,21 @@ static inline snd_pcm_uframes_t snd_pcm_mmap_avail(snd_pcm_t *pcm)
 	return __snd_pcm_avail(pcm, *pcm->hw.ptr, *pcm->appl.ptr);
 }
 
+/*
+ * \retval number of frames available to the hardware for playback
+ *
+ * ie. the filled part of the ring buffer
+ */
 static inline snd_pcm_sframes_t snd_pcm_mmap_playback_hw_avail(snd_pcm_t *pcm)
 {
 	return pcm->buffer_size - snd_pcm_mmap_playback_avail(pcm);
 }
 
+/*
+ * \retval number of frames available to the hardware for capture
+ *
+ * ie. the empty part of the ring buffer.
+ */
 static inline snd_pcm_sframes_t snd_pcm_mmap_capture_hw_avail(snd_pcm_t *pcm)
 {
 	return pcm->buffer_size - snd_pcm_mmap_capture_avail(pcm);
