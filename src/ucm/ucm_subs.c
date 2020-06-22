@@ -334,7 +334,7 @@ __match2:
 		tmp = strchr(value + idsize, '}');
 		if (tmp) {
 			rvalsize = tmp - (value + idsize);
-			if (rvalsize > sizeof(v2)) {
+			if (rvalsize >= sizeof(v2)) {
 				err = -ENOMEM;
 				goto __error;
 			}
