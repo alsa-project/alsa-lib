@@ -285,11 +285,14 @@ static int if_eval(snd_use_case_mgr_t *uc_mgr, snd_config_t *eval)
 		return -EINVAL;
 	}
 
-	if (strcmp(type, "ControlExists") == 0)
-		return if_eval_control_exists(uc_mgr, eval);
+	if (strcmp(type, "AlwaysTrue") == 0)
+		return 1;
 
 	if (strcmp(type, "String") == 0)
 		return if_eval_string(uc_mgr, eval);
+
+	if (strcmp(type, "ControlExists") == 0)
+		return if_eval_control_exists(uc_mgr, eval);
 
 	if (strcmp(type, "RegexMatch") == 0)
 		return if_eval_regex_match(uc_mgr, eval);
