@@ -262,9 +262,10 @@ static char *rval_var(snd_use_case_mgr_t *uc_mgr, const char *id)
 		goto __rval;						\
 	}
 
-#define MATCH_VARIABLE2(name, id, fcn)					\
+#define MATCH_VARIABLE2(name, id, fcn, empty_ok)			\
 	if (strncmp((name), (id), sizeof(id) - 1) == 0) {		\
 		idsize = sizeof(id) - 1;				\
+		allow_empty = (empty_ok);				\
 		fcn2 = (fcn);						\
 		goto __match2;						\
 	}
@@ -314,11 +315,11 @@ __std:
 		MATCH_VARIABLE(value, "${CardName}", rval_card_name, false);
 		MATCH_VARIABLE(value, "${CardLongName}", rval_card_longname, false);
 		MATCH_VARIABLE(value, "${CardComponents}", rval_card_components, true);
-		MATCH_VARIABLE2(value, "${env:", rval_env);
-		MATCH_VARIABLE2(value, "${sys:", rval_sysfs);
-		MATCH_VARIABLE2(value, "${var:", rval_var);
-		MATCH_VARIABLE2(value, "${CardNumberByName:", rval_card_number_by_name);
-		MATCH_VARIABLE2(value, "${CardIdByName:", rval_card_id_by_name);
+		MATCH_VARIABLE2(value, "${env:", rval_env, false);
+		MATCH_VARIABLE2(value, "${sys:", rval_sysfs, false);
+		MATCH_VARIABLE2(value, "${var:", rval_var, true);
+		MATCH_VARIABLE2(value, "${CardNumberByName:", rval_card_number_by_name, false);
+		MATCH_VARIABLE2(value, "${CardIdByName:", rval_card_id_by_name, false);
 __merr:
 		err = -EINVAL;
 		tmp = strchr(value, '}');
