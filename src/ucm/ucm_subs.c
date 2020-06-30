@@ -303,7 +303,6 @@ __std:
 		} else if (value[1] != '{') {
 			goto __std;
 		}
-		allow_empty = false;
 		fcn2 = NULL;
 		MATCH_VARIABLE(value, "${OpenName}", rval_open_name, false);
 		MATCH_VARIABLE(value, "${ConfTopDir}", rval_conf_topdir, false);
@@ -365,7 +364,8 @@ __rval:
 			}
 			strncpy(r, value, idsize);
 			r[idsize] = '\0';
-			uc_error("variable '%s' is not defined in this context!", r);
+			uc_error("variable '%s' is %s in this context!", r,
+				 rval ? "empty" : "not defined");
 			err = -EINVAL;
 			goto __error;
 		}
