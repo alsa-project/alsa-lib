@@ -49,8 +49,8 @@ are managed according to below model.
    - An element includes some members to have a value. The value of each member
      can be changed by both of userspace applications and drivers in kernel.
 
-Each element can be identified by two ways; a combination of name and index, or
-numerical number (numid).
+Each element can be identified by two ways; the numerical number (numid), or the
+combination of interface, device, subdevice, name, and index.
 
 The type of element set is one of integer, integerr64, boolean, enumerators,
 bytes and IEC958 structure. This indicates the type of value for each member in
