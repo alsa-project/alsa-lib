@@ -234,9 +234,14 @@ int parse_get_safe_name(snd_use_case_mgr_t *uc_mgr, snd_config_t *n,
 		if (err < 0)
 			return err;
 	}
-	if (!parse_is_name_safe(id))
+	err = get_string3(uc_mgr, id, name);
+	if (err < 0)
+		return err;
+	if (!parse_is_name_safe(*name)) {
+		free(*name);
 		return -EINVAL;
-	return get_string3(uc_mgr, id, name);
+	}
+	return 0;
 }
 
 /*
