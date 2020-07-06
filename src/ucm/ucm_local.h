@@ -307,7 +307,11 @@ int uc_mgr_get_substituted_value(snd_use_case_mgr_t *uc_mgr,
 				 char **_rvalue,
 				 const char *value);
 
-int uc_mgr_config_tree_merge(snd_config_t *parent, snd_config_t *new_ctx,
+int uc_mgr_substitute_tree(snd_use_case_mgr_t *uc_mgr,
+			   snd_config_t *node);
+
+int uc_mgr_config_tree_merge(snd_use_case_mgr_t *uc_mgr,
+			     snd_config_t *parent, snd_config_t *new_ctx,
 			     snd_config_t *before, snd_config_t *after);
 
 int uc_mgr_evaluate_inplace(snd_use_case_mgr_t *uc_mgr,

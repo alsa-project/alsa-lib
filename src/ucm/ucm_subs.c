@@ -395,3 +395,56 @@ __error:
 	free(r);
 	return err;
 }
+
+static inline int uc_mgr_substitute_check(const char *s)
+{
+	return s && strstr(s, "${") != NULL;
+}
+
+int uc_mgr_substitute_tree(snd_use_case_mgr_t *uc_mgr, snd_config_t *node)
+{
+	snd_config_iterator_t i, next;
+	snd_config_t *n;
+	const char *id, *s2;
+	char *s;
+	int err;
+
+	err = snd_config_get_id(node, &id);
+	if (err < 0)
+		return err;
+	if (uc_mgr_substitute_check(id)) {
+		err = uc_mgr_get_substituted_value(uc_mgr, &s, id);
+		if (err < 0)
+			return err;
+		err = snd_config_set_id(node, s);
+		free(s);
+		if (err < 0) {
+			uc_error("unable to set substituted id '%s' (old id '%s')", s, id);
+			return err;
+		}
+	}
+	if (snd_config_get_type(node) != SND_CONFIG_TYPE_COMPOUND) {
+		if (snd_config_get_type(node) == SND_CONFIG_TYPE_STRING) {
+			err = snd_config_get_string(node, &s2);
+			if (err < 0)
+				return err;
+			if (!uc_mgr_substitute_check(s2))
+				return 0;
+			err = uc_mgr_get_substituted_value(uc_mgr, &s, s2);
+			if (err < 0)
+				return err;
+			err = snd_config_set_string(node, s);
+			free(s);
+			if (err < 0)
+				return err;
+		}
+		return 0;
+	}
+	snd_config_for_each(i, next, node) {
+		n = snd_config_iterator_entry(i);
+		err = uc_mgr_substitute_tree(uc_mgr, n);
+		if (err < 0)
+			return err;
+	}
+	return 0;
+}

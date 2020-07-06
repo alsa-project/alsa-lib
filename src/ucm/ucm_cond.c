@@ -401,7 +401,7 @@ int uc_mgr_evaluate_condition(snd_use_case_mgr_t *uc_mgr,
 		err = uc_mgr_evaluate_inplace(uc_mgr, a);
 		if (err < 0)
 			return err;
-		err = uc_mgr_config_tree_merge(parent, a, before, after);
+		err = uc_mgr_config_tree_merge(uc_mgr, parent, a, before, after);
 		if (err < 0)
 			return err;
 		snd_config_delete(a);

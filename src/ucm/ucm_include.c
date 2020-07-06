@@ -206,13 +206,18 @@ static int compound_merge(const char *id,
 	return 0;
 }
 
-int uc_mgr_config_tree_merge(snd_config_t *parent, snd_config_t *new_ctx,
+int uc_mgr_config_tree_merge(snd_use_case_mgr_t *uc_mgr,
+			     snd_config_t *parent, snd_config_t *new_ctx,
 			     snd_config_t *before, snd_config_t *after)
 {
 	snd_config_iterator_t i, next;
 	snd_config_t *n, *parent2;
 	const char *id;
 	int err;
+
+	err = uc_mgr_substitute_tree(uc_mgr, new_ctx);
+	if (err < 0)
+		return err;
 
 	snd_config_for_each(i, next, new_ctx) {
 		n = snd_config_iterator_entry(i);
@@ -271,7 +276,7 @@ int uc_mgr_evaluate_include(snd_use_case_mgr_t *uc_mgr,
 		err = uc_mgr_evaluate_inplace(uc_mgr, a);
 		if (err < 0)
 			return err;
-		err = uc_mgr_config_tree_merge(parent, a, before, after);
+		err = uc_mgr_config_tree_merge(uc_mgr, parent, a, before, after);
 		if (err < 0)
 			return err;
 		snd_config_delete(a);
