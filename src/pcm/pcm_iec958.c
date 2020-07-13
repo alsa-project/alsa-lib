@@ -63,6 +63,7 @@ struct snd_pcm_iec958 {
 	unsigned int byteswap;
 	unsigned char preamble[3];	/* B/M/W or Z/X/Y */
 	snd_pcm_fast_ops_t fops;
+	int hdmi_mode;
 };
 
 enum { PREAMBLE_Z, PREAMBLE_X, PREAMBLE_Y };
@@ -193,6 +194,10 @@ static void snd_pcm_iec958_encode(snd_pcm_iec958_t *iec,
 	unsigned int channel;
 	int32_t sample = 0;
 	int counter = iec->counter;
+	int single_stream = iec->hdmi_mode &&
+			    (iec->status[0] & IEC958_AES0_NONAUDIO) &&
+			    (channels == 8);
+	int counter_step = single_stream ? ((channels + 1) >> 1) : 1;
 	for (channel = 0; channel < channels; ++channel) {
 		const char *src;
 		uint32_t *dst;
@@ -205,7 +210,12 @@ static void snd_pcm_iec958_encode(snd_pcm_iec958_t *iec,
 		src_step = snd_pcm_channel_area_step(src_area);
 		dst_step = snd_pcm_channel_area_step(dst_area) / sizeof(uint32_t);
 		frames1 = frames;
-		iec->counter = counter;
+
+		if (single_stream)
+			iec->counter = (counter + (channel >> 1)) % 192;
+		else
+			iec->counter = counter;
+
 		while (frames1-- > 0) {
 			goto *get;
 #define GET32_END after
@@ -217,9 +227,11 @@ static void snd_pcm_iec958_encode(snd_pcm_iec958_t *iec,
 			*dst = sample;
 			src += src_step;
 			dst += dst_step;
-			iec->counter++;
+			iec->counter += counter_step;
 			iec->counter %= 192;
 		}
+		if (single_stream) /* set counter to ch0 value for next iteration */
+			iec->counter = (counter + frames * counter_step) % 192;
 	}
 }
 #endif /* DOC_HIDDEN */
@@ -473,6 +485,7 @@ static const snd_pcm_ops_t snd_pcm_iec958_ops = {
  * \param close_slave When set, the slave PCM handle is closed with copy PCM
  * \param status_bits The IEC958 status bits
  * \param preamble_vals The preamble byte values
+ * \param hdmi_mode When set, enable HDMI compliant formatting
  * \retval zero on success otherwise a negative error code
  * \warning Using of this function might be dangerous in the sense
  *          of compatibility reasons. The prototype might be freely
@@ -481,7 +494,8 @@ static const snd_pcm_ops_t snd_pcm_iec958_ops = {
 int snd_pcm_iec958_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sformat,
 			snd_pcm_t *slave, int close_slave,
 			const unsigned char *status_bits,
-			const unsigned char *preamble_vals)
+			const unsigned char *preamble_vals,
+		        int hdmi_mode)
 {
 	snd_pcm_t *pcm;
 	snd_pcm_iec958_t *iec;
@@ -518,6 +532,8 @@ int snd_pcm_iec958_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sfo
 		memcpy(iec->status, default_status_bits, sizeof(default_status_bits));
 
 	memcpy(iec->preamble, preamble_vals, 3);
+
+	iec->hdmi_mode = hdmi_mode;
 
 	err = snd_pcm_new(&pcm, SND_PCM_TYPE_IEC958, name, slave->stream, slave->mode);
 	if (err < 0) {
@@ -566,8 +582,13 @@ pcm.name {
 	[preamble.z or preamble.b val]
 	[preamble.x or preamble.m val]
 	[preamble.y or preamble.w val]
+	[hdmi_mode true]
 }
 \endcode
+
+When <code>hdmi_mode</code> is true, 8-channel compressed data is
+formatted as 4 contiguous frames of a single IEC958 stream as required
+by the HDMI HBR specification.
 
 \subsection pcm_plugins_iec958_funcref Function reference
 
@@ -605,6 +626,7 @@ int _snd_pcm_iec958_open(snd_pcm_t **pcmp, const char *name,
 	unsigned char preamble_vals[3] = {
 		0x08, 0x02, 0x04 /* Z, X, Y */
 	};
+	int hdmi_mode = 0;
 
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
@@ -631,6 +653,13 @@ int _snd_pcm_iec958_open(snd_pcm_t **pcmp, const char *name,
 				return -EINVAL;
 			}
 			preamble = n;
+			continue;
+		}
+		if (strcmp(id, "hdmi_mode") == 0) {
+			err = snd_config_get_bool(n);
+			if (err < 0)
+				continue;
+			hdmi_mode = err;
 			continue;
 		}
 		SNDERR("Unknown field %s", id);
@@ -707,7 +736,7 @@ int _snd_pcm_iec958_open(snd_pcm_t **pcmp, const char *name,
 		return err;
 	err = snd_pcm_iec958_open(pcmp, name, sformat, spcm, 1,
 				  status ? status_bits : NULL,
-				  preamble_vals);
+				  preamble_vals, hdmi_mode);
 	if (err < 0)
 		snd_pcm_close(spcm);
 	return err;
