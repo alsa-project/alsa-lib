@@ -212,10 +212,10 @@ static void mix_areas(snd_pcm_direct_t *dmix,
 		do_mix_areas(size,
 			     ((unsigned char *)dst_areas[dchn].addr + dst_areas[dchn].first / 8) + dst_ofs * dst_step,
 			     ((unsigned char *)src_areas[chn].addr + src_areas[chn].first / 8) + src_ofs * src_step,
-			     dmix->u.dmix.sum_buffer + channels * dst_ofs + chn,
+			     dmix->u.dmix.sum_buffer + dmix->shmptr->s.channels * dst_ofs + dchn,
 			     dst_step,
 			     src_step,
-			     channels * sizeof(signed int));
+			     dmix->shmptr->s.channels * sizeof(signed int));
 	}
 }
 
@@ -280,10 +280,10 @@ static void remix_areas(snd_pcm_direct_t *dmix,
 		do_remix_areas(size,
 			       ((unsigned char *)dst_areas[dchn].addr + dst_areas[dchn].first / 8) + dst_ofs * dst_step,
 			       ((unsigned char *)src_areas[chn].addr + src_areas[chn].first / 8) + src_ofs * src_step,
-			       dmix->u.dmix.sum_buffer + channels * dst_ofs + chn,
+			       dmix->u.dmix.sum_buffer + dmix->shmptr->s.channels * dst_ofs + dchn,
 			       dst_step,
 			       src_step,
-			       channels * sizeof(signed int));
+			       dmix->shmptr->s.channels * sizeof(signed int));
 	}
 }
 
