@@ -282,23 +282,27 @@ static int get_ctl_enum_item_index(snd_ctl_t *handle,
 	if (items <= 0)
 		return -1;
 
+	end = *ptr;
+	if (end == '\'' || end == '"')
+		ptr++;
+	else
+		end = '\0';
+
 	for (i = 0; i < items; i++) {
 		snd_ctl_elem_info_set_item(info, i);
 		if (snd_ctl_elem_info(handle, info) < 0)
 			return -1;
 		name = snd_ctl_elem_info_get_item_name(info);
-		end = *ptr;
-		if (end == '\'' || end == '"')
-			ptr++;
-		else
-			end = '\0';
 		len = strlen(name);
-		if (strncmp(name, ptr, len) == 0) {
-			if (ptr[len] == end || ptr[len] == ',' || ptr[len] == '\n') {
-				ptr += len;
-				*ptrp = ptr;
-				return i;
-			}
+		if (strncmp(name, ptr, len))
+			continue;
+		if (end == '\0' && (ptr[len] == '\0' || ptr[len] == ',' || ptr[len] == '\n')) {
+			*ptrp = ptr + len;
+			return i;
+		}
+		if (end != '\0' && ptr[len] == end) {
+			*ptrp = ptr + len + 1;
+			return i;
 		}
 	}
 	return -1;
