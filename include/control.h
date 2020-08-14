@@ -56,7 +56,75 @@ typedef struct _snd_ctl_card_info snd_ctl_card_info_t;
 /** CTL element identifier container */
 typedef struct _snd_ctl_elem_id snd_ctl_elem_id_t;
 
-/** CTL element identifier list container */
+/** CTL element list container
+ *
+ * This is a list of CTL elements. The list contains management
+ * information (e.g. how many elements the sound card has) as well as
+ * the element identifiers. All functions which operate on the list
+ * are named snd_ctl_elem_list_*().
+ *
+ * \par Memory management
+ *
+ * There are two memory areas to deal with: The list container itself
+ * and the memory for the element identifiers.
+ *
+ * To manage the area for the list container, the following functions
+ * are used:
+ *
+ * - snd_ctl_elem_list_malloc() / snd_ctl_elem_list_free() to allocate
+ *   and free memory on the heap, or
+ * - snd_ctl_elem_list_alloca() to allocate the memory on the
+ *   stack. This memory is auto-released when the stack is unwound.
+ *
+ * To manage the space for the element identifiers, the
+ * snd_ctl_elem_list_alloc_space() and snd_ctl_elem_list_free_space()
+ * are used. Allocating the right amount of space can be achieved by
+ * first obtaining the number of elements and then calling
+ * snd_ctl_elem_list_alloc_space():
+ *
+ * \code
+ *   snd_ctl_elem_list_t* list;
+ *   int count;
+ *
+ *   // Initialise list
+ *   snd_ctl_elem_list_malloc(&list);
+ *
+ *   // Get number of elements
+ *   snd_ctl_elem_list(ctl, list);
+ *   count = snd_ctl_elem_list_get_count(list);
+ *
+ *   // Allocate space for identifiers
+ *   snd_ctl_elem_list_alloc_space(list, count);
+ *
+ *   // Get identifiers
+ *   snd_ctl_elem_list(ctl, list); // yes, this is same as above :)
+ *
+ *   // Do something useful with the list...
+ *
+ *   // Cleanup
+ *   snd_ctl_elem_list_free_space(list);
+ *   snd_ctl_elem_list_free(list);
+ * \endcode
+ *
+ *
+ * \par The Elements
+ *
+ * The elements in the list are accessed using an index. This index is
+ * the location in the list; Don't confuse it with the 'index' of the
+ * element identifier. For example:
+ *
+ * \code
+ *     snd_ctl_elem_list_t list;
+ *     unsigned int element_index;
+ *
+ *     // Allocate space, fill list ...
+ *
+ *     element_index = snd_ctl_elem_list_get_index(&list, 2);
+ * \endcode
+ *
+ * This will access the 3rd element in the list (index=2) and get the
+ * elements index from the driver (which might be 13, for example).
+ */
 typedef struct _snd_ctl_elem_list snd_ctl_elem_list_t;
 
 /** CTL element info container */
@@ -354,11 +422,18 @@ void snd_ctl_event_copy(snd_ctl_event_t *dst, const snd_ctl_event_t *src);
 snd_ctl_event_type_t snd_ctl_event_get_type(const snd_ctl_event_t *obj);
 
 size_t snd_ctl_elem_list_sizeof(void);
+
 /** \hideinitializer
- * \brief allocate an invalid #snd_ctl_elem_list_t using standard alloca
- * \param ptr returned pointer
+ *
+ * \brief Allocate a #snd_ctl_elem_list_t using standard alloca.
+ *
+ * The memory is allocated on the stack and will automatically be
+ * released when the stack unwinds (i.e. no free() is needed).
+ *
+ * \param ptr Pointer to allocated memory.
  */
 #define snd_ctl_elem_list_alloca(ptr) __snd_alloca(ptr, snd_ctl_elem_list)
+
 int snd_ctl_elem_list_malloc(snd_ctl_elem_list_t **ptr);
 void snd_ctl_elem_list_free(snd_ctl_elem_list_t *obj);
 void snd_ctl_elem_list_clear(snd_ctl_elem_list_t *obj);

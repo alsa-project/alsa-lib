@@ -280,6 +280,21 @@ int snd_ctl_card_info(snd_ctl_t *ctl, snd_ctl_card_info_t *info)
 
 /**
  * \brief Get a list of element identifiers
+ *
+ * Before calling this function, memoru must be allocated using
+ * snd_ctl_elem_list_malloc().
+ *
+ * This function obtains data from the sound card driver and puts it
+ * into the list.
+ *
+ * If there was space allocated for the element identifiers (using
+ * snd_ctl_elem_list_alloc_space()), information will be filled in. If
+ * too little space was allocated, only a part of the elements will be
+ * queried. If there was too much space allocated, some of it remains
+ * unused. Use snd_ctl_elem_list_get_count() and
+ * snd_ctl_elem_list_get_used() to obtain information about space
+ * usage. See #snd_ctl_elem_list_t to learn more.
+ *
  * \param ctl CTL handle
  * \param list CTL element identifiers list pointer
  * \return 0 on success otherwise a negative error code
@@ -1508,9 +1523,14 @@ const char *snd_ctl_event_type_name(snd_ctl_event_type_t type)
 
 /**
  * \brief allocate space for CTL element identifiers list
- * \param obj CTL element identifiers list
- * \param entries Entries to allocate
- * \return 0 on success otherwise a negative error code
+ *
+ * The space can be released with snd_ctl_elem_list_free_space().
+ *
+ * \param obj CTL element identifiers list.
+ * \param entries How many entries to allocate. See
+ *        #snd_ctl_elem_list_t to learn how to obtain
+ *        this number in advance.
+ * \return 0 on success otherwise a negative error code.
  */
 int snd_ctl_elem_list_alloc_space(snd_ctl_elem_list_t *obj, unsigned int entries)
 {
@@ -1526,6 +1546,10 @@ int snd_ctl_elem_list_alloc_space(snd_ctl_elem_list_t *obj, unsigned int entries
 
 /**
  * \brief free previously allocated space for CTL element identifiers list
+ *
+ * Releases space previously allocated using
+ * snd_ctl_elem_list_alloc_space().
+ *
  * \param obj CTL element identifiers list
  */
 void snd_ctl_elem_list_free_space(snd_ctl_elem_list_t *obj)
@@ -2016,7 +2040,7 @@ snd_ctl_event_type_t snd_ctl_event_get_type(const snd_ctl_event_t *obj)
 }
 
 /**
- * \brief get size of #snd_ctl_elem_list_t
+ * \brief get size of #snd_ctl_elem_list_t.
  * \return size in bytes
  */
 size_t snd_ctl_elem_list_sizeof()
@@ -2025,7 +2049,10 @@ size_t snd_ctl_elem_list_sizeof()
 }
 
 /**
- * \brief allocate an invalid #snd_ctl_elem_list_t using standard malloc
+ * \brief allocate a #snd_ctl_elem_list_t using standard malloc.
+ *
+ * The memory can be released using snd_ctl_elem_list_free().
+ *
  * \param ptr returned pointer
  * \return 0 on success otherwise negative error code
  */
@@ -2039,7 +2066,15 @@ int snd_ctl_elem_list_malloc(snd_ctl_elem_list_t **ptr)
 }
 
 /**
- * \brief frees a previously allocated #snd_ctl_elem_list_t
+ * \brief frees a previously allocated #snd_ctl_elem_list_t.
+ *
+ * Release memory previously allocated using
+ * snd_ctl_elem_list_malloc().
+ *
+ * If you used snd_ctl_elem_list_alloc_space() on the list, you must
+ * use snd_ctl_elem_list_free_space() \em before calling this
+ * function.
+ *
  * \param obj pointer to object to free
  */
 void snd_ctl_elem_list_free(snd_ctl_elem_list_t *obj)
@@ -2048,7 +2083,15 @@ void snd_ctl_elem_list_free(snd_ctl_elem_list_t *obj)
 }
 
 /**
- * \brief clear given #snd_ctl_elem_list_t object
+ * \brief Clear given #snd_ctl_elem_list_t object.
+ *
+ * This will make the stored identifiers inaccessible without freeing
+ * their space.
+ *
+ * \warning The element identifier space cannot be freed after calling
+ *          this function. Therefore, snd_ctl_elem_list_free_space()
+ *          must be called in advance.
+ *
  * \param obj pointer to object to clear
  */
 void snd_ctl_elem_list_clear(snd_ctl_elem_list_t *obj)
@@ -2057,7 +2100,11 @@ void snd_ctl_elem_list_clear(snd_ctl_elem_list_t *obj)
 }
 
 /**
- * \brief copy one #snd_ctl_elem_list_t to another
+ * \brief copy one #snd_ctl_elem_list_t to another.
+ *
+ * This performs a shallow copy. That means the both lists will share
+ * the same space for the elements.  The elements will not be copied.
+ *
  * \param dst pointer to destination
  * \param src pointer to source
  */
@@ -2080,6 +2127,12 @@ void snd_ctl_elem_list_set_offset(snd_ctl_elem_list_t *obj, unsigned int val)
 
 /**
  * \brief Get number of used entries in CTL element identifiers list
+ *
+ * This function returns how many entries are actually filled with
+ * useful information.
+ *
+ * See also snd_ctl_elem_list_get_count().
+ *
  * \param obj CTL element identifier list
  * \return number of used entries
  */
@@ -2090,7 +2143,14 @@ unsigned int snd_ctl_elem_list_get_used(const snd_ctl_elem_list_t *obj)
 }
 
 /**
- * \brief Get total count of elements present in CTL device (information present in every filled CTL element identifiers list)
+ * \brief Get total count of elements present in CTL device
+ *
+ * This function returns how many entries were allocated using
+ * snd_ctl_elem_list_alloc_space(). This information is present after
+ * snd_ctl_elem_list() was called.
+ *
+ * See also snd_ctl_elem_list_get_used().
+ *
  * \param obj CTL element identifier list
  * \return total number of elements
  */
@@ -2140,7 +2200,7 @@ snd_ctl_elem_iface_t snd_ctl_elem_list_get_interface(const snd_ctl_elem_list_t *
 }
 
 /**
- * \brief Get device part of CTL element identifier for an entry of a CTL element identifiers list
+ * \brief Get the device part of CTL element identifier for an entry of a CTL element identifiers list
  * \param obj CTL element identifier list
  * \param idx Index of entry
  * \return CTL element related device
