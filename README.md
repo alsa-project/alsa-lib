@@ -12,3 +12,14 @@ http://www.alsa-project.org/alsa-doc/alsa-lib/
 
 You may give a look for more information about the ALSA project to URL
 http://www.alsa-project.org.
+
+### Submitting patches
+
+The preferred way to submit patches is by sending them by email to the
+alsa-devel mailing list. Sending mail to the list requires subscription,
+subscribe here: https://mailman.alsa-project.org/mailman/listinfo/alsa-devel
+
+Add Takashi Iwai `<tiwai@suse.de>` and/or Jaroslav Kysela `<perex@perex.cz>` to
+Cc so that your patch won't be missed.
+
+Patches are also accepted as GitHub pull requests.
