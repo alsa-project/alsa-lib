@@ -1536,6 +1536,8 @@ static void string_print(char *str, int id, snd_output_t *out)
 	case ']':
 	case '\'':
 	case '"':
+	case '*':
+	case '#':
 		goto quoted;
 	default:
 		if (*p <= 31 || *p >= 127)
