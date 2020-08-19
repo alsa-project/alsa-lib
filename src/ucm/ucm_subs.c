@@ -202,9 +202,12 @@ static char *rval_sysfs(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED, const char 
 		e = "/sys";
 	if (id[0] == '/')
 		id++;
-	snprintf(path, sizeof(path), "%s/%s", e, id);
-	if (lstat(path, &sb) != 0)
-		return NULL;
+	snprintf(path, sizeof(path), "%s/%s/%s", e, id, "module");
+	if (lstat(path, &sb) != 0) {
+		snprintf(path, sizeof(path), "%s/%s", e, id);
+		if (lstat(path, &sb) != 0)
+			return NULL;
+	}
 	if (S_ISLNK(sb.st_mode)) {
 		len = readlink(path, link, sizeof(link) - 1);
 		if (len <= 0) {
