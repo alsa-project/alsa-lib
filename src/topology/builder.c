@@ -55,7 +55,7 @@ static ssize_t write_block_header(snd_tplg_t *tplg, unsigned int type,
 			" offset 0x%zx is %s by %ld bytes",
 			tplg->next_hdr_pos, tplg->bin_pos,
 			tplg->bin_pos > tplg->next_hdr_pos ? "ahead" : "behind",
-			labs(tplg->bin_pos - tplg->next_hdr_pos));
+			tplg->bin_pos - tplg->next_hdr_pos);
 		return -EINVAL;
 	}
 
