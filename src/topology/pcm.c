@@ -376,19 +376,19 @@ static int split_rate(struct snd_soc_tplg_stream_caps *caps, char *str)
 	return 0;
 }
 
-static int parse_unsigned(snd_config_t *n, unsigned int *dst)
+static int parse_unsigned(snd_config_t *n, void *dst)
 {
 	int ival;
 
 	if (tplg_get_integer(n, &ival, 0) < 0)
 		return -EINVAL;
 
-	*dst = ival;
+	unaligned_put32(dst, ival);
 #if TPLG_DEBUG
 	{
 		const char *id;
 		if (snd_config_get_id(n, &id) >= 0)
-			tplg_dbg("\t\t%s: %d", id, *dst);
+			tplg_dbg("\t\t%s: %d", id, ival);
 	}
 #endif
 	return 0;
@@ -621,7 +621,7 @@ static int tplg_parse_streams(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 	struct tplg_elem *elem = private;
 	struct snd_soc_tplg_pcm *pcm;
 	struct snd_soc_tplg_dai *dai;
-	unsigned int *playback, *capture;
+	void *playback, *capture;
 	struct snd_soc_tplg_stream_caps *caps;
 	const char *id, *value;
 	int stream;
@@ -651,10 +651,10 @@ static int tplg_parse_streams(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 
 	if (strcmp(id, "playback") == 0) {
 		stream = SND_SOC_TPLG_STREAM_PLAYBACK;
-		*playback = 1;
+		unaligned_put32(playback, 1);
 	} else if (strcmp(id, "capture") == 0) {
 		stream = SND_SOC_TPLG_STREAM_CAPTURE;
-		*capture = 1;
+		unaligned_put32(capture, 1);
 	} else
 		return -EINVAL;
 
@@ -747,6 +747,7 @@ static int tplg_parse_fe_dai(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
 	const char *id;
+	unsigned int dai_id;
 
 	snd_config_get_id(cfg, &id);
 	tplg_dbg("\t\tFE DAI %s:", id);
@@ -761,12 +762,13 @@ static int tplg_parse_fe_dai(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 			continue;
 
 		if (strcmp(id, "id") == 0) {
-			if (tplg_get_unsigned(n, &pcm->dai_id, 0)) {
+			if (tplg_get_unsigned(n, &dai_id, 0)) {
 				SNDERR("invalid fe dai ID");
 				return -EINVAL;
 			}
 
-			tplg_dbg("\t\t\tindex: %d", pcm->dai_id);
+			unaligned_put32(&pcm->dai_id, dai_id);
+			tplg_dbg("\t\t\tindex: %d", dai_id);
 		}
 	}
 
@@ -790,7 +792,7 @@ int tplg_save_fe_dai(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 
 /* parse a flag bit of the given mask */
 static int parse_flag(snd_config_t *n, unsigned int mask_in,
-		      unsigned int *mask, unsigned int *flags)
+		      void *mask, void *flags)
 {
 	int ret;
 
@@ -798,11 +800,11 @@ static int parse_flag(snd_config_t *n, unsigned int mask_in,
 	if (ret < 0)
 		return ret;
 
-	*mask |= mask_in;
+	unaligned_put32(mask, unaligned_get32(mask) | mask_in);
 	if (ret)
-		*flags |= mask_in;
+		unaligned_put32(flags, unaligned_get32(flags) | mask_in);
 	else
-		*flags &= ~mask_in;
+		unaligned_put32(flags, unaligned_get32(flags) & (~mask_in));
 
 	return 0;
 }

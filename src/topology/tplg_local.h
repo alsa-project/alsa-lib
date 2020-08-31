@@ -225,6 +225,19 @@ struct tplg_table {
 extern struct tplg_table tplg_table[];
 extern unsigned int tplg_table_items;
 
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__ && __SIZEOF_INT__ == 4
+static inline unsigned int unaligned_get32(void *src)
+{
+	unsigned int ret;
+	memcpy(&ret, src, sizeof(ret));
+	return ret;
+}
+static inline void unaligned_put32(void *dst, unsigned int val)
+{
+	memcpy(dst, &val, sizeof(val));
+}
+#endif
+
 #define tplg_log(tplg, type, pos, fmt, args...) do { \
 	if ((tplg)->verbose) \
 		tplg_log_((tplg), (type), (pos), (fmt), ##args); \

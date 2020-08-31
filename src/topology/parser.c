@@ -427,10 +427,8 @@ void snd_tplg_verbose(snd_tplg_t *tplg, int verbose)
 
 static bool is_little_endian(void)
 {
-#ifdef __BYTE_ORDER
-	#if __BYTE_ORDER == __LITTLE_ENDIAN
-		return true;
-	#endif
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__ && __SIZEOF_INT__ == 4
+	return true;
 #endif
 	return false;
 }
