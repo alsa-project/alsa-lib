@@ -121,7 +121,8 @@ int tplg_parse_refs(snd_config_t *cfg, struct tplg_elem *elem,
 /* save references */
 int tplg_save_refs(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 		   struct tplg_elem *elem, unsigned int type,
-		   const char *id, char **dst, const char *pfx)
+		   const char *id, struct tplg_buf *dst,
+		   const char *pfx)
 {
 	struct tplg_ref *ref, *last;
 	struct list_head *pos;
@@ -890,7 +891,7 @@ err:
 /* save tuple set */
 static int tplg_save_tuple_set(struct tplg_vendor_tuples *tuples,
 			       unsigned int set_index,
-			       char **dst, const char *pfx)
+			       struct tplg_buf *dst, const char *pfx)
 {
 	struct tplg_tuple_set *set;
 	struct tplg_tuple *tuple;
@@ -1014,7 +1015,7 @@ static int parse_tuple_sets(snd_config_t *cfg,
 /* save tuple sets */
 int tplg_save_tuple_sets(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 			 struct tplg_elem *elem,
-			 char **dst, const char *pfx)
+			 struct tplg_buf *dst, const char *pfx)
 {
 	struct tplg_vendor_tuples *tuples = elem->tuples;
 	unsigned int i;
@@ -1085,7 +1086,7 @@ int tplg_parse_tokens(snd_tplg_t *tplg, snd_config_t *cfg,
 /* save vendor tokens */
 int tplg_save_tokens(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 		     struct tplg_elem *elem,
-		     char **dst, const char *pfx)
+		     struct tplg_buf *dst, const char *pfx)
 {
 	struct tplg_vendor_tokens *tokens = elem->tokens;
 	unsigned int i;
@@ -1156,7 +1157,7 @@ int tplg_parse_tuples(snd_tplg_t *tplg, snd_config_t *cfg,
 /* save vendor tuples */
 int tplg_save_tuples(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 		     struct tplg_elem *elem,
-		     char **dst, const char *pfx)
+		     struct tplg_buf *dst, const char *pfx)
 {
 	char pfx2[16];
 	int err;
@@ -1242,7 +1243,7 @@ int tplg_parse_manifest_data(snd_tplg_t *tplg, snd_config_t *cfg,
 
 /* save manifest data */
 int tplg_save_manifest_data(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
-			    struct tplg_elem *elem, char **dst,
+			    struct tplg_elem *elem, struct tplg_buf *dst,
 			    const char *pfx)
 {
 	struct list_head *pos;
@@ -1420,7 +1421,7 @@ int tplg_parse_data(snd_tplg_t *tplg, snd_config_t *cfg,
 /* save data element */
 int tplg_save_data(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 		   struct tplg_elem *elem,
-		   char **dst, const char *pfx)
+		   struct tplg_buf *dst, const char *pfx)
 {
 	struct snd_soc_tplg_private *priv = elem->data;
 	struct list_head *pos;

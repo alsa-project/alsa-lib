@@ -105,8 +105,8 @@ int parse_access(snd_config_t *cfg,
 
 /* Save Access */
 static int tplg_save_access(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
-			    struct snd_soc_tplg_ctl_hdr *hdr, char **dst,
-			    const char *pfx)
+			    struct snd_soc_tplg_ctl_hdr *hdr,
+			    struct tplg_buf *dst, const char *pfx)
 {
 	const char *last;
 	unsigned int j, count, access, cval;
@@ -399,7 +399,7 @@ int tplg_parse_tlv(snd_tplg_t *tplg, snd_config_t *cfg,
 /* save TLV data */
 int tplg_save_tlv(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 		  struct tplg_elem *elem,
-		  char **dst, const char *pfx)
+		  struct tplg_buf *dst, const char *pfx)
 {
 	struct snd_soc_tplg_ctl_tlv *tlv = elem->tlv;
 	struct snd_soc_tplg_tlv_dbscale *scale;
@@ -557,7 +557,7 @@ int tplg_parse_control_bytes(snd_tplg_t *tplg,
 /* save control bytes */
 int tplg_save_control_bytes(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 			    struct tplg_elem *elem,
-			    char **dst, const char *pfx)
+			    struct tplg_buf *dst, const char *pfx)
 {
 	struct snd_soc_tplg_bytes_control *be = elem->bytes_ext;
 	char pfx2[16];
@@ -697,7 +697,7 @@ int tplg_parse_control_enum(snd_tplg_t *tplg, snd_config_t *cfg,
 /* save control eunm */
 int tplg_save_control_enum(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 			   struct tplg_elem *elem,
-			   char **dst, const char *pfx)
+			   struct tplg_buf *dst, const char *pfx)
 {
 	struct snd_soc_tplg_enum_control *ec = elem->enum_ctrl;
 	char pfx2[16];
@@ -858,8 +858,8 @@ int tplg_parse_control_mixer(snd_tplg_t *tplg,
 }
 
 int tplg_save_control_mixer(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
-			    struct tplg_elem *elem, char **dst,
-			    const char *pfx)
+			    struct tplg_elem *elem,
+			    struct tplg_buf *dst, const char *pfx)
 {
 	struct snd_soc_tplg_mixer_control *mc = elem->mixer_ctrl;
 	char pfx2[16];

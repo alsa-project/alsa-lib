@@ -138,7 +138,8 @@ int tplg_parse_channel(snd_tplg_t *tplg, snd_config_t *cfg,
 
 int tplg_save_channels(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 		       struct snd_soc_tplg_channel *channel,
-		       unsigned int count, char **dst, const char *pfx)
+		       unsigned int count, struct tplg_buf *dst,
+		       const char *pfx)
 {
 	struct snd_soc_tplg_channel *c;
 	const char *s;

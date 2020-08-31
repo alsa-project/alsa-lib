@@ -19,25 +19,43 @@
 #include "tplg_local.h"
 
 #define SAVE_ALLOC_SHIFT	(13)	/* 8192 bytes */
-#define PRINT_BUF_SIZE		(1024)
+#define PRINT_ALLOC_SHIFT	(10)	/* 1024 bytes */
 #define PRINT_BUF_SIZE_MAX	(1024 * 1024)
+#define NEXT_CHUNK(val, shift)	((((val) >> (shift)) + 1) << (shift))
 
-int tplg_save_printf(char **dst, const char *pfx, const char *fmt, ...)
+void tplg_buf_init(struct tplg_buf *buf)
+{
+	buf->dst = NULL;
+	buf->dst_len = 0;
+	buf->printf_buf = NULL;
+	buf->printf_buf_size = 0;
+}
+
+void tplg_buf_free(struct tplg_buf *buf)
+{
+	free(buf->dst);
+	free(buf->printf_buf);
+}
+
+char *tplg_buf_detach(struct tplg_buf *buf)
+{
+	char *ret = buf->dst;
+	free(buf->printf_buf);
+	return ret;
+}
+
+int tplg_save_printf(struct tplg_buf *dst, const char *pfx, const char *fmt, ...)
 {
 	va_list va;
-	char *buf, *s;
+	char *s;
 	size_t n, l, t, pl;
 	int ret = 0;
-
-	buf = malloc(PRINT_BUF_SIZE);
-	if (!buf)
-		return -ENOMEM;
 
 	if (pfx == NULL)
 		pfx = "";
 
 	va_start(va, fmt);
-	n = vsnprintf(buf, PRINT_BUF_SIZE, fmt, va);
+	n = vsnprintf(dst->printf_buf, dst->printf_buf_size, fmt, va);
 	va_end(va);
 
 	if (n >= PRINT_BUF_SIZE_MAX) {
@@ -45,42 +63,41 @@ int tplg_save_printf(char **dst, const char *pfx, const char *fmt, ...)
 		goto end;
 	}
 
-	if (n >= PRINT_BUF_SIZE) {
-		char *tmp = realloc(buf, n + 1);
-		if (!tmp) {
+	if (n >= dst->printf_buf_size) {
+		t = NEXT_CHUNK(n + 1, PRINT_ALLOC_SHIFT);
+		s = realloc(dst->printf_buf, t);
+		if (!s) {
 			ret = -ENOMEM;
 			goto end;
 		}
-		buf = tmp;
+		dst->printf_buf = s;
+		dst->printf_buf_size = t;
 		va_start(va, fmt);
-		n = vsnprintf(buf, n + 1, fmt, va);
+		n = vsnprintf(dst->printf_buf, n + 1, fmt, va);
 		va_end(va);
 	}
 
 	pl = strlen(pfx);
-	l = *dst ? strlen(*dst) : 0;
+	l = dst->dst_len;
 	t = l + pl + n + 1;
 	/* allocate chunks */
-	if (*dst == NULL ||
+	if (dst->dst == NULL ||
 	    (l >> SAVE_ALLOC_SHIFT) != (t >> SAVE_ALLOC_SHIFT)) {
-		s = realloc(*dst, ((t >> SAVE_ALLOC_SHIFT) + 1) <<
-							SAVE_ALLOC_SHIFT);
+		s = realloc(dst->dst, NEXT_CHUNK(t, SAVE_ALLOC_SHIFT));
 		if (s == NULL) {
-			free(*dst);
-			*dst = NULL;
 			ret = -ENOMEM;
 			goto end;
 		}
 	} else {
-		s = *dst;
+		s = dst->dst;
 	}
 
 	if (pl > 0)
 		strcpy(s + l, pfx);
-	strcpy(s + l + pl, buf);
-	*dst = s;
+	strcpy(s + l + pl, dst->printf_buf);
+	dst->dst = s;
+	dst->dst_len = t - 1;
 end:
-	free(buf);
 	return ret;
 }
 
@@ -209,7 +226,7 @@ static int tplg_check_quoted(const unsigned char *p)
 	return 0;
 }
 
-static int tplg_save_quoted(char **dst, const char *str)
+static int tplg_save_quoted(struct tplg_buf *dst, const char *str)
 {
 	static const char nibble[16] = "0123456789abcdef";
 	unsigned char *p, *d, *t;
@@ -263,7 +280,7 @@ static int tplg_save_quoted(char **dst, const char *str)
 	return tplg_save_printf(dst, NULL, "'%s'", d);
 }
 
-static int tplg_save_string(char **dst, const char *str, int id)
+static int tplg_save_string(struct tplg_buf *dst, const char *str, int id)
 {
 	const unsigned char *p = (const unsigned char *)str;
 
@@ -279,7 +296,7 @@ static int tplg_save_string(char **dst, const char *str, int id)
 	return tplg_save_printf(dst, NULL, "%s", str);
 }
 
-static int save_config(char **dst, int level, const char *delim, snd_config_t *src)
+static int save_config(struct tplg_buf *dst, int level, const char *delim, snd_config_t *src)
 {
 	snd_config_iterator_t i, next;
 	snd_config_t *s;
@@ -400,7 +417,8 @@ retval:
 	return 0;
 }
 
-static int tplg_save(snd_tplg_t *tplg, char **dst, int gindex, const char *prefix)
+static int tplg_save(snd_tplg_t *tplg, struct tplg_buf *dst,
+		     int gindex, const char *prefix)
 {
 	struct tplg_table *tptr;
 	struct tplg_elem *elem;
@@ -484,8 +502,6 @@ static int tplg_save(snd_tplg_t *tplg, char **dst, int gindex, const char *prefi
 	return 0;
 
 _err:
-	free(*dst);
-	*dst = NULL;
 	return err;
 }
 
@@ -540,9 +556,9 @@ static int tplg_index_groups(snd_tplg_t *tplg, int **indexes)
 
 int snd_tplg_save(snd_tplg_t *tplg, char **dst, int flags)
 {
+	struct tplg_buf buf, buf2;
 	snd_input_t *in;
 	snd_config_t *top, *top2;
-	char *dst2;
 	int *indexes, *a;
 	int err;
 
@@ -550,35 +566,41 @@ int snd_tplg_save(snd_tplg_t *tplg, char **dst, int flags)
 	assert(dst);
 	*dst = NULL;
 
+	tplg_buf_init(&buf);
+
 	if (flags & SND_TPLG_SAVE_GROUPS) {
 		err = tplg_index_groups(tplg, &indexes);
 		if (err < 0)
 			return err;
 		for (a = indexes; err >= 0 && *a >= 0; a++) {
-			err = tplg_save_printf(dst, NULL,
+			err = tplg_save_printf(&buf, NULL,
 					       "IndexGroup.%d {\n",
 					       *a);
 			if (err >= 0)
-				err = tplg_save(tplg, dst, *a, "\t");
+				err = tplg_save(tplg, &buf, *a, "\t");
 			if (err >= 0)
-				err = tplg_save_printf(dst, NULL, "}\n");
+				err = tplg_save_printf(&buf, NULL, "}\n");
 		}
 		free(indexes);
 	} else {
-		err = tplg_save(tplg, dst, -1, NULL);
+		err = tplg_save(tplg, &buf, -1, NULL);
 	}
 
 	if (err < 0)
 		goto _err;
 
-	if (*dst == NULL)
-		return -EINVAL;
+	if (buf.dst == NULL) {
+		err = -EINVAL;
+		goto _err;
+	}
 
-	if (flags & SND_TPLG_SAVE_NOCHECK)
+	if (flags & SND_TPLG_SAVE_NOCHECK) {
+		*dst = tplg_buf_detach(&buf);
 		return 0;
+	}
 
 	/* always load configuration - check */
-	err = snd_input_buffer_open(&in, *dst, strlen(*dst));
+	err = snd_input_buffer_open(&in, buf.dst, strlen(buf.dst));
 	if (err < 0) {
 		SNDERR("could not create input buffer");
 		goto _err;
@@ -610,20 +632,20 @@ int snd_tplg_save(snd_tplg_t *tplg, char **dst, int flags)
 		top = top2;
 	}
 
-	dst2 = NULL;
-	err = save_config(&dst2, 0, NULL, top);
+	tplg_buf_init(&buf2);
+	err = save_config(&buf2, 0, NULL, top);
 	snd_config_delete(top);
 	if (err < 0) {
 		SNDERR("could not save configuration");
 		goto _err;
 	}
 
-	free(*dst);
-	*dst = dst2;
+	tplg_buf_free(&buf);
+	*dst = tplg_buf_detach(&buf2);
 	return 0;
 
 _err:
-	free(*dst);
+	tplg_buf_free(&buf);
 	*dst = NULL;
 	return err;
 }

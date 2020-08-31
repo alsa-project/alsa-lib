@@ -538,7 +538,7 @@ int tplg_parse_stream_caps(snd_tplg_t *tplg,
 /* save stream caps */
 int tplg_save_stream_caps(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 			  struct tplg_elem *elem,
-			  char **dst, const char *pfx)
+			  struct tplg_buf *dst, const char *pfx)
 {
 	struct snd_soc_tplg_stream_caps *sc = elem->stream_caps;
 	const char *s;
@@ -686,7 +686,7 @@ static int tplg_parse_streams(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 /* Save the caps and config of a pcm stream */
 int tplg_save_streams(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 		      struct tplg_elem *elem,
-		      char **dst, const char *pfx)
+		      struct tplg_buf *dst, const char *pfx)
 {
 	static const char *stream_ids[2] = {
 		"playback",
@@ -778,7 +778,7 @@ static int tplg_parse_fe_dai(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 /* Save the caps and config of a pcm stream */
 int tplg_save_fe_dai(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 		     struct tplg_elem *elem,
-		     char **dst, const char *pfx)
+		     struct tplg_buf *dst, const char *pfx)
 {
 	struct snd_soc_tplg_pcm *pcm = elem->pcm;
 	int err = 0;
@@ -810,7 +810,7 @@ static int parse_flag(snd_config_t *n, unsigned int mask_in,
 }
 
 static int save_flags(unsigned int flags, unsigned int mask,
-		      char **dst, const char *pfx)
+		      struct tplg_buf *dst, const char *pfx)
 {
 	static unsigned int flag_masks[3] = {
 		SND_SOC_TPLG_LNK_FLGBIT_SYMMETRIC_RATES,
@@ -944,7 +944,7 @@ int tplg_parse_pcm(snd_tplg_t *tplg, snd_config_t *cfg,
 /* save PCM */
 int tplg_save_pcm(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 		  struct tplg_elem *elem,
-		  char **dst, const char *pfx)
+		  struct tplg_buf *dst, const char *pfx)
 {
 	struct snd_soc_tplg_pcm *pcm = elem->pcm;
 	char pfx2[16];
@@ -1081,7 +1081,7 @@ int tplg_parse_dai(snd_tplg_t *tplg, snd_config_t *cfg,
 /* save DAI */
 int tplg_save_dai(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 		  struct tplg_elem *elem,
-		  char **dst, const char *pfx)
+		  struct tplg_buf *dst, const char *pfx)
 {
 	struct snd_soc_tplg_dai *dai = elem->dai;
 	char pfx2[16];
@@ -1235,7 +1235,7 @@ int tplg_parse_link(snd_tplg_t *tplg, snd_config_t *cfg,
 /* save physical link */
 int tplg_save_link(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 		   struct tplg_elem *elem,
-		   char **dst, const char *pfx)
+		   struct tplg_buf *dst, const char *pfx)
 {
 	struct snd_soc_tplg_link_config *link = elem->link;
 	char pfx2[16];
@@ -1315,7 +1315,7 @@ int tplg_parse_cc(snd_tplg_t *tplg, snd_config_t *cfg,
 /* save CC */
 int tplg_save_cc(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 		 struct tplg_elem *elem,
-		 char **dst, const char *pfx)
+		 struct tplg_buf *dst, const char *pfx)
 {
 	struct snd_soc_tplg_link_config *link = elem->link;
 	char pfx2[16];
@@ -1611,7 +1611,7 @@ int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
 /* save hw config */
 int tplg_save_hw_config(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 			struct tplg_elem *elem,
-			char **dst, const char *pfx)
+			struct tplg_buf *dst, const char *pfx)
 {
 	struct snd_soc_tplg_hw_config *hc = elem->hw_cfg;
 	int err;

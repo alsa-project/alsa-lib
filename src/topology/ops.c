@@ -105,8 +105,8 @@ int tplg_parse_ops(snd_tplg_t *tplg ATTRIBUTE_UNUSED, snd_config_t *cfg,
 
 /* save control operations */
 int tplg_save_ops(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
-		  struct snd_soc_tplg_ctl_hdr *hdr, char **dst,
-		  const char *pfx)
+		  struct snd_soc_tplg_ctl_hdr *hdr,
+		  struct tplg_buf *dst, const char *pfx)
 {
 	const char *s;
 	int err;
@@ -191,7 +191,7 @@ int tplg_parse_ext_ops(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 /* save external control operations */
 int tplg_save_ext_ops(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 		      struct snd_soc_tplg_bytes_control *be,
-		      char **dst, const char *pfx)
+		      struct tplg_buf *dst, const char *pfx)
 {
 	const char *s;
 	int err;

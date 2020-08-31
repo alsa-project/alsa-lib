@@ -416,7 +416,8 @@ int tplg_parse_dapm_graph(snd_tplg_t *tplg, snd_config_t *cfg,
 }
 
 /* save DAPM graph */
-int tplg_save_dapm_graph(snd_tplg_t *tplg, int index, char **dst, const char *pfx)
+int tplg_save_dapm_graph(snd_tplg_t *tplg, int index,
+			 struct tplg_buf *dst, const char *pfx)
 {
 	struct snd_soc_tplg_dapm_graph_elem *route;
 	struct list_head *pos;
@@ -669,7 +670,7 @@ int tplg_parse_dapm_widget(snd_tplg_t *tplg,
 /* save DAPM widget */
 int tplg_save_dapm_widget(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 			  struct tplg_elem *elem,
-			  char **dst, const char *pfx)
+			  struct tplg_buf *dst, const char *pfx)
 {
 	struct snd_soc_tplg_dapm_widget *widget = elem->widget;
 	const char *s;

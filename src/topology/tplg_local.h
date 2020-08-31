@@ -200,6 +200,14 @@ struct map_elem {
 	int id;
 };
 
+/* output buffer */
+struct tplg_buf {
+	char *dst;
+	size_t dst_len;
+	char *printf_buf;
+	size_t printf_buf_size;
+};
+
 /* mapping table */
 struct tplg_table {
 	const char *name;
@@ -214,9 +222,9 @@ struct tplg_table {
 	void (*free)(void *);
 	int (*parse)(snd_tplg_t *tplg, snd_config_t *cfg, void *priv);
 	int (*save)(snd_tplg_t *tplg, struct tplg_elem *elem,
-		    char **dst, const char *prefix);
+		    struct tplg_buf *dst, const char *prefix);
 	int (*gsave)(snd_tplg_t *tplg, int index,
-		     char **dst, const char *prefix);
+		     struct tplg_buf *dst, const char *prefix);
 	int (*decod)(snd_tplg_t *tplg, size_t pos,
 		     struct snd_soc_tplg_hdr *hdr,
 		     void *bin, size_t size);
@@ -348,49 +356,49 @@ int tplg_add_dai_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t);
 
 int tplg_nice_value_format(char *dst, size_t dst_size, unsigned int value);
 
-int tplg_save_printf(char **dst, const char *prefix, const char *fmt, ...);
+int tplg_save_printf(struct tplg_buf *dst, const char *prefix, const char *fmt, ...);
 int tplg_save_refs(snd_tplg_t *tplg, struct tplg_elem *elem, unsigned int type,
-		   const char *id, char **dst, const char *pfx);
+		   const char *id, struct tplg_buf *dst, const char *pfx);
 int tplg_save_channels(snd_tplg_t *tplg, struct snd_soc_tplg_channel *channel,
-		       unsigned int channel_count, char **dst, const char *pfx);
+		       unsigned int channel_count, struct tplg_buf *dst, const char *pfx);
 int tplg_save_ops(snd_tplg_t *tplg, struct snd_soc_tplg_ctl_hdr *hdr,
-		  char **dst, const char *pfx);
+		  struct tplg_buf *dst, const char *pfx);
 int tplg_save_ext_ops(snd_tplg_t *tplg, struct snd_soc_tplg_bytes_control *be,
-		      char **dst, const char *pfx);
+		      struct tplg_buf *dst, const char *pfx);
 int tplg_save_manifest_data(snd_tplg_t *tplg, struct tplg_elem *elem,
-			    char **dst, const char *pfx);
+			    struct tplg_buf *dst, const char *pfx);
 int tplg_save_control_mixer(snd_tplg_t *tplg, struct tplg_elem *elem,
-			    char **dst, const char *pfx);
+			    struct tplg_buf *dst, const char *pfx);
 int tplg_save_control_enum(snd_tplg_t *tplg, struct tplg_elem *elem,
-			   char **dst, const char *pfx);
+			   struct tplg_buf *dst, const char *pfx);
 int tplg_save_control_bytes(snd_tplg_t *tplg, struct tplg_elem *elem,
-			    char **dst, const char *pfx);
+			    struct tplg_buf *dst, const char *pfx);
 int tplg_save_tlv(snd_tplg_t *tplg, struct tplg_elem *elem,
-		  char **dst, const char *pfx);
+		  struct tplg_buf *dst, const char *pfx);
 int tplg_save_data(snd_tplg_t *tplg, struct tplg_elem *elem,
-		   char **dst, const char *pfx);
+		   struct tplg_buf *dst, const char *pfx);
 int tplg_save_text(snd_tplg_t *tplg, struct tplg_elem *elem,
-		   char **dst, const char *pfx);
+		   struct tplg_buf *dst, const char *pfx);
 int tplg_save_tokens(snd_tplg_t *tplg, struct tplg_elem *elem,
-		     char **dst, const char *pfx);
+		     struct tplg_buf *dst, const char *pfx);
 int tplg_save_tuples(snd_tplg_t *tplg, struct tplg_elem *elem,
-		     char **dst, const char *pfx);
+		     struct tplg_buf *dst, const char *pfx);
 int tplg_save_dapm_graph(snd_tplg_t *tplg, int index,
-			 char **dst, const char *pfx);
+			 struct tplg_buf *dst, const char *pfx);
 int tplg_save_dapm_widget(snd_tplg_t *tplg, struct tplg_elem *elem,
-			  char **dst, const char *pfx);
+			  struct tplg_buf *dst, const char *pfx);
 int tplg_save_link(snd_tplg_t *tplg, struct tplg_elem *elem,
-		   char **dst, const char *pfx);
+		   struct tplg_buf *dst, const char *pfx);
 int tplg_save_cc(snd_tplg_t *tplg, struct tplg_elem *elem,
-		 char **dst, const char *pfx);
+		 struct tplg_buf *dst, const char *pfx);
 int tplg_save_pcm(snd_tplg_t *tplg, struct tplg_elem *elem,
-		  char **dst, const char *pfx);
+		  struct tplg_buf *dst, const char *pfx);
 int tplg_save_hw_config(snd_tplg_t *tplg, struct tplg_elem *elem,
-			char **dst, const char *pfx);
+			struct tplg_buf *dst, const char *pfx);
 int tplg_save_stream_caps(snd_tplg_t *tplg, struct tplg_elem *elem,
-			  char **dst, const char *pfx);
+			  struct tplg_buf *dst, const char *pfx);
 int tplg_save_dai(snd_tplg_t *tplg, struct tplg_elem *elem,
-		  char **dst, const char *pfx);
+		  struct tplg_buf *dst, const char *pfx);
 
 int tplg_decode_template(snd_tplg_t *tplg,
 			 size_t pos,

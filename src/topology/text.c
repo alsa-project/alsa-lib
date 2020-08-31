@@ -93,7 +93,7 @@ int tplg_parse_text(snd_tplg_t *tplg, snd_config_t *cfg,
 /* save text data */
 int tplg_save_text(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 		   struct tplg_elem *elem,
-		   char **dst, const char *pfx)
+		   struct tplg_buf *dst, const char *pfx)
 {
 	struct tplg_texts *texts = elem->texts;
 	unsigned int i;
