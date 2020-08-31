@@ -81,7 +81,7 @@ int tplg_save_printf(char **dst, const char *pfx, const char *fmt, ...)
 	*dst = s;
 end:
 	free(buf);
-	return 0;
+	return ret;
 }
 
 int tplg_nice_value_format(char *dst, size_t dst_size, unsigned int value)
