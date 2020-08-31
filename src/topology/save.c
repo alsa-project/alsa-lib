@@ -143,7 +143,6 @@ static snd_config_t *sort_config(const char *id, snd_config_t *src)
 	int index, array, count;
 
 	if (snd_config_get_type(src) != SND_CONFIG_TYPE_COMPOUND) {
-
 		if (snd_config_copy(&dst, src) >= 0)
 			return dst;
 		return NULL;
@@ -155,14 +154,13 @@ static snd_config_t *sort_config(const char *id, snd_config_t *src)
 	if (a == NULL)
 		return NULL;
 	array = snd_config_is_array(src);
-	if (array <= 0) {
-		index = 0;
-		snd_config_for_each(i, next, src) {
-			snd_config_t *s = snd_config_iterator_entry(i);
-			a[index++] = s;
-		}
-		qsort(a, count, sizeof(a[0]), _compar);
+	index = 0;
+	snd_config_for_each(i, next, src) {
+		snd_config_t *s = snd_config_iterator_entry(i);
+		a[index++] = s;
 	}
+	if (array <= 0)
+		qsort(a, count, sizeof(a[0]), _compar);
 	if (snd_config_make_compound(&dst, id, count == 1)) {
 		free(a);
 		return NULL;
