@@ -130,7 +130,53 @@ typedef struct _snd_ctl_elem_list snd_ctl_elem_list_t;
 /** CTL element info container */
 typedef struct _snd_ctl_elem_info snd_ctl_elem_info_t;
 
-/** CTL element value container */
+/** CTL element value container
+ *
+ * Contains the value(s) (i.e. members) of a single element. All
+ * values of a given element are of the same type.
+ *
+ * \par Memory management
+ *
+ * To access a value, a snd_ctl_elem_value_t must be allocated using
+ * snd_ctl_elem_value_alloca() or snd_ctl_elem_value_malloc(). When
+ * using the latter, it must be freed again using
+ * snd_ctl_elem_value_free().
+ *
+ * \par Identifier
+ *
+ * Then, the ID must be filled. It is sufficient to fill only the
+ * numid, if known. Otherwise, interface type, device, subdevice,
+ * name, index must all be given.  The following functions can be used
+ * to fill the ID:
+ *
+ * - snd_ctl_elem_value_set_id(): Set the ID. Requires an
+ *   snd_ctl_elem_id_t object.
+ * - snd_ctl_elem_value_set_numid(): Set the numid.
+ * - Or use all of the following:
+ *
+ *   - snd_ctl_elem_value_set_interface()
+ *   - snd_ctl_elem_value_set_device()
+ *   - snd_ctl_elem_value_set_subdevice()
+ *   - snd_ctl_elem_value_set_name()
+ *   - snd_ctl_elem_value_set_index()
+ *
+ * When communicating with the driver (snd_ctl_elem_read(),
+ * snd_ctl_elem_write()), and the numid was given, the interface,
+ * device, ... are filled (even if you set the before). When the numid
+ * is unset (i.e. it is 0), it is filled.
+ *
+ * \par Communicating with the driver
+ *
+ * After the value container was created and filled with the ID of the
+ * desired element, the value(s) can be fetched from the driver (and
+ * thus from the hardware) or written to the driver.
+ *
+ * To fetch a value, use snd_ctl_elem_read(). Thereafter, use the
+ * snd_ctl_elem_value_get_*() functions to obtain the actual value.
+ *
+ * To write a new value, first use a snd_ctl_elem_value_set_*() to set
+ * it, then call snd_ctl_elem_write() to write it to the driver.
+ */
 typedef struct _snd_ctl_elem_value snd_ctl_elem_value_t;
 
 /** CTL event container */
@@ -529,11 +575,20 @@ int snd_ctl_elem_add_iec958(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id);
 int snd_ctl_elem_remove(snd_ctl_t *ctl, snd_ctl_elem_id_t *id);
 
 size_t snd_ctl_elem_value_sizeof(void);
+
 /** \hideinitializer
- * \brief allocate an invalid #snd_ctl_elem_value_t using standard alloca
- * \param ptr returned pointer
+ * \brief Allocate an invalid #snd_ctl_elem_value_t on the stack.
+ *
+ * Allocate space for a value object on the stack. The allocated
+ * memory need not be freed, because is on the stack.
+ *
+ * See snd_ctl_elem_value_t for details.
+ *
+ * \param ptr Pointer to a snd_ctl_elem_value_t pointer. The address
+ *            of the allocated space will returned here.
  */
 #define snd_ctl_elem_value_alloca(ptr) __snd_alloca(ptr, snd_ctl_elem_value)
+
 int snd_ctl_elem_value_malloc(snd_ctl_elem_value_t **ptr);
 void snd_ctl_elem_value_free(snd_ctl_elem_value_t *obj);
 void snd_ctl_elem_value_clear(snd_ctl_elem_value_t *obj);
