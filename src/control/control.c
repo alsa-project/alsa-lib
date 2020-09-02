@@ -31,7 +31,7 @@
 /*! \page control Control interface
 
 <P>Control interface is designed to access primitive controls. There is
-also interface notifying about control and structure changes.
+also an interface for notifying about control and structure changes.
 
 \section control_general_overview General overview
 
@@ -43,20 +43,74 @@ are managed according to below model.
      Some element sets can be added to a sound card by drivers in kernel and
      userspace applications.
  - element
-   - An element can be identified by userspace applications. Each element has
-     own identical information.
+   - A control element might be a master volume control, for example, or a
+     read-only indicator, such as a sync status. An element has a type (e.g.
+     INTEGER or BOOLEAN) and - depending on the type - min/max values, a step
+     size, a set of possible values (for enums), etc.
  - member
-   - An element includes some members to have a value. The value of each member
-     can be changed by both of userspace applications and drivers in kernel.
 
-Each element can be identified by two ways; the numerical number (numid), or the
-combination of interface, device, subdevice, name, and index.
+   - An element includes one or more member(s) to have a value. For
+     example, a stereo volume control element has two members (for
+     left/right).  The members share the same properties (e.g. both
+     volume controls have the same min/max values). The value of each
+     member can be changed by both of userspace applications and
+     drivers in kernel.
 
-The type of element set is one of integer, integerr64, boolean, enumerators,
+
+\section identifying_elements Identifying the Elements
+
+Each element has the following identifying properties:
+
+  - The numid (a numeric identifier, assigned when the sound card is
+    detected, constant while the sound card is kept connected)
+
+  - The interface type (e.g. MIXER, CARD or PCM)
+  - The device
+  - The subdevice
+  - Its name
+  - Its index
+
+An element can be identified either by its numid or by the tuple
+(interface type, device, subdevice, name, index). This tuple is always
+the same (driver updates can change it, but in practice this is
+rare). The numid can change on each boot. In case of an USB sound
+card, the numid can also change when it is reconnected.
+
+
+\section element_lists Element Lists
+
+An element list can be used to obtain a list of all elements of the
+sound card. The list contains generic information (e.g. how many
+elements the card has), and the identifying properties of the elements
+(numid, card, name, ...). See #snd_ctl_elem_list_t to learn more about
+element lists.
+
+
+\section working_with_elements Working with Elements
+
+It is possible to obtain information about an element using the
+snd_ctl_elem_info_*() functions. For enums, the allowed values can be
+obtained, for integers, the min/max values can be obtained, and so
+on. In addition, these functions can report the identifying
+properties. E.g. when the element is addressed using its numid, the
+functions complements the name, index, etc.
+
+To access the values of a control, use the snd_ctl_elem_value*()
+functions.  These allow to get and set the actual values or
+settings. It is also possible to get and set the ID values (such as
+the numid or the name).
+
+
+\section element_sets Element Sets
+
+The type of element set is one of integer, integer64, boolean, enumerators,
 bytes and IEC958 structure. This indicates the type of value for each member in
 elements included in the element set.
 
-When the value of member is changed, corresponding events are transferred to
+
+\section events Events
+
+When the value of a member is changed, corresponding events are transferred to
 userspace applications. The applications should subscribe any events in advance.
 
 \section tlv_blob Supplemental data for elements in an element set
