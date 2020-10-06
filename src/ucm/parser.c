@@ -1873,7 +1873,7 @@ static int parse_master_file(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 			continue;
 
 		if (strcmp(id, "Comment") == 0) {
-			err = parse_string(n, &uc_mgr->comment);
+			err = parse_string_substitute3(uc_mgr, n, &uc_mgr->comment);
 			if (err < 0) {
 				uc_error("error: failed to get master comment");
 				return err;
