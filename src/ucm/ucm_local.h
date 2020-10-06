@@ -223,7 +223,7 @@ struct snd_use_case_mgr {
 	struct list_head verb_list;
 
 	/* boot settings - sequence */
-	struct list_head once_list;
+	struct list_head boot_list;
 
 	/* default settings - sequence */
 	struct list_head default_list;

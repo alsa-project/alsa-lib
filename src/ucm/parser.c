@@ -1746,11 +1746,11 @@ static int parse_controls_boot(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 {
 	int err;
 
-	if (!list_empty(&uc_mgr->once_list)) {
-		uc_error("Once list is not empty");
+	if (!list_empty(&uc_mgr->boot_list)) {
+		uc_error("Boot list is not empty");
 		return -EINVAL;
 	}
-	err = parse_sequence(uc_mgr, &uc_mgr->once_list, cfg);
+	err = parse_sequence(uc_mgr, &uc_mgr->boot_list, cfg);
 	if (err < 0) {
 		uc_error("Unable to parse BootSequence");
 		return err;

@@ -577,7 +577,7 @@ static int check_empty_configuration(snd_use_case_mgr_t *uc_mgr)
 {
 	if (!list_empty(&uc_mgr->verb_list))
 		return 0;
-	if (!list_empty(&uc_mgr->once_list))
+	if (!list_empty(&uc_mgr->boot_list))
 		return 0;
 	return -ENXIO;
 }
@@ -976,7 +976,7 @@ int snd_use_case_mgr_open(snd_use_case_mgr_t **uc_mgr,
 	if (mgr == NULL)
 		return -ENOMEM;
 	INIT_LIST_HEAD(&mgr->verb_list);
-	INIT_LIST_HEAD(&mgr->once_list);
+	INIT_LIST_HEAD(&mgr->boot_list);
 	INIT_LIST_HEAD(&mgr->default_list);
 	INIT_LIST_HEAD(&mgr->value_list);
 	INIT_LIST_HEAD(&mgr->active_modifiers);
@@ -1878,10 +1878,10 @@ static int set_boot_user(snd_use_case_mgr_t *uc_mgr,
 		uc_error("error: wrong value for _boot (%s)", value);
 		return -EINVAL;
 	}
-	err = execute_sequence(uc_mgr, &uc_mgr->once_list,
+	err = execute_sequence(uc_mgr, &uc_mgr->boot_list,
 			       &uc_mgr->value_list, NULL, NULL);
 	if (err < 0) {
-		uc_error("Unable to execute once sequence");
+		uc_error("Unable to execute boot sequence");
 		return err;
 	}
 	return err;
