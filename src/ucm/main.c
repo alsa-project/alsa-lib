@@ -569,6 +569,20 @@ static int import_master_config(snd_use_case_mgr_t *uc_mgr)
 }
 
 /**
+ * \brief Check, if the UCM configuration is empty
+ * \param uc_mgr Use case Manager
+ * \return zero on success, otherwise a negative error code
+ */
+static int check_empty_configuration(snd_use_case_mgr_t *uc_mgr)
+{
+	if (!list_empty(&uc_mgr->verb_list))
+		return 0;
+	if (!list_empty(&uc_mgr->once_list))
+		return 0;
+	return -ENXIO;
+}
+
+/**
  * \brief Universal find - string in a list
  * \param list List of structures
  * \param offset Offset of list structure
@@ -981,14 +995,20 @@ int snd_use_case_mgr_open(snd_use_case_mgr_t **uc_mgr,
 	err = import_master_config(mgr);
 	if (err < 0) {
 		uc_error("error: failed to import %s use case configuration %d",
-			card_name, err);
-		goto err;
+			 card_name, err);
+		goto _err;
+	}
+
+	err = check_empty_configuration(mgr);
+	if (err < 0) {
+		uc_error("error: failed to import %s (empty configuration)", card_name);
+		goto _err;
 	}
 
 	*uc_mgr = mgr;
 	return 0;
 
-err:
+_err:
 	uc_mgr_free(mgr);
 	return err;
 }
