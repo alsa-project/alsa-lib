@@ -245,6 +245,24 @@ int parse_get_safe_name(snd_use_case_mgr_t *uc_mgr, snd_config_t *n,
 }
 
 /*
+ * Handle 'Error' configuration node.
+ */
+static int error_node(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
+{
+	int err;
+	char *s;
+
+	err = parse_string_substitute3(uc_mgr, cfg, &s);
+	if (err < 0) {
+		uc_error("error: failed to get Error string");
+		return err;
+	}
+	uc_error("%s", s);
+	free(s);
+	return -ENXIO;
+}
+
+/*
  * Evaluate variable regex definitions (in-place delete)
  */
 static int evaluate_regex(snd_use_case_mgr_t *uc_mgr,
@@ -1898,6 +1916,10 @@ static int parse_master_file(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 			}
 			continue;
 		}
+
+		/* error */
+		if (strcmp(id, "Error") == 0)
+			return error_node(uc_mgr, n);
 
 		uc_error("uknown master file field %s", id);
 	}
