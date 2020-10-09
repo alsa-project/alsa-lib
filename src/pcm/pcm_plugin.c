@@ -541,16 +541,20 @@ static snd_pcm_sframes_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm)
 static int snd_pcm_plugin_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 {
 	snd_pcm_plugin_t *plugin = pcm->private_data;
-	snd_pcm_sframes_t err;
+	snd_pcm_sframes_t err, avail;
 
 	/* sync with the latest hw and appl ptrs */
-	snd_pcm_plugin_avail_update(pcm);
+	avail = snd_pcm_plugin_avail_update(pcm);
+	if (avail < 0)
+		return avail;
 
 	err = snd_pcm_status(plugin->gen.slave, status);
 	if (err < 0)
 		return err;
 	status->appl_ptr = *pcm->appl.ptr;
 	status->hw_ptr = *pcm->hw.ptr;
+	status->avail = avail;
+	status->delay = snd_pcm_mmap_delay(pcm);
 	return 0;
 }
 
