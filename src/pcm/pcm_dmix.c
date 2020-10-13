@@ -319,18 +319,13 @@ static void snd_pcm_dmix_sync_area(snd_pcm_t *pcm)
 	/* check the available size in the local buffer
 	 * last_appl_ptr keeps the last updated position
 	 */
-	size = dmix->appl_ptr - dmix->last_appl_ptr;
+	size = pcm_frame_diff2(dmix->appl_ptr, dmix->last_appl_ptr, pcm->boundary);
 	if (! size)
 		return;
-	if (size >= pcm->boundary / 2)
-		size = pcm->boundary - size;
 
 	/* the slave_app_ptr can be far behind the slave_hw_ptr */
 	/* reduce mixing and errors here - just skip not catched writes */
-	if (dmix->slave_hw_ptr <= dmix->slave_appl_ptr)
-		slave_size = dmix->slave_appl_ptr - dmix->slave_hw_ptr;
-	else
-		slave_size = dmix->slave_appl_ptr + (dmix->slave_boundary - dmix->slave_hw_ptr);
+	slave_size = pcm_frame_diff(dmix->slave_appl_ptr, dmix->slave_hw_ptr, dmix->slave_boundary);
 	if (slave_size > dmix->slave_buffer_size) {
 		transfer = dmix->slave_buffer_size - slave_size;
 		if (transfer > size)
@@ -339,11 +334,9 @@ static void snd_pcm_dmix_sync_area(snd_pcm_t *pcm)
 		dmix->last_appl_ptr %= pcm->boundary;
 		dmix->slave_appl_ptr += transfer;
 		dmix->slave_appl_ptr %= dmix->slave_boundary;
-		size = dmix->appl_ptr - dmix->last_appl_ptr;
+		size = pcm_frame_diff2(dmix->appl_ptr, dmix->last_appl_ptr, pcm->boundary);
 		if (! size)
 			return;
-		if (size >= pcm->boundary / 2)
-			size = pcm->boundary - size;
 	}
 
 	/* check the available size in the slave PCM buffer */
@@ -355,10 +348,7 @@ static void snd_pcm_dmix_sync_area(snd_pcm_t *pcm)
 	slave_hw_ptr += dmix->slave_buffer_size;
 	if (slave_hw_ptr >= dmix->slave_boundary)
 		slave_hw_ptr -= dmix->slave_boundary;
-	if (slave_hw_ptr < dmix->slave_appl_ptr)
-		slave_size = slave_hw_ptr + (dmix->slave_boundary - dmix->slave_appl_ptr);
-	else
-		slave_size = slave_hw_ptr - dmix->slave_appl_ptr;
+	slave_size = pcm_frame_diff(slave_hw_ptr, dmix->slave_appl_ptr, dmix->slave_boundary);
 	if (slave_size < size)
 		size = slave_size;
 	if (! size)
@@ -726,10 +716,7 @@ static snd_pcm_sframes_t snd_pcm_dmix_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t f
 	 * So they can be remixed.
 	 */
 
-	if (dmix->last_appl_ptr < dmix->appl_ptr)
-		size = dmix->appl_ptr - dmix->last_appl_ptr;
-	else
-		size = dmix->appl_ptr + (pcm->boundary - dmix->last_appl_ptr);
+	size = pcm_frames_diff(dmix->last_appl_ptr, dmix->appl_ptr, pcm->boundary);
 	if (frames < size)
 		size = frames;
 	snd_pcm_mmap_appl_backward(pcm, size);
@@ -741,16 +728,10 @@ static snd_pcm_sframes_t snd_pcm_dmix_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t f
 	/* Always at this point last_appl_ptr == appl_ptr
 	 * So (appl_ptr - hw_ptr) indicates the frames which can be remixed
 	 */
-	if (dmix->hw_ptr < dmix->appl_ptr)
-		size = dmix->appl_ptr - dmix->hw_ptr;
-	else
-		size = dmix->appl_ptr + (pcm->boundary - dmix->hw_ptr);
+	size = pcm_frames_diff(dmix->appl_ptr, dmix->hw_ptr, pcm->boundary);
 	if (size > frames)
 		size = frames;
-	if (dmix->slave_hw_ptr < dmix->slave_appl_ptr)
-		slave_size = dmix->slave_appl_ptr - dmix->slave_hw_ptr;
-	else
-		slave_size = dmix->slave_appl_ptr + (pcm->boundary - dmix->slave_hw_ptr);
+	slave_size = pcm_frames_diff(dmix->slave_appl_ptr, dmix->slave_hw_ptr, pcm->boundary);
 	if (slave_size < size)
 		size = slave_size;
 

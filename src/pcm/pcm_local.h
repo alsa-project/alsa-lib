@@ -1170,6 +1170,26 @@ static inline void sw_set_period_event(snd_pcm_sw_params_t *params, int val)
 
 #define PCMINABORT(pcm) (((pcm)->mode & SND_PCM_ABORT) != 0)
 
+static inline snd_pcm_sframes_t pcm_frame_diff(snd_pcm_uframes_t ptr1,
+					       snd_pcm_uframes_t ptr2,
+					       snd_pcm_uframes_t boundary)
+{
+	if (ptr1 < ptr2)
+		return ptr1 + (boundary - ptr2);
+	else
+		return ptr1 - ptr2;
+}
+
+static inline snd_pcm_sframes_t pcm_frame_diff2(snd_pcm_uframes_t ptr1,
+						snd_pcm_uframes_t ptr2,
+						snd_pcm_uframes_t boundary)
+{
+	snd_pcm_sframes_t r = ptr1 - ptr2;
+	if (r >= (snd_pcm_sframes_t)boundary / 2)
+		return boundary - r;
+	return r;
+}
+
 #ifdef THREAD_SAFE_API
 /*
  * __snd_pcm_lock() and __snd_pcm_unlock() are used to lock/unlock the plugin

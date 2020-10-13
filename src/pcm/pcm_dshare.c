@@ -123,10 +123,7 @@ static void snd_pcm_dshare_sync_area(snd_pcm_t *pcm)
 	slave_hw_ptr += dshare->slave_buffer_size;
 	if (slave_hw_ptr >= dshare->slave_boundary)
 		slave_hw_ptr -= dshare->slave_boundary;
-	if (slave_hw_ptr < dshare->slave_appl_ptr)
-		slave_size = slave_hw_ptr + (dshare->slave_boundary - dshare->slave_appl_ptr);
-	else
-		slave_size = slave_hw_ptr - dshare->slave_appl_ptr;
+	slave_size = pcm_frames_diff(slave_hw_ptr, dshare->slave_appl_ptr, dshare->slave_boundary);
 	if (slave_size < size)
 		size = slave_size;
 	if (! size)
@@ -169,17 +166,13 @@ static int snd_pcm_dshare_sync_ptr0(snd_pcm_t *pcm, snd_pcm_uframes_t slave_hw_p
 
 	old_slave_hw_ptr = dshare->slave_hw_ptr;
 	dshare->slave_hw_ptr = slave_hw_ptr;
-	diff = slave_hw_ptr - old_slave_hw_ptr;
+	diff = pcm_frames_diff(slave_hw_ptr, old_slave_hw_ptr, dshare->slave_boundary);
 	if (diff == 0)		/* fast path */
 		return 0;
 	if (dshare->state != SND_PCM_STATE_RUNNING &&
 	    dshare->state != SND_PCM_STATE_DRAINING)
 		/* not really started yet - don't update hw_ptr */
 		return 0;
-	if (diff < 0) {
-		slave_hw_ptr += dshare->slave_boundary;
-		diff = slave_hw_ptr - old_slave_hw_ptr;
-	}
 	dshare->hw_ptr += diff;
 	dshare->hw_ptr %= pcm->boundary;
 	// printf("sync ptr diff = %li\n", diff);
