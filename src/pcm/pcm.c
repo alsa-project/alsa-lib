@@ -7834,7 +7834,7 @@ void snd_pcm_unlink_appl_ptr(snd_pcm_t *pcm, snd_pcm_t *slave)
 #endif /* USE_VERSIONED_SYMBOLS */
 
 #define __P_OLD_GET(pfx, name, val_type, ret_type) \
-ret_type pfx##name(const snd_pcm_hw_params_t *params) \
+EXPORT_SYMBOL ret_type pfx##name(const snd_pcm_hw_params_t *params) \
 { \
 	val_type val; \
 	if (INTERNAL(name)(params, &val) < 0) \
@@ -7843,7 +7843,7 @@ ret_type pfx##name(const snd_pcm_hw_params_t *params) \
 }
 
 #define __P_OLD_GET1(pfx, name, val_type, ret_type) \
-ret_type pfx##name(const snd_pcm_hw_params_t *params, int *dir) \
+EXPORT_SYMBOL ret_type pfx##name(const snd_pcm_hw_params_t *params, int *dir) \
 { \
 	val_type val; \
 	if (INTERNAL(name)(params, &val, dir) < 0) \
@@ -7885,7 +7885,7 @@ __OLD_GET(snd_pcm_hw_params_get_buffer_size_max, snd_pcm_uframes_t, snd_pcm_ufra
 __OLD_GET1(snd_pcm_hw_params_get_tick_time_max, unsigned int, unsigned int);
 
 #define __P_OLD_NEAR(pfx, name, ret_type) \
-ret_type pfx##name(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, ret_type val) \
+EXPORT_SYMBOL ret_type pfx##name(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, ret_type val) \
 { \
 	if (INTERNAL(name)(pcm, params, &val) < 0) \
 		return 0; \
@@ -7893,7 +7893,7 @@ ret_type pfx##name(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, ret_type val) \
 }
 
 #define __P_OLD_NEAR1(pfx, name, ret_type) \
-ret_type pfx##name(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, ret_type val, int *dir) \
+EXPORT_SYMBOL ret_type pfx##name(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, ret_type val, int *dir) \
 { \
 	if (INTERNAL(name)(pcm, params, &val, dir) < 0) \
 		return 0; \
@@ -7913,7 +7913,7 @@ __OLD_NEAR(snd_pcm_hw_params_set_buffer_size_near, snd_pcm_uframes_t);
 __OLD_NEAR1(snd_pcm_hw_params_set_tick_time_near, unsigned int);
 
 #define __P_OLD_SET_FL(pfx, name, ret_type) \
-ret_type pfx##name(snd_pcm_t *pcm, snd_pcm_hw_params_t *params) \
+EXPORT_SYMBOL ret_type pfx##name(snd_pcm_t *pcm, snd_pcm_hw_params_t *params) \
 { \
 	ret_type val; \
 	if (INTERNAL(name)(pcm, params, &val) < 0) \
@@ -7922,7 +7922,7 @@ ret_type pfx##name(snd_pcm_t *pcm, snd_pcm_hw_params_t *params) \
 }
 
 #define __P_OLD_SET_FL1(pfx, name, ret_type) \
-ret_type pfx##name(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir) \
+EXPORT_SYMBOL ret_type pfx##name(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir) \
 { \
 	ret_type val; \
 	if (INTERNAL(name)(pcm, params, &val, dir) < 0) \
@@ -7958,7 +7958,7 @@ __OLD_SET_FL(snd_pcm_hw_params_set_buffer_size_last, snd_pcm_uframes_t);
 __OLD_SET_FL1(snd_pcm_hw_params_set_tick_time_last, unsigned int);
 
 #define __P_OLD_GET_SW(pfx, name, ret_type) \
-ret_type pfx##name(snd_pcm_sw_params_t *params) \
+EXPORT_SYMBOL ret_type pfx##name(snd_pcm_sw_params_t *params) \
 { \
 	ret_type val; \
 	if (INTERNAL(name)(params, &val) < 0) \

@@ -177,7 +177,7 @@ errpath:
 }
 
 #ifndef DOXYGEN
-void *INTERNAL(snd_dlopen_old)(const char *name, int mode)
+EXPORT_SYMBOL void *INTERNAL(snd_dlopen_old)(const char *name, int mode)
 {
   return INTERNAL(snd_dlopen)(name, mode, NULL, 0);
 }
