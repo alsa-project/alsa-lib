@@ -79,6 +79,8 @@ static void snd_pcm_meter_add_frames(snd_pcm_t *pcm,
 				     snd_pcm_uframes_t frames)
 {
 	snd_pcm_meter_t *meter = pcm->private_data;
+	if (frames > pcm->buffer_size)
+		frames = pcm->buffer_size;
 	while (frames > 0) {
 		snd_pcm_uframes_t n = frames;
 		snd_pcm_uframes_t dst_offset = ptr % meter->buf_size;
@@ -1100,6 +1102,8 @@ static void s16_update(snd_pcm_scope_t *scope)
 	size = meter->now - s16->old;
 	if (size < 0)
 		size += spcm->boundary;
+	if (size > (snd_pcm_sframes_t)s16->pcm->buffer_size)
+		size = s16->pcm->buffer_size;
 	offset = s16->old % meter->buf_size;
 	while (size > 0) {
 		snd_pcm_uframes_t frames = size;
