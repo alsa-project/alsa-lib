@@ -147,31 +147,20 @@ void *snd_dlopen(const char *name, int mode, char *errbuf, size_t errbuflen)
 	 * via ld.so.conf.
 	 */
 	void *handle = NULL;
-	const char *filename = NULL;
+	const char *filename = name;
 	char path[PATH_MAX];
 
 	if (name && name[0] != '/') {
-		if (snd_dlpath(path, sizeof(path), name) == 0) {
+		if (snd_dlpath(path, sizeof(path), name) == 0)
 			filename = path;
-			handle = dlopen(filename, mode);
-			if (!handle) {
-				/* if the filename exists and cannot be opened */
-				/* return immediately */
-				if (access(filename, X_OK) == 0)
-					goto errpath;
-			}
-		}
 	}
-	if (!handle) {
-		filename = name;
-		handle = dlopen(name, mode);
-		if (!handle)
-			goto errpath;
-	}
+	handle = dlopen(filename, mode);
+	if (!handle)
+		goto errpath;
 	return handle;
 errpath:
 	if (errbuf)
-		snprintf(errbuf, errbuflen, "%s: %s", filename, dlerror());
+		snprintf(errbuf, errbuflen, "%s", dlerror());
 #endif
 	return NULL;
 }
