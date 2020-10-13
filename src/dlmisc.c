@@ -43,8 +43,8 @@
 struct snd_dlsym_link *snd_dlsym_start = NULL;
 #endif
 #ifdef DL_ORIGIN_AVAILABLE
-static int snd_libdir_plugin_dir_set = 0;
-static char *snd_libdir_origin = NULL;
+static int snd_plugin_dir_set = 0;
+static char *snd_plugin_dir = NULL;
 #endif
 #endif
 
@@ -65,6 +65,22 @@ static inline void snd_dlpath_lock(void) {}
 static inline void snd_dlpath_unlock(void) {}
 #endif
 
+static void snd_dlinfo_origin(char *path, size_t path_len)
+{
+#ifdef DL_ORIGIN_AVAILABLE
+	struct link_map *links;
+	Dl_info info;
+	char origin[PATH_MAX];
+	if (dladdr1(&snd_dlpath, &info, (void**)&links, RTLD_DL_LINKMAP) == 0)
+		return;
+	if (dlinfo(links, RTLD_DI_ORIGIN, origin))
+		return;
+	snprintf(path, path_len, "%s/alsa-lib", origin);
+	if (access(path, X_OK) == 0)
+		snd_plugin_dir = strdup(path);
+#endif
+}
+
 /**
  *
  * \brief Compose the dynamic path
@@ -75,30 +91,19 @@ static inline void snd_dlpath_unlock(void) {}
  */
 int snd_dlpath(char *path, size_t path_len, const char *name)
 {
-#ifdef DL_ORIGIN_AVAILABLE
 	snd_dlpath_lock();
-	if (!snd_libdir_plugin_dir_set) {
-		struct link_map *links;
-		Dl_info info;
-		char origin[PATH_MAX];
-		if (dladdr1(&snd_dlpath, &info, (void**)&links, RTLD_DL_LINKMAP) == 0)
-			links = NULL;
-		if (links != NULL && dlinfo(links, RTLD_DI_ORIGIN, origin) == 0) {
-			snprintf(path, path_len, "%s/alsa-lib", origin);
-			if (access(path, X_OK) == 0)
-				snd_libdir_origin = strdup(origin);
+	if (!snd_plugin_dir_set) {
+		const char *env = getenv("ALSA_PLUGIN_DIR");
+		if (env) {
+			snd_plugin_dir = strdup(env);
+		} else {
+			snd_dlinfo_origin(path, path_len);
 		}
-		snd_libdir_plugin_dir_set = 1;
+		snd_plugin_dir_set = 1;
 	}
-	if (snd_libdir_origin) {
-		snprintf(path, path_len, "%s/alsa-lib/%s", snd_libdir_origin, name);
-	} else {
-		snprintf(path, path_len, "%s/%s", ALSA_PLUGIN_DIR, name);
-	}
+	snprintf(path, path_len, "%s/%s",
+		 snd_plugin_dir ? snd_plugin_dir : ALSA_PLUGIN_DIR, name);
 	snd_dlpath_unlock();
-#else
-	snprintf(path, path_len, "%s/%s", ALSA_PLUGIN_DIR, name);
-#endif
 	return 0;
 }
 
@@ -450,9 +455,9 @@ void snd_dlobj_cache_cleanup(void)
 	snd_dlobj_unlock();
 #ifdef DL_ORIGIN_AVAILABLE
 	snd_dlpath_lock();
-	snd_libdir_plugin_dir_set = 0;
-	free(snd_libdir_origin);
-	snd_libdir_origin = NULL;
+	snd_plugin_dir_set = 0;
+	free(snd_plugin_dir);
+	snd_plugin_dir = NULL;
 	snd_dlpath_unlock();
 #endif
 }
