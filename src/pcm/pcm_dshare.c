@@ -112,7 +112,7 @@ static void snd_pcm_dshare_sync_area(snd_pcm_t *pcm)
 	const snd_pcm_channel_area_t *src_areas, *dst_areas;
 	
 	/* calculate the size to transfer */
-	size = dshare->appl_ptr - dshare->last_appl_ptr;
+	size = pcm_frames_diff(dshare->appl_ptr, dshare->last_appl_ptr, pcm->boundary);
 	if (! size)
 		return;
 	slave_hw_ptr = dshare->slave_hw_ptr;
