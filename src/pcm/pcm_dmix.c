@@ -716,7 +716,7 @@ static snd_pcm_sframes_t snd_pcm_dmix_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t f
 	 * So they can be remixed.
 	 */
 
-	size = pcm_frames_diff(dmix->last_appl_ptr, dmix->appl_ptr, pcm->boundary);
+	size = pcm_frame_diff(dmix->last_appl_ptr, dmix->appl_ptr, pcm->boundary);
 	if (frames < size)
 		size = frames;
 	snd_pcm_mmap_appl_backward(pcm, size);
@@ -728,10 +728,10 @@ static snd_pcm_sframes_t snd_pcm_dmix_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t f
 	/* Always at this point last_appl_ptr == appl_ptr
 	 * So (appl_ptr - hw_ptr) indicates the frames which can be remixed
 	 */
-	size = pcm_frames_diff(dmix->appl_ptr, dmix->hw_ptr, pcm->boundary);
+	size = pcm_frame_diff(dmix->appl_ptr, dmix->hw_ptr, pcm->boundary);
 	if (size > frames)
 		size = frames;
-	slave_size = pcm_frames_diff(dmix->slave_appl_ptr, dmix->slave_hw_ptr, pcm->boundary);
+	slave_size = pcm_frame_diff(dmix->slave_appl_ptr, dmix->slave_hw_ptr, pcm->boundary);
 	if (slave_size < size)
 		size = slave_size;
 

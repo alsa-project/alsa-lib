@@ -152,7 +152,7 @@ static int snd_pcm_dsnoop_sync_ptr(snd_pcm_t *pcm)
 	old_slave_hw_ptr = dsnoop->slave_hw_ptr;
 	snoop_timestamp(pcm);
 	slave_hw_ptr = dsnoop->slave_hw_ptr;
-	diff = pcm_frames_diff(slave_hw_ptr, old_slave_hw_ptr, dsnoop->slave_boundary);
+	diff = pcm_frame_diff(slave_hw_ptr, old_slave_hw_ptr, dsnoop->slave_boundary);
 	if (diff == 0)		/* fast path */
 		return 0;
 	snd_pcm_dsnoop_sync_area(pcm, old_slave_hw_ptr, diff);

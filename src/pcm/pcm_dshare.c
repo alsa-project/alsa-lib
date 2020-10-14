@@ -112,7 +112,7 @@ static void snd_pcm_dshare_sync_area(snd_pcm_t *pcm)
 	const snd_pcm_channel_area_t *src_areas, *dst_areas;
 	
 	/* calculate the size to transfer */
-	size = pcm_frames_diff(dshare->appl_ptr, dshare->last_appl_ptr, pcm->boundary);
+	size = pcm_frame_diff(dshare->appl_ptr, dshare->last_appl_ptr, pcm->boundary);
 	if (! size)
 		return;
 	slave_hw_ptr = dshare->slave_hw_ptr;
@@ -123,7 +123,7 @@ static void snd_pcm_dshare_sync_area(snd_pcm_t *pcm)
 	slave_hw_ptr += dshare->slave_buffer_size;
 	if (slave_hw_ptr >= dshare->slave_boundary)
 		slave_hw_ptr -= dshare->slave_boundary;
-	slave_size = pcm_frames_diff(slave_hw_ptr, dshare->slave_appl_ptr, dshare->slave_boundary);
+	slave_size = pcm_frame_diff(slave_hw_ptr, dshare->slave_appl_ptr, dshare->slave_boundary);
 	if (slave_size < size)
 		size = slave_size;
 	if (! size)
@@ -166,7 +166,7 @@ static int snd_pcm_dshare_sync_ptr0(snd_pcm_t *pcm, snd_pcm_uframes_t slave_hw_p
 
 	old_slave_hw_ptr = dshare->slave_hw_ptr;
 	dshare->slave_hw_ptr = slave_hw_ptr;
-	diff = pcm_frames_diff(slave_hw_ptr, old_slave_hw_ptr, dshare->slave_boundary);
+	diff = pcm_frame_diff(slave_hw_ptr, old_slave_hw_ptr, dshare->slave_boundary);
 	if (diff == 0)		/* fast path */
 		return 0;
 	if (dshare->state != SND_PCM_STATE_RUNNING &&
