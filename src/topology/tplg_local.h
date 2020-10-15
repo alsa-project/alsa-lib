@@ -16,6 +16,7 @@
 
 #include "local.h"
 #include "list.h"
+#include "bswap.h"
 #include "topology.h"
 
 #include <sound/type_compat.h>
@@ -233,15 +234,21 @@ struct tplg_table {
 extern struct tplg_table tplg_table[];
 extern unsigned int tplg_table_items;
 
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__ && __SIZEOF_INT__ == 4
+#if __SIZEOF_INT__ == 4
 static inline unsigned int unaligned_get32(void *src)
 {
 	unsigned int ret;
 	memcpy(&ret, src, sizeof(ret));
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+	ret = bswap_32(ret);
+#endif
 	return ret;
 }
 static inline void unaligned_put32(void *dst, unsigned int val)
 {
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+	val = bswap_32(val);
+#endif
 	memcpy(dst, &val, sizeof(val));
 }
 #endif
