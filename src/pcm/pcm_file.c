@@ -100,6 +100,21 @@ typedef struct {
 #define TO_LE16(x)	bswap_16(x)
 #endif
 
+static ssize_t safe_write(int fd, const void *buf, size_t len)
+{
+	while (1) {
+		ssize_t r = write(fd, buf, len);
+		if (r < 0) {
+			if (errno == EINTR)
+				continue;
+			if (errno == EPIPE)
+				return -EIO;
+			return -errno;
+		}
+		return r;
+	}
+}
+
 static int snd_pcm_file_append_value(char **string_p, char **index_ch_p,
 		int *len_p, const char *value)
 {
@@ -339,15 +354,15 @@ static int write_wav_header(snd_pcm_t *pcm)
 	
 	setup_wav_header(pcm, &file->wav_header);
 
-	res = write(file->fd, header, sizeof(header));
+	res = safe_write(file->fd, header, sizeof(header));
 	if (res != sizeof(header))
 		goto write_error;
 
-	res = write(file->fd, &file->wav_header, sizeof(file->wav_header));
+	res = safe_write(file->fd, &file->wav_header, sizeof(file->wav_header));
 	if (res != sizeof(file->wav_header))
 		goto write_error;
 
-	res = write(file->fd, header2, sizeof(header2));
+	res = safe_write(file->fd, header2, sizeof(header2));
 	if (res != sizeof(header2))
 		goto write_error;
 
@@ -381,7 +396,7 @@ static void fixup_wav_header(snd_pcm_t *pcm)
 		len = (file->filelen + 0x24) > 0x7fffffff ?
 			0x7fffffff : (int)(file->filelen + 0x24);
 		len = TO_LE32(len);
-		ret = write(file->fd, &len, 4);
+		ret = safe_write(file->fd, &len, 4);
 		if (ret < 0)
 			return;
 	}
@@ -390,7 +405,7 @@ static void fixup_wav_header(snd_pcm_t *pcm)
 		len = file->filelen > 0x7fffffff ?
 			0x7fffffff : (int)file->filelen;
 		len = TO_LE32(len);
-		ret = write(file->fd, &len, 4);
+		ret = safe_write(file->fd, &len, 4);
 		if (ret < 0)
 			return;
 	}
@@ -421,9 +436,8 @@ static int snd_pcm_file_write_bytes(snd_pcm_t *pcm, size_t bytes)
 		size_t cont = file->wbuf_size_bytes - file->file_ptr_bytes;
 		if (n > cont)
 			n = cont;
-		err = write(file->fd, file->wbuf + file->file_ptr_bytes, n);
+		err = safe_write(file->fd, file->wbuf + file->file_ptr_bytes, n);
 		if (err < 0) {
-			err = -errno;
 			file->wbuf_used_bytes = 0;
 			file->file_ptr_bytes = 0;
 			SYSERR("%s write failed, file data may be corrupt", file->fname);
