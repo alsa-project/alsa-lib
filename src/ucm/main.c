@@ -41,6 +41,12 @@
  * misc
  */
 
+static int get_value(snd_use_case_mgr_t *uc_mgr,
+			const char *identifier,
+			char **value,
+			const char *mod_dev_name,
+			const char *verb_name,
+			int exact);
 static int get_value1(snd_use_case_mgr_t *uc_mgr, char **value,
                       struct list_head *value_list, const char *identifier);
 static int get_value3(snd_use_case_mgr_t *uc_mgr,
@@ -575,6 +581,17 @@ static int import_master_config(snd_use_case_mgr_t *uc_mgr)
  */
 static int check_empty_configuration(snd_use_case_mgr_t *uc_mgr)
 {
+	int err;
+	char *value;
+
+	err = get_value(uc_mgr, "Linked", &value, NULL, NULL, 1);
+	if (err >= 0) {
+		err = strcasecmp(value, "true") == 0 ||
+		      strcmp(value, "1") == 0;
+		free(value);
+		if (err)
+			return 0;
+	}
 	if (!list_empty(&uc_mgr->verb_list))
 		return 0;
 	if (!list_empty(&uc_mgr->boot_list))
