@@ -395,9 +395,9 @@ retval:
 				err = tplg_save_quoted(dst, id);
 			} else {
 				err = tplg_save_string(dst, id, 1);
-				if (err < 0)
-					return err;
 			}
+			if (err < 0)
+				return err;
 		} else {
 			delim = "";
 		}
