@@ -879,9 +879,9 @@ int tplg_save_control_mixer(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 	if (err >= 0 && mc->max > 0)
 		err = tplg_save_printf(dst, pfx, "\tmax %u\n", mc->max);
 	if (err >= 0 && mc->invert > 0)
-		err = tplg_save_printf(dst, pfx, "\tinvert 1\n", mc->max);
+		err = tplg_save_printf(dst, pfx, "\tinvert 1\n");
 	if (err >= 0 && mc->invert > 0)
-		err = tplg_save_printf(dst, pfx, "\tinvert 1\n", mc->max);
+		err = tplg_save_printf(dst, pfx, "\tinvert 1\n");
 	if (err >= 0)
 		err = tplg_save_ops(tplg, &mc->hdr, dst, pfx2);
 	if (err >= 0)

@@ -483,7 +483,7 @@ int tplg_save_dapm_graph(snd_tplg_t *tplg, int index,
 		}
 		if (first) {
 			first = 0;
-			err = tplg_save_printf(dst, pfx, "\t\tlines [\n", elem->index);
+			err = tplg_save_printf(dst, pfx, "\t\tlines [\n");
 			if (err < 0)
 				return err;
 		}

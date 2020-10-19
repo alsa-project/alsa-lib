@@ -930,6 +930,8 @@ static int tplg_save_tuple_set(struct tplg_vendor_tuples *tuples,
 			err = tplg_save_printf(dst, pfx, "\t'%s' ",
 					       tuple->token);
 		}
+		if (err < 0)
+			return err;
 		switch (set->type) {
 		case SND_SOC_TPLG_TUPLE_TYPE_UUID:
 			err = tplg_save_printf(dst, NULL, "'" UUID_FORMAT "'\n",
@@ -1276,9 +1278,9 @@ int tplg_save_manifest_data(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 					       elem->id, index, ref->id);
 		} else {
 			err = tplg_save_printf(dst, pfx, "\t'%s'\n", ref->id);
-			if (err < 0)
-				return err;
 		}
+		if (err < 0)
+			return err;
 		index++;
 	}
 	if (count > 1) {
@@ -1612,7 +1614,7 @@ int tplg_decode_manifest_data(snd_tplg_t *tplg,
 	if (!elem)
 		return -ENOMEM;
 
-	tplg_log(tplg, 'D', pos, "manifest: private size %d", size);
+	tplg_log(tplg, 'D', pos, "manifest: private size %zd", size);
 	return tplg_add_data(tplg, elem, bin, size);
 }
 
@@ -1672,7 +1674,7 @@ static int tplg_verify_tuple_set(snd_tplg_t *tplg, size_t pos,
 
 	va = bin;
 	if (size < sizeof(*va) || size < va->size) {
-		tplg_log(tplg, 'A', pos, "tuple set verify: wrong size %d", size);
+		tplg_log(tplg, 'A', pos, "tuple set verify: wrong size %zd", size);
 		return -EINVAL;
 	}
 
@@ -1719,7 +1721,7 @@ static int tplg_decode_tuple_set(snd_tplg_t *tplg,
 
 	va = bin;
 	if (size < sizeof(*va) || size < va->size) {
-		SNDERR("tuples: wrong size %d", size);
+		SNDERR("tuples: wrong size %zd", size);
 		return -EINVAL;
 	}
 
@@ -1806,14 +1808,14 @@ static int tplg_verify_tuples(snd_tplg_t *tplg, size_t pos,
 	int err;
 
 	if (size < sizeof(*va)) {
-		tplg_log(tplg, 'A', pos, "tuples: small size %d", size);
+		tplg_log(tplg, 'A', pos, "tuples: small size %zd", size);
 		return -EINVAL;
 	}
 
 next:
 	va = bin;
 	if (size < sizeof(*va)) {
-		tplg_log(tplg, 'A', pos, "tuples: unexpected vendor arry size %d", size);
+		tplg_log(tplg, 'A', pos, "tuples: unexpected vendor arry size %zd", size);
 		return -EINVAL;
 	}
 
@@ -1842,14 +1844,14 @@ static int tplg_decode_tuples(snd_tplg_t *tplg,
 	int err;
 
 	if (size < sizeof(*va)) {
-		SNDERR("tuples: small size %d", size);
+		SNDERR("tuples: small size %zd", size);
 		return -EINVAL;
 	}
 
 next:
 	va = bin;
 	if (size < sizeof(*va)) {
-		SNDERR("tuples: unexpected vendor arry size %d", size);
+		SNDERR("tuples: unexpected vendor arry size %zd", size);
 		return -EINVAL;
 	}
 
@@ -1894,7 +1896,7 @@ int tplg_add_data(snd_tplg_t *tplg,
 next:
 	tp = bin;
 	if (off + size < tp->size) {
-		SNDERR("data: unexpected element size %d", size);
+		SNDERR("data: unexpected element size %zd", size);
 		return -EINVAL;
 	}
 
