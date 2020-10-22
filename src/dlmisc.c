@@ -42,10 +42,8 @@
 #ifndef PIC
 struct snd_dlsym_link *snd_dlsym_start = NULL;
 #endif
-#ifdef DL_ORIGIN_AVAILABLE
 static int snd_plugin_dir_set = 0;
 static char *snd_plugin_dir = NULL;
-#endif
 #endif
 
 #if defined(DL_ORIGIN_AVAILABLE) && defined(HAVE_LIBPTHREAD)
