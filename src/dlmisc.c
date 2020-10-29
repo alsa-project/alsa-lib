@@ -46,7 +46,7 @@ static int snd_plugin_dir_set = 0;
 static char *snd_plugin_dir = NULL;
 #endif
 
-#if defined(DL_ORIGIN_AVAILABLE) && defined(HAVE_LIBPTHREAD)
+#ifdef HAVE_LIBPTHREAD
 static pthread_mutex_t snd_dlpath_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static inline void snd_dlpath_lock(void)
@@ -440,12 +440,10 @@ void snd_dlobj_cache_cleanup(void)
 		free(c);
 	}
 	snd_dlobj_unlock();
-#ifdef DL_ORIGIN_AVAILABLE
 	snd_dlpath_lock();
 	snd_plugin_dir_set = 0;
 	free(snd_plugin_dir);
 	snd_plugin_dir = NULL;
 	snd_dlpath_unlock();
-#endif
 }
 #endif
