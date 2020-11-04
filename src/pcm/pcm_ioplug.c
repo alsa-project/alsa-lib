@@ -115,6 +115,7 @@ static int snd_pcm_ioplug_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	snd_pcm_ioplug_hw_ptr_update(pcm);
 	status->state = io->data->state;
 	status->trigger_tstamp = io->trigger_tstamp;
+	gettimestamp(&status->tstamp, pcm->tstamp_type);
 	status->avail = snd_pcm_mmap_avail(pcm);
 	status->avail_max = io->avail_max;
 	return 0;
