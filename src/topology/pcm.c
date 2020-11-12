@@ -1504,8 +1504,15 @@ int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
 			continue;
 		}
 
-		if (strcmp(id, "fsync") == 0 ||
-		    strcmp(id, "fsync_master") == 0) {
+		provider_legacy = false;
+		if (strcmp(id, "fsync_master") == 0) {
+			SNDERR("deprecated option %s, please use 'fsync'\n", id);
+			provider_legacy = true;
+		}
+
+		if (provider_legacy ||
+		    strcmp(id, "fsync") == 0) {
+
 			if (snd_config_get_string(n, &val) < 0)
 				return -EINVAL;
 
@@ -1515,11 +1522,19 @@ int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
 				 */
 				SNDERR("deprecated fsync value '%s'", val);
 
-				hw_cfg->fsync_master = SND_SOC_TPLG_FSYNC_CS;
+				hw_cfg->fsync_provider = SND_SOC_TPLG_FSYNC_CC;
 			} else if (!strcmp(val, "codec_slave")) {
-				hw_cfg->fsync_master = SND_SOC_TPLG_FSYNC_CS;
+				SNDERR("deprecated fsync value '%s', use 'codec_consumer'", val);
+
+				hw_cfg->fsync_provider = SND_SOC_TPLG_FSYNC_CC;
+			} else if (!strcmp(val, "codec_consumer")) {
+				hw_cfg->fsync_provider = SND_SOC_TPLG_FSYNC_CC;
 			} else if (!strcmp(val, "codec_master")) {
-				hw_cfg->fsync_master = SND_SOC_TPLG_FSYNC_CM;
+				SNDERR("deprecated fsync value '%s', use 'codec_provider'", val);
+
+				hw_cfg->fsync_provider = SND_SOC_TPLG_FSYNC_CP;
+			} else if (!strcmp(val, "codec_provider")) {
+				hw_cfg->fsync_provider = SND_SOC_TPLG_FSYNC_CP;
 			}
 			continue;
 		}
@@ -1648,10 +1663,10 @@ int tplg_save_hw_config(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 				       hc->bclk_rate);
 	if (err >= 0 && hc->invert_bclk)
 		err = tplg_save_printf(dst, pfx, "\tbclk_invert 1\n");
-	if (err >= 0 && hc->fsync_master)
-		err = tplg_save_printf(dst, pfx, "\tfsync_master '%s'\n",
-				       hc->fsync_master == SND_SOC_TPLG_FSYNC_CS ?
-						"codec_slave" : "codec_master");
+	if (err >= 0 && hc->fsync_provider)
+		err = tplg_save_printf(dst, pfx, "\tfsync_provider '%s'\n",
+				       hc->fsync_provider == SND_SOC_TPLG_FSYNC_CC ?
+						"codec_consumer" : "codec_provider");
 	if (err >= 0 && hc->fsync_rate)
 		err = tplg_save_printf(dst, pfx, "\tfsync_freq %u\n",
 				       hc->fsync_rate);
@@ -1808,7 +1823,7 @@ static int set_link_hw_config(struct snd_soc_tplg_hw_config *cfg,
 	cfg->invert_bclk = tpl->invert_bclk;
 	cfg->invert_fsync = tpl->invert_fsync;
 	cfg->bclk_provider = tpl->bclk_provider;
-	cfg->fsync_master = tpl->fsync_master;
+	cfg->fsync_provider = tpl->fsync_provider;
 	cfg->mclk_direction = tpl->mclk_direction;
 	cfg->reserved = tpl->reserved;
 	cfg->mclk_rate = tpl->mclk_rate;
@@ -2191,7 +2206,7 @@ next:
 		hw->invert_bclk = link->hw_config[i].invert_bclk;
 		hw->invert_fsync = link->hw_config[i].invert_fsync;
 		hw->bclk_provider = link->hw_config[i].bclk_provider;
-		hw->fsync_master = link->hw_config[i].fsync_master;
+		hw->fsync_provider = link->hw_config[i].fsync_provider;
 		hw->mclk_direction = link->hw_config[i].mclk_direction;
 		hw->mclk_rate = link->hw_config[i].mclk_rate;
 		hw->bclk_rate = link->hw_config[i].bclk_rate;
