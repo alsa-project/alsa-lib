@@ -1411,6 +1411,7 @@ int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
 	snd_config_t *n;
 	const char *id, *val = NULL;
 	int ret, ival;
+	bool provider_legacy;
 
 	elem = tplg_elem_new_common(tplg, cfg, NULL, SND_TPLG_TYPE_HW_CONFIG);
 	if (!elem)
@@ -1451,8 +1452,15 @@ int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
 			continue;
 		}
 
-		if (strcmp(id, "bclk") == 0 ||
-		    strcmp(id, "bclk_master") == 0) {
+		provider_legacy = false;
+		if (strcmp(id, "bclk_master") == 0) {
+			SNDERR("deprecated option %s, please use 'bclk'\n", id);
+			provider_legacy = true;
+		}
+
+		if (provider_legacy ||
+		    strcmp(id, "bclk") == 0) {
+
 			if (snd_config_get_string(n, &val) < 0)
 				return -EINVAL;
 
@@ -1462,11 +1470,19 @@ int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
 				 */
 				SNDERR("deprecated bclk value '%s'", val);
 
-				hw_cfg->bclk_master = SND_SOC_TPLG_BCLK_CS;
+				hw_cfg->bclk_provider = SND_SOC_TPLG_BCLK_CC;
 			} else if (!strcmp(val, "codec_slave")) {
-				hw_cfg->bclk_master = SND_SOC_TPLG_BCLK_CS;
+				SNDERR("deprecated bclk value '%s', use 'codec_consumer'", val);
+
+				hw_cfg->bclk_provider = SND_SOC_TPLG_BCLK_CC;
+			} else if (!strcmp(val, "codec_consumer")) {
+				hw_cfg->bclk_provider = SND_SOC_TPLG_BCLK_CC;
 			} else if (!strcmp(val, "codec_master")) {
-				hw_cfg->bclk_master = SND_SOC_TPLG_BCLK_CM;
+				SNDERR("deprecated bclk value '%s', use 'codec_provider", val);
+
+				hw_cfg->bclk_provider = SND_SOC_TPLG_BCLK_CP;
+			} else if (!strcmp(val, "codec_provider")) {
+				hw_cfg->bclk_provider = SND_SOC_TPLG_BCLK_CP;
 			}
 			continue;
 		}
@@ -1623,10 +1639,10 @@ int tplg_save_hw_config(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 	if (err >= 0 && hc->fmt)
 		err = tplg_save_printf(dst, pfx, "\tformat '%s'\n",
 				       get_audio_hw_format_name(hc->fmt));
-	if (err >= 0 && hc->bclk_master)
+	if (err >= 0 && hc->bclk_provider)
 		err = tplg_save_printf(dst, pfx, "\tbclk '%s'\n",
-				       hc->bclk_master == SND_SOC_TPLG_BCLK_CS ?
-						"codec_slave" : "codec_master");
+				       hc->bclk_provider == SND_SOC_TPLG_BCLK_CC ?
+						"codec_consumer" : "codec_provider");
 	if (err >= 0 && hc->bclk_rate)
 		err = tplg_save_printf(dst, pfx, "\tbclk_freq %u\n",
 				       hc->bclk_rate);
@@ -1791,7 +1807,7 @@ static int set_link_hw_config(struct snd_soc_tplg_hw_config *cfg,
 	cfg->clock_gated = tpl->clock_gated;
 	cfg->invert_bclk = tpl->invert_bclk;
 	cfg->invert_fsync = tpl->invert_fsync;
-	cfg->bclk_master = tpl->bclk_master;
+	cfg->bclk_provider = tpl->bclk_provider;
 	cfg->fsync_master = tpl->fsync_master;
 	cfg->mclk_direction = tpl->mclk_direction;
 	cfg->reserved = tpl->reserved;
@@ -2174,7 +2190,7 @@ next:
 		hw->clock_gated = link->hw_config[i].clock_gated;
 		hw->invert_bclk = link->hw_config[i].invert_bclk;
 		hw->invert_fsync = link->hw_config[i].invert_fsync;
-		hw->bclk_master = link->hw_config[i].bclk_master;
+		hw->bclk_provider = link->hw_config[i].bclk_provider;
 		hw->fsync_master = link->hw_config[i].fsync_master;
 		hw->mclk_direction = link->hw_config[i].mclk_direction;
 		hw->mclk_rate = link->hw_config[i].mclk_rate;
