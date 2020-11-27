@@ -724,22 +724,45 @@ static snd_pcm_sframes_t snd_pcm_ioplug_avail_update(snd_pcm_t *pcm)
 	    pcm->access != SND_PCM_ACCESS_RW_INTERLEAVED &&
 	    pcm->access != SND_PCM_ACCESS_RW_NONINTERLEAVED) {
 		if (io->data->callback->transfer) {
+			int err;
 			const snd_pcm_channel_area_t *areas;
 			snd_pcm_uframes_t offset, size = UINT_MAX;
 			snd_pcm_sframes_t result;
+			/* avail may be > buffer_size. Copy up to buffer size. */
+			snd_pcm_uframes_t avail_part = avail % pcm->buffer_size;
+			if (avail && !avail_part) /*avail = (n*buffer_size) results in buffer_size */
+				avail_part = pcm->buffer_size;
 
-			__snd_pcm_mmap_begin(pcm, &areas, &offset, &size);
+			size = avail_part;
+			err = __snd_pcm_mmap_begin(pcm, &areas, &offset, &size);
+			if (err < 0)
+				return err;
 			result = io->data->callback->transfer(io->data, areas, offset, size);
 			if (result < 0)
 				return result;
 
+			avail_part -= size;
 			/* If the available data doesn't fit in the
 			   contiguous area at the end of the mmap we
 			   must transfer the remaining data to the
 			   beginning of the mmap. */
-			if (size < avail) {
+			if (avail_part > 0) {
+				/* temporarily move app ptr forward.
+				This is mandatory for this 2nd call to mmap_begin() and is
+				in addition needed to always find consistent state in underlaying
+				plugin during transfer callback which may access app_ptr as 'read only' */
+				snd_pcm_uframes_t fwd = size;
+				size = avail_part;
+				snd_pcm_ioplug_forward(pcm, fwd);
+				err = __snd_pcm_mmap_begin(pcm, &areas, &offset, &size);
+				if (err < 0) {
+					snd_pcm_ioplug_rewind(pcm, fwd);
+					return err;
+				}
 				result = io->data->callback->transfer(io->data, areas,
-								      0, avail - size);
+								      offset, size);
+				snd_pcm_ioplug_rewind(pcm, fwd);
+
 				if (result < 0)
 					return result;
 			}
