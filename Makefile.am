@@ -16,7 +16,7 @@ SUBDIRS += alsalisp
 endif
 endif
 SUBDIRS += test utils
-EXTRA_DIST=ChangeLog INSTALL TODO NOTES configure gitcompile libtool \
+EXTRA_DIST=README.md ChangeLog INSTALL TODO NOTES configure gitcompile libtool \
 	   depcomp version MEMORY-LEAK m4/attributes.m4
 AUTOMAKE_OPTIONS=foreign
 
