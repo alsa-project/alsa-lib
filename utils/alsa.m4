@@ -81,12 +81,11 @@ no_alsa=""
            sed 's/\([[0-9]]*\).\([[0-9]]*\).\([[0-9]]*\)/\3/'`
 AC_MSG_RESULT($alsa_min_major_version.$alsa_min_minor_version.$alsa_min_micro_version)
 
-AC_LANG_SAVE
-AC_LANG_C
+AC_LANG_PUSH([C])
 AC_MSG_CHECKING([for libasound headers version >= $alsa_min_major_version.$alsa_min_minor_version.$alsa_min_micro_version ($min_alsa_version)])
-AC_TRY_COMPILE([
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <alsa/asoundlib.h>
-], [
+]], [[
 /* ensure backward compatibility */
 #if !defined(SND_LIB_MAJOR) && defined(SOUNDLIB_VERSION_MAJOR)
 #define SND_LIB_MAJOR SOUNDLIB_VERSION_MAJOR
@@ -118,21 +117,20 @@ AC_TRY_COMPILE([
 #    endif
 #  endif
 exit(0);
-],
+]])],
   [AC_MSG_RESULT(found.)],
   [AC_MSG_RESULT(not present.)
    ifelse([$3], , [AC_MSG_ERROR(Sufficiently new version of libasound not found.)])
    alsa_found=no]
 )
-AC_LANG_RESTORE
+AC_LANG_POP([C])
 
-AC_LANG_SAVE
-AC_LANG_C
+AC_LANG_PUSH([C])
 AC_MSG_CHECKING([for libatopology (sound headers version > 1.1.9)])
-AC_TRY_COMPILE([
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <alsa/asoundlib.h>
 #include <alsa/topology.h>
-], [
+]], [[
 /* ensure backward compatibility */
 #if !defined(SND_LIB_VERSION)
 #define SND_LIB_VERSION 0
@@ -148,8 +146,7 @@ exit(0);
    enable_atopology="yes"],
   [AC_MSG_RESULT(no)]
 )
-AC_LANG_RESTORE
-
+AC_LANG_POP([C])
 fi
 
 dnl Now that we know that we have the right version, let's see if we have the library and not just the headers.
