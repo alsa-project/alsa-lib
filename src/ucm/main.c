@@ -666,7 +666,7 @@ static int get_list0(struct list_head *list,
 	}
 	return cnt;
       __fail:
-        snd_use_case_free_list((const char **)res, cnt);
+        snd_use_case_free_list(*result, cnt);
         return -ENOMEM;
 }
 
@@ -724,7 +724,7 @@ static int get_list20(struct list_head *list,
 	}
 	return cnt;
       __fail:
-        snd_use_case_free_list((const char **)res, cnt);
+        snd_use_case_free_list(*result, cnt);
         return -ENOMEM;
 }
 
