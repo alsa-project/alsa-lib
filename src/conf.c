@@ -1970,7 +1970,9 @@ int _snd_config_load_with_include(snd_config_t *config, snd_input_t *in,
 		SNDERR("%s:%d:%d:%s", fd->name ? fd->name : "_toplevel_", fd->line, fd->column, str);
 		goto _end;
 	}
-	if (get_char(&input) != LOCAL_UNEXPECTED_EOF) {
+	err = get_char(&input);
+	fd = input.current;
+	if (err != LOCAL_UNEXPECTED_EOF) {
 		SNDERR("%s:%d:%d:Unexpected }", fd->name ? fd->name : "", fd->line, fd->column);
 		err = -EINVAL;
 		goto _end;
