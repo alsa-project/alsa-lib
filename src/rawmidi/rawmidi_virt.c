@@ -315,7 +315,7 @@ int snd_rawmidi_virtual_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 			     int merge, int mode)
 {
 	int err;
-	snd_rawmidi_t *rmidi;
+	snd_rawmidi_t *rmidi = NULL;
 	snd_rawmidi_virtual_t *virt = NULL;
 	struct pollfd pfd;
 
@@ -392,6 +392,7 @@ int snd_rawmidi_virtual_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 		free(*inputp);
 	if (outputp)
 		free(*outputp);
+	free(rmidi);
 	return err;
 }
 
