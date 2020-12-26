@@ -746,7 +746,6 @@ static int snd_pcm_rate_commit_area(snd_pcm_t *pcm, snd_pcm_rate_t *rate,
 		if (result < 0)
 			return result;
 	      __partial:
-		xfer = 0;
 		cont = slave_frames;
 		if (cont > slave_size)
 			cont = slave_size;
@@ -846,7 +845,6 @@ static int snd_pcm_rate_grab_next_period(snd_pcm_t *pcm, snd_pcm_uframes_t hw_of
 		if (result < 0)
 			return result;
 	      __partial:
-		xfer = 0;
 		cont = slave_frames;
 		if (cont > rate->gen.slave->period_size)
 			cont = rate->gen.slave->period_size;
