@@ -1323,7 +1323,6 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 		err = -ENOMEM;
 		goto _free;
 	}
-	idx = 0;
 	for (idx = 0; idx < channels_count; ++idx)
 		channels_sidx[idx] = -1;
 	idx = 0;
