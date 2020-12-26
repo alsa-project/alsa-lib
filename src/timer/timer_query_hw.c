@@ -104,7 +104,7 @@ int snd_timer_query_hw_open(snd_timer_query_t **handle, const char *name, int mo
 		close(fd);
 		return -SND_ERROR_INCOMPATIBLE_VERSION;
 	}
-	tmr = (snd_timer_query_t *) calloc(1, sizeof(snd_timer_t));
+	tmr = (snd_timer_query_t *) calloc(1, sizeof(snd_timer_query_t));
 	if (tmr == NULL) {
 		close(fd);
 		return -ENOMEM;
