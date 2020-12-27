@@ -887,7 +887,7 @@ static inline int get_hexachar(input_t *input)
 	if (c >= '0' && c <= '9') num |= (c - '0') << 0;
 	else if (c >= 'a' && c <= 'f') num |= (c - 'a') << 0;
 	else if (c >= 'A' && c <= 'F') num |= (c - 'A') << 0;
-	return c;
+	return num;
 }
 
 static int get_quotedchar(input_t *input)
