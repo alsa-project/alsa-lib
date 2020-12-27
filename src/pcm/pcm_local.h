@@ -444,7 +444,7 @@ static inline int __snd_pcm_start(snd_pcm_t *pcm)
 static inline snd_pcm_state_t __snd_pcm_state(snd_pcm_t *pcm)
 {
 	if (!pcm->fast_ops->state)
-		return -ENOSYS;
+		return SND_PCM_STATE_OPEN;
 	return pcm->fast_ops->state(pcm->fast_op_arg);
 }
 
