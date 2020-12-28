@@ -498,6 +498,7 @@ static snd_pcm_sframes_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm)
 			 * there is more data available.
 			 */
 			slave_size = snd_pcm_avail_update(slave);
+			slave_frames = slave_size;
 			result = snd_pcm_mmap_begin(slave, &slave_areas, &slave_offset, &slave_frames);
 			if (result < 0) {
 				err = result;
