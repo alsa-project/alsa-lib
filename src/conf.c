@@ -1977,6 +1977,7 @@ int _snd_config_load_with_include(snd_config_t *config, snd_input_t *in,
 		err = -EINVAL;
 		goto _end;
 	}
+	err = 0;
  _end:
 	while (fd->next) {
 		fd_next = fd->next;
