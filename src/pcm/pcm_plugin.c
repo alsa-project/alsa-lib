@@ -142,12 +142,6 @@ static int snd_pcm_plugin_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 	int err = snd_pcm_delay(plugin->gen.slave, &sd);
 	if (err < 0)
 		return err;
-        if (pcm->stream == SND_PCM_STREAM_CAPTURE &&
-	    pcm->access != SND_PCM_ACCESS_RW_INTERLEAVED &&
-	    pcm->access != SND_PCM_ACCESS_RW_NONINTERLEAVED) {
-                sd += snd_pcm_mmap_capture_avail(pcm);
-        }        
-
 	*delayp = sd;
 	return 0;
 }
