@@ -107,9 +107,24 @@ static int snd_pcm_ioplug_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *i
 	return snd_pcm_channel_info_shm(pcm, info, -1);
 }
 
+static int snd_pcm_ioplug_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
+{
+	ioplug_priv_t *io = pcm->private_data;
+
+	if (io->data->version >= 0x010001 &&
+	    io->data->callback->delay)
+		return io->data->callback->delay(io->data, delayp);
+	else {
+		snd_pcm_ioplug_hw_ptr_update(pcm);
+		*delayp = snd_pcm_mmap_hw_avail(pcm);
+	}
+	return 0;
+}
+
 static int snd_pcm_ioplug_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 {
 	ioplug_priv_t *io = pcm->private_data;
+	snd_pcm_sframes_t sd;
 
 	memset(status, 0, sizeof(*status));
 	snd_pcm_ioplug_hw_ptr_update(pcm);
@@ -118,6 +133,9 @@ static int snd_pcm_ioplug_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	gettimestamp(&status->tstamp, pcm->tstamp_type);
 	status->avail = snd_pcm_mmap_avail(pcm);
 	status->avail_max = io->avail_max;
+	if (snd_pcm_ioplug_delay(pcm, &sd) < 0)
+		sd = snd_pcm_mmap_delay(pcm);
+	status->delay = sd;
 	return 0;
 }
 
@@ -130,20 +148,6 @@ static snd_pcm_state_t snd_pcm_ioplug_state(snd_pcm_t *pcm)
 static int snd_pcm_ioplug_hwsync(snd_pcm_t *pcm)
 {
 	snd_pcm_ioplug_hw_ptr_update(pcm);
-	return 0;
-}
-
-static int snd_pcm_ioplug_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
-{
-	ioplug_priv_t *io = pcm->private_data;
-
-	if (io->data->version >= 0x010001 &&
-	    io->data->callback->delay)
-		return io->data->callback->delay(io->data, delayp);
-	else {
-		snd_pcm_ioplug_hw_ptr_update(pcm);
-		*delayp = snd_pcm_mmap_hw_avail(pcm);
-	}
 	return 0;
 }
 
