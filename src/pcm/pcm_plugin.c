@@ -553,14 +553,11 @@ static int snd_pcm_plugin_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	snd_pcm_plugin_t *plugin = pcm->private_data;
 	snd_pcm_sframes_t err;
 
-	/* sync with the latest hw and appl ptrs */
-	snd_pcm_plugin_avail_update(pcm);
-
 	err = snd_pcm_status(plugin->gen.slave, status);
 	if (err < 0)
 		return err;
-	status->appl_ptr = *pcm->appl.ptr;
-	status->hw_ptr = *pcm->hw.ptr;
+	assert(status->appl_ptr == *pcm->appl.ptr);
+	snd_pcm_plugin_sync_hw_ptr(pcm, status->hw_ptr, status->avail);
 	return 0;
 }
 
