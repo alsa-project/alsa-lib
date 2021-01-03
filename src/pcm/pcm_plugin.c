@@ -551,8 +551,6 @@ static int snd_pcm_plugin_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 		return err;
 	status->appl_ptr = *pcm->appl.ptr;
 	status->hw_ptr = *pcm->hw.ptr;
-	status->avail = snd_pcm_mmap_avail(pcm);
-	status->delay = snd_pcm_mmap_delay(pcm);
 	return 0;
 }
 
