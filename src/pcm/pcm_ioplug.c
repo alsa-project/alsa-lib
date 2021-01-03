@@ -116,7 +116,7 @@ static int snd_pcm_ioplug_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 		return io->data->callback->delay(io->data, delayp);
 	else {
 		snd_pcm_ioplug_hw_ptr_update(pcm);
-		*delayp = snd_pcm_mmap_hw_avail(pcm);
+		*delayp = snd_pcm_mmap_delay(pcm);
 	}
 	return 0;
 }
