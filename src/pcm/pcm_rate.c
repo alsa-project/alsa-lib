@@ -964,29 +964,18 @@ static snd_pcm_sframes_t snd_pcm_rate_mmap_commit(snd_pcm_t *pcm,
 	return size;
 }
 
-static snd_pcm_sframes_t snd_pcm_rate_avail_update(snd_pcm_t *pcm)
+static snd_pcm_sframes_t snd_pcm_rate_avail_update_capture(snd_pcm_t *pcm,
+							   snd_pcm_sframes_t slave_size)
 {
 	snd_pcm_rate_t *rate = pcm->private_data;
 	snd_pcm_t *slave = rate->gen.slave;
-	snd_pcm_sframes_t slave_size;
-
-	slave_size = snd_pcm_avail_update(slave);
-	if (slave_size < 0)
-		return slave_size;
-
-	if (pcm->stream == SND_PCM_STREAM_CAPTURE)
-		goto _capture;
-	snd_pcm_rate_sync_hwptr(pcm);
-	snd_pcm_rate_sync_playback_area(pcm, rate->appl_ptr);
-	return snd_pcm_mmap_avail(pcm);
- _capture: {
 	snd_pcm_uframes_t xfer, hw_offset, size;
 	
 	xfer = snd_pcm_mmap_capture_avail(pcm);
 	size = pcm->buffer_size - xfer;
 	hw_offset = snd_pcm_mmap_hw_offset(pcm);
 	while (size >= pcm->period_size &&
-	       (snd_pcm_uframes_t)slave_size >= rate->gen.slave->period_size) {
+	       (snd_pcm_uframes_t)slave_size >= slave->period_size) {
 		int err = snd_pcm_rate_grab_next_period(pcm, hw_offset);
 		if (err < 0)
 			return err;
@@ -994,13 +983,29 @@ static snd_pcm_sframes_t snd_pcm_rate_avail_update(snd_pcm_t *pcm)
 			return (snd_pcm_sframes_t)xfer;
 		xfer += pcm->period_size;
 		size -= pcm->period_size;
-		slave_size -= rate->gen.slave->period_size;
+		slave_size -= slave->period_size;
 		hw_offset += pcm->period_size;
 		hw_offset %= pcm->buffer_size;
 		snd_pcm_mmap_hw_forward(pcm, pcm->period_size);
 	}
 	return (snd_pcm_sframes_t)xfer;
- }
+}
+
+static snd_pcm_sframes_t snd_pcm_rate_avail_update(snd_pcm_t *pcm)
+{
+	snd_pcm_rate_t *rate = pcm->private_data;
+	snd_pcm_sframes_t slave_size;
+
+	slave_size = snd_pcm_avail_update(rate->gen.slave);
+	if (slave_size < 0)
+		return slave_size;
+
+	if (pcm->stream == SND_PCM_STREAM_CAPTURE)
+		return snd_pcm_rate_avail_update_capture(pcm, slave_size);
+
+	snd_pcm_rate_sync_hwptr(pcm);
+	snd_pcm_rate_sync_playback_area(pcm, rate->appl_ptr);
+	return snd_pcm_mmap_avail(pcm);
 }
 
 static int snd_pcm_rate_htimestamp(snd_pcm_t *pcm,
