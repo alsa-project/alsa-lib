@@ -561,17 +561,16 @@ snd_pcm_rate_read_areas1(snd_pcm_t *pcm,
 
 static inline void snd_pcm_rate_sync_hwptr0(snd_pcm_t *pcm, snd_pcm_uframes_t slave_hw_ptr)
 {
-	snd_pcm_rate_t *rate = pcm->private_data;
-
-	snd_pcm_sframes_t slave_hw_ptr_diff = slave_hw_ptr - rate->last_slave_hw_ptr;
+	snd_pcm_rate_t *rate;
+	snd_pcm_sframes_t slave_hw_ptr_diff;
 	snd_pcm_sframes_t last_slave_hw_ptr_frac;
 
 	if (pcm->stream != SND_PCM_STREAM_PLAYBACK)
 		return;
 
-	if (slave_hw_ptr_diff < 0)
-		slave_hw_ptr_diff += rate->gen.slave->boundary; /* slave boundary wraparound */
-	else if (slave_hw_ptr_diff == 0)
+	rate = pcm->private_data;
+	slave_hw_ptr_diff = pcm_frame_diff(slave_hw_ptr, rate->last_slave_hw_ptr, rate->gen.slave->boundary);
+	if (slave_hw_ptr_diff == 0)
 		return;
 	last_slave_hw_ptr_frac = rate->last_slave_hw_ptr % rate->gen.slave->period_size;
 	/* While handling fraction part fo slave period, rounded value will be
@@ -922,10 +921,7 @@ static int snd_pcm_rate_sync_playback_area(snd_pcm_t *pcm, snd_pcm_uframes_t app
 	if (slave_size < 0)
 		return slave_size;
 
-	if (appl_ptr < rate->last_commit_ptr)
-		xfer = appl_ptr - rate->last_commit_ptr + pcm->boundary;
-	else
-		xfer = appl_ptr - rate->last_commit_ptr;
+	xfer = pcm_frame_diff(appl_ptr, rate->last_commit_ptr, pcm->boundary);
 	while (xfer >= pcm->period_size &&
 	       (snd_pcm_uframes_t)slave_size >= rate->gen.slave->period_size) {
 		err = snd_pcm_rate_commit_next_period(pcm, rate->last_commit_ptr % pcm->buffer_size);
@@ -1059,9 +1055,7 @@ static int snd_pcm_rate_drain(snd_pcm_t *pcm)
 		sw_params.avail_min = 1;
 		snd_pcm_sw_params(rate->gen.slave, &sw_params);
 
-		size = rate->appl_ptr - rate->last_commit_ptr;
-		if (size > pcm->boundary)
-			size -= pcm->boundary;
+		size = pcm_frame_diff(rate->appl_ptr, rate->last_commit_ptr, pcm->boundary);
 		ofs = rate->last_commit_ptr % pcm->buffer_size;
 		while (size > 0) {
 			snd_pcm_uframes_t psize, spsize;
