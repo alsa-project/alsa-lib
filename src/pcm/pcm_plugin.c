@@ -545,13 +545,30 @@ static snd_pcm_sframes_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm)
 static int snd_pcm_plugin_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 {
 	snd_pcm_plugin_t *plugin = pcm->private_data;
-	snd_pcm_sframes_t err;
+	snd_pcm_sframes_t err, diff;
 
 	err = snd_pcm_status(plugin->gen.slave, status);
 	if (err < 0)
 		return err;
-	assert(status->appl_ptr == *pcm->appl.ptr);
 	snd_pcm_plugin_sync_hw_ptr(pcm, status->hw_ptr, status->avail);
+	/*
+	 * For capture stream, the situation is more complicated, because
+	 * snd_pcm_plugin_avail_update() commits the data to the slave pcm.
+	 * It means that the slave appl_ptr is updated. Calculate diff and
+	 * update the delay and avail.
+	 *
+	 * This resolves the data inconsistency for immediate calls:
+	 *    snd_pcm_avail_update()
+	 *    snd_pcm_status()
+	 */
+	if (pcm->stream == SND_PCM_STREAM_CAPTURE) {
+		status->appl_ptr = *pcm->appl.ptr;
+		diff = pcm_frame_diff(status->appl_ptr, *pcm->appl.ptr, pcm->boundary);
+		status->avail += diff;
+		status->delay += diff;
+	} else {
+		assert(status->appl_ptr == *pcm->appl.ptr);
+	}
 	return 0;
 }
 
