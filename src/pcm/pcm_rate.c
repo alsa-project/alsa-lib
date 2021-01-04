@@ -612,11 +612,7 @@ static snd_pcm_uframes_t snd_pcm_rate_playback_internal_delay(snd_pcm_t *pcm)
 {
 	snd_pcm_rate_t *rate = pcm->private_data;
 
-	if (rate->appl_ptr < rate->last_commit_ptr) {
-		return rate->appl_ptr - rate->last_commit_ptr + pcm->boundary;
-	} else {
-		return rate->appl_ptr - rate->last_commit_ptr;
-	}
+	return pcm_frame_diff(rate->appl_ptr, rate->last_commit_ptr, pcm->boundary);
 }
 
 static int snd_pcm_rate_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
