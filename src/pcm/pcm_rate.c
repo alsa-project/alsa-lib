@@ -632,7 +632,7 @@ static int snd_pcm_rate_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 				+ snd_pcm_rate_playback_internal_delay(pcm);
 	} else {
 		*delayp = rate->ops.output_frames(rate->obj, slave_delay)
-				+ snd_pcm_mmap_capture_hw_avail(pcm);
+				+ snd_pcm_mmap_capture_delay(pcm);
 	}
 	return 0;
 }
@@ -1157,12 +1157,8 @@ static int snd_pcm_rate_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 		status->avail = snd_pcm_mmap_playback_avail(pcm);
 		status->avail_max = rate->ops.input_frames(rate->obj, status->avail_max);
 	} else {
-		/* FIXME: Maybe possible to somthing similar to
-		 * snd_pcm_rate_playback_internal_delay()
-		 * for the capture case.
-		 */
 		status->delay = rate->ops.output_frames(rate->obj, status->delay)
-					+ snd_pcm_mmap_capture_hw_avail(pcm);
+					+ snd_pcm_mmap_capture_delay(pcm);
 		status->avail = snd_pcm_mmap_capture_avail(pcm);
 		status->avail_max = rate->ops.output_frames(rate->obj, status->avail_max);
 	}
