@@ -836,6 +836,7 @@ int tplg_add_widget_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 		default:
 			SNDERR("widget %s: invalid type %d for ctl %d",
 				wt->name, ct->type, i);
+			ret = -EINVAL;
 			break;
 		}
 
