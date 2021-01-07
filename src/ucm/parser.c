@@ -1575,7 +1575,7 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 	/* in-place evaluation */
 	err = uc_mgr_evaluate_inplace(uc_mgr, cfg);
 	if (err < 0)
-		return err;
+		goto _err;
 
 	/* parse master config sections */
 	snd_config_for_each(i, next, cfg) {
