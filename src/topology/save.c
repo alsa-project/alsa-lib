@@ -133,6 +133,8 @@ static int tplg_pprint_integer(snd_config_t *n, char **ret)
 		if (llval < INT_MIN || llval > UINT_MAX)
 			return snd_config_get_ascii(n, ret);
 		lval = llval;
+	} else {
+		lval = 0;
 	}
 	err = tplg_nice_value_format(buf, sizeof(buf), (unsigned int)lval);
 	if (err < 0)
