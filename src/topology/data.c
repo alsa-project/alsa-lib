@@ -860,7 +860,7 @@ static int parse_tuple_set(snd_config_t *cfg,
 			}
 
 			if ((type == SND_SOC_TPLG_TUPLE_TYPE_WORD
-					&& tuple_val > UINT_MAX)
+					/* && tuple_val > UINT_MAX */)
 				|| (type == SND_SOC_TPLG_TUPLE_TYPE_SHORT
 					&& tuple_val > USHRT_MAX)
 				|| (type == SND_SOC_TPLG_TUPLE_TYPE_BYTE
