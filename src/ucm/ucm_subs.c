@@ -417,11 +417,12 @@ int uc_mgr_substitute_tree(snd_use_case_mgr_t *uc_mgr, snd_config_t *node)
 		if (err < 0)
 			return err;
 		err = snd_config_set_id(node, s);
-		free(s);
 		if (err < 0) {
 			uc_error("unable to set substituted id '%s' (old id '%s')", s, id);
+			free(s);
 			return err;
 		}
+		free(s);
 	}
 	if (snd_config_get_type(node) != SND_CONFIG_TYPE_COMPOUND) {
 		if (snd_config_get_type(node) == SND_CONFIG_TYPE_STRING) {
