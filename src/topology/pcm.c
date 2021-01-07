@@ -2020,7 +2020,7 @@ next:
 	pt->playback = pcm->playback;
 	pt->capture = pcm->capture;
 	pt->compress = pcm->compress;
-	tplg_log(tplg, 'D', pos, "pcm: playback %d capture %d compress",
+	tplg_log(tplg, 'D', pos, "pcm: playback %d capture %d compress %d",
 		 pt->playback, pt->capture, pt->compress);
 	pt->num_streams = pcm->num_streams;
 	pt->flag_mask = pcm->flag_mask;
