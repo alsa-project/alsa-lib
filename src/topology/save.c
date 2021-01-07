@@ -180,29 +180,28 @@ static snd_config_t *sort_config(const char *id, snd_config_t *src)
 	}
 	if (array <= 0)
 		qsort(a, count, sizeof(a[0]), _compar);
-	if (snd_config_make_compound(&dst, id, count == 1)) {
-		free(a);
-		return NULL;
-	}
+	if (snd_config_make_compound(&dst, id, count == 1))
+		goto lerr;
 	for (index = 0; index < count; index++) {
 		snd_config_t *s = a[index];
 		const char *id2;
 		if (snd_config_get_id(s, &id2)) {
 			snd_config_delete(dst);
-			free(a);
-			return NULL;
+			goto lerr;
 		}
 		s = sort_config(id2, s);
 		if (s == NULL || snd_config_add(dst, s)) {
 			if (s)
 				snd_config_delete(s);
 			snd_config_delete(dst);
-			free(a);
-			return NULL;
+			goto lerr;
 		}
 	}
 	free(a);
 	return dst;
+lerr:
+	free(a);
+	return NULL;
 }
 
 static int tplg_check_quoted(const unsigned char *p)
