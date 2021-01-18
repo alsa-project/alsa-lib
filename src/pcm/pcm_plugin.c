@@ -146,6 +146,22 @@ static int snd_pcm_plugin_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 	return 0;
 }
 
+static int snd_pcm_plugin_call_init_cb(snd_pcm_t *pcm, snd_pcm_plugin_t *plugin)
+{
+	snd_pcm_t *slave = plugin->gen.slave;
+	int err;
+
+	assert(pcm->boundary == slave->boundary);
+	*pcm->hw.ptr = *slave->hw.ptr;
+	*pcm->appl.ptr = *slave->appl.ptr;
+	if (plugin->init) {
+		err = plugin->init(pcm);
+		if (err < 0)
+			return err;
+	}
+	return 0;
+}
+
 static int snd_pcm_plugin_prepare(snd_pcm_t *pcm)
 {
 	snd_pcm_plugin_t *plugin = pcm->private_data;
@@ -153,14 +169,7 @@ static int snd_pcm_plugin_prepare(snd_pcm_t *pcm)
 	err = snd_pcm_prepare(plugin->gen.slave);
 	if (err < 0)
 		return err;
-	*pcm->hw.ptr = 0;
-	*pcm->appl.ptr = 0;
-	if (plugin->init) {
-		err = plugin->init(pcm);
-		if (err < 0)
-			return err;
-	}
-	return 0;
+	return snd_pcm_plugin_call_init_cb(pcm, plugin);
 }
 
 static int snd_pcm_plugin_reset(snd_pcm_t *pcm)
@@ -170,14 +179,7 @@ static int snd_pcm_plugin_reset(snd_pcm_t *pcm)
 	err = snd_pcm_reset(plugin->gen.slave);
 	if (err < 0)
 		return err;
-	*pcm->hw.ptr = 0;
-	*pcm->appl.ptr = 0;
-	if (plugin->init) {
-		err = plugin->init(pcm);
-		if (err < 0)
-			return err;
-	}
-	return 0;
+	return snd_pcm_plugin_call_init_cb(pcm, plugin);
 }
 
 static snd_pcm_sframes_t snd_pcm_plugin_rewindable(snd_pcm_t *pcm)
