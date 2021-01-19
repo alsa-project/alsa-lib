@@ -488,8 +488,7 @@ static int snd_pcm_dmix_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	case SNDRV_PCM_STATE_DRAINING:
 	case SNDRV_PCM_STATE_RUNNING:
 		snd_pcm_dmix_sync_ptr0(pcm, status->hw_ptr);
-		status->delay += snd_pcm_mmap_playback_delay(pcm)
-				+ status->avail - dmix->spcm->buffer_size;
+		status->delay = snd_pcm_mmap_playback_delay(pcm);
 		break;
 	default:
 		break;
@@ -518,7 +517,7 @@ static int snd_pcm_dmix_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 	case SNDRV_PCM_STATE_PREPARED:
 	case SNDRV_PCM_STATE_SUSPENDED:
 	case STATE_RUN_PENDING:
-		*delayp = snd_pcm_mmap_playback_hw_avail(pcm);
+		*delayp = snd_pcm_mmap_playback_delay(pcm);
 		return 0;
 	case SNDRV_PCM_STATE_XRUN:
 		return -EPIPE;
