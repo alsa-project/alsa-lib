@@ -859,11 +859,11 @@ static int parse_tuple_set(snd_config_t *cfg,
 				goto err;
 			}
 
-			if ((type == SND_SOC_TPLG_TUPLE_TYPE_WORD
-					/* && tuple_val > UINT_MAX */)
-				|| (type == SND_SOC_TPLG_TUPLE_TYPE_SHORT
-					&& tuple_val > USHRT_MAX)
-				|| (type == SND_SOC_TPLG_TUPLE_TYPE_BYTE
+			if (/* (type == SND_SOC_TPLG_TUPLE_TYPE_WORD
+					&& tuple_val > UINT_MAX) || */
+				(type == SND_SOC_TPLG_TUPLE_TYPE_SHORT
+					&& tuple_val > USHRT_MAX) ||
+				(type == SND_SOC_TPLG_TUPLE_TYPE_BYTE
 					&& tuple_val > UCHAR_MAX)) {
 				SNDERR("tuple %s: invalid value", id);
 				goto err;
