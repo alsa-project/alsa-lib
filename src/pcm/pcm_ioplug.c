@@ -697,6 +697,38 @@ static snd_pcm_sframes_t snd_pcm_ioplug_readn(snd_pcm_t *pcm, void **bufs, snd_p
 	}
 }
 
+static int snd_pcm_ioplug_mmap_begin_capture(snd_pcm_t *pcm,
+					     const snd_pcm_channel_area_t **areas,
+					     snd_pcm_uframes_t *offset,
+					     snd_pcm_uframes_t *frames)
+{
+	ioplug_priv_t *io = pcm->private_data;
+	int err;
+
+	err = __snd_pcm_mmap_begin_generic(pcm, areas, offset, frames);
+	if (err < 0)
+		return err;
+
+	if (io->data->callback->transfer &&
+	    pcm->access != SND_PCM_ACCESS_RW_INTERLEAVED &&
+	    pcm->access != SND_PCM_ACCESS_RW_NONINTERLEAVED) {
+		snd_pcm_sframes_t result;
+		result = io->data->callback->transfer(io->data, *areas, *offset, *frames);
+		if (result < 0)
+			return result;
+	}
+
+	return err;
+}
+
+static int snd_pcm_ioplug_mmap_begin(snd_pcm_t *pcm, const snd_pcm_channel_area_t **areas,
+				     snd_pcm_uframes_t *offset, snd_pcm_uframes_t *frames)
+{
+	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
+		return __snd_pcm_mmap_begin_generic(pcm, areas, offset, frames);
+	return snd_pcm_ioplug_mmap_begin_capture(pcm, areas, offset, frames);
+}
+
 static snd_pcm_sframes_t snd_pcm_ioplug_mmap_commit(snd_pcm_t *pcm,
 						    snd_pcm_uframes_t offset,
 						    snd_pcm_uframes_t size)
@@ -707,7 +739,7 @@ static snd_pcm_sframes_t snd_pcm_ioplug_mmap_commit(snd_pcm_t *pcm,
 		const snd_pcm_channel_area_t *areas;
 		snd_pcm_uframes_t ofs, frames = size;
 
-		__snd_pcm_mmap_begin(pcm, &areas, &ofs, &frames);
+		__snd_pcm_mmap_begin_generic(pcm, &areas, &ofs, &frames);
 		if (ofs != offset)
 			return -EIO;
 		return ioplug_priv_transfer_areas(pcm, areas, offset, frames);
@@ -727,31 +759,6 @@ static snd_pcm_sframes_t snd_pcm_ioplug_avail_update(snd_pcm_t *pcm)
 		return -EPIPE;
 
 	avail = snd_pcm_mmap_avail(pcm);
-	if (pcm->stream == SND_PCM_STREAM_CAPTURE &&
-	    pcm->access != SND_PCM_ACCESS_RW_INTERLEAVED &&
-	    pcm->access != SND_PCM_ACCESS_RW_NONINTERLEAVED) {
-		if (io->data->callback->transfer) {
-			const snd_pcm_channel_area_t *areas;
-			snd_pcm_uframes_t offset, size = UINT_MAX;
-			snd_pcm_sframes_t result;
-
-			__snd_pcm_mmap_begin(pcm, &areas, &offset, &size);
-			result = io->data->callback->transfer(io->data, areas, offset, size);
-			if (result < 0)
-				return result;
-
-			/* If the available data doesn't fit in the
-			   contiguous area at the end of the mmap we
-			   must transfer the remaining data to the
-			   beginning of the mmap. */
-			if (size < avail) {
-				result = io->data->callback->transfer(io->data, areas,
-								      0, avail - size);
-				if (result < 0)
-					return result;
-			}
-		}
-	}
 	if (avail > io->avail_max)
 		io->avail_max = avail;
 	return (snd_pcm_sframes_t)avail;
@@ -947,6 +954,7 @@ static const snd_pcm_fast_ops_t snd_pcm_ioplug_fast_ops = {
 	.poll_descriptors_count = snd_pcm_ioplug_poll_descriptors_count,
 	.poll_descriptors = snd_pcm_ioplug_poll_descriptors,
 	.poll_revents = snd_pcm_ioplug_poll_revents,
+	.mmap_begin = snd_pcm_ioplug_mmap_begin,
 };
 
 #endif /* !DOC_HIDDEN */

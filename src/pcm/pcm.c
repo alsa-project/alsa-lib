@@ -7218,9 +7218,8 @@ int snd_pcm_mmap_begin(snd_pcm_t *pcm,
 }
 
 #ifndef DOC_HIDDEN
-/* locked version */
-int __snd_pcm_mmap_begin(snd_pcm_t *pcm, const snd_pcm_channel_area_t **areas,
-		       snd_pcm_uframes_t *offset, snd_pcm_uframes_t *frames)
+int __snd_pcm_mmap_begin_generic(snd_pcm_t *pcm, const snd_pcm_channel_area_t **areas,
+				 snd_pcm_uframes_t *offset, snd_pcm_uframes_t *frames)
 {
 	snd_pcm_uframes_t cont;
 	snd_pcm_uframes_t f;
@@ -7228,9 +7227,6 @@ int __snd_pcm_mmap_begin(snd_pcm_t *pcm, const snd_pcm_channel_area_t **areas,
 	const snd_pcm_channel_area_t *xareas;
 
 	assert(pcm && areas && offset && frames);
-
-	if (pcm->fast_ops->mmap_begin)
-		return pcm->fast_ops->mmap_begin(pcm->fast_op_arg, areas, offset, frames);
 
 	/* fallback for plugins that do not specify new callback */
 	xareas = snd_pcm_mmap_areas(pcm);
@@ -7249,6 +7245,18 @@ int __snd_pcm_mmap_begin(snd_pcm_t *pcm, const snd_pcm_channel_area_t **areas,
 		f = cont;
 	*frames = f;
 	return 0;
+}
+
+/* locked version */
+int __snd_pcm_mmap_begin(snd_pcm_t *pcm, const snd_pcm_channel_area_t **areas,
+			 snd_pcm_uframes_t *offset, snd_pcm_uframes_t *frames)
+{
+	assert(pcm && areas && offset && frames);
+
+	if (pcm->fast_ops->mmap_begin)
+		return pcm->fast_ops->mmap_begin(pcm->fast_op_arg, areas, offset, frames);
+
+	return __snd_pcm_mmap_begin_generic(pcm, areas, offset, frames);
 }
 #endif
 

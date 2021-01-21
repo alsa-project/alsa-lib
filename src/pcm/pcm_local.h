@@ -420,6 +420,8 @@ int _snd_pcm_poll_descriptor(snd_pcm_t *pcm);
 #define _snd_pcm_async_descriptor _snd_pcm_poll_descriptor /* FIXME */
 
 /* locked versions */
+int __snd_pcm_mmap_begin_generic(snd_pcm_t *pcm, const snd_pcm_channel_area_t **areas,
+				 snd_pcm_uframes_t *offset, snd_pcm_uframes_t *frames);
 int __snd_pcm_mmap_begin(snd_pcm_t *pcm, const snd_pcm_channel_area_t **areas,
 			 snd_pcm_uframes_t *offset, snd_pcm_uframes_t *frames);
 snd_pcm_sframes_t __snd_pcm_mmap_commit(snd_pcm_t *pcm,
