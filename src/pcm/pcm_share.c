@@ -711,6 +711,8 @@ static int snd_pcm_share_status(snd_pcm_t *pcm, snd_pcm_status_t *status)
  _notrunning:
 	status->delay = sd + d;
 	status->state = share->state;
+	status->appl_ptr = *pcm->appl.ptr;
+	status->hw_ptr = *pcm->hw.ptr;
 	status->trigger_tstamp = share->trigger_tstamp;
  _end:
 	Pthread_mutex_unlock(&slave->mutex);
