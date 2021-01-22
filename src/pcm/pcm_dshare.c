@@ -243,6 +243,7 @@ static int snd_pcm_dshare_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 		break;
 	}
 	status->state = snd_pcm_dshare_state(pcm);
+	status->appl_ptr = *pcm->appl.ptr; /* slave PCM doesn't set appl_ptr */
 	status->trigger_tstamp = dshare->trigger_tstamp;
 	status->avail = snd_pcm_mmap_playback_avail(pcm);
 	status->avail_max = status->avail > dshare->avail_max ? status->avail : dshare->avail_max;

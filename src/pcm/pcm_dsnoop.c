@@ -193,6 +193,7 @@ static int snd_pcm_dsnoop_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	snd_pcm_status(dsnoop->spcm, status);
 	state = snd_pcm_state(dsnoop->spcm);
 	status->state = state == SND_PCM_STATE_RUNNING ? dsnoop->state : state;
+	status->appl_ptr = *pcm->appl.ptr; /* slave PCM doesn't set appl_ptr */
 	status->trigger_tstamp = dsnoop->trigger_tstamp;
 	status->avail = snd_pcm_mmap_capture_avail(pcm);
 	status->avail_max = status->avail > dsnoop->avail_max ? status->avail : dsnoop->avail_max;
