@@ -133,6 +133,8 @@ static int snd_pcm_ioplug_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	gettimestamp(&status->tstamp, pcm->tstamp_type);
 	status->avail = snd_pcm_mmap_avail(pcm);
 	status->avail_max = io->avail_max;
+	status->appl_ptr = *pcm->appl.ptr;
+	status->hw_ptr = *pcm->hw.ptr;
 	if (snd_pcm_ioplug_delay(pcm, &sd) < 0)
 		sd = snd_pcm_mmap_delay(pcm);
 	status->delay = sd;
