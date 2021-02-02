@@ -40,7 +40,7 @@
 #include <pthread.h>
 #include "use-case.h"
 
-#define SYNTAX_VERSION_MAX	3
+#define SYNTAX_VERSION_MAX	4
 
 #define MAX_CARD_SHORT_NAME	32
 #define MAX_CARD_LONG_NAME	80
@@ -289,6 +289,7 @@ int uc_mgr_open_ctl(snd_use_case_mgr_t *uc_mgr,
 		    int slave);
 
 struct ctl_list *uc_mgr_get_master_ctl(snd_use_case_mgr_t *uc_mgr);
+struct ctl_list *uc_mgr_get_ctl_by_card(snd_use_case_mgr_t *uc_mgr, int card);
 struct ctl_list *uc_mgr_get_ctl_by_name(snd_use_case_mgr_t *uc_mgr,
 					const char *name, int idx);
 snd_ctl_t *uc_mgr_get_ctl(snd_use_case_mgr_t *uc_mgr);

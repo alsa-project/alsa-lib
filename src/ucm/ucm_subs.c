@@ -28,6 +28,7 @@
 #include <stdbool.h>
 #include <sys/stat.h>
 #include <limits.h>
+#include <regex.h>
 
 static char *rval_open_name(snd_use_case_mgr_t *uc_mgr)
 {
@@ -161,6 +162,8 @@ static char *rval_card_number_by_name(snd_use_case_mgr_t *uc_mgr, const char *id
 		return NULL;
 	}
 
+	uc_error("${CardNumberByName} substitution is obsolete - use ${find-card}!");
+
 	return get_card_number(get_ctl_list_by_name(uc_mgr, id));
 }
 
@@ -173,10 +176,321 @@ static char *rval_card_id_by_name(snd_use_case_mgr_t *uc_mgr, const char *id)
 		return NULL;
 	}
 
+	uc_error("${CardIdByName} substitution is obsolete - use ${find-card}!");
+
 	ctl_list = get_ctl_list_by_name(uc_mgr, id);
 	if (ctl_list == NULL)
 		return NULL;
 	return strdup(snd_ctl_card_info_get_id(ctl_list->ctl_info));
+}
+
+typedef struct lookup_iterate *(*lookup_iter_fcn_t)
+			(snd_use_case_mgr_t *uc_mgr, struct lookup_iterate *iter);
+typedef const char *(*lookup_fcn_t)(void *);
+
+struct lookup_fcn {
+	char *name;
+	const char *(*fcn)(void *opaque);
+};
+
+struct lookup_iterate {
+	int (*init)(snd_use_case_mgr_t *uc_mgr, struct lookup_iterate *iter,
+		    snd_config_t *config);
+	void (*done)(struct lookup_iterate *iter);
+	lookup_iter_fcn_t first;
+	lookup_iter_fcn_t next;
+	char *(*retfcn)(struct lookup_iterate *iter, snd_config_t *config);
+	struct lookup_fcn *fcns;
+	lookup_fcn_t fcn;
+	struct ctl_list *ctl_list;
+	void *info;
+};
+
+static snd_config_t *parse_lookup_query(const char *query)
+{
+	snd_input_t *input;
+	snd_config_t *config;
+	int err;
+
+	err = snd_input_buffer_open(&input, query, strlen(query));
+	if (err < 0) {
+		uc_error("unable to create memory input buffer");
+		return NULL;
+	}
+	snd_config_top(&config);
+	err = snd_config_load(config, input);
+	snd_input_close(input);
+	if (err < 0) {
+		snd_config_delete(config);
+		uc_error("wrong arguments '%s'", query);
+		return NULL;
+	}
+	return config;
+}
+
+static char *rval_lookup_main(snd_use_case_mgr_t *uc_mgr,
+			      const char *query,
+			      struct lookup_iterate *iter)
+{
+	snd_config_t *config, *d;
+	struct lookup_fcn *fcn;
+	struct lookup_iterate *curr;
+	const char *s;
+	char *result;
+	regmatch_t match[1];
+	regex_t re;
+	int err;
+
+	if (uc_mgr->conf_format < 4) {
+		uc_error("Lookups are supported in v4+ syntax");
+		return NULL;
+	}
+
+	config = parse_lookup_query(query);
+	if (config == NULL)
+		return NULL;
+	if (iter->init && iter->init(uc_mgr, iter, config))
+		goto null;
+	if (snd_config_search(config, "field", &d)) {
+		uc_error("Lookups require field!");
+		goto null;
+	}
+	if (snd_config_get_string(d, &s))
+		goto null;
+	for (fcn = iter->fcns ; fcn; fcn++) {
+		if (strcasecmp(fcn->name, s) == 0) {
+			iter->fcn = fcn->fcn;
+			break;
+		}
+	}
+	if (iter->fcn == NULL) {
+		uc_error("Unknown field value '%s'", s);
+		goto null;
+	}
+	if (snd_config_search(config, "regex", &d)) {
+		uc_error("Lookups require regex!");
+		goto null;
+	}
+	if (snd_config_get_string(d, &s))
+		goto null;
+	err = regcomp(&re, s, REG_EXTENDED | REG_ICASE);
+	if (err) {
+		uc_error("Regex '%s' compilation failed (code %d)", s, err);
+		goto null;
+	}
+
+	result = NULL;
+	for (curr = iter->first(uc_mgr, iter); curr; curr = iter->next(uc_mgr, iter)) {
+		s = curr->fcn(iter->info);
+		if (s == NULL)
+			continue;
+		if (regexec(&re, s, ARRAY_SIZE(match), match, 0) == 0) {
+			result = curr->retfcn(iter, config);
+			break;
+		}
+	}
+	snd_config_delete(config);
+	regfree(&re);
+	if (iter->done)
+		iter->done(iter);
+	return result;
+null:
+	if (iter->done)
+		iter->done(iter);
+	snd_config_delete(config);
+	return NULL;
+}
+
+static struct lookup_iterate *rval_card_lookup1(snd_use_case_mgr_t *uc_mgr,
+						struct lookup_iterate *iter,
+						int card)
+{
+	if (snd_card_next(&card) < 0 || card < 0)
+		return NULL;
+	iter->ctl_list = uc_mgr_get_ctl_by_card(uc_mgr, card);
+	if (iter->ctl_list == NULL)
+		return NULL;
+	iter->info = iter->ctl_list->ctl_info;
+	return iter;
+}
+
+static struct lookup_iterate *rval_card_lookup_first(snd_use_case_mgr_t *uc_mgr,
+						     struct lookup_iterate *iter)
+{
+	return rval_card_lookup1(uc_mgr, iter, -1);
+}
+
+static struct lookup_iterate *rval_card_lookup_next(snd_use_case_mgr_t *uc_mgr,
+						    struct lookup_iterate *iter)
+{
+	return rval_card_lookup1(uc_mgr, iter, snd_ctl_card_info_get_card(iter->info));
+}
+
+static char *rval_card_lookup_return(struct lookup_iterate *iter, snd_config_t *config)
+{
+	snd_config_t *d;
+	const char *s;
+
+	if (snd_config_search(config, "return", &d))
+		return strdup(snd_ctl_card_info_get_id(iter->info));
+	else if (snd_config_get_string(d, &s))
+		return NULL;
+	else if (strcasecmp(s, "id") == 0)
+		return strdup(snd_ctl_card_info_get_id(iter->info));
+	else if (strcasecmp(s, "number") == 0) {
+		char num[16];
+		snprintf(num, sizeof(num), "%d", snd_ctl_card_info_get_card(iter->info));
+		return strdup(num);
+	} else {
+		uc_error("Unknown return type '%s'", s);
+		return NULL;
+	}
+}
+
+static char *rval_card_lookup(snd_use_case_mgr_t *uc_mgr, const char *query)
+{
+	static struct lookup_fcn fcns[] = {
+		{ .name = "id", (lookup_fcn_t)snd_ctl_card_info_get_id },
+		{ .name = "driver", (lookup_fcn_t)snd_ctl_card_info_get_driver },
+		{ .name = "name", (lookup_fcn_t)snd_ctl_card_info_get_name },
+		{ .name = "longname", (lookup_fcn_t)snd_ctl_card_info_get_longname },
+		{ .name = "mixername", (lookup_fcn_t)snd_ctl_card_info_get_mixername },
+		{ .name = "components", (lookup_fcn_t)snd_ctl_card_info_get_components },
+		{ 0 },
+	};
+	struct lookup_iterate iter = {
+		.first = rval_card_lookup_first,
+		.next = rval_card_lookup_next,
+		.retfcn = rval_card_lookup_return,
+		.fcns = fcns,
+	};
+	return rval_lookup_main(uc_mgr, query, &iter);
+}
+
+static struct lookup_iterate *rval_pcm_lookup1(struct lookup_iterate *iter,
+					       int device)
+{
+	snd_pcm_info_t *pcminfo;
+	snd_ctl_t *ctl = iter->ctl_list->ctl;
+	int err;
+
+	if (snd_ctl_pcm_next_device(ctl, &device) < 0 || device < 0)
+		return NULL;
+	pcminfo = iter->info;
+	snd_pcm_info_set_device(pcminfo, device);
+	err = snd_ctl_pcm_info(ctl, pcminfo);
+	if (err < 0) {
+		uc_error("Unable to obtain PCM info (device %d)", device);
+		return NULL;
+	}
+	return iter;
+}
+
+static struct lookup_iterate *rval_pcm_lookup_first(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
+						    struct lookup_iterate *iter)
+{
+	return rval_pcm_lookup1(iter, -1);
+}
+
+static struct lookup_iterate *rval_pcm_lookup_next(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
+						   struct lookup_iterate *iter)
+{
+	return rval_pcm_lookup1(iter, snd_pcm_info_get_device(iter->info));
+}
+
+static char *rval_pcm_lookup_return(struct lookup_iterate *iter,
+				    snd_config_t *config ATTRIBUTE_UNUSED)
+{
+	char num[16];
+	snprintf(num, sizeof(num), "%d", snd_pcm_info_get_device(iter->info));
+	return strdup(num);
+}
+
+static int rval_pcm_lookup_init(struct lookup_iterate *iter,
+				snd_config_t *config)
+{
+	static struct lookup_fcn pcm_fcns[] = {
+		{ .name = "id", (lookup_fcn_t)snd_pcm_info_get_id },
+		{ .name = "name", (lookup_fcn_t)snd_pcm_info_get_name },
+		{ .name = "subname", (lookup_fcn_t)snd_pcm_info_get_subdevice_name },
+		{ 0 },
+	};
+	snd_config_t *d;
+	const char *s;
+	snd_pcm_info_t *pcminfo;
+	snd_pcm_stream_t stream = SND_PCM_STREAM_PLAYBACK;
+
+	if (snd_config_search(config, "stream", &d) == 0 &&
+	    snd_config_get_string(d, &s) == 0) {
+		if (strcasecmp(s, "playback") == 0)
+			stream = SND_PCM_STREAM_PLAYBACK;
+		else if (strcasecmp(s, "capture") == 0)
+			stream = SND_PCM_STREAM_CAPTURE;
+		else {
+			uc_error("Unknown stream type '%s'", s);
+			return -EINVAL;
+		}
+	}
+	if (snd_pcm_info_malloc(&pcminfo))
+		return -ENOMEM;
+	snd_pcm_info_set_device(pcminfo, 0);
+	snd_pcm_info_set_subdevice(pcminfo, 0);
+	snd_pcm_info_set_stream(pcminfo, stream);
+	iter->first = rval_pcm_lookup_first;
+	iter->next = rval_pcm_lookup_next;
+	iter->retfcn = rval_pcm_lookup_return;
+	iter->fcns = pcm_fcns;
+	iter->info = pcminfo;
+	return 0;
+}
+
+static int rval_device_lookup_init(snd_use_case_mgr_t *uc_mgr,
+				   struct lookup_iterate *iter,
+				   snd_config_t *config)
+{
+	static struct {
+		const char *name;
+		int (*init)(struct lookup_iterate *iter, snd_config_t *config);
+	} *t, types[] = {
+		{ .name = "pcm", .init = rval_pcm_lookup_init },
+		{ 0 }
+	};
+	snd_config_t *d;
+	const char *s;
+	int err;
+
+	if (snd_config_search(config, "ctl", &d) || snd_config_get_string(d, &s)) {
+		iter->ctl_list = uc_mgr_get_master_ctl(uc_mgr);
+	} else {
+		err = uc_mgr_open_ctl(uc_mgr, &iter->ctl_list, s, 1);
+		if (err < 0) {
+			uc_error("Control device '%s' not found", s);
+			return -EINVAL;
+		}
+	}
+	if (snd_config_search(config, "type", &d) || snd_config_get_string(d, &s)) {
+		uc_error("Missing device type!");
+		return -EINVAL;
+	}
+	for (t = types; t; t++)
+		if (strcasecmp(t->name, s) == 0)
+			return t->init(iter, config);
+	uc_error("Device type '%s' is invalid", s);
+	return -EINVAL;
+}
+
+static void rval_device_lookup_done(struct lookup_iterate *iter)
+{
+	free(iter->info);
+}
+
+static char *rval_device_lookup(snd_use_case_mgr_t *uc_mgr, const char *query)
+{
+	struct lookup_iterate iter = {
+		.init = rval_device_lookup_init,
+		.done = rval_device_lookup_done,
+	};
+	return rval_lookup_main(uc_mgr, query, &iter);
 }
 
 static char *rval_env(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED, const char *id)
@@ -317,6 +631,8 @@ __std:
 		MATCH_VARIABLE2(value, "${env:", rval_env, false);
 		MATCH_VARIABLE2(value, "${sys:", rval_sysfs, false);
 		MATCH_VARIABLE2(value, "${var:", rval_var, true);
+		MATCH_VARIABLE2(value, "${find-card:", rval_card_lookup, false);
+		MATCH_VARIABLE2(value, "${find-device:", rval_device_lookup, false);
 		MATCH_VARIABLE2(value, "${CardNumberByName:", rval_card_number_by_name, false);
 		MATCH_VARIABLE2(value, "${CardIdByName:", rval_card_id_by_name, false);
 __merr:

@@ -67,13 +67,25 @@ struct ctl_list *uc_mgr_get_master_ctl(snd_use_case_mgr_t *uc_mgr)
 	return ctl_list;
 }
 
+struct ctl_list *uc_mgr_get_ctl_by_card(snd_use_case_mgr_t *uc_mgr, int card)
+{
+	struct ctl_list *ctl_list;
+	char cname[32];
+	int err;
+
+	sprintf(cname, "hw:%d", card);
+	err = uc_mgr_open_ctl(uc_mgr, &ctl_list, cname, 1);
+	if (err < 0)
+		return NULL;
+	return ctl_list;
+}
+
 struct ctl_list *uc_mgr_get_ctl_by_name(snd_use_case_mgr_t *uc_mgr, const char *name, int idx)
 {
 	struct list_head *pos;
-	struct ctl_list *ctl_list = NULL;
+	struct ctl_list *ctl_list;
 	const char *s;
-	char cname[32];
-	int idx2, card, err;
+	int idx2, card;
 
 	idx2 = idx;
 	list_for_each(pos, &uc_mgr->ctl_list) {
@@ -94,9 +106,8 @@ struct ctl_list *uc_mgr_get_ctl_by_name(snd_use_case_mgr_t *uc_mgr, const char *
 		return NULL;
 
 	while (card >= 0) {
-		sprintf(cname, "hw:%d", card);
-		err = uc_mgr_open_ctl(uc_mgr, &ctl_list, cname, 1);
-		if (err < 0)
+		ctl_list = uc_mgr_get_ctl_by_card(uc_mgr, card);
+		if (ctl_list == NULL)
 			continue;	/* really? */
 		s = snd_ctl_card_info_get_name(ctl_list->ctl_info);
 		if (s && strcmp(s, name) == 0) {
