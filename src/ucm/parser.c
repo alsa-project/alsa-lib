@@ -92,7 +92,7 @@ int uc_mgr_config_load_file(snd_use_case_mgr_t *uc_mgr,
 		     file);
 	err = uc_mgr_config_load(uc_mgr->conf_format, filename, cfg);
 	if (err < 0) {
-		uc_error("error: failed to open file %s : %d", filename, -errno);
+		uc_error("error: failed to open file %s: %d", filename, err);
 		return err;
 	}
 	return 0;
