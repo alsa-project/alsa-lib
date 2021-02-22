@@ -719,16 +719,18 @@ static int add_tlv_info(snd_pcm_softvol_t *svol, snd_ctl_elem_info_t *cinfo)
 }
 
 static int add_user_ctl(snd_pcm_softvol_t *svol, snd_ctl_elem_info_t *cinfo,
-			int count)
+			int count, snd_ctl_led_group_t led)
 {
 	int err;
 	int i;
 	unsigned int def_val;
 	
+	snd_ctl_elem_info_set_read_write(cinfo, 1, 1);
+	snd_ctl_elem_info_set_led_group(cinfo, led);
 	if (svol->max_val == 1) {
-		snd_ctl_elem_info_set_read_write(cinfo, 1, 1);
 		err = snd_ctl_add_boolean_elem_set(svol->ctl, cinfo, 1, count);
 	} else {
+		snd_ctl_elem_info_set_tlv_read_write(cinfo, 1, 1);
 		err = snd_ctl_add_integer_elem_set(svol->ctl, cinfo, 1, count,
 						   0, svol->max_val, 0);
 	}
@@ -756,7 +758,7 @@ static int add_user_ctl(snd_pcm_softvol_t *svol, snd_ctl_elem_info_t *cinfo,
 static int softvol_load_control(snd_pcm_t *pcm, snd_pcm_softvol_t *svol,
 				int ctl_card, snd_ctl_elem_id_t *ctl_id,
 				int cchannels, double min_dB, double max_dB,
-				int resolution)
+				int resolution, snd_ctl_led_group_t led)
 {
 	char tmp_name[32];
 	snd_pcm_info_t info = {0};
@@ -799,7 +801,7 @@ static int softvol_load_control(snd_pcm_t *pcm, snd_pcm_softvol_t *svol,
 			SNDERR("Cannot get info for CTL %s", tmp_name);
 			return err;
 		}
-		err = add_user_ctl(svol, &cinfo, cchannels);
+		err = add_user_ctl(svol, &cinfo, cchannels, led);
 		if (err < 0) {
 			SNDERR("Cannot add a control");
 			return err;
@@ -821,7 +823,7 @@ static int softvol_load_control(snd_pcm_t *pcm, snd_pcm_softvol_t *svol,
 			}
 			/* reset numid */
 			snd_ctl_elem_info_set_id(&cinfo, ctl_id);
-			if ((err = add_user_ctl(svol, &cinfo, cchannels)) < 0) {
+			if ((err = add_user_ctl(svol, &cinfo, cchannels, led)) < 0) {
 				SNDERR("Cannot add a control");
 				return err;
 			}
@@ -910,6 +912,7 @@ int snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 			 int ctl_card, snd_ctl_elem_id_t *ctl_id,
 			 int cchannels,
 			 double min_dB, double max_dB, int resolution,
+			 snd_ctl_led_group_t led,
 			 snd_pcm_t *slave, int close_slave)
 {
 	snd_pcm_t *pcm;
@@ -928,7 +931,7 @@ int snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 	if (! svol)
 		return -ENOMEM;
 	err = softvol_load_control(slave, svol, ctl_card, ctl_id, cchannels,
-				   min_dB, max_dB, resolution);
+				   min_dB, max_dB, resolution, led);
 	if (err < 0) {
 		softvol_free(svol);
 		return err;
@@ -1127,6 +1130,7 @@ pcm.name {
 	[max_dB REAL]           # maximal dB value (default:   0.0)
 	[resolution INT]        # resolution (default: 256)
 				# resolution = 2 means a mute switch
+	[led STR]		# LED group (speaker or microphone)
 }
 \endcode
 
@@ -1167,6 +1171,8 @@ int _snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 	double min_dB = PRESET_MIN_DB;
 	double max_dB = ZERO_DB;
 	int card = -1, cchannels = 2;
+	snd_ctl_led_group_t led = SND_CTL_ELEM_LED_NONE;
+	const char *s;
 
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
@@ -1207,6 +1213,21 @@ int _snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 				SNDERR("Invalid max_dB value");
 				return err;
 			}
+			continue;
+		}
+		if (strcmp(id, "led") == 0) {
+			err = snd_config_get_string(n, &s);
+			if (err < 0) {
+wrong_led_group:
+				SNDERR("Invalid LED group");
+				return err;
+			}
+			if (strcasecmp(s, "speaker") == 0)
+				led = SND_CTL_ELEM_LED_SPEAKER;
+			else if (strcasecmp(s, "mic") == 0)
+				led = SND_CTL_ELEM_LED_MICROPHONE;
+			else
+				goto wrong_led_group;
 			continue;
 		}
 		SNDERR("Unknown field %s", id);
@@ -1267,7 +1288,7 @@ int _snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 		}
 		err = snd_pcm_softvol_open(pcmp, name, sformat, card, &ctl_id,
 					   cchannels, min_dB, max_dB,
-					   resolution, spcm, 1);
+					   resolution, led, spcm, 1);
 		if (err < 0)
 			snd_pcm_close(spcm);
 	}
