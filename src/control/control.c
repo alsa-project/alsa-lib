@@ -2525,6 +2525,17 @@ pid_t snd_ctl_elem_info_get_owner(const snd_ctl_elem_info_t *obj)
 }
 
 /**
+ * \brief Get associated LED group to an element
+ * \param obj CTL element id/info
+ * \return LED group enum
+ */
+snd_ctl_led_group_t snd_ctl_elem_info_get_led_group(const snd_ctl_elem_info_t *obj)
+{
+	assert(obj);
+	return (obj->access & SNDRV_CTL_ELEM_ACCESS_LED_MASK) >> SNDRV_CTL_ELEM_ACCESS_LED_SHIFT;
+}
+
+/**
  * \brief Get number of value entries from a CTL element id/info
  * \param obj CTL element id/info
  * \return value entries count

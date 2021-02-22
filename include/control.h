@@ -227,6 +227,17 @@ typedef enum _snd_ctl_event_type {
 	SND_CTL_EVENT_LAST = SND_CTL_EVENT_ELEM
 }snd_ctl_event_type_t;
 
+/** CTL LED group */
+typedef enum _snd_ctl_led_group {
+	/** Invalid type */
+	SND_CTL_ELEM_LED_NONE = 0,
+	/** Boolean contents */
+	SND_CTL_ELEM_LED_SPEAKER,
+	/** Integer contents */
+	SND_CTL_ELEM_LED_MICROPHONE,
+	SND_CTL_ELEM_LED_LAST = SND_CTL_ELEM_LED_MICROPHONE
+} snd_ctl_led_group_t;
+
 /** Element has been removed (Warning: test this first and if set don't
   * test the other masks) \hideinitializer */
 #define SND_CTL_EVENT_MASK_REMOVE 	(~0U)
@@ -517,6 +528,7 @@ int snd_ctl_elem_info_is_tlv_commandable(const snd_ctl_elem_info_t *obj);
 int snd_ctl_elem_info_is_owner(const snd_ctl_elem_info_t *obj);
 int snd_ctl_elem_info_is_user(const snd_ctl_elem_info_t *obj);
 pid_t snd_ctl_elem_info_get_owner(const snd_ctl_elem_info_t *obj);
+snd_ctl_led_group_t snd_ctl_elem_info_get_led_group(const snd_ctl_elem_info_t *obj);
 unsigned int snd_ctl_elem_info_get_count(const snd_ctl_elem_info_t *obj);
 long snd_ctl_elem_info_get_min(const snd_ctl_elem_info_t *obj);
 long snd_ctl_elem_info_get_max(const snd_ctl_elem_info_t *obj);
