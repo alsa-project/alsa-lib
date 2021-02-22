@@ -725,11 +725,13 @@ static int add_user_ctl(snd_pcm_softvol_t *svol, snd_ctl_elem_info_t *cinfo,
 	int i;
 	unsigned int def_val;
 	
-	if (svol->max_val == 1)
+	if (svol->max_val == 1) {
+		snd_ctl_elem_info_set_read_write(cinfo, 1, 1);
 		err = snd_ctl_add_boolean_elem_set(svol->ctl, cinfo, 1, count);
-	else
+	} else {
 		err = snd_ctl_add_integer_elem_set(svol->ctl, cinfo, 1, count,
 						   0, svol->max_val, 0);
+	}
 	if (err < 0)
 		return err;
 	if (svol->max_val == 1)
