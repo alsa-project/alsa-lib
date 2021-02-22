@@ -412,7 +412,7 @@ static bool validate_element_member_dimension(snd_ctl_elem_info_t *info)
 /**
  * \brief Create and add some user-defined control elements of integer type.
  * \param ctl A handle of backend module for control interface.
- * \param info Common iformation for a new element set, with ID of the first new
+ * \param info Common information for a new element set, with ID of the first new
  *	       element.
  * \param element_count The number of elements added by this operation.
  * \param member_count The number of members which a element has to
@@ -502,7 +502,7 @@ int snd_ctl_add_integer_elem_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
 /**
  * \brief Create and add some user-defined control elements of integer64 type.
  * \param ctl A handle of backend module for control interface.
- * \param info Common iformation for a new element set, with ID of the first new
+ * \param info Common information for a new element set, with ID of the first new
  *	       element.
  * \param element_count The number of elements added by this operation.
  * \param member_count The number of members which a element has to
@@ -592,7 +592,7 @@ int snd_ctl_add_integer64_elem_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
 /**
  * \brief Create and add some user-defined control elements of boolean type.
  * \param ctl A handle of backend module for control interface.
- * \param info Common iformation for a new element set, with ID of the first new
+ * \param info Common information for a new element set, with ID of the first new
  *	       element.
  * \param element_count The number of elements added by this operation.
  * \param member_count The number of members which a element has to
@@ -652,7 +652,7 @@ int snd_ctl_add_boolean_elem_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
 /**
  * \brief Create and add some user-defined control elements of enumerated type.
  * \param ctl A handle of backend module for control interface.
- * \param info Common iformation for a new element set, with ID of the first new
+ * \param info Common information for a new element set, with ID of the first new
  *	       element.
  * \param element_count The number of elements added by this operation.
  * \param member_count The number of members which a element has to
@@ -743,7 +743,7 @@ int snd_ctl_add_enumerated_elem_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
 /**
  * \brief Create and add some user-defined control elements of bytes type.
  * \param ctl A handle of backend module for control interface.
- * \param info Common iformation for a new element set, with ID of the first new
+ * \param info Common information for a new element set, with ID of the first new
  *	       element.
  * \param element_count The number of elements added by this operation.
  * \param member_count The number of members which a element has to
