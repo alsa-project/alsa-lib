@@ -409,6 +409,32 @@ static bool validate_element_member_dimension(snd_ctl_elem_info_t *info)
 #define validate_element_member_dimension(info)		true
 #endif /* deprecated */
 
+#define USER_ACCESS_DEFAULT (\
+	SNDRV_CTL_ELEM_ACCESS_READWRITE |\
+	SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE |\
+	SNDRV_CTL_ELEM_ACCESS_USER)
+
+#define USER_ACCESS_SETTABLE (\
+	SNDRV_CTL_ELEM_ACCESS_READWRITE |\
+	SNDRV_CTL_ELEM_ACCESS_VOLATILE |\
+	SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE |\
+	SNDRV_CTL_ELEM_ACCESS_INACTIVE |\
+	SNDRV_CTL_ELEM_ACCESS_USER)
+
+static inline int set_user_access(snd_ctl_elem_info_t *info)
+{
+	if (info->access == 0) {
+		info->access = USER_ACCESS_DEFAULT;
+	} else {
+		if ((info->access & SNDRV_CTL_ELEM_ACCESS_READWRITE) == 0)
+			return -1;
+		if (info->access & ~USER_ACCESS_SETTABLE)
+			return -1;
+		info->access |= SNDRV_CTL_ELEM_ACCESS_USER;
+	}
+	return 0;
+}
+
 /**
  * \brief Create and add some user-defined control elements of integer type.
  * \param ctl A handle of backend module for control interface.
@@ -465,10 +491,10 @@ int snd_ctl_add_integer_elem_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
 	if (ctl == NULL || info == NULL || info->id.name[0] == '\0')
 		return -EINVAL;
 
+	if (set_user_access(info))
+		return -EINVAL;
+
 	info->type = SND_CTL_ELEM_TYPE_INTEGER;
-	info->access = SNDRV_CTL_ELEM_ACCESS_READWRITE |
-		       SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE |
-		       SNDRV_CTL_ELEM_ACCESS_USER;
 	info->owner = element_count;
 	info->count = member_count;
 	info->value.integer.min = min;
@@ -555,10 +581,10 @@ int snd_ctl_add_integer64_elem_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
 	if (ctl == NULL || info == NULL || info->id.name[0] == '\0')
 		return -EINVAL;
 
+	if (set_user_access(info))
+		return -EINVAL;
+
 	info->type = SND_CTL_ELEM_TYPE_INTEGER64;
-	info->access = SNDRV_CTL_ELEM_ACCESS_READWRITE |
-		       SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE |
-		       SNDRV_CTL_ELEM_ACCESS_USER;
 	info->owner = element_count;
 	info->count = member_count;
 	info->value.integer64.min = min;
@@ -634,10 +660,10 @@ int snd_ctl_add_boolean_elem_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
 	if (ctl == NULL || info == NULL || info->id.name[0] == '\0')
 		return -EINVAL;
 
+	if (set_user_access(info))
+		return -EINVAL;
+
 	info->type = SND_CTL_ELEM_TYPE_BOOLEAN;
-	info->access = SNDRV_CTL_ELEM_ACCESS_READWRITE |
-		       SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE |
-		       SNDRV_CTL_ELEM_ACCESS_USER;
 	info->owner = element_count;
 	info->count = member_count;
 	info->value.integer.min = 0;
@@ -706,10 +732,10 @@ int snd_ctl_add_enumerated_elem_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
 	    labels == NULL)
 		return -EINVAL;
 
+	if (set_user_access(info))
+		return -EINVAL;
+
 	info->type = SND_CTL_ELEM_TYPE_ENUMERATED;
-	info->access = SNDRV_CTL_ELEM_ACCESS_READWRITE |
-		       SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE |
-		       SNDRV_CTL_ELEM_ACCESS_USER;
 	info->owner = element_count;
 	info->count = member_count;
 	info->value.enumerated.items = items;
@@ -786,10 +812,10 @@ int snd_ctl_add_bytes_elem_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
 	if (ctl == NULL || info == NULL || info->id.name[0] == '\0')
 		return -EINVAL;
 
+	if (set_user_access(info))
+		return -EINVAL;
+
 	info->type = SND_CTL_ELEM_TYPE_BYTES;
-	info->access = SNDRV_CTL_ELEM_ACCESS_READWRITE |
-		       SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE |
-		       SNDRV_CTL_ELEM_ACCESS_USER;
 	info->owner = element_count;
 	info->count = member_count;
 
@@ -2888,6 +2914,46 @@ void snd_ctl_elem_info_set_index(snd_ctl_elem_info_t *obj, unsigned int val)
 {
 	assert(obj);
 	obj->id.index = val;
+}
+
+/**
+ * \brief Set readability/writeability parameter of a CTL element id/info
+ * \param obj CTL element id/info
+ * \param rval readability part of element identifier
+ * \param wval writeability part of element identifier
+ */
+void snd_ctl_elem_info_set_read_write(snd_ctl_elem_info_t *obj, int rval, int wval)
+{
+	assert(obj);
+	obj->access = (obj->access & ~SNDRV_CTL_ELEM_ACCESS_READWRITE) |
+				(rval ? SNDRV_CTL_ELEM_ACCESS_READ : 0) |
+				(wval ? SNDRV_CTL_ELEM_ACCESS_WRITE : 0);
+}
+
+/**
+ * \brief Set TLV readability/writeability parameter of a CTL element id/info
+ * \param obj CTL element id/info
+ * \param rval TLV readability part of element identifier
+ * \param wval TLV writeability part of element identifier
+ */
+void snd_ctl_elem_info_set_tlv_read_write(snd_ctl_elem_info_t *obj, int rval, int wval)
+{
+	assert(obj);
+	obj->access = (obj->access & ~SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE) |
+				(rval ? SNDRV_CTL_ELEM_ACCESS_TLV_READ : 0) |
+				(wval ? SNDRV_CTL_ELEM_ACCESS_TLV_WRITE : 0);
+}
+
+/**
+ * \brief Set inactive parameter of a CTL element id/info
+ * \param obj CTL element id/info
+ * \param val inactive part of element identifier
+ */
+void snd_ctl_elem_info_set_inactive(snd_ctl_elem_info_t *obj, int val)
+{
+	assert(obj);
+	obj->access = (obj->access & ~SNDRV_CTL_ELEM_ACCESS_INACTIVE) |
+				(val ? SNDRV_CTL_ELEM_ACCESS_INACTIVE : 0);
 }
 
 /**

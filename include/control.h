@@ -545,6 +545,9 @@ void snd_ctl_elem_info_set_device(snd_ctl_elem_info_t *obj, unsigned int val);
 void snd_ctl_elem_info_set_subdevice(snd_ctl_elem_info_t *obj, unsigned int val);
 void snd_ctl_elem_info_set_name(snd_ctl_elem_info_t *obj, const char *val);
 void snd_ctl_elem_info_set_index(snd_ctl_elem_info_t *obj, unsigned int val);
+void snd_ctl_elem_info_set_read_write(snd_ctl_elem_info_t *obj, int rval, int wval);
+void snd_ctl_elem_info_set_tlv_read_write(snd_ctl_elem_info_t *obj, int rval, int wval);
+void snd_ctl_elem_info_set_inactive(snd_ctl_elem_info_t *obj, int val);
 
 int snd_ctl_add_integer_elem_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
 				 unsigned int element_count,
