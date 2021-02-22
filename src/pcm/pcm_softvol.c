@@ -1130,6 +1130,7 @@ pcm.name {
 	[max_dB REAL]           # maximal dB value (default:   0.0)
 	[resolution INT]        # resolution (default: 256)
 				# resolution = 2 means a mute switch
+	[force BOOL]		# force use even if application requested to skip softvol
 	[led STR]		# LED group (speaker or microphone)
 }
 \endcode
@@ -1170,7 +1171,7 @@ int _snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 	int resolution = PRESET_RESOLUTION;
 	double min_dB = PRESET_MIN_DB;
 	double max_dB = ZERO_DB;
-	int card = -1, cchannels = 2;
+	int card = -1, cchannels = 2, force = 0;
 	snd_ctl_led_group_t led = SND_CTL_ELEM_LED_NONE;
 	const char *s;
 
@@ -1215,6 +1216,15 @@ int _snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 			}
 			continue;
 		}
+		if (strcmp(id, "force") == 0) {
+			err = snd_config_get_bool(n);
+			if (err < 0) {
+				SNDERR("Invalid force value");
+				return err;
+			}
+			force = err;
+			continue;
+		}
 		if (strcmp(id, "led") == 0) {
 			err = snd_config_get_string(n, &s);
 			if (err < 0) {
@@ -1254,7 +1264,7 @@ wrong_led_group:
 		SNDERR("Invalid resolution value %d", resolution);
 		return -EINVAL;
 	}
-	if (mode & SND_PCM_NO_SOFTVOL) {
+	if ((mode & SND_PCM_NO_SOFTVOL) != 0 && !force) {
 		err = snd_pcm_slave_conf(root, slave, &sconf, 0);
 		if (err < 0)
 			return err;
