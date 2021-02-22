@@ -725,11 +725,13 @@ static int add_user_ctl(snd_pcm_softvol_t *svol, snd_ctl_elem_info_t *cinfo,
 	int i;
 	unsigned int def_val;
 	
-	if (svol->max_val == 1)
+	if (svol->max_val == 1) {
+		snd_ctl_elem_info_set_read_write(cinfo, 1, 1);
 		err = snd_ctl_add_boolean_elem_set(svol->ctl, cinfo, 1, count);
-	else
+	} else {
 		err = snd_ctl_add_integer_elem_set(svol->ctl, cinfo, 1, count,
 						   0, svol->max_val, 0);
+	}
 	if (err < 0)
 		return err;
 	if (svol->max_val == 1)
@@ -817,7 +819,8 @@ static int softvol_load_control(snd_pcm_t *pcm, snd_pcm_softvol_t *svol,
 				SNDERR("Control %s mismatch", tmp_name);
 				return err;
 			}
-			/* reset numid */
+			/* clear cinfo including numid */
+			snd_ctl_elem_info_clear(&cinfo);
 			snd_ctl_elem_info_set_id(&cinfo, ctl_id);
 			if ((err = add_user_ctl(svol, &cinfo, cchannels)) < 0) {
 				SNDERR("Cannot add a control");
