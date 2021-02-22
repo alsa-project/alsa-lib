@@ -977,9 +977,118 @@ int snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 	return 0;
 }
 
-/* in pcm_misc.c */
-int snd_pcm_parse_control_id(snd_config_t *conf, snd_ctl_elem_id_t *ctl_id, int *cardp,
-			     int *cchannelsp, int *hwctlp);
+int _snd_pcm_parse_control_id(snd_config_t *conf, snd_ctl_elem_id_t *ctl_id,
+			      int *cardp, int *cchannels)
+{
+	snd_config_iterator_t i, next;
+	int iface = SND_CTL_ELEM_IFACE_MIXER;
+	const char *name = NULL;
+	long index = 0;
+	long device = -1;
+	long subdevice = -1;
+	int err;
+
+	assert(ctl_id && cardp && cchannels);
+
+	*cardp = -1;
+	*cchannels = 2;
+	snd_config_for_each(i, next, conf) {
+		snd_config_t *n = snd_config_iterator_entry(i);
+		const char *id;
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
+		if (strcmp(id, "comment") == 0)
+			continue;
+		if (strcmp(id, "card") == 0) {
+			const char *str;
+			long v;
+			if ((err = snd_config_get_integer(n, &v)) < 0) {
+				if ((err = snd_config_get_string(n, &str)) < 0) {
+					SNDERR("Invalid field %s", id);
+					goto _err;
+				}
+				*cardp = snd_card_get_index(str);
+				if (*cardp < 0) {
+					SNDERR("Cannot get index for %s", str);
+					err = *cardp;
+					goto _err;
+				}
+			} else
+				*cardp = v;
+			continue;
+		}
+		if (strcmp(id, "iface") == 0 || strcmp(id, "interface") == 0) {
+			err = snd_config_get_ctl_iface(n);
+			if (err < 0)
+				goto _err;
+			iface = err;
+			continue;
+		}
+		if (strcmp(id, "name") == 0) {
+			if ((err = snd_config_get_string(n, &name)) < 0) {
+				SNDERR("field %s is not a string", id);
+				goto _err;
+			}
+			continue;
+		}
+		if (strcmp(id, "index") == 0) {
+			if ((err = snd_config_get_integer(n, &index)) < 0) {
+				SNDERR("field %s is not an integer", id);
+				goto _err;
+			}
+			continue;
+		}
+		if (strcmp(id, "device") == 0) {
+			if ((err = snd_config_get_integer(n, &device)) < 0) {
+				SNDERR("field %s is not an integer", id);
+				goto _err;
+			}
+			continue;
+		}
+		if (strcmp(id, "subdevice") == 0) {
+			if ((err = snd_config_get_integer(n, &subdevice)) < 0) {
+				SNDERR("field %s is not an integer", id);
+				goto _err;
+			}
+			continue;
+		}
+		if (strcmp(id, "count") == 0) {
+			long v;
+			if ((err = snd_config_get_integer(n, &v)) < 0) {
+				SNDERR("field %s is not an integer", id);
+				goto _err;
+			}
+			if (v < 1 || v > 2) {
+				SNDERR("Invalid count %ld", v);
+				goto _err;
+			}
+			*cchannels = v;
+			continue;
+		}
+		SNDERR("Unknown field %s", id);
+		return -EINVAL;
+	}
+	if (name == NULL) {
+		SNDERR("Missing control name");
+		err = -EINVAL;
+		goto _err;
+	}
+	if (device < 0)
+		device = 0;
+	if (subdevice < 0)
+		subdevice = 0;
+
+	snd_ctl_elem_id_set_interface(ctl_id, iface);
+	snd_ctl_elem_id_set_name(ctl_id, name);
+	snd_ctl_elem_id_set_index(ctl_id, index);
+	snd_ctl_elem_id_set_device(ctl_id, device);
+	snd_ctl_elem_id_set_subdevice(ctl_id, subdevice);
+
+	return 0;
+
+ _err:
+	return err;
+}
 
 /*! \page pcm_plugins
 
@@ -1152,8 +1261,7 @@ int _snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 		snd_config_delete(sconf);
 		if (err < 0)
 			return err;
-		err = snd_pcm_parse_control_id(control, &ctl_id, &card,
-					       &cchannels, NULL);
+		err = _snd_pcm_parse_control_id(control, &ctl_id, &card, &cchannels);
 		if (err < 0) {
 			snd_pcm_close(spcm);
 			return err;
