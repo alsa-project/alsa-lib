@@ -564,8 +564,8 @@ static int snd_pcm_plugin_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	 *    snd_pcm_status()
 	 */
 	if (pcm->stream == SND_PCM_STREAM_CAPTURE) {
-		status->appl_ptr = *pcm->appl.ptr;
 		diff = pcm_frame_diff(status->appl_ptr, *pcm->appl.ptr, pcm->boundary);
+		status->appl_ptr = *pcm->appl.ptr;
 		status->avail += diff;
 		status->delay += diff;
 	} else {
