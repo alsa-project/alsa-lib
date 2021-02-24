@@ -288,7 +288,6 @@ int _snd_timer_hw_open(snd_timer_t **timer, char *name,
 	snd_config_iterator_t i, next;
 	long dev_class = SND_TIMER_CLASS_GLOBAL, dev_sclass = SND_TIMER_SCLASS_NONE;
 	long card = 0, device = 0, subdevice = 0;
-	const char *str;
 	int err;
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
@@ -310,15 +309,10 @@ int _snd_timer_hw_open(snd_timer_t **timer, char *name,
 			continue;
 		}
 		if (strcmp(id, "card") == 0) {
-			err = snd_config_get_integer(n, &card);
-			if (err < 0) {
-				err = snd_config_get_string(n, &str);
-				if (err < 0)
-					return -EINVAL;
-				card = snd_card_get_index(str);
-				if (card < 0)
-					return card;
-			}
+			err = snd_config_get_card(n);
+			if (err < 0)
+				return err;
+			card = err;
 			continue;
 		}
 		if (strcmp(id, "device") == 0) {

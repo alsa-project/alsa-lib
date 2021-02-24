@@ -78,6 +78,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <limits.h>
 #include "local.h"
 
 /**
@@ -140,6 +141,35 @@ int snd_config_get_bool(const snd_config_t *conf)
 	if (err < 0)
 		goto _invalid_value;
 	return err;
+}
+
+/**
+ * \brief Gets the card number from a configuration node.
+ * \param conf Handle to the configuration node to be parsed.
+ * \return The card number if successful, otherwise a negative error code.
+ */
+int snd_config_get_card(const snd_config_t *conf)
+{
+	const char *str, *id;
+	long v;
+	int err;
+
+	if ((err = snd_config_get_integer(conf, &v)) < 0) {
+		if ((err = snd_config_get_string(conf, &str)) < 0) {
+			snd_config_get_id(conf, &id);
+			SNDERR("Invalid field %s", id);
+			return -EINVAL;
+		}
+		err = snd_card_get_index(str);
+		if (err < 0) {
+			SNDERR("Cannot get card index for %s", str);
+			return err;
+		}
+		v = err;
+	}
+	if (v < 0 || v > INT_MAX)
+		return -EINVAL;
+	return v;
 }
 
 /**

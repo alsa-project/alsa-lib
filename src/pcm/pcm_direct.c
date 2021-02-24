@@ -1834,19 +1834,10 @@ static int _snd_pcm_direct_get_slave_ipc_offset(snd_config_t *root,
 			continue;
 		}
 		if (strcmp(id, "card") == 0) {
-			err = snd_config_get_integer(n, &card);
-			if (err < 0) {
-				err = snd_config_get_string(n, &str);
-				if (err < 0) {
-					SNDERR("Invalid type for %s", id);
-					return -EINVAL;
-				}
-				card = snd_card_get_index(str);
-				if (card < 0) {
-					SNDERR("Invalid value for %s", id);
-					return card;
-				}
-			}
+			err = snd_config_get_card(n);
+			if (err < 0)
+				return err;
+			card = err;
 			continue;
 		}
 		if (strcmp(id, "device") == 0) {

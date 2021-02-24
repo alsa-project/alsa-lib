@@ -441,7 +441,6 @@ int _snd_ctl_hw_open(snd_ctl_t **handlep, char *name, snd_config_t *root ATTRIBU
 {
 	snd_config_iterator_t i, next;
 	long card = -1;
-	const char *str;
 	int err;
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
@@ -451,15 +450,10 @@ int _snd_ctl_hw_open(snd_ctl_t **handlep, char *name, snd_config_t *root ATTRIBU
 		if (_snd_conf_generic_id(id))
 			continue;
 		if (strcmp(id, "card") == 0) {
-			err = snd_config_get_integer(n, &card);
-			if (err < 0) {
-				err = snd_config_get_string(n, &str);
-				if (err < 0)
-					return -EINVAL;
-				card = snd_card_get_index(str);
-				if (card < 0)
-					return card;
-			}
+			err = snd_config_get_card(n);
+			if (err < 0)
+				return err;
+			card = err;
 			continue;
 		}
 		return -EINVAL;

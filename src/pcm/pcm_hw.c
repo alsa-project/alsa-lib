@@ -1816,21 +1816,10 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 		if (snd_pcm_conf_generic_id(id))
 			continue;
 		if (strcmp(id, "card") == 0) {
-			err = snd_config_get_integer(n, &card);
-			if (err < 0) {
-				err = snd_config_get_string(n, &str);
-				if (err < 0) {
-					SNDERR("Invalid type for %s", id);
-					err = -EINVAL;
-					goto fail;
-				}
-				card = snd_card_get_index(str);
-				if (card < 0) {
-					SNDERR("Invalid value for %s", id);
-					err = card;
-					goto fail;
-				}
-			}
+			err = snd_config_get_card(n);
+			if (err < 0)
+				goto fail;
+			card = err;
 			continue;
 		}
 		if (strcmp(id, "device") == 0) {

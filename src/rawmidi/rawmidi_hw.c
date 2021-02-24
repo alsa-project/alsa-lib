@@ -321,7 +321,6 @@ int _snd_rawmidi_hw_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 {
 	snd_config_iterator_t i, next;
 	long card = -1, device = 0, subdevice = -1;
-	const char *str;
 	int err;
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
@@ -331,15 +330,10 @@ int _snd_rawmidi_hw_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 		if (snd_rawmidi_conf_generic_id(id))
 			continue;
 		if (strcmp(id, "card") == 0) {
-			err = snd_config_get_integer(n, &card);
-			if (err < 0) {
-				err = snd_config_get_string(n, &str);
-				if (err < 0)
-					return -EINVAL;
-				card = snd_card_get_index(str);
-				if (card < 0)
-					return card;
-			}
+			err = snd_config_get_card(n);
+			if (err < 0)
+				return err;
+			card = err;
 			continue;
 		}
 		if (strcmp(id, "device") == 0) {

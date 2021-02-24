@@ -1000,21 +1000,10 @@ int _snd_pcm_parse_control_id(snd_config_t *conf, snd_ctl_elem_id_t *ctl_id,
 		if (strcmp(id, "comment") == 0)
 			continue;
 		if (strcmp(id, "card") == 0) {
-			const char *str;
-			long v;
-			if ((err = snd_config_get_integer(n, &v)) < 0) {
-				if ((err = snd_config_get_string(n, &str)) < 0) {
-					SNDERR("Invalid field %s", id);
-					goto _err;
-				}
-				*cardp = snd_card_get_index(str);
-				if (*cardp < 0) {
-					SNDERR("Cannot get index for %s", str);
-					err = *cardp;
-					goto _err;
-				}
-			} else
-				*cardp = v;
+			err = snd_config_get_card(n);
+			if (err < 0)
+				goto _err;
+			*cardp = err;
 			continue;
 		}
 		if (strcmp(id, "iface") == 0 || strcmp(id, "interface") == 0) {

@@ -187,6 +187,7 @@ snd_config_t *snd_config_iterator_entry(const snd_config_iterator_t iterator);
 
 int snd_config_get_bool_ascii(const char *ascii);
 int snd_config_get_bool(const snd_config_t *conf);
+int snd_config_get_card(const snd_config_t *conf);
 int snd_config_get_ctl_iface_ascii(const char *ascii);
 int snd_config_get_ctl_iface(const snd_config_t *conf);
 
