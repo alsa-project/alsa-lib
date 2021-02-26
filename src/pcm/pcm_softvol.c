@@ -707,9 +707,12 @@ static void snd_pcm_softvol_dump(snd_pcm_t *pcm, snd_output_t *out)
 	snd_pcm_dump(svol->plug.gen.slave, out);
 }
 
-static int add_tlv_info(snd_pcm_softvol_t *svol, snd_ctl_elem_info_t *cinfo)
+static int add_tlv_info(snd_pcm_softvol_t *svol, snd_ctl_elem_info_t *cinfo,
+			unsigned int *old_tlv, size_t old_tlv_size)
 {
 	unsigned int tlv[4];
+	if (sizeof(tlv) <= old_tlv_size && memcmp(tlv, old_tlv, sizeof(tlv)) == 0)
+		return 0;
 	tlv[SNDRV_CTL_TLVO_TYPE] = SND_CTL_TLVT_DB_SCALE;
 	tlv[SNDRV_CTL_TLVO_LEN] = 2 * sizeof(int);
 	tlv[SNDRV_CTL_TLVO_DB_SCALE_MIN] = (int)(svol->min_dB * 100);
@@ -737,7 +740,7 @@ static int add_user_ctl(snd_pcm_softvol_t *svol, snd_ctl_elem_info_t *cinfo,
 	if (svol->max_val == 1)
 		def_val = 1;
 	else {
-		add_tlv_info(svol, cinfo);
+		add_tlv_info(svol, cinfo, NULL, 0);
 		/* set zero dB value as default, or max_val if
 		   there is no 0 dB setting */
 		def_val = svol->zero_dB_val ? svol->zero_dB_val : svol->max_val;
@@ -813,7 +816,11 @@ static int softvol_load_control(snd_pcm_t *pcm, snd_pcm_softvol_t *svol,
 			    cinfo.type != SND_CTL_ELEM_TYPE_BOOLEAN) ||
 			   cinfo.count != (unsigned int)cchannels ||
 			   cinfo.value.integer.min != 0 ||
-			   cinfo.value.integer.max != resolution - 1) {
+			   cinfo.value.integer.max != svol->max_val ||
+			   (svol->max_val > 1 &&
+			    (cinfo.access & SNDRV_CTL_ELEM_ACCESS_TLV_READ) == 0) ||
+			   (svol->max_val < 2 &&
+			    (cinfo.access & SNDRV_CTL_ELEM_ACCESS_TLV_READ) != 0)) {
 			err = snd_ctl_elem_remove(svol->ctl, &cinfo.id);
 			if (err < 0) {
 				SNDERR("Control %s mismatch", tmp_name);
@@ -831,8 +838,7 @@ static int softvol_load_control(snd_pcm_t *pcm, snd_pcm_softvol_t *svol,
 			unsigned int tlv[4];
 			err = snd_ctl_elem_tlv_read(svol->ctl, &cinfo.id, tlv,
 						    sizeof(tlv));
-			if (err < 0)
-				add_tlv_info(svol, &cinfo);
+			add_tlv_info(svol, &cinfo, tlv, err < 0 ? 0 : sizeof(tlv));
 		}
 	}
 
