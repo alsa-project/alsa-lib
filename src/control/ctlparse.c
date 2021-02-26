@@ -116,14 +116,19 @@ static long long get_integer64(const char **ptr, long long min, long long max)
  */
 char *snd_ctl_ascii_elem_id_get(snd_ctl_elem_id_t *id)
 {
-	unsigned int index, device, subdevice;
+	unsigned int numid, index, device, subdevice;
 	char buf[256], buf1[32];
+	const char *iface;
 
-	snprintf(buf, sizeof(buf), "numid=%u,iface=%s,name='%s'",
-				snd_ctl_elem_id_get_numid(id),
-				snd_ctl_elem_iface_name(
-					snd_ctl_elem_id_get_interface(id)),
-				snd_ctl_elem_id_get_name(id));
+	numid = snd_ctl_elem_id_get_numid(id);
+	iface = snd_ctl_elem_iface_name(snd_ctl_elem_id_get_interface(id));
+	if (numid > 0) {
+		snprintf(buf, sizeof(buf), "numid=%u,iface=%s,name='%s'",
+				numid, iface, snd_ctl_elem_id_get_name(id));
+	} else {
+		snprintf(buf, sizeof(buf), "iface=%s,name='%s'",
+				iface, snd_ctl_elem_id_get_name(id));
+	}
 	buf[sizeof(buf)-1] = '\0';
 	index = snd_ctl_elem_id_get_index(id);
 	device = snd_ctl_elem_id_get_device(id);
