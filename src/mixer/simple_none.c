@@ -907,11 +907,12 @@ static const struct suf {
 };
 #endif
 
-/* Return base length or 0 on failure */
+/* Return base length */
 static int base_len(const char *name, selem_ctl_type_t *type)
 {
 	const struct suf *p;
 	size_t nlen = strlen(name);
+
 	p = suffixes;
 	while (p->suffix) {
 		size_t slen = strlen(p->suffix);
@@ -925,6 +926,16 @@ static int base_len(const char *name, selem_ctl_type_t *type)
 			}
 		}
 		p++;
+	}
+
+	/* exception: "Capture Volume" and "Capture Switch" */
+	if (!strcmp(name, "Capture Volume")) {
+		*type = CTL_CAPTURE_VOLUME;
+		return strlen("Capture");
+	}
+	if (!strcmp(name, "Capture Switch")) {
+		*type = CTL_CAPTURE_SWITCH;
+		return strlen("Capture");
 	}
 
 	/* Special case - handle "Input Source" as a capture route.
@@ -944,7 +955,9 @@ static int base_len(const char *name, selem_ctl_type_t *type)
 			return strlen(name);
 		}
 	}
-	return 0;
+
+	*type = CTL_SINGLE;
+	return strlen(name);
 }
 
 
@@ -1605,8 +1618,10 @@ static int simple_add1(snd_mixer_class_t *class, const char *name,
 static int simple_event_add(snd_mixer_class_t *class, snd_hctl_elem_t *helem)
 {
 	const char *name = snd_hctl_elem_get_name(helem);
+	selem_ctl_type_t type;
+	char ename[128];
 	size_t len;
-	selem_ctl_type_t type = CTL_SINGLE; /* to shut up warning */
+
 	if (snd_hctl_elem_get_interface(helem) != SND_CTL_ELEM_IFACE_MIXER)
 		return 0;
 	if (strcmp(name, "Capture Source") == 0) {
@@ -1633,22 +1648,14 @@ static int simple_event_add(snd_mixer_class_t *class, snd_hctl_elem_t *helem)
 		}
 		return 0;
 	}
+
 	len = base_len(name, &type);
-	if (len == 0) {
-		return simple_add1(class, name, helem, CTL_SINGLE, 0);
-	} else {
-		char ename[128];
-		if (len >= sizeof(ename))
-			len = sizeof(ename) - 1;
-		memcpy(ename, name, len);
-		ename[len] = 0;
-		/* exception: Capture Volume and Capture Switch */
-		if (type == CTL_GLOBAL_VOLUME && !strcmp(ename, "Capture"))
-			type = CTL_CAPTURE_VOLUME;
-		else if (type == CTL_GLOBAL_SWITCH && !strcmp(ename, "Capture"))
-			type = CTL_CAPTURE_SWITCH;
-		return simple_add1(class, ename, helem, type, 0);
-	}
+	if (len >= sizeof(ename))
+		len = sizeof(ename) - 1;
+	memcpy(ename, name, len);
+	ename[len] = 0;
+
+	return simple_add1(class, ename, helem, type, 0);
 }
 
 static int simple_event_remove(snd_hctl_elem_t *helem,
