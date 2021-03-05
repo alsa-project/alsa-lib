@@ -1740,6 +1740,26 @@ __error:
 }
 
 /*
+ * parse controls which should be run only at initial boot (forcefully)
+ */
+static int parse_controls_fixedboot(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
+{
+	int err;
+
+	if (!list_empty(&uc_mgr->fixedboot_list)) {
+		uc_error("FixedBoot list is not empty");
+		return -EINVAL;
+	}
+	err = parse_sequence(uc_mgr, &uc_mgr->fixedboot_list, cfg);
+	if (err < 0) {
+		uc_error("Unable to parse FixedBootSequence");
+		return err;
+	}
+
+	return 0;
+}
+
+/*
  * parse controls which should be run only at initial boot
  */
 static int parse_controls_boot(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
@@ -1886,6 +1906,14 @@ static int parse_master_file(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 			err = parse_compound(uc_mgr, n,
 					     parse_master_section,
 					     NULL, NULL);
+			if (err < 0)
+				return err;
+			continue;
+		}
+
+		/* find default control values section (force boot sequence only) */
+		if (strcmp(id, "FixedBootSequence") == 0) {
+			err = parse_controls_fixedboot(uc_mgr, n);
 			if (err < 0)
 				return err;
 			continue;

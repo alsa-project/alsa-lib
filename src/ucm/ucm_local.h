@@ -222,6 +222,9 @@ struct snd_use_case_mgr {
 	/* use case verb, devices and modifier configs parsed from files */
 	struct list_head verb_list;
 
+	/* force boot settings - sequence */
+	struct list_head fixedboot_list;
+
 	/* boot settings - sequence */
 	struct list_head boot_list;
 

@@ -418,7 +418,10 @@ int snd_use_case_geti(snd_use_case_mgr_t *uc_mgr,
  * \return Zero if success, otherwise a negative error code
  *
  * Known identifiers:
+ *   - _fboot			- execute the fixed boot sequence (value = NULL)
  *   - _boot			- execute the boot sequence (value = NULL)
+ *				   - only when driver controls identifiers are changed
+ *				     (otherwise the old control values are restored)
  *   - _defaults		- execute the 'defaults' sequence (value = NULL)
  *   - _verb			- set current verb = value
  *   - _enadev			- enable given device = value

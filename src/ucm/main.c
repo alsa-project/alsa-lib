@@ -594,6 +594,8 @@ static int check_empty_configuration(snd_use_case_mgr_t *uc_mgr)
 	}
 	if (!list_empty(&uc_mgr->verb_list))
 		return 0;
+	if (!list_empty(&uc_mgr->fixedboot_list))
+		return 0;
 	if (!list_empty(&uc_mgr->boot_list))
 		return 0;
 	return -ENXIO;
@@ -993,6 +995,7 @@ int snd_use_case_mgr_open(snd_use_case_mgr_t **uc_mgr,
 	if (mgr == NULL)
 		return -ENOMEM;
 	INIT_LIST_HEAD(&mgr->verb_list);
+	INIT_LIST_HEAD(&mgr->fixedboot_list);
 	INIT_LIST_HEAD(&mgr->boot_list);
 	INIT_LIST_HEAD(&mgr->default_list);
 	INIT_LIST_HEAD(&mgr->value_list);
@@ -1886,6 +1889,24 @@ int snd_use_case_geti(snd_use_case_mgr_t *uc_mgr,
         return err;
 }
 
+static int set_fixedboot_user(snd_use_case_mgr_t *uc_mgr,
+			      const char *value)
+{
+	int err;
+
+	if (value != NULL && *value) {
+		uc_error("error: wrong value for _fboot (%s)", value);
+		return -EINVAL;
+	}
+	err = execute_sequence(uc_mgr, &uc_mgr->fixedboot_list,
+			       &uc_mgr->value_list, NULL, NULL);
+	if (err < 0) {
+		uc_error("Unable to execute force boot sequence");
+		return err;
+	}
+	return err;
+}
+
 static int set_boot_user(snd_use_case_mgr_t *uc_mgr,
 			 const char *value)
 {
@@ -2125,7 +2146,9 @@ int snd_use_case_set(snd_use_case_mgr_t *uc_mgr,
 	int err = 0;
 
 	pthread_mutex_lock(&uc_mgr->mutex);
-	if (strcmp(identifier, "_boot") == 0)
+	if (strcmp(identifier, "_fboot") == 0)
+		err = set_fixedboot_user(uc_mgr, value);
+	else if (strcmp(identifier, "_boot") == 0)
 		err = set_boot_user(uc_mgr, value);
 	else if (strcmp(identifier, "_defaults") == 0)
 		err = set_defaults_user(uc_mgr, value);
