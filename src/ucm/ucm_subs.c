@@ -508,12 +508,12 @@ static char *rval_sysfs(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED, const char 
 	char path[PATH_MAX], link[PATH_MAX + 1];
 	struct stat sb;
 	ssize_t len;
-	char *e;
+	const char *e;
 	int fd;
 
-	e = getenv("SYSFS_PATH");
+	e = uc_mgr_sysfs_root();
 	if (e == NULL)
-		e = "/sys";
+		return NULL;
 	if (id[0] == '/')
 		id++;
 	snprintf(path, sizeof(path), "%s/%s", e, id);

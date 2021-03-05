@@ -31,6 +31,7 @@
  */
 
 #include "ucm_local.h"
+#include <stdbool.h>
 #include <ctype.h>
 #include <stdarg.h>
 #include <pthread.h>
@@ -323,6 +324,72 @@ static int execute_cset(snd_ctl_t *ctl, const char *cset, unsigned int type)
 	return err;
 }
 
+static int execute_sysset(const char *sysset)
+{
+	char path[PATH_MAX];
+	const char *e;
+	char *s, *value;
+	ssize_t wlen;
+	size_t len;
+	int fd, myerrno;
+	bool ignore_error = false;
+
+	if (sysset == NULL || *sysset == '\0')
+		return 0;
+
+	ignore_error = sysset[0] == '-';
+
+	if (sysset[0] == ':')
+		return -EINVAL;
+
+	s = strdup(sysset[0] != '/' ? sysset : sysset + 1);
+	if (s == NULL)
+		return -ENOMEM;
+
+	value = strchr(s, ':');
+	if (!value) {
+		free(s);
+		return -EINVAL;
+	}
+	*value = '\0';
+	value++;
+	len = strlen(value);
+	if (len < 1) {
+		free(s);
+		return -EINVAL;
+	}
+
+	e = uc_mgr_sysfs_root();
+	if (e == NULL) {
+		free(s);
+		return -EINVAL;
+	}
+	snprintf(path, sizeof(path), "%s/%s", e, s);
+
+	fd = open(path, O_WRONLY|O_CLOEXEC);
+	if (fd < 0) {
+		free(s);
+		if (ignore_error)
+			return 0;
+		uc_error("unable to open '%s' for write", path);
+		return -EINVAL;
+	}
+	wlen = write(fd, value, len);
+	myerrno = errno;
+	close(fd);
+	free(s);
+
+	if (ignore_error)
+		return 0;
+
+	if (wlen != (ssize_t)len) {
+		uc_error("unable to write '%s' to '%s': %s", value, path, strerror(myerrno));
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
 /**
  * \brief Execute the sequence
  * \param uc_mgr Use case manager
@@ -419,6 +486,11 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 				uc_error("unable to execute cset '%s'", s->data.cset);
 				goto __fail;
 			}
+			break;
+		case SEQUENCE_ELEMENT_TYPE_SYSSET:
+			err = execute_sysset(s->data.sysset);
+			if (err < 0)
+				goto __fail;
 			break;
 		case SEQUENCE_ELEMENT_TYPE_SLEEP:
 			usleep(s->data.sleep);

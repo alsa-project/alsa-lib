@@ -49,6 +49,16 @@ void uc_mgr_stdout(const char *fmt,...)
 	va_end(va);
 }
 
+const char *uc_mgr_sysfs_root(void)
+{
+	const char *e = getenv("SYSFS_PATH");
+	if (e == NULL)
+		return "/sys";
+	if (*e == '\0')
+		uc_error("no sysfs root!");
+	return e;
+}
+
 struct ctl_list *uc_mgr_get_master_ctl(snd_use_case_mgr_t *uc_mgr)
 {
 	struct list_head *pos;
@@ -478,6 +488,9 @@ void uc_mgr_free_sequence_element(struct sequence_element *seq)
 	case SEQUENCE_ELEMENT_TYPE_CSET_BIN_FILE:
 	case SEQUENCE_ELEMENT_TYPE_CSET_TLV:
 		free(seq->data.cset);
+		break;
+	case SEQUENCE_ELEMENT_TYPE_SYSSET:
+		free(seq->data.sysset);
 		break;
 	case SEQUENCE_ELEMENT_TYPE_EXEC:
 		free(seq->data.exec);

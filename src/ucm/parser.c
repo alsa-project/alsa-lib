@@ -772,6 +772,16 @@ static int parse_sequence(snd_use_case_mgr_t *uc_mgr,
 			continue;
 		}
 
+		if (strcmp(cmd, "sysset") == 0) {
+			curr->type = SEQUENCE_ELEMENT_TYPE_SYSSET;
+			err = parse_string_substitute3(uc_mgr, n, &curr->data.sysset);
+			if (err < 0) {
+				uc_error("error: sysset requires a string!");
+				return err;
+			}
+			continue;
+		}
+
 		if (strcmp(cmd, "usleep") == 0) {
 			curr->type = SEQUENCE_ELEMENT_TYPE_SLEEP;
 			err = parse_integer_substitute3(uc_mgr, n, &curr->data.sleep);

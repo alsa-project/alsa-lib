@@ -45,13 +45,14 @@
 #define MAX_CARD_SHORT_NAME	32
 #define MAX_CARD_LONG_NAME	80
 
-#define SEQUENCE_ELEMENT_TYPE_CDEV	1
-#define SEQUENCE_ELEMENT_TYPE_CSET	2
-#define SEQUENCE_ELEMENT_TYPE_SLEEP	3
-#define SEQUENCE_ELEMENT_TYPE_EXEC	4
+#define SEQUENCE_ELEMENT_TYPE_CDEV		1
+#define SEQUENCE_ELEMENT_TYPE_CSET		2
+#define SEQUENCE_ELEMENT_TYPE_SLEEP		3
+#define SEQUENCE_ELEMENT_TYPE_EXEC		4
 #define SEQUENCE_ELEMENT_TYPE_CSET_BIN_FILE	5
-#define SEQUENCE_ELEMENT_TYPE_CSET_TLV	6
-#define SEQUENCE_ELEMENT_TYPE_CMPT_SEQ	7
+#define SEQUENCE_ELEMENT_TYPE_CSET_TLV		6
+#define SEQUENCE_ELEMENT_TYPE_CMPT_SEQ		7
+#define SEQUENCE_ELEMENT_TYPE_SYSSET		8
 
 struct ucm_value {
         struct list_head list;
@@ -73,6 +74,7 @@ struct sequence_element {
 		char *cdev;
 		char *cset;
 		char *exec;
+		char *sysset;
 		struct component_sequence cmpt_seq; /* component sequence */
 	} data;
 };
@@ -269,6 +271,7 @@ struct snd_use_case_mgr {
 void uc_mgr_error(const char *fmt, ...);
 void uc_mgr_stdout(const char *fmt, ...);
 
+const char *uc_mgr_sysfs_root(void);
 const char *uc_mgr_config_dir(int format);
 int uc_mgr_config_load(int format, const char *file, snd_config_t **cfg);
 int uc_mgr_config_load_file(snd_use_case_mgr_t *uc_mgr,  const char *file, snd_config_t **cfg);
