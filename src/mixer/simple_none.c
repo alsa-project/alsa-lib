@@ -913,8 +913,7 @@ static int base_len(const char *name, selem_ctl_type_t *type)
 	const struct suf *p;
 	size_t nlen = strlen(name);
 
-	p = suffixes;
-	while (p->suffix) {
+	for (p = suffixes; p->suffix; p++) {
 		size_t slen = strlen(p->suffix);
 		size_t l;
 		if (nlen > slen) {
@@ -925,7 +924,6 @@ static int base_len(const char *name, selem_ctl_type_t *type)
 				return l;
 			}
 		}
-		p++;
 	}
 
 	/* exception: "Capture Volume" and "Capture Switch" */
