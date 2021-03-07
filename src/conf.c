@@ -1604,12 +1604,13 @@ static void level_print(snd_output_t *out, unsigned int level)
 }
 
 static int _snd_config_save_children(snd_config_t *config, snd_output_t *out,
-				     unsigned int level, unsigned int joins);
+				     unsigned int level, unsigned int joins,
+				     int array);
 
 static int _snd_config_save_node_value(snd_config_t *n, snd_output_t *out,
 				       unsigned int level)
 {
-	int err;
+	int err, array;
 	switch (n->type) {
 	case SND_CONFIG_TYPE_INTEGER:
 		snd_output_printf(out, "%ld", n->u.integer);
@@ -1627,13 +1628,14 @@ static int _snd_config_save_node_value(snd_config_t *n, snd_output_t *out,
 		SNDERR("cannot save runtime pointer type");
 		return -EINVAL;
 	case SND_CONFIG_TYPE_COMPOUND:
-		snd_output_putc(out, '{');
+		array = snd_config_is_array(n);
+		snd_output_putc(out, array ? '[' : '{');
 		snd_output_putc(out, '\n');
-		err = _snd_config_save_children(n, out, level + 1, 0);
+		err = _snd_config_save_children(n, out, level + 1, 0, array);
 		if (err < 0)
 			return err;
 		level_print(out, level);
-		snd_output_putc(out, '}');
+		snd_output_putc(out, array ? ']' : '}');
 		break;
 	}
 	return 0;
@@ -1650,7 +1652,8 @@ static void id_print(snd_config_t *n, snd_output_t *out, unsigned int joins)
 }
 
 static int _snd_config_save_children(snd_config_t *config, snd_output_t *out,
-				     unsigned int level, unsigned int joins)
+				     unsigned int level, unsigned int joins,
+				     int array)
 {
 	int err;
 	snd_config_iterator_t i, next;
@@ -1659,18 +1662,19 @@ static int _snd_config_save_children(snd_config_t *config, snd_output_t *out,
 		snd_config_t *n = snd_config_iterator_entry(i);
 		if (n->type == SND_CONFIG_TYPE_COMPOUND &&
 		    n->u.compound.join) {
-			err = _snd_config_save_children(n, out, level, joins + 1);
+			err = _snd_config_save_children(n, out, level, joins + 1, 0);
 			if (err < 0)
 				return err;
 			continue;
 		}
 		level_print(out, level);
-		id_print(n, out, joins);
+		if (!array) {
+			id_print(n, out, joins);
+			snd_output_putc(out, ' ');
 #if 0
-		snd_output_putc(out, ' ');
-		snd_output_putc(out, '=');
+			snd_output_putc(out, '=');
 #endif
-		snd_output_putc(out, ' ');
+		}
 		err = _snd_config_save_node_value(n, out, level);
 		if (err < 0)
 			return err;
@@ -3129,10 +3133,12 @@ int snd_config_test_id(const snd_config_t *config, const char *id)
 int snd_config_save(snd_config_t *config, snd_output_t *out)
 {
 	assert(config && out);
-	if (config->type == SND_CONFIG_TYPE_COMPOUND)
-		return _snd_config_save_children(config, out, 0, 0);
-	else
+	if (config->type == SND_CONFIG_TYPE_COMPOUND) {
+		int array = snd_config_is_array(config);
+		return _snd_config_save_children(config, out, 0, 0, array);
+	} else {
 		return _snd_config_save_node_value(config, out, 0);
+	}
 }
 
 /*
