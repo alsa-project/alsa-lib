@@ -1595,6 +1595,14 @@ static void string_print(char *str, int id, snd_output_t *out)
 	snd_output_putc(out, '\'');
 }
 
+static void level_print(snd_output_t *out, unsigned int level)
+{
+	char a[level + 1];
+	memset(a, '\t', level);
+	a[level] = '\0';
+	snd_output_puts(out, a);
+}
+
 static int _snd_config_save_children(snd_config_t *config, snd_output_t *out,
 				     unsigned int level, unsigned int joins);
 
@@ -1602,7 +1610,6 @@ static int _snd_config_save_node_value(snd_config_t *n, snd_output_t *out,
 				       unsigned int level)
 {
 	int err;
-	unsigned int k;
 	switch (n->type) {
 	case SND_CONFIG_TYPE_INTEGER:
 		snd_output_printf(out, "%ld", n->u.integer);
@@ -1625,9 +1632,7 @@ static int _snd_config_save_node_value(snd_config_t *n, snd_output_t *out,
 		err = _snd_config_save_children(n, out, level + 1, 0);
 		if (err < 0)
 			return err;
-		for (k = 0; k < level; ++k) {
-			snd_output_putc(out, '\t');
-		}
+		level_print(out, level);
 		snd_output_putc(out, '}');
 		break;
 	}
@@ -1647,7 +1652,6 @@ static void id_print(snd_config_t *n, snd_output_t *out, unsigned int joins)
 static int _snd_config_save_children(snd_config_t *config, snd_output_t *out,
 				     unsigned int level, unsigned int joins)
 {
-	unsigned int k;
 	int err;
 	snd_config_iterator_t i, next;
 	assert(config && out);
@@ -1660,9 +1664,7 @@ static int _snd_config_save_children(snd_config_t *config, snd_output_t *out,
 				return err;
 			continue;
 		}
-		for (k = 0; k < level; ++k) {
-			snd_output_putc(out, '\t');
-		}
+		level_print(out, level);
 		id_print(n, out, joins);
 #if 0
 		snd_output_putc(out, ' ');
