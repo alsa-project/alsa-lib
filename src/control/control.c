@@ -1822,7 +1822,16 @@ void snd_ctl_elem_id_copy(snd_ctl_elem_id_t *dst, const snd_ctl_elem_id_t *src)
  * \brief compare one #snd_ctl_elem_id_t to another
  * \param id1 pointer to first id
  * \param id2 pointer to second id
- * \retval zero when values are identical, -1 first id
+ * \retval zero when values are identical, other value on a difference (like strcmp)
+ *
+ * This comparison ignores the numid part. The numid comparison can be easily
+ * implemented using snd_ctl_elem_id_get_numid() calls.
+ *
+ * The identifier fields are compared in this order: interface, device,
+ * subdevice, name, index.
+ *
+ * The return value can be used for sorting like qsort(). It gives persistent
+ * results.
  */
 int snd_ctl_elem_id_compare(snd_ctl_elem_id_t *id1, const snd_ctl_elem_id_t *id2)
 {
