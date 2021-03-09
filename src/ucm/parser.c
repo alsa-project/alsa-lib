@@ -812,7 +812,13 @@ static int parse_sequence(snd_use_case_mgr_t *uc_mgr,
 			}
 			continue;
 		}
-		
+
+		if (strcmp(cmd, "comment") == 0)
+			goto skip;
+
+		uc_error("error: sequence command '%s' is ignored", cmd);
+
+skip:
 		list_del(&curr->list);
 		uc_mgr_free_sequence_element(curr);
 	}
