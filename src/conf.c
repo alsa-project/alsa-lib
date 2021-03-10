@@ -5169,6 +5169,7 @@ static int parse_args(snd_config_t *subs, const char *str, snd_config_t *defs)
 		err = snd_config_add(subs, sub);
 		if (err < 0) {
 		_err:
+			snd_config_delete(sub);
 			free(val);
 			return err;
 		}
