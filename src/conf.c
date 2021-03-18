@@ -5080,6 +5080,8 @@ static int parse_args(snd_config_t *subs, const char *str, snd_config_t *defs)
 		const char *new = str;
 		const char *tmp;
 		char *val = NULL;
+
+		sub = NULL;
 		err = parse_arg(&new, &varlen, &val);
 		if (err < 0)
 			goto _err;
@@ -5104,6 +5106,7 @@ static int parse_args(snd_config_t *subs, const char *str, snd_config_t *defs)
 		err = snd_config_search(subs, var, &sub);
 		if (err >= 0)
 			snd_config_delete(sub);
+		sub = NULL;
 		err = snd_config_search(def, "type", &typ);
 		if (err < 0) {
 		_invalid_type:
@@ -5169,7 +5172,8 @@ static int parse_args(snd_config_t *subs, const char *str, snd_config_t *defs)
 		err = snd_config_add(subs, sub);
 		if (err < 0) {
 		_err:
-			snd_config_delete(sub);
+			if (sub)
+				snd_config_delete(sub);
 			free(val);
 			return err;
 		}
