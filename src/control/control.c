@@ -1844,7 +1844,7 @@ int snd_ctl_elem_id_compare(snd_ctl_elem_id_t *id1, const snd_ctl_elem_id_t *id2
 	d = id1->device - id2->device;
 	if (d != 0)
 		return d;
-	d = id2->subdevice - id2->subdevice;
+	d = id1->subdevice - id2->subdevice;
 	if (d != 0)
 		return d;
 	d = strcmp((const char *)id1->name, (const char *)id2->name);
