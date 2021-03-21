@@ -719,6 +719,7 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 	dshare->tstamp_type = opts->tstamp_type;
 	dshare->semid = -1;
 	dshare->shmid = -1;
+	dshare->shmptr = (void *) -1;
 
 	ret = snd_pcm_new(&pcm, dshare->type = SND_PCM_TYPE_DSHARE, name, stream, mode);
 	if (ret < 0)
@@ -875,7 +876,7 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 	return 0;
 	
  _err:
-	if (dshare->shmptr)
+	if (dshare->shmptr != (void *) -1)
 		dshare->shmptr->u.dshare.chn_mask &= ~dshare->u.dshare.chn_mask;
 	if (dshare->timer)
 		snd_timer_close(dshare->timer);
