@@ -1820,6 +1820,32 @@ void snd_ctl_elem_id_copy(snd_ctl_elem_id_t *dst, const snd_ctl_elem_id_t *src)
 }
 
 /**
+ * \brief compare one #snd_ctl_elem_id_t to another using numid
+ * \param id1 pointer to first id
+ * \param id2 pointer to second id
+ * \retval zero when values are identical, other value on a difference (like strcmp)
+ *
+ * This comparison ignores the set of fields part.
+ *
+ * The return value can be used for sorting like qsort(). It gives persistent
+ * results.
+ */
+int snd_ctl_elem_id_compare_numid(const snd_ctl_elem_id_t *id1, const snd_ctl_elem_id_t *id2)
+{
+	int64_t d;
+
+	assert(id1 && id2);
+	d = (int64_t)id1->numid - (int64_t)id2->numid;
+	if (d & ((int64_t)INT_MAX + 1)) {	/* fast path */
+		if (d > INT_MAX)
+			d = INT_MAX;
+		else if (d < INT_MIN)
+			d = INT_MIN;
+	}
+	return d;
+}
+
+/**
  * \brief compare one #snd_ctl_elem_id_t to another
  * \param id1 pointer to first id
  * \param id2 pointer to second id
