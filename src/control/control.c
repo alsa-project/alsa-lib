@@ -77,12 +77,12 @@ Each element has the following identifying properties:
   - Its name
   - Its index
 
-An element can be identified either by its numid or by the tuple
-(interface type, device, subdevice, name, index). This tuple is always
-the same (driver updates can change it, but in practice this is
-rare). The numid can change on each boot. In case of an USB sound
-card, the numid can also change when it is reconnected.
-
+An element can be identified either by its short numid or by the full
+set of fields (interface type, device, subdevice, name, index).
+This set of fields is always the same (driver updates can change it,
+but in practice this is rare). The numid can change on each boot.
+In case of an USB sound card, the numid can also change when it
+is reconnected. The short numid is used to reduce the lookup time.
 
 \section element_lists Element Lists
 
@@ -153,6 +153,7 @@ against the original design.
 #include <signal.h>
 #include <poll.h>
 #include <stdbool.h>
+#include <limits.h>
 #include "control_local.h"
 
 /**
@@ -1827,17 +1828,21 @@ void snd_ctl_elem_id_copy(snd_ctl_elem_id_t *dst, const snd_ctl_elem_id_t *src)
  * This comparison ignores the numid part. The numid comparison can be easily
  * implemented using snd_ctl_elem_id_get_numid() calls.
  *
- * The identifier fields are compared in this order: interface, device,
+ * The identifier set fields are compared in this order: interface, device,
  * subdevice, name, index.
  *
  * The return value can be used for sorting like qsort(). It gives persistent
  * results.
  */
-int snd_ctl_elem_id_compare(snd_ctl_elem_id_t *id1, const snd_ctl_elem_id_t *id2)
+int snd_ctl_elem_id_compare_set(const snd_ctl_elem_id_t *id1, const snd_ctl_elem_id_t *id2)
 {
 	int d;
 
 	assert(id1 && id2);
+	/* although those values are unsigned integer, practically, */
+	/* the useable limit is really much lower */
+	assert((id1->iface | id1->device | id1->subdevice | id1->index) <= INT_MAX);
+	assert((id2->iface | id2->device | id2->subdevice | id1->index) <= INT_MAX);
 	d = id1->iface - id2->iface;
 	if (d != 0)
 		return d;
