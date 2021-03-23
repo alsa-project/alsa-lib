@@ -74,7 +74,7 @@ struct sequence_element {
 		char *cdev;
 		char *cset;
 		char *exec;
-		char *sysset;
+		char *sysw;
 		struct component_sequence cmpt_seq; /* component sequence */
 	} data;
 };

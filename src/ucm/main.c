@@ -324,7 +324,7 @@ static int execute_cset(snd_ctl_t *ctl, const char *cset, unsigned int type)
 	return err;
 }
 
-static int execute_sysset(const char *sysset)
+static int execute_sysw(const char *sysw)
 {
 	char path[PATH_MAX];
 	const char *e;
@@ -334,15 +334,15 @@ static int execute_sysset(const char *sysset)
 	int fd, myerrno;
 	bool ignore_error = false;
 
-	if (sysset == NULL || *sysset == '\0')
+	if (sysw == NULL || *sysw == '\0')
 		return 0;
 
-	ignore_error = sysset[0] == '-';
+	ignore_error = sysw[0] == '-';
 
-	if (sysset[0] == ':')
+	if (sysw[0] == ':')
 		return -EINVAL;
 
-	s = strdup(sysset[0] != '/' ? sysset : sysset + 1);
+	s = strdup(sysw[0] != '/' ? sysw : sysw + 1);
 	if (s == NULL)
 		return -ENOMEM;
 
@@ -488,7 +488,7 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 			}
 			break;
 		case SEQUENCE_ELEMENT_TYPE_SYSSET:
-			err = execute_sysset(s->data.sysset);
+			err = execute_sysw(s->data.sysw);
 			if (err < 0)
 				goto __fail;
 			break;
