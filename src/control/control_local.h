@@ -106,3 +106,7 @@ int snd_ctl_async(snd_ctl_t *ctl, int sig, pid_t pid);
 int INTERNAL(snd_ctl_elem_info_get_dimensions)(const snd_ctl_elem_info_t *obj);
 int INTERNAL(snd_ctl_elem_info_get_dimension)(const snd_ctl_elem_info_t *obj, unsigned int idx);
 #endif /* INTERNAL */
+
+int __snd_ctl_add_elem_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
+			   unsigned int element_count,
+			   unsigned int member_count);

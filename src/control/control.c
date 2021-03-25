@@ -436,6 +436,25 @@ static inline int set_user_access(snd_ctl_elem_info_t *info)
 	return 0;
 }
 
+int __snd_ctl_add_elem_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
+			   unsigned int element_count,
+			   unsigned int member_count)
+{
+	if (ctl == NULL || info->id.name[0] == '\0')
+		return -EINVAL;
+
+	if (set_user_access(info))
+		return -EINVAL;
+
+	info->owner = element_count;
+	info->count = member_count;
+
+	if (!validate_element_member_dimension(info))
+		return -EINVAL;
+
+	return ctl->ops->element_add(ctl, info);
+}
+
 /**
  * \brief Create and add some user-defined control elements of integer type.
  * \param ctl A handle of backend module for control interface.
@@ -489,23 +508,15 @@ int snd_ctl_add_integer_elem_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
 	unsigned int numid;
 	int err;
 
-	if (ctl == NULL || info == NULL || info->id.name[0] == '\0')
-		return -EINVAL;
-
-	if (set_user_access(info))
+	if (info == NULL)
 		return -EINVAL;
 
 	info->type = SND_CTL_ELEM_TYPE_INTEGER;
-	info->owner = element_count;
-	info->count = member_count;
 	info->value.integer.min = min;
 	info->value.integer.max = max;
 	info->value.integer.step = step;
 
-	if (!validate_element_member_dimension(info))
-		return -EINVAL;
-
-	err = ctl->ops->element_add(ctl, info);
+	err = __snd_ctl_add_elem_set(ctl, info, element_count, member_count);
 	if (err < 0)
 		return err;
 	numid = snd_ctl_elem_id_get_numid(&info->id);
@@ -579,23 +590,15 @@ int snd_ctl_add_integer64_elem_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
 	unsigned int numid;
 	int err;
 
-	if (ctl == NULL || info == NULL || info->id.name[0] == '\0')
-		return -EINVAL;
-
-	if (set_user_access(info))
+	if (info == NULL)
 		return -EINVAL;
 
 	info->type = SND_CTL_ELEM_TYPE_INTEGER64;
-	info->owner = element_count;
-	info->count = member_count;
 	info->value.integer64.min = min;
 	info->value.integer64.max = max;
 	info->value.integer64.step = step;
 
-	if (!validate_element_member_dimension(info))
-		return -EINVAL;
-
-	err = ctl->ops->element_add(ctl, info);
+	err = __snd_ctl_add_elem_set(ctl, info, element_count, member_count);
 	if (err < 0)
 		return err;
 	numid = snd_ctl_elem_id_get_numid(&info->id);
@@ -658,22 +661,14 @@ int snd_ctl_add_boolean_elem_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
 				 unsigned int element_count,
 				 unsigned int member_count)
 {
-	if (ctl == NULL || info == NULL || info->id.name[0] == '\0')
-		return -EINVAL;
-
-	if (set_user_access(info))
+	if (info == NULL)
 		return -EINVAL;
 
 	info->type = SND_CTL_ELEM_TYPE_BOOLEAN;
-	info->owner = element_count;
-	info->count = member_count;
 	info->value.integer.min = 0;
 	info->value.integer.max = 1;
 
-	if (!validate_element_member_dimension(info))
-		return -EINVAL;
-
-	return ctl->ops->element_add(ctl, info);
+	return __snd_ctl_add_elem_set(ctl, info, element_count, member_count);
 }
 
 /**
@@ -729,11 +724,7 @@ int snd_ctl_add_enumerated_elem_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
 	char *buf, *p;
 	int err;
 
-	if (ctl == NULL || info == NULL || info->id.name[0] == '\0' ||
-	    labels == NULL)
-		return -EINVAL;
-
-	if (set_user_access(info))
+	if (info == NULL || labels == NULL)
 		return -EINVAL;
 
 	info->type = SND_CTL_ELEM_TYPE_ENUMERATED;
@@ -757,10 +748,7 @@ int snd_ctl_add_enumerated_elem_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
 		p += strlen(labels[i]) + 1;
 	}
 
-	if (!validate_element_member_dimension(info))
-		return -EINVAL;
-
-	err = ctl->ops->element_add(ctl, info);
+	err = __snd_ctl_add_elem_set(ctl, info, element_count, member_count);
 
 	free(buf);
 
@@ -810,20 +798,12 @@ int snd_ctl_add_bytes_elem_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
 			       unsigned int element_count,
 			       unsigned int member_count)
 {
-	if (ctl == NULL || info == NULL || info->id.name[0] == '\0')
-		return -EINVAL;
-
-	if (set_user_access(info))
+	if (info == NULL)
 		return -EINVAL;
 
 	info->type = SND_CTL_ELEM_TYPE_BYTES;
-	info->owner = element_count;
-	info->count = member_count;
 
-	if (!validate_element_member_dimension(info))
-		return -EINVAL;
-
-	return ctl->ops->element_add(ctl, info);
+	return __snd_ctl_add_elem_set(ctl, info, element_count, member_count);
 }
 
 /**
