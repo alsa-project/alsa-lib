@@ -31,6 +31,7 @@
  */
 
 #include "ucm_local.h"
+#include "../control/control_local.h"
 #include <stdbool.h>
 #include <ctype.h>
 #include <stdarg.h>
@@ -252,10 +253,6 @@ static int binary_file_parse(snd_ctl_elem_value_t *dst,
 	close(fd);
 	return err;
 }
-
-extern int __snd_ctl_ascii_elem_id_parse(snd_ctl_elem_id_t *dst,
-					 const char *str,
-					 const char **ret_ptr);
 
 static int execute_cset(snd_ctl_t *ctl, const char *cset, unsigned int type)
 {

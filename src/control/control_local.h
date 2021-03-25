@@ -110,3 +110,7 @@ int INTERNAL(snd_ctl_elem_info_get_dimension)(const snd_ctl_elem_info_t *obj, un
 int __snd_ctl_add_elem_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
 			   unsigned int element_count,
 			   unsigned int member_count);
+
+int __snd_ctl_ascii_elem_id_parse(snd_ctl_elem_id_t *dst,
+				  const char *str,
+				  const char **ret_ptr);
