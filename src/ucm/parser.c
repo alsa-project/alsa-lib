@@ -720,9 +720,10 @@ static int parse_sequence(snd_use_case_mgr_t *uc_mgr,
 
 		if (strcmp(cmd, "cset") == 0) {
 			curr->type = SEQUENCE_ELEMENT_TYPE_CSET;
+cset:
 			err = parse_string_substitute3(uc_mgr, n, &curr->data.cset);
 			if (err < 0) {
-				uc_error("error: cset requires a string!");
+				uc_error("error: %s requires a string!", cmd);
 				return err;
 			}
 			continue;
@@ -754,22 +755,17 @@ static int parse_sequence(snd_use_case_mgr_t *uc_mgr,
 
 		if (strcmp(cmd, "cset-bin-file") == 0) {
 			curr->type = SEQUENCE_ELEMENT_TYPE_CSET_BIN_FILE;
-			err = parse_string_substitute3(uc_mgr, n, &curr->data.cset);
-			if (err < 0) {
-				uc_error("error: cset-bin-file requires a string!");
-				return err;
-			}
-			continue;
+			goto cset;
 		}
 
 		if (strcmp(cmd, "cset-tlv") == 0) {
 			curr->type = SEQUENCE_ELEMENT_TYPE_CSET_TLV;
-			err = parse_string_substitute3(uc_mgr, n, &curr->data.cset);
-			if (err < 0) {
-				uc_error("error: cset-tlv requires a string!");
-				return err;
-			}
-			continue;
+			goto cset;
+		}
+
+		if (strcmp(cmd, "cset-new") == 0) {
+			curr->type = SEQUENCE_ELEMENT_TYPE_CSET_NEW;
+			goto cset;
 		}
 
 		if (strcmp(cmd, "sysw") == 0) {

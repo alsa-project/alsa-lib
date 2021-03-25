@@ -254,13 +254,146 @@ static int binary_file_parse(snd_ctl_elem_value_t *dst,
 	return err;
 }
 
+static const char *parse_type(const char *p, const char *prefix, size_t len,
+			      snd_ctl_elem_info_t *info)
+{
+	if (strncasecmp(p, prefix, len))
+		return p;
+	p += len;
+	if (info->type != SND_CTL_ELEM_TYPE_NONE)
+		return NULL;
+	if (strncasecmp(p, "bool", sizeof("bool") - 1) == 0)
+		info->type = SND_CTL_ELEM_TYPE_BOOLEAN;
+	else if (strncasecmp(p, "integer64", sizeof("integer64") - 1) == 0)
+		info->type = SND_CTL_ELEM_TYPE_INTEGER64;
+	else if (strncasecmp(p, "int64", sizeof("int64") - 1) == 0)
+		info->type = SND_CTL_ELEM_TYPE_INTEGER64;
+	else if (strncasecmp(p, "int", sizeof("int") - 1) == 0)
+		info->type = SND_CTL_ELEM_TYPE_INTEGER;
+	else if (strncasecmp(p, "enum", sizeof("enum") - 1) == 0)
+		info->type = SND_CTL_ELEM_TYPE_ENUMERATED;
+	else if (strncasecmp(p, "bytes", sizeof("bytes") - 1) == 0)
+		info->type = SND_CTL_ELEM_TYPE_BYTES;
+	else
+		return NULL;
+	while (isalpha(*p))
+		p++;
+	return p;
+}
+
+static const char *parse_uint(const char *p, const char *prefix, size_t len,
+			      unsigned int min, unsigned int max, unsigned int *rval)
+{
+	long v;
+	char *end;
+
+	if (strncasecmp(p, prefix, len))
+		return p;
+	p += len;
+	v = strtol(p, &end, 0);
+	if (*end != '\0' && *end != ' ' && *end != ',') {
+		uc_error("unable to parse '%s'", prefix);
+		return NULL;
+	}
+	if (v < min || v > max) {
+		uc_error("value '%s' out of range %u-%u %(%ld)", min, max, v);
+		return NULL;
+	}
+	*rval = v;
+	return end;
+}
+
+static const char *parse_labels(const char *p, const char *prefix, size_t len,
+				snd_ctl_elem_info_t *info)
+{
+	const char *s;
+	char *buf, *bp;
+	size_t l;
+	int c;
+
+	if (info->type != SND_CTL_ELEM_TYPE_ENUMERATED)
+		return NULL;
+	if (strncasecmp(p, prefix, len))
+		return p;
+	p += len;
+	s = p;
+	c = *s;
+	l = 0;
+	if (c == '\'' || c == '\"') {
+		s++;
+		while (*s && *s != c) {
+			s++, l++;
+		}
+		if (*s == c)
+			s++;
+	} else {
+		while (*s && *s != ',')
+			l++;
+	}
+	if (l == 0)
+		return NULL;
+	buf = malloc(l + 1);
+	if (buf == NULL)
+		return NULL;
+	memcpy(buf, p + ((c == '\'' || c == '\"') ? 1 : 0), l);
+	buf[l] = '\0';
+	info->value.enumerated.items = 1;
+	for (bp = buf; *bp; bp++) {
+		if (*bp == ';') {
+			if (bp == buf || bp[1] == ';') {
+				free(buf);
+				return NULL;
+			}
+			info->value.enumerated.items++;
+			*bp = '\0';
+		}
+	}
+	info->value.enumerated.names_ptr = (uintptr_t)buf;
+	info->value.enumerated.names_length = l + 1;
+	return s;
+}
+
+static int parse_cset_new_info(snd_ctl_elem_info_t *info, const char *s, const char **pos)
+{
+	const char *p = s, *op;
+
+	info->count = 1;
+	while (*s) {
+		op = p;
+		p = parse_type(p, "type=", sizeof("type=") - 1, info);
+		if (p != op)
+			goto next;
+		p = parse_uint(p, "elements=", sizeof("elements=") - 1, 1, 128, (unsigned int *)&info->owner);
+		if (p != op)
+			goto next;
+		p = parse_uint(p, "count=", sizeof("count=") - 1, 1, 128, &info->count);
+		if (p != op)
+			goto next;
+		p = parse_labels(p, "labels=", sizeof("labels=") - 1, info);
+next:
+		if (p == NULL)
+			goto er;
+		if (*p == ',')
+			p++;
+		if (isspace(*p))
+			break;
+		if (op == p)
+			goto er;
+	}
+	*pos = p;
+	return 0;
+er:
+	uc_error("unknown syntax '%s'", p);
+	return -EINVAL;
+}
+
 static int execute_cset(snd_ctl_t *ctl, const char *cset, unsigned int type)
 {
 	const char *pos;
 	int err;
 	snd_ctl_elem_id_t *id;
 	snd_ctl_elem_value_t *value;
-	snd_ctl_elem_info_t *info;
+	snd_ctl_elem_info_t *info, *info2 = NULL;
 	unsigned int *res = NULL;
 
 	snd_ctl_elem_id_malloc(&id);
@@ -272,14 +405,44 @@ static int execute_cset(snd_ctl_t *ctl, const char *cset, unsigned int type)
 		goto __fail;
 	while (*pos && isspace(*pos))
 		pos++;
+	if (type == SEQUENCE_ELEMENT_TYPE_CSET_NEW) {
+		snd_ctl_elem_info_malloc(&info2);
+		snd_ctl_elem_info_set_id(info2, id);
+		err = parse_cset_new_info(info2, pos, &pos);
+		if (err < 0 || !*pos) {
+			uc_error("undefined or wrong id config for cset-new", cset);
+			err = -EINVAL;
+			goto __fail;
+		}
+		while (*pos && isspace(*pos))
+			pos++;
+	}
 	if (!*pos) {
 		uc_error("undefined value for cset >%s<", cset);
 		err = -EINVAL;
 		goto __fail;
 	}
+
 	snd_ctl_elem_info_set_id(info, id);
 	err = snd_ctl_elem_info(ctl, info);
-	if (err < 0)
+	if (type == SEQUENCE_ELEMENT_TYPE_CSET_NEW) {
+		if (err >= 0) {
+			err = snd_ctl_elem_remove(ctl, id);
+			if (err < 0) {
+				uc_error("unable to remove control");
+				err = -EINVAL;
+				goto __fail;
+			}
+		}
+		err = __snd_ctl_add_elem_set(ctl, info2, info2->owner, info2->count);
+		if (err < 0) {
+			uc_error("unable to create new control");
+			goto __fail;
+		}
+		/* new id copy */
+		snd_ctl_elem_info_get_id(info2, id);
+		snd_ctl_elem_info_set_id(info, id);
+	} else if (err < 0)
 		goto __fail;
 	if (type == SEQUENCE_ELEMENT_TYPE_CSET_TLV) {
 		if (!snd_ctl_elem_info_is_tlv_writable(info)) {
@@ -306,17 +469,27 @@ static int execute_cset(snd_ctl_t *ctl, const char *cset, unsigned int type)
 		err = snd_ctl_elem_write(ctl, value);
 		if (err < 0)
 			goto __fail;
+		if (type == SEQUENCE_ELEMENT_TYPE_CSET_NEW) {
+			unsigned int idx;
+			for (idx = 1; idx < (unsigned int)info2->owner; idx++) {
+				value->id.numid += 1;
+				err = snd_ctl_elem_write(ctl, value);
+				if (err < 0)
+					goto __fail;
+			}
+		}
 	}
 	err = 0;
       __fail:
-	if (id != NULL)
-		free(id);
-	if (value != NULL)
-		free(value);
-	if (info != NULL)
-		free(info);
-	if (res != NULL)
-		free(res);
+	free(id);
+	free(value);
+	if (info2) {
+		if (info2->type == SND_CTL_ELEM_TYPE_ENUMERATED)
+			free((void *)info->value.enumerated.names_ptr);
+		free(info2);
+	}
+	free(info);
+	free(res);
 
 	return err;
 }
@@ -417,6 +590,7 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 		case SEQUENCE_ELEMENT_TYPE_CSET:
 		case SEQUENCE_ELEMENT_TYPE_CSET_BIN_FILE:
 		case SEQUENCE_ELEMENT_TYPE_CSET_TLV:
+		case SEQUENCE_ELEMENT_TYPE_CSET_NEW:
 			if (cdev == NULL && uc_mgr->in_component_domain) {
 				/* For sequence of a component device, use
 				 * its parent's cdev stored by ucm manager.

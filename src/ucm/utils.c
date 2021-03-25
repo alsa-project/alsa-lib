@@ -485,6 +485,7 @@ void uc_mgr_free_sequence_element(struct sequence_element *seq)
 		free(seq->data.cdev);
 		break;
 	case SEQUENCE_ELEMENT_TYPE_CSET:
+	case SEQUENCE_ELEMENT_TYPE_CSET_NEW:
 	case SEQUENCE_ELEMENT_TYPE_CSET_BIN_FILE:
 	case SEQUENCE_ELEMENT_TYPE_CSET_TLV:
 		free(seq->data.cset);
