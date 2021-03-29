@@ -542,6 +542,7 @@ int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *root, snd_c
 		if (snd_config_get_id(n, &id) < 0)
 			continue;
 		if (_snd_conf_generic_id(id))
+			continue;
 		if (strcmp(id, "server") == 0) {
 			err = snd_config_get_string(n, &server);
 			if (err < 0) {
