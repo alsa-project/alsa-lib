@@ -312,7 +312,9 @@ typedef enum _snd_ctl_type {
 	/** INET client CTL (not yet implemented) */
 	SND_CTL_TYPE_INET,
 	/** External control plugin */
-	SND_CTL_TYPE_EXT
+	SND_CTL_TYPE_EXT,
+	/** Control functionality remapping */
+	SND_CTL_TYPE_REMAP,
 } snd_ctl_type_t;
 
 /** Non blocking mode (flag for open mode) \hideinitializer */

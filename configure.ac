@@ -659,7 +659,7 @@ AC_ARG_WITH(ctl-plugins,
     [build control plugins (default = all)]),
   [ctl_plugins="$withval"], [ctl_plugins="all"])
 
-CTL_PLUGIN_LIST="shm ext"
+CTL_PLUGIN_LIST="remap shm ext"
 
 build_ctl_plugin="no"
 for t in $CTL_PLUGIN_LIST; do
@@ -681,6 +681,7 @@ if test "$ac_cv_header_sys_shm_h" != "yes"; then
 fi
 
 AM_CONDITIONAL([BUILD_CTL_PLUGIN], [test x$build_ctl_plugin = xyes])
+AM_CONDITIONAL([BUILD_CTL_PLUGIN_REMAP], [test x$build_ctl_remap = xyes])
 AM_CONDITIONAL([BUILD_CTL_PLUGIN_SHM], [test x$build_ctl_shm = xyes])
 AM_CONDITIONAL([BUILD_CTL_PLUGIN_EXT], [test x$build_ctl_ext = xyes])
 

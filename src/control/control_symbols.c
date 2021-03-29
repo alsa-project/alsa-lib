@@ -21,6 +21,7 @@
 #ifndef PIC
 
 extern const char *_snd_module_control_hw;
+extern const char *_snd_module_control_remap;
 extern const char *_snd_module_control_shm;
 extern const char *_snd_module_control_ext;
 
