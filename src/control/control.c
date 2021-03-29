@@ -1469,19 +1469,43 @@ static int snd_ctl_open_conf(snd_ctl_t **ctlp, const char *name,
 	return err;
 }
 
-static int snd_ctl_open_noupdate(snd_ctl_t **ctlp, snd_config_t *root, const char *name, int mode)
+static int snd_ctl_open_noupdate(snd_ctl_t **ctlp, snd_config_t *root,
+				 const char *name, int mode, int hop)
 {
 	int err;
 	snd_config_t *ctl_conf;
+	const char *str;
+
 	err = snd_config_search_definition(root, "ctl", name, &ctl_conf);
 	if (err < 0) {
 		SNDERR("Invalid CTL %s", name);
 		return err;
 	}
-	err = snd_ctl_open_conf(ctlp, name, root, ctl_conf, mode);
+	if (snd_config_get_string(ctl_conf, &str) >= 0)
+		err = snd_ctl_open_noupdate(ctlp, root, str, mode, hop + 1);
+	else {
+		snd_config_set_hop(ctl_conf, hop);
+		err = snd_ctl_open_conf(ctlp, name, root, ctl_conf, mode);
+	}
 	snd_config_delete(ctl_conf);
 	return err;
 }
+
+#ifndef DOC_HIDDEN
+int _snd_ctl_open_named_child(snd_ctl_t **pctl, const char *name,
+			      snd_config_t *root, snd_config_t *conf,
+			      int mode, snd_config_t *parent_conf)
+{
+	const char *str;
+	int hop;
+
+	if ((hop = snd_config_check_hop(parent_conf)) < 0)
+		return hop;
+	if (snd_config_get_string(conf, &str) >= 0)
+		return snd_ctl_open_noupdate(pctl, root, str, mode, hop + 1);
+	return snd_ctl_open_conf(pctl, name, root, conf, mode);
+}
+#endif
 
 /**
  * \brief Opens a CTL
@@ -1499,7 +1523,7 @@ int snd_ctl_open(snd_ctl_t **ctlp, const char *name, int mode)
 	err = snd_config_update_ref(&top);
 	if (err < 0)
 		return err;
-	err = snd_ctl_open_noupdate(ctlp, top, name, mode);
+	err = snd_ctl_open_noupdate(ctlp, top, name, mode, 0);
 	snd_config_unref(top);
 	return err;
 }
@@ -1516,7 +1540,7 @@ int snd_ctl_open_lconf(snd_ctl_t **ctlp, const char *name,
 		       int mode, snd_config_t *lconf)
 {
 	assert(ctlp && name && lconf);
-	return snd_ctl_open_noupdate(ctlp, lconf, name, mode);
+	return snd_ctl_open_noupdate(ctlp, lconf, name, mode, 0);
 }
 
 /**
@@ -1533,7 +1557,7 @@ int snd_ctl_open_fallback(snd_ctl_t **ctlp, snd_config_t *root,
 {
 	int err;
 	assert(ctlp && name && root);
-	err = snd_ctl_open_noupdate(ctlp, root, name, mode);
+	err = snd_ctl_open_noupdate(ctlp, root, name, mode, 0);
 	if (err >= 0) {
 		free((*ctlp)->name);
 		(*ctlp)->name = orig_name ? strdup(orig_name) : NULL;
@@ -3532,4 +3556,3 @@ void snd_ctl_elem_value_set_iec958(snd_ctl_elem_value_t *obj, const snd_aes_iec9
 	assert(obj && ptr);
 	memcpy(&obj->value.iec958, ptr, sizeof(obj->value.iec958));
 }
-
