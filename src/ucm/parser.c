@@ -768,6 +768,11 @@ cset:
 			goto cset;
 		}
 
+		if (strcmp(cmd, "ctl-remove") == 0) {
+			curr->type = SEQUENCE_ELEMENT_TYPE_CTL_REMOVE;
+			goto cset;
+		}
+
 		if (strcmp(cmd, "sysw") == 0) {
 			curr->type = SEQUENCE_ELEMENT_TYPE_SYSSET;
 			err = parse_string_substitute3(uc_mgr, n, &curr->data.sysw);

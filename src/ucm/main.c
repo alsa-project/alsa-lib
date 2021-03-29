@@ -418,14 +418,21 @@ static int execute_cset(snd_ctl_t *ctl, const char *cset, unsigned int type)
 			pos++;
 	}
 	if (!*pos) {
-		uc_error("undefined value for cset >%s<", cset);
+		if (type != SEQUENCE_ELEMENT_TYPE_CTL_REMOVE) {
+			uc_error("undefined value for cset >%s<", cset);
+			err = -EINVAL;
+			goto __fail;
+		}
+	} else if (type == SEQUENCE_ELEMENT_TYPE_CTL_REMOVE) {
+		uc_error("extra value for ctl-remove >%s<", cset);
 		err = -EINVAL;
 		goto __fail;
 	}
 
 	snd_ctl_elem_info_set_id(info, id);
 	err = snd_ctl_elem_info(ctl, info);
-	if (type == SEQUENCE_ELEMENT_TYPE_CSET_NEW) {
+	if (type == SEQUENCE_ELEMENT_TYPE_CSET_NEW ||
+	    type == SEQUENCE_ELEMENT_TYPE_CTL_REMOVE) {
 		if (err >= 0) {
 			err = snd_ctl_elem_remove(ctl, id);
 			if (err < 0) {
@@ -434,6 +441,8 @@ static int execute_cset(snd_ctl_t *ctl, const char *cset, unsigned int type)
 				goto __fail;
 			}
 		}
+		if (type == SEQUENCE_ELEMENT_TYPE_CTL_REMOVE)
+			goto __ok;
 		err = __snd_ctl_add_elem_set(ctl, info2, info2->owner, info2->count);
 		if (err < 0) {
 			uc_error("unable to create new control");
@@ -479,6 +488,7 @@ static int execute_cset(snd_ctl_t *ctl, const char *cset, unsigned int type)
 			}
 		}
 	}
+      __ok:
 	err = 0;
       __fail:
 	free(id);
@@ -591,6 +601,7 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 		case SEQUENCE_ELEMENT_TYPE_CSET_BIN_FILE:
 		case SEQUENCE_ELEMENT_TYPE_CSET_TLV:
 		case SEQUENCE_ELEMENT_TYPE_CSET_NEW:
+		case SEQUENCE_ELEMENT_TYPE_CTL_REMOVE:
 			if (cdev == NULL && uc_mgr->in_component_domain) {
 				/* For sequence of a component device, use
 				 * its parent's cdev stored by ucm manager.
