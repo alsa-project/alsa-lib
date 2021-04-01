@@ -153,6 +153,19 @@ typedef struct timeval snd_timestamp_t;
 /** Hi-res timestamp */
 typedef struct timespec snd_htimestamp_t;
 
+/**
+ * \brief Copy a C-string into a sized buffer
+ * \param dst Where to copy the string to
+ * \param src Where to copy the string from
+ * \param size Size of destination buffer
+ * \retval The source string length
+ *
+ * The result is always a valid NUL-terminated string that fits
+ * in the buffer (unless, of course, the buffer size is zero).
+ * It does not pad out the result like strncpy() does.
+ */
+size_t snd_strlcpy(char *dst, const char *src, size_t size);
+
 /** \} */
 
 #ifdef __cplusplus
