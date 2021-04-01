@@ -2310,6 +2310,47 @@ int snd_config_make(snd_config_t **config, const char *id,
 }
 
 /**
+ * \brief Creates a configuration node and add it to the parent node.
+ * \param[out] config The function puts the handle to the new node at
+ *                    the address specified by \a config.
+ * \param[in] id The id of the new node.
+ * \param[in] type The type of the new node.
+ * \param[in] parent handle for the parent node.
+ * \return Zero if successful, otherwise a negative error code.
+ *
+ * This functions creates a new node of the specified type.
+ * The new node has id \a id, which may be \c NULL.
+ * and adds it to the parent node.
+ *
+ * The value of the new node is zero (for numbers), or \c NULL (for
+ * strings and pointers), or empty (for compound nodes).
+ *
+ * \par Errors:
+ * <dl>
+ * <dt>-ENOMEM<dd>Out of memory.
+ * </dl>
+ */
+int snd_config_make_add(snd_config_t **config, char *id,
+		    snd_config_type_t type, snd_config_t *parent)
+{
+	char *id1;
+	int ret;
+
+	assert(config);
+	if (id) {
+		id1 = strdup(id);
+		if (!id1)
+			return -ENOMEM;
+	} else
+		id1 = NULL;
+	ret = _snd_config_make(config, &id1, type);
+	if (ret < 0)
+		return ret;
+
+	return snd_config_add(parent, *config);
+}
+
+/**
  * \brief Creates an integer configuration node.
  * \param[out] config The function puts the handle to the new node at
  *                    the address specified by \a config.

@@ -124,6 +124,8 @@ int snd_config_copy(snd_config_t **dst, snd_config_t *src);
 
 int snd_config_make(snd_config_t **config, const char *key,
 		    snd_config_type_t type);
+int snd_config_make_add(snd_config_t **config, char *id,
+			snd_config_type_t type, snd_config_t *parent);
 int snd_config_make_integer(snd_config_t **config, const char *key);
 int snd_config_make_integer64(snd_config_t **config, const char *key);
 int snd_config_make_real(snd_config_t **config, const char *key);
