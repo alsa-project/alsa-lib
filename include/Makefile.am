@@ -7,6 +7,9 @@ alsainclude_HEADERS = asoundlib.h asoundef.h \
 		      version.h global.h input.h output.h error.h \
 		      conf.h control.h
 
+if BUILD_CTL_PLUGIN
+alsainclude_HEADERS += control_plugin.h
+endif
 if BUILD_CTL_PLUGIN_EXT
 alsainclude_HEADERS += control_external.h
 endif

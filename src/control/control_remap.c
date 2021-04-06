@@ -1,3 +1,9 @@
+/**
+ * \file control/control_remap.c
+ * \brief CTL Remap Plugin Interface
+ * \author Jaroslav Kysela <perex@perex.cz>
+ * \date 2021
+ */
 /*
  *  Control - Remap Controls
  *  Copyright (c) 2021 by Jaroslav Kysela <perex@perex.cz>
@@ -1127,6 +1133,18 @@ static int parse_map(snd_ctl_remap_t *priv, snd_config_t *conf)
 	return 0;
 }
 
+/**
+ * \brief Creates a new remap & map control handle
+ * \param handlep Returns created control handle
+ * \param name Name of control device
+ * \param remap Remap configuration
+ * \param map Map configuration
+ * \param mode Control handle mode
+ * \retval zero on success otherwise a negative error code
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *          changed in future.
+ */
 int snd_ctl_remap_open(snd_ctl_t **handlep, const char *name, snd_config_t *remap,
 		       snd_config_t *map, snd_ctl_t *child, int mode ATTRIBUTE_UNUSED)
 {
@@ -1176,6 +1194,77 @@ int snd_ctl_remap_open(snd_ctl_t **handlep, const char *name, snd_config_t *rema
 	return result;
 }
 
+/*! \page control_plugins
+
+\section control_plugins_remap Plugin: Remap & map
+
+This plugin can remap (rename) identifiers (except the numid part) for
+a child control to another. The plugin can also merge the multiple
+child controls to one or split one control to more.
+
+\code
+ctl.name {
+	type remap              # Route & Volume conversion PCM
+	child STR               # Slave name
+	# or
+	child {                 # Slave definition
+		type STR
+		...
+	}
+	remap {
+		# the ID strings are parsed in the amixer style like 'name="Headphone Playback Switch",index=2'
+		SRC_ID1_STR DST_ID1_STR
+		SRC_ID2_STR DST_ID2_STR
+		...
+	}
+	map {
+		# join two stereo controls to one
+		CREATE_ID1_STR {
+			SRC_ID1_STR {
+				vindex.0 0	# source channel 0 to merged channel 0
+				vindex.1 1
+			}
+			SRC_ID2_STR {
+				vindex.2 0
+				vindex.3 1	# source channel 1 to merged channel 3
+			}
+		}
+		# split stereo to mono
+		CREATE_ID2_STR {
+			SRC_ID3_STR {
+				vindex.0 0	# stereo to mono (first channel)
+			}
+		}
+		CREATE_ID3_STR {
+			SRC_ID4_STR {
+				vindex.0 1	# stereo to mono (second channel)
+			}
+		}
+	}
+}
+\endcode
+
+\subsection control_plugins_route_funcref Function reference
+
+<UL>
+  <LI>snd_ctl_remap_open()
+  <LI>_snd_ctl_remap_open()
+</UL>
+
+*/
+
+/**
+ * \brief Creates a new remap & map control plugin
+ * \param handlep Returns created control handle
+ * \param name Name of control
+ * \param root Root configuration node
+ * \param conf Configuration node with Route & Volume PCM description
+ * \param mode Control handle mode
+ * \retval zero on success otherwise a negative error code
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *          changed in future.
+ */
 int _snd_ctl_remap_open(snd_ctl_t **handlep, char *name, snd_config_t *root, snd_config_t *conf, int mode)
 {
 	snd_config_iterator_t i, next;

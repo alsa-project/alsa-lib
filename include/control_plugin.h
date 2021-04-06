@@ -42,7 +42,14 @@
  * Control HW
  */
 int snd_ctl_hw_open(snd_ctl_t **handle, const char *name, int card, int mode);
-int _snd_ctl_hw_open(snd_ctl_t **handlep, char *name, snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *conf, int mode);
+int _snd_ctl_hw_open(snd_ctl_t **handlep, char *name, snd_config_t *root, snd_config_t *conf, int mode);
+
+/*
+ * Control Remap & Map
+ */
+int snd_ctl_remap_open(snd_ctl_t **handlep, const char *name, snd_config_t *remap,
+		       snd_config_t *map, snd_ctl_t *child, int mode);
+int _snd_ctl_remap_open(snd_ctl_t **handlep, char *name, snd_config_t *root, snd_config_t *conf, int mode);
 
 /** \} */
 
