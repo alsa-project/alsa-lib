@@ -21,12 +21,14 @@
 #ifndef PIC
 
 extern const char *_snd_module_control_hw;
+extern const char *_snd_module_control_empty;
 extern const char *_snd_module_control_remap;
 extern const char *_snd_module_control_shm;
 extern const char *_snd_module_control_ext;
 
 static const char **snd_control_open_objects[] = {
 	&_snd_module_control_hw,
+	&_snd_module_control_empty,
 #include "ctl_symbols_list.c"
 };
 	

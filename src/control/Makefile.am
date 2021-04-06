@@ -1,7 +1,8 @@
 EXTRA_LTLIBRARIES = libcontrol.la
 
 libcontrol_la_SOURCES = cards.c tlv.c namehint.c hcontrol.c \
-                        control.c control_hw.c setup.c ctlparse.c \
+			control.c control_hw.c control_empty.c \
+			setup.c ctlparse.c \
 			control_plugin.c control_symbols.c
 if BUILD_CTL_PLUGIN_REMAP
 libcontrol_la_SOURCES += control_remap.c

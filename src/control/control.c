@@ -1345,7 +1345,7 @@ snd_ctl_t *snd_async_handler_get_ctl(snd_async_handler_t *handler)
 }
 
 static const char *const build_in_ctls[] = {
-	"hw", "remap", "shm", NULL
+	"hw", "empty", "remap", "shm", NULL
 };
 
 static int snd_ctl_open_conf(snd_ctl_t **ctlp, const char *name,
