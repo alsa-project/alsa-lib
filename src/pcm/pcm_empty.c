@@ -1,12 +1,12 @@
 /**
  * \file pcm/pcm_empty.c
  * \ingroup PCM_Plugins
- * \brief PCM Null Plugin Interface
+ * \brief PCM Empty Plugin Interface
  * \author Jaroslav Kysela <perex@perex.cz>
  * \date 2006
  */
 /*
- *  PCM - Null plugin
+ *  PCM - Empty plugin
  *  Copyright (c) 2006 by Jaroslav Kysela <perex@perex.cz>
  *
  *
@@ -36,21 +36,26 @@ const char *_snd_module_pcm_empty = "";
 
 /*! \page pcm_plugins
 
-\section pcm_plugins_null Plugin: Null
+\section pcm_plugins_empty Plugin: Empty
 
-This plugin discards contents of a PCM stream or creates a stream with zero
-samples.
-
-Note: This implementation uses devices /dev/null (playback, must be writable)
-and /dev/full (capture, must be readable).
+This plugin just redirects the PCM stream to another plugin.
 
 \code
 pcm.name {
-        type null               # Null PCM
+	type empty               # Null PCM
+	slave STR               # Slave name
+	# or
+	slave {                 # Slave definition
+		pcm STR         # Slave PCM name
+		# or
+		pcm { }         # Slave PCM definition
+		[format STR]    # Slave format
+		[channels INT]  # Slave channels
+	}
 }
 \endcode
 
-\subsection pcm_plugins_null_funcref Function reference
+\subsection pcm_plugins_empty_funcref Function reference
 
 <UL>
   <LI>_snd_pcm_empty_open()
