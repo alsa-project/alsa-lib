@@ -40,7 +40,16 @@ INPUT            = @top_srcdir@/doc/index.doxygen \
 		   @top_srcdir@/src/names.c \
 		   @top_srcdir@/src/shmarea.c \
 		   @top_srcdir@/src/userfile.c \
-		   @top_srcdir@/src/control \
+		   @top_srcdir@/src/control/cards.c \
+		   @top_srcdir@/src/control/control.c \
+		   @top_srcdir@/src/control/control_plugin.c \
+		   @top_srcdir@/src/control/control_hw.c \
+		   @top_srcdir@/src/control/control_remap.c \
+		   @top_srcdir@/src/control/control_shm.c \
+		   @top_srcdir@/src/control/ctlparse.c \
+		   @top_srcdir@/src/control/hcontrol.c \
+		   @top_srcdir@/src/control/setup.c \
+		   @top_srcdir@/src/control/tlv.c \
 		   @top_srcdir@/src/mixer \
 		   @top_srcdir@/src/pcm/pcm.c \
 		   @top_srcdir@/src/pcm/pcm_mmap.c \

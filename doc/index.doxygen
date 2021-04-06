@@ -31,6 +31,7 @@ may be placed in the library code instead of the kernel driver.</P>
 
 <UL>
   <LI>Page \ref control explains the primitive controls API.
+  <LI>Page \ref control_plugins explains the design of primitive control plugins.
   <LI>Page \ref hcontrol explains the high-level primitive controls API.
   <LI>Page \ref mixer explains the mixer controls API.
   <LI>Page \ref pcm explains the design of the PCM (digital audio) API.

@@ -1,3 +1,9 @@
+/**
+ * \file control/control_hw.c
+ * \brief CTL HW Plugin Interface
+ * \author Jaroslav Kysela <perex@perex.cz>
+ * \date 2000
+ */
 /*
  *  Control Interface - Hardware
  *  Copyright (c) 1998,1999,2000 by Jaroslav Kysela <perex@perex.cz>
@@ -375,6 +381,17 @@ static const snd_ctl_ops_t snd_ctl_hw_ops = {
 	.read = snd_ctl_hw_read,
 };
 
+/**
+ * \brief Creates a new hw control
+ * \param handle Returns created control handle
+ * \param name Name of control device
+ * \param card Number of card
+ * \param mode Control mode
+ * \retval zero on success otherwise a negative error code
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *          changed in future.
+ */
 int snd_ctl_hw_open(snd_ctl_t **handle, const char *name, int card, int mode)
 {
 	int fd, ver;
@@ -437,6 +454,40 @@ int snd_ctl_hw_open(snd_ctl_t **handle, const char *name, int card, int mode)
 	return 0;
 }
 
+/*! \page control_plugins
+
+\section control_plugins_hw Plugin: hw
+
+This plugin communicates directly with the ALSA kernel driver. It is a raw
+communication without any conversions.
+
+\code
+control.name {
+	type hw			# Kernel PCM
+	card INT/STR		# Card name (string) or number (integer)
+}
+\endcode
+
+\subsection control_plugins_hw_funcref Function reference
+
+<UL>
+  <LI>snd_ctl_hw_open()
+  <LI>_snd_ctl_hw_open()
+</UL>
+
+*/
+
+/**
+ * \brief Creates a new hw control handle
+ * \param handlep Returns created control handle
+ * \param name Name of control device
+ * \param root Root configuration node
+ * \param conf Configuration node with hw PCM description
+ * \param mode Control Mode
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *          changed in future.
+ */
 int _snd_ctl_hw_open(snd_ctl_t **handlep, char *name, snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *conf, int mode)
 {
 	snd_config_iterator_t i, next;
@@ -462,4 +513,6 @@ int _snd_ctl_hw_open(snd_ctl_t **handlep, char *name, snd_config_t *root ATTRIBU
 		return -EINVAL;
 	return snd_ctl_hw_open(handlep, name, card, mode);
 }
+#ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(_snd_ctl_hw_open, SND_CONTROL_DLSYM_VERSION);
+#endif
