@@ -4009,7 +4009,7 @@ int snd_config_hook_load_for_all_cards(snd_config_t *root, snd_config_t *config,
 		if (err < 0)
 			return err;
 		if (card >= 0) {
-			snd_config_t *n, *private_data = NULL;
+			snd_config_t *n, *v, *private_data = NULL;
 			const char *driver;
 			char *fdriver = NULL;
 			err = snd_determine_driver(card, &fdriver);
@@ -4030,9 +4030,25 @@ int snd_config_hook_load_for_all_cards(snd_config_t *root, snd_config_t *config,
 			} else {
 				driver = fdriver;
 			}
-			err = snd_config_imake_string(&private_data, "string", driver);
+			err = snd_config_make_compound(&private_data, NULL, 0);
 			if (err < 0)
 				goto __err;
+			err = snd_config_imake_integer(&v, "integer", card);
+			if (err < 0)
+				goto __err;
+			err = snd_config_add(private_data, v);
+			if (err < 0) {
+				snd_config_delete(v);
+				goto __err;
+			}
+			err = snd_config_imake_string(&v, "string", driver);
+			if (err < 0)
+				goto __err;
+			err = snd_config_add(private_data, v);
+			if (err < 0) {
+				snd_config_delete(v);
+				goto __err;
+			}
 			err = snd_config_hook_load(root, config, &n, private_data);
 		      __err:
 			if (private_data)

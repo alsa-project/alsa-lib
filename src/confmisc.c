@@ -645,6 +645,28 @@ static int string_from_integer(char **dst, long v)
 }
 #endif
 
+int _snd_func_private_data(snd_config_t **dst, snd_config_t *src,
+			   snd_config_t **private_data, const char *id)
+{
+	int err;
+
+	if (*private_data == NULL)
+		return snd_config_copy(dst, src);
+	if (snd_config_get_type(*private_data) == SND_CONFIG_TYPE_COMPOUND) {
+		err = snd_config_search(*private_data, id, private_data);
+		if (err)
+			goto notfound;
+	}
+	err = snd_config_test_id(*private_data, id);
+	if (err) {
+notfound:
+		SNDERR("field %s not found", id);
+		return -EINVAL;
+	}
+	return 0;
+}
+
+
 /**
  * \brief Returns the string from \c private_data.
  * \param dst The function puts the handle to the result configuration node
@@ -668,13 +690,9 @@ int snd_func_private_string(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNU
 	int err;
 	const char *str, *id;
 
-	if (private_data == NULL)
-		return snd_config_copy(dst, src);
-	err = snd_config_test_id(private_data, "string");
-	if (err) {
-		SNDERR("field string not found");
-		return -EINVAL;
-	}
+	err = _snd_func_private_data(dst, src, &private_data, "string");
+	if (err)
+		return err;
 	err = snd_config_get_string(private_data, &str);
 	if (err < 0) {
 		SNDERR("field string is not a string");
@@ -687,6 +705,47 @@ int snd_func_private_string(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNU
 }
 #ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(snd_func_private_string, SND_CONFIG_DLSYM_VERSION_EVALUATE);
+#endif
+
+/**
+ * \brief Returns the integer from \c private_data.
+ * \param dst The function puts the handle to the result configuration node
+ *            (with type integer) at the address specified by \p dst.
+ * \param root Handle to the root source node.
+ * \param src Handle to the source node.
+ * \param private_data Handle to the \c private_data node (type integer,
+ *                     id "integer").
+ * \return A non-negative value if successful, otherwise a negative error code.
+ *
+ * Example:
+\code
+	{
+		@func private_integer
+	}
+\endcode
+ */
+int snd_func_private_integer(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNUSED,
+			     snd_config_t *src, snd_config_t *private_data)
+{
+	int err;
+	const char *id;
+	long val;
+
+	err = _snd_func_private_data(dst, src, &private_data, "integer");
+	if (err)
+		return err;
+	err = snd_config_get_integer(private_data, &val);
+	if (err < 0) {
+		SNDERR("field integer is not a string");
+		return err;
+	}
+	err = snd_config_get_id(src, &id);
+	if (err >= 0)
+		err = snd_config_imake_integer(dst, id, val);
+	return err;
+}
+#ifndef DOC_HIDDEN
+SND_DLSYM_BUILD_VERSION(snd_func_private_integer, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 #endif
 
 #ifndef DOC_HIDDEN
