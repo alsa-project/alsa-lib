@@ -44,6 +44,13 @@ static char *rval_open_name(snd_use_case_mgr_t *uc_mgr)
 	return NULL;
 }
 
+static char *rval_conf_libdir(snd_use_case_mgr_t *uc_mgr)
+{
+	if (uc_mgr->conf_format < 4)
+		return NULL;
+	return strdup(snd_config_topdir());
+}
+
 static char *rval_conf_topdir(snd_use_case_mgr_t *uc_mgr)
 {
 	const char *dir;
@@ -619,6 +626,7 @@ __std:
 		}
 		fcn2 = NULL;
 		MATCH_VARIABLE(value, "${OpenName}", rval_open_name, false);
+		MATCH_VARIABLE(value, "${ConfLibDir}", rval_conf_libdir, false);
 		MATCH_VARIABLE(value, "${ConfTopDir}", rval_conf_topdir, false);
 		MATCH_VARIABLE(value, "${ConfDir}", rval_conf_dir, false);
 		MATCH_VARIABLE(value, "${ConfName}", rval_conf_name, false);
