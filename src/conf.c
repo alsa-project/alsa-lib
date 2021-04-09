@@ -2159,6 +2159,61 @@ int snd_config_add_before(snd_config_t *before, snd_config_t *child)
 }
 
 /**
+ * \brief In-place merge of two compounds
+ * \param dst[out] Compound handle for the merged contents
+ * \param src[in] Compound handle to merge into dst (may be NULL)
+ * \param override[in] Override flag
+ * \return Zero if successful, otherwise a negative error code.
+ *
+ * This function merges all fields from the source compound to the destination compound.
+ * When the overwrite flag is set, the related subtree in dst is replaced from src.
+ *
+ * The src compound is deleted.
+ *
+ * \par Errors:
+ * <dl>
+ * <dt>-EINVAL<dd>\dst is not a compound
+ * <dt>-EINVAL<dd>\src is not a compound
+ * </dl>
+ */
+int snd_config_merge(snd_config_t *dst, snd_config_t *src, int override)
+{
+	snd_config_iterator_t di, si, dnext, snext;
+	bool found;
+	int err;
+
+	assert(dst);
+	if (src == NULL)
+		return 0;
+	if (dst->type != SND_CONFIG_TYPE_COMPOUND || src->type != SND_CONFIG_TYPE_COMPOUND)
+		return -EINVAL;
+	snd_config_for_each(si, snext, src) {
+		snd_config_t *sn = snd_config_iterator_entry(si);
+		found = false;
+		snd_config_for_each(di, dnext, dst) {
+			snd_config_t *dn = snd_config_iterator_entry(di);
+			if (strcmp(sn->id, dn->id) == 0) {
+				if (override) {
+					err = snd_config_substitute(dn, sn);
+					if (err < 0)
+						return err;
+				}
+				found = true;
+				break;
+			}
+		}
+		if (!found) {
+			/* move config from src to dst */
+			snd_config_remove(sn);
+			sn->parent = dst;
+			list_add_tail(&sn->list, &dst->u.compound.fields);
+		}
+	}
+	snd_config_delete(src);
+	return 0;
+}
+
+/**
  * \brief Removes a configuration node from its tree.
  * \param config Handle to the configuration node to be removed.
  * \return Zero if successful, otherwise a negative error code.
