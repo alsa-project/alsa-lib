@@ -304,9 +304,15 @@ int snd_rawmidi_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 	int err;
 
 	assert((inputp || outputp) && name);
-	err = snd_config_update_ref(&top);
-	if (err < 0)
-		return err;
+	if (_snd_is_ucm_device(name)) {
+		name = uc_mgr_alibcfg_by_device(&top, name);
+		if (name == NULL)
+			return -ENODEV;
+	} else {
+		err = snd_config_update_ref(&top);
+		if (err < 0)
+			return err;
+	}
 	err = snd_rawmidi_open_noupdate(inputp, outputp, top, name, mode);
 	snd_config_unref(top);
 	return err;

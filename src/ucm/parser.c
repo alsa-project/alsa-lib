@@ -31,6 +31,7 @@
  */
 
 #include "ucm_local.h"
+#include <stdbool.h>
 #include <dirent.h>
 #include <limits.h>
 
@@ -417,6 +418,128 @@ int uc_mgr_evaluate_inplace(snd_use_case_mgr_t *uc_mgr,
 		if (err3 < 0)
 			return err3;
 	}
+	return 0;
+}
+
+/*
+ * Parse one item for alsa-lib config
+ */
+static int parse_libconfig1(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
+{
+	snd_config_iterator_t i, next;
+	snd_config_t *n, *config = NULL;
+	const char *id, *file = NULL;
+	bool substfile = false, substconfig = false;
+	int err;
+
+	if (snd_config_get_id(cfg, &id) < 0)
+		return -EINVAL;
+
+	if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
+		uc_error("compound type expected for %s", id);
+		return -EINVAL;
+	}
+
+	snd_config_for_each(i, next, cfg) {
+		n = snd_config_iterator_entry(i);
+
+		if (snd_config_get_id(n, &id) < 0)
+			return -EINVAL;
+
+		if (strcmp(id, "File") == 0 ||
+		    strcmp(id, "SubstiFile") == 0) {
+			substfile = id[0] == 'S';
+			err = snd_config_get_string(n, &file);
+			if (err < 0)
+				return err;
+			continue;
+		}
+
+		if (strcmp(id, "Config") == 0 ||
+		    strcmp(id, "SubstiConfig") == 0) {
+			substconfig = id[0] == 'S';
+			if (snd_config_get_type(n) != SND_CONFIG_TYPE_COMPOUND)
+				return -EINVAL;
+			config = n;
+			continue;
+		}
+
+		uc_error("unknown field %s", id);
+		return -EINVAL;
+	}
+
+	if (file) {
+		if (substfile) {
+			snd_config_t *cfg;
+			err = uc_mgr_config_load(uc_mgr->conf_format, file, &cfg);
+			if (err < 0)
+				return err;
+			err = uc_mgr_substitute_tree(uc_mgr, cfg);
+			if (err < 0) {
+				snd_config_delete(config);
+				return err;
+			}
+			err = snd_config_merge(uc_mgr->local_config, cfg, 1);
+			if (err < 0) {
+				snd_config_delete(cfg);
+				return err;
+			}
+		} else {
+			char filename[PATH_MAX];
+
+			ucm_filename(filename, sizeof(filename), uc_mgr->conf_format,
+				     file[0] == '/' ? NULL : uc_mgr->conf_dir_name,
+				     file);
+			err = uc_mgr_config_load_into(uc_mgr->conf_format, filename, uc_mgr->local_config);
+			if (err < 0)
+				return err;
+		}
+	}
+
+	if (config) {
+		if (substconfig) {
+			err = uc_mgr_substitute_tree(uc_mgr, config);
+			if (err < 0) {
+				snd_config_delete(config);
+				return err;
+			}
+		}
+		err = snd_config_merge(uc_mgr->local_config, config, 1);
+		if (err < 0) {
+			snd_config_delete(config);
+			return err;
+		}
+	}
+
+	return 0;
+}
+
+/*
+ * Parse alsa-lib config
+ */
+static int parse_libconfig(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
+{
+	snd_config_iterator_t i, next;
+	snd_config_t *n;
+	const char *id;
+	int err;
+
+	if (snd_config_get_id(cfg, &id) < 0)
+		return -EINVAL;
+
+	if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
+		uc_error("compound type expected for %s", id);
+		return -EINVAL;
+	}
+
+	snd_config_for_each(i, next, cfg) {
+		n = snd_config_iterator_entry(i);
+
+		err = parse_libconfig1(uc_mgr, n);
+		if (err < 0)
+			return err;
+	}
+
 	return 0;
 }
 
@@ -1644,6 +1767,7 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 						file);
 				goto _err;
 			}
+			continue;
 		}
 
 		/* device remove */
@@ -1654,6 +1778,17 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 						file);
 				goto _err;
 			}
+			continue;
+		}
+
+		/* alsa-lib configuration */
+		if (uc_mgr->conf_format > 3 && strcmp(id, "LibraryConfig") == 0) {
+			err = parse_libconfig(uc_mgr, n);
+			if (err < 0) {
+				uc_error("error: failed to parse LibConfig");
+				return err;
+			}
+			continue;
 		}
 	}
 
@@ -1957,6 +2092,16 @@ static int parse_master_file(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 			err = parse_value(uc_mgr, &uc_mgr->value_list, n);
 			if (err < 0) {
 				uc_error("error: failed to parse ValueDefaults");
+				return err;
+			}
+			continue;
+		}
+
+		/* alsa-lib configuration */
+		if (uc_mgr->conf_format > 3 && strcmp(id, "LibraryConfig") == 0) {
+			err = parse_libconfig(uc_mgr, n);
+			if (err < 0) {
+				uc_error("error: failed to parse LibraryConfig");
 				return err;
 			}
 			continue;

@@ -257,6 +257,7 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
  *   - NULL 		- return current card
  *   - _verb		- return current verb
  *   - _file		- return configuration file loaded for current card
+ *   - _alibcfg		- return private alsa-lib's configuration for current card
  *
  *   - [=]{NAME}[/[{modifier}|{/device}][/{verb}]]
  *                      - value identifier {NAME}

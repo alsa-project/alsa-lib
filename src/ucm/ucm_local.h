@@ -222,6 +222,10 @@ struct snd_use_case_mgr {
 	char *conf_dir_name;
 	char *comment;
 	int conf_format;
+	unsigned int ucm_card_number;
+
+	/* UCM cards list */
+	struct list_head cards_list;
 
 	/* use case verb, devices and modifier configs parsed from files */
 	struct list_head verb_list;
@@ -253,6 +257,9 @@ struct snd_use_case_mgr {
 	/* list of opened control devices */
 	struct list_head ctl_list;
 
+	/* local library configuration */
+	snd_config_t *local_config;
+
 	/* Components don't define cdev, the card device. When executing
 	 * a sequence of a component device, ucm manager enters component
 	 * domain and needs to provide cdev to the component. This cdev
@@ -275,6 +282,7 @@ void uc_mgr_stdout(const char *fmt, ...);
 
 const char *uc_mgr_sysfs_root(void);
 const char *uc_mgr_config_dir(int format);
+int uc_mgr_config_load_into(int format, const char *file, snd_config_t *cfg);
 int uc_mgr_config_load(int format, const char *file, snd_config_t **cfg);
 int uc_mgr_config_load_file(snd_use_case_mgr_t *uc_mgr,  const char *file, snd_config_t **cfg);
 int uc_mgr_import_master_config(snd_use_case_mgr_t *uc_mgr);
@@ -290,6 +298,14 @@ void uc_mgr_free_sequence_element(struct sequence_element *seq);
 void uc_mgr_free_transition_element(struct transition_sequence *seq);
 void uc_mgr_free_verb(snd_use_case_mgr_t *uc_mgr);
 void uc_mgr_free(snd_use_case_mgr_t *uc_mgr);
+
+static inline int uc_mgr_has_local_config(snd_use_case_mgr_t *uc_mgr)
+{
+	return uc_mgr && snd_config_iterator_first(uc_mgr->local_config);
+}
+
+int uc_mgr_card_open(snd_use_case_mgr_t *uc_mgr);
+void uc_mgr_card_close(snd_use_case_mgr_t *uc_mgr);
 
 int uc_mgr_open_ctl(snd_use_case_mgr_t *uc_mgr,
 		    struct ctl_list **ctl_list,

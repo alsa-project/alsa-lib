@@ -341,49 +341,54 @@ const char *uc_mgr_config_dir(int format)
 	return path;
 }
 
-int uc_mgr_config_load(int format, const char *file, snd_config_t **cfg)
+int uc_mgr_config_load_into(int format, const char *file, snd_config_t *top)
 {
 	FILE *fp;
 	snd_input_t *in;
-	snd_config_t *top;
 	const char *default_paths[2];
 	int err;
 
 	fp = fopen(file, "r");
 	if (!fp) {
 		err = -errno;
-  __err0:
+  __err_open:
 		uc_error("could not open configuration file %s", file);
 		return err;
 	}
 	err = snd_input_stdio_attach(&in, fp, 1);
 	if (err < 0)
-		goto __err0;
-	err = snd_config_top(&top);
-	if (err < 0)
-		goto __err1;
+		goto __err_open;
 
 	default_paths[0] = uc_mgr_config_dir(format);
 	default_paths[1] = NULL;
 	err = _snd_config_load_with_include(top, in, 0, default_paths);
 	if (err < 0) {
 		uc_error("could not load configuration file %s", file);
-		goto __err2;
+		if (in)
+			snd_input_close(in);
+		return err;
 	}
 	err = snd_input_close(in);
+	if (err < 0)
+		return err;
+	return 0;
+}
+
+int uc_mgr_config_load(int format, const char *file, snd_config_t **cfg)
+{
+	snd_config_t *top;
+	int err;
+
+	err = snd_config_top(&top);
+	if (err < 0)
+		return err;
+	err = uc_mgr_config_load_into(format, file, top);
 	if (err < 0) {
-		in = NULL;
-		goto __err2;
+		snd_config_delete(top);
+		return err;
 	}
 	*cfg = top;
 	return 0;
-
- __err2:
-	snd_config_delete(top);
- __err1:
-	if (in)
-		snd_input_close(in);
-	return err;
 }
 
 void uc_mgr_free_value(struct list_head *base)
@@ -725,8 +730,95 @@ void uc_mgr_free_verb(snd_use_case_mgr_t *uc_mgr)
 
 void uc_mgr_free(snd_use_case_mgr_t *uc_mgr)
 {
+	snd_config_delete(uc_mgr->local_config);
 	uc_mgr_free_verb(uc_mgr);
 	uc_mgr_free_ctl_list(uc_mgr);
 	free(uc_mgr->card_name);
 	free(uc_mgr);
+}
+
+/*
+ * UCM card list stuff
+ */
+
+static pthread_mutex_t ucm_cards_mutex = PTHREAD_MUTEX_INITIALIZER;
+static LIST_HEAD(ucm_cards);
+static unsigned int ucm_card_assign;
+
+static snd_use_case_mgr_t *uc_mgr_card_find(unsigned int card_number)
+{
+	struct list_head *pos;
+	snd_use_case_mgr_t *uc_mgr;
+
+	list_for_each(pos, &ucm_cards) {
+		uc_mgr = list_entry(pos, snd_use_case_mgr_t, cards_list);
+		if (uc_mgr->ucm_card_number == card_number)
+			return uc_mgr;
+	}
+	return NULL;
+}
+
+int uc_mgr_card_open(snd_use_case_mgr_t *uc_mgr)
+{
+	unsigned int prev;
+
+	pthread_mutex_lock(&ucm_cards_mutex);
+	prev = ucm_card_assign++;
+	while (uc_mgr_card_find(ucm_card_assign)) {
+		ucm_card_assign++;
+		ucm_card_assign &= 0xffff;
+		if (ucm_card_assign == prev) {
+			pthread_mutex_unlock(&ucm_cards_mutex);
+			return -ENOMEM;
+		}
+	}
+	uc_mgr->ucm_card_number = ucm_card_assign;
+	list_add(&uc_mgr->cards_list, &ucm_cards);
+	pthread_mutex_unlock(&ucm_cards_mutex);
+	return 0;
+}
+
+void uc_mgr_card_close(snd_use_case_mgr_t *uc_mgr)
+{
+	pthread_mutex_lock(&ucm_cards_mutex);
+	list_del(&uc_mgr->cards_list);
+	pthread_mutex_unlock(&ucm_cards_mutex);
+}
+
+/**
+ * \brief Get library configuration based on the private ALSA device name
+ * \param name[in] ALSA device name
+ * \retval config A configuration tree or NULL
+ *
+ * The returned configuration (non-NULL) should be unreferenced using
+ * snd_config_unref() call.
+ */
+const char *uc_mgr_alibcfg_by_device(snd_config_t **top, const char *name)
+{
+	char buf[5];
+	long card_num;
+	snd_config_t *config;
+	snd_use_case_mgr_t *uc_mgr;
+	int err;
+
+	if (strncmp(name, "_ucm", 4) || strlen(name) < 12 || name[8] != '.')
+		return NULL;
+	strncpy(buf, name + 4, 4);
+	buf[4] = '\0';
+	err = safe_strtol(buf, &card_num);
+	if (err < 0 || card_num < 0 || card_num > 0xffff)
+		return NULL;
+	config = NULL;
+	pthread_mutex_lock(&ucm_cards_mutex);
+	uc_mgr = uc_mgr_card_find(card_num);
+	/* non-empty configs are accepted only */
+	if (uc_mgr_has_local_config(uc_mgr)) {
+		config = uc_mgr->local_config;
+		snd_config_ref(config);
+	}
+	pthread_mutex_unlock(&ucm_cards_mutex);
+	if (!config)
+		return NULL;
+	*top = config;
+	return name + 9;
 }

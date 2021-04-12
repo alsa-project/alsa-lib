@@ -570,6 +570,38 @@ static int execute_sysw(const char *sysw)
 	return 0;
 }
 
+static int rewrite_device_value(snd_use_case_mgr_t *uc_mgr, const char *name, char **value)
+{
+	char *sval;
+	size_t l;
+	static const char **s, *_prefix[] = {
+		"PlaybackCTL",
+		"CaptureCTL",
+		"PlaybackMixer",
+		"CaptureMixer",
+		"PlaybackPCM",
+		"CapturePCM",
+		NULL
+	};
+
+	for (s = _prefix; *s && *value; s++) {
+		if (strcmp(*s, name) != 0)
+			continue;
+		l = strlen(*value) + 9 + 1;
+		sval = malloc(l);
+		if (sval == NULL) {
+			free(*value);
+			*value = NULL;
+			return -ENOMEM;
+		}
+		snprintf(sval, l, "_ucm%04X.%s", uc_mgr->ucm_card_number, *value);
+		free(*value);
+		*value = sval;
+		break;
+	}
+	return 0;
+}
+
 /**
  * \brief Execute the sequence
  * \param uc_mgr Use case manager
@@ -595,6 +627,8 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 		case SEQUENCE_ELEMENT_TYPE_CDEV:
 			cdev = strdup(s->data.cdev);
 			if (cdev == NULL)
+				goto __fail_nomem;
+			if (rewrite_device_value(uc_mgr, "PlaybackCTL", &cdev))
 				goto __fail_nomem;
 			break;
 		case SEQUENCE_ELEMENT_TYPE_CSET:
@@ -1259,10 +1293,18 @@ int snd_use_case_mgr_open(snd_use_case_mgr_t **uc_mgr,
 	INIT_LIST_HEAD(&mgr->variable_list);
 	pthread_mutex_init(&mgr->mutex, NULL);
 
+	err = uc_mgr_card_open(mgr);
+	if (err < 0)
+		goto _err;
+
+	err = snd_config_top(&mgr->local_config);
+	if (err < 0)
+		goto _err;
+
 	mgr->card_name = strdup(card_name);
 	if (mgr->card_name == NULL) {
-		free(mgr);
-		return -ENOMEM;
+		err = -ENOMEM;
+		goto _err;
 	}
 
 	/* get info on use_cases and verify against card */
@@ -1321,6 +1363,7 @@ int snd_use_case_mgr_reload(snd_use_case_mgr_t *uc_mgr)
  */
 int snd_use_case_mgr_close(snd_use_case_mgr_t *uc_mgr)
 {
+	uc_mgr_card_close(uc_mgr);
 	uc_mgr_free(uc_mgr);
 
 	return 0;
@@ -1868,6 +1911,7 @@ static int get_value1(snd_use_case_mgr_t *uc_mgr, char **value,
 {
 	struct ucm_value *val;
 	struct list_head *pos;
+	int err;
 
 	if (!value_list)
 		return -ENOENT;
@@ -1881,7 +1925,10 @@ static int get_value1(snd_use_case_mgr_t *uc_mgr, char **value,
 					return -ENOMEM;
 				return 0;
 			}
-			return uc_mgr_get_substituted_value(uc_mgr, value, val->data);
+			err = uc_mgr_get_substituted_value(uc_mgr, value, val->data);
+			if (err < 0)
+				return err;
+			return rewrite_device_value(uc_mgr, val->name, value);
 		}
 	}
 	return -ENOENT;
@@ -1977,6 +2024,31 @@ static int get_value(snd_use_case_mgr_t *uc_mgr,
 }
 
 /**
+ * \brief Get private alsa-lib configuration (ASCII)
+ * \param uc_mgr Use case manager
+ * \param str Returned value string
+ * \return Zero on success (value is filled), otherwise a negative error code
+ */
+static int get_alibcfg(snd_use_case_mgr_t *uc_mgr, char **str)
+{
+	snd_output_t *out;
+	size_t size;
+	int err;
+
+	err = snd_output_buffer_open(&out);
+	if (err < 0)
+		return err;
+	err = snd_config_save(uc_mgr->local_config, out);
+	if (err >= 0) {
+		size = snd_output_buffer_steal(out, str);
+		if (*str)
+			(*str)[size] = '\0';
+	}
+	snd_output_close(out);
+	return 0;
+}
+
+/**
  * \brief Get current - string
  * \param uc_mgr Use case manager
  * \param identifier 
@@ -2029,9 +2101,10 @@ int snd_use_case_get(snd_use_case_mgr_t *uc_mgr,
 		}
 		err = 0;
 
+	} else if (strcmp(identifier, "_alibcfg") == 0) {
+		err = get_alibcfg(uc_mgr, (char **)value);
 	} else if (identifier[0] == '_') {
 		err = -ENOENT;
-		goto __end;
 	} else {
 		if (identifier[0] == '=') {
 			exact = 1;
