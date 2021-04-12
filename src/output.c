@@ -252,6 +252,9 @@ static int snd_output_buffer_need(snd_output_t *output, size_t size)
 	size_t alloc;
 	unsigned char *buf;
 
+	/* use 'size++' to allow to add the '\0' string terminator */
+	/* without reallocation */
+	size++;
 	if (_free >= size)
 		return _free;
 	if (buffer->alloc == 0)
@@ -350,6 +353,28 @@ size_t snd_output_buffer_string(snd_output_t *output, char **buf)
 }
 
 /**
+ * \brief Returns the address of the buffer of a #SND_OUTPUT_BUFFER output handle.
+ * \param output The output handle.
+ * \param buf The functions puts the current address of the buffer at the
+ *            address specified by \p buf.
+ * \return The current size of valid data in the buffer.
+ *
+ * The internal buffer is empty after this call. The caller has the responsibility
+ * to clean the buffer using the free() call.
+ */
+size_t snd_output_buffer_steal(snd_output_t *output, char **buf)
+{
+	snd_output_buffer_t *buffer = output->private_data;
+	size_t size;
+	*buf = (char *)buffer->buf;
+	size = buffer->size;
+	buffer->buf = NULL;
+	buffer->alloc = 0;
+	buffer->size = 0;
+	return size;
+}
+
+/**
  * \brief Creates a new output object with an auto-extending memory buffer.
  * \param outputp The function puts the pointer to the new output object
  *                at the address specified by \p outputp.
@@ -377,4 +402,3 @@ int snd_output_buffer_open(snd_output_t **outputp)
 	*outputp = output;
 	return 0;
 }
-	
