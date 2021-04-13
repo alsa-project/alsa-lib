@@ -19,7 +19,6 @@
 #include <math.h>
 #include "../include/asoundlib.h"
 
-static char *command;
 static char *pcm_name = "hw:0";
 snd_output_t *output = NULL;
 
@@ -42,7 +41,7 @@ long long timestamp2ns(snd_htimestamp_t t)
 {
 	long long nsec;
 
-	nsec = t.tv_sec * 1000000000;
+	nsec = t.tv_sec * 1000000000ULL;
 	nsec += t.tv_nsec;
 
 	return nsec;
@@ -149,7 +148,7 @@ int main(int argc, char *argv[])
 	while ((c = getopt_long(argc, argv, short_options, long_options, &option_index)) != -1) {
 		switch (c) {
 		case 'h':
-			usage(command);
+			usage(argv[0]);
 			return 0;
 		case 'p':
 			do_playback = 1;
