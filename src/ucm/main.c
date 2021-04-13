@@ -713,8 +713,18 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 			break;
 		case SEQUENCE_ELEMENT_TYPE_EXEC:
 			err = system(s->data.exec);
-			if (err < 0)
+			if (WIFSIGNALED(err)) {
+				err = -EINTR;
+			} if (WIFEXITED(err)) {
+				if (WEXITSTATUS(err) != 0) {
+					uc_error("command '%s' failed (exit code %d)", s->data.exec, WEXITSTATUS(err));
+					err = -EINVAL;
+					goto __fail;
+				}
+			} else if (err < 0) {
+				err = -errno;
 				goto __fail;
+			}
 			break;
 		case SEQUENCE_ELEMENT_TYPE_CMPT_SEQ:
 			/* Execute enable or disable sequence of a component
