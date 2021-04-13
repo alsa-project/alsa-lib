@@ -141,7 +141,7 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 # error not present
 #endif
 exit(0);
-]],
+]])],
   [AC_MSG_RESULT(yes)
    enable_atopology="yes"],
   [AC_MSG_RESULT(no)]
