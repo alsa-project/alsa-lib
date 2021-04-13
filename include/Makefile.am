@@ -82,7 +82,7 @@ stamp-vh: $(top_builddir)/configure.ac
 	@echo "#define SND_LIB_SUBMINOR	$(SND_LIB_SUBMINOR) /**< subminor number of library version */" >> ver.tmp
 	@echo "#define SND_LIB_EXTRAVER	$(SND_LIB_EXTRAVER) /**< extra version number, used mainly for betas */" >> ver.tmp
 	@echo "/** library version */" >> ver.tmp
-	@echo "#define SND_LIB_VER(maj, min, sub) (((maj)<<16)|(min)<<8)|(sub))" >> ver.tmp
+	@echo "#define SND_LIB_VER(maj, min, sub) (((maj)<<16)|((min)<<8)|(sub))" >> ver.tmp
 	@echo "#define SND_LIB_VERSION SND_LIB_VER(SND_LIB_MAJOR, SND_LIB_MINOR, SND_LIB_SUBMINOR)" >> ver.tmp
 	@echo "/** library version (string) */" >> ver.tmp
 	@echo "#define SND_LIB_VERSION_STR	\"$(SND_LIB_VERSION)\"" >> ver.tmp
