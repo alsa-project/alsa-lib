@@ -694,7 +694,6 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 	snd_pcm_direct_t *dshare = NULL;
 	int ret, first_instance;
 	unsigned int chn;
-	int fail_sem_loop = 10;
 
 	assert(pcmp);
 
@@ -703,50 +702,10 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 		return -EINVAL;
 	}
 
-	dshare = calloc(1, sizeof(snd_pcm_direct_t));
-	if (!dshare) {
-		ret = -ENOMEM;
-		goto _err_nosem;
-	}
-	
-	ret = snd_pcm_direct_parse_bindings(dshare, params, opts->bindings);
+	ret = _snd_pcm_direct_new(pcmp, &dshare, SND_PCM_TYPE_DSHARE, name, opts, params, stream, mode);
 	if (ret < 0)
-		goto _err_nosem;
-
-	dshare->ipc_key = opts->ipc_key;
-	dshare->ipc_perm = opts->ipc_perm;
-	dshare->ipc_gid = opts->ipc_gid;
-	dshare->tstamp_type = opts->tstamp_type;
-	dshare->semid = -1;
-	dshare->shmid = -1;
-	dshare->shmptr = (void *) -1;
-
-	ret = snd_pcm_new(&pcm, dshare->type = SND_PCM_TYPE_DSHARE, name, stream, mode);
-	if (ret < 0)
-		goto _err_nosem;
-
-	while (1) {
-		ret = snd_pcm_direct_semaphore_create_or_connect(dshare);
-		if (ret < 0) {
-			SNDERR("unable to create IPC semaphore");
-			goto _err_nosem;
-		}
-	
-		ret = snd_pcm_direct_semaphore_down(dshare, DIRECT_IPC_SEM_CLIENT);
-		if (ret < 0) {
-			snd_pcm_direct_semaphore_discard(dshare);
-			if (--fail_sem_loop <= 0)
-				goto _err_nosem;
-			continue;
-		}
-		break;
-	}
-
-	first_instance = ret = snd_pcm_direct_shm_create_or_connect(dshare);
-	if (ret < 0) {
-		SNDERR("unable to create IPC shm instance");
-		goto _err;
-	}
+		return ret;
+	first_instance = ret;
 
 	if (!dshare->bindings) {
 		pcm->ops = &snd_pcm_dshare_dummy_ops;
