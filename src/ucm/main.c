@@ -2234,6 +2234,8 @@ static int set_fixedboot_user(snd_use_case_mgr_t *uc_mgr,
 		uc_error("error: wrong value for _fboot (%s)", value);
 		return -EINVAL;
 	}
+	if (list_empty(&uc_mgr->fixedboot_list))
+		return -ENOENT;
 	err = execute_sequence(uc_mgr, &uc_mgr->fixedboot_list,
 			       &uc_mgr->value_list, NULL, NULL);
 	if (err < 0) {
