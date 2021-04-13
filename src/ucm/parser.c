@@ -70,6 +70,8 @@ static void ucm_filename(char *fn, size_t fn_len, long version,
 {
 	const char *env = getenv(version > 1 ? ALSA_CONFIG_UCM2_VAR : ALSA_CONFIG_UCM_VAR);
 
+	if (file[0] == '/')
+		file++;
 	if (env == NULL)
 		snprintf(fn, fn_len, "%s/%s/%s%s%s",
 			 snd_config_topdir(), version > 1 ? "ucm2" : "ucm",
