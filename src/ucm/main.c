@@ -584,6 +584,8 @@ static int rewrite_device_value(snd_use_case_mgr_t *uc_mgr, const char *name, ch
 		NULL
 	};
 
+	if (!uc_mgr_has_local_config(uc_mgr))
+		return 0;
 	for (s = _prefix; *s && *value; s++) {
 		if (strcmp(*s, name) != 0)
 			continue;
