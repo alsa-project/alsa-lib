@@ -296,16 +296,15 @@ static char *rval_lookup_main(snd_use_case_mgr_t *uc_mgr,
 			break;
 		}
 	}
-	snd_config_delete(config);
 	regfree(&re);
+fin:
+	snd_config_delete(config);
 	if (iter->done)
 		iter->done(iter);
 	return result;
 null:
-	if (iter->done)
-		iter->done(iter);
-	snd_config_delete(config);
-	return NULL;
+	result = NULL;
+	goto fin;
 }
 
 static struct lookup_iterate *rval_card_lookup1(snd_use_case_mgr_t *uc_mgr,
