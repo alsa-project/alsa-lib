@@ -1306,8 +1306,10 @@ int snd_use_case_mgr_open(snd_use_case_mgr_t **uc_mgr,
 	pthread_mutex_init(&mgr->mutex, NULL);
 
 	err = uc_mgr_card_open(mgr);
-	if (err < 0)
-		goto _err;
+	if (err < 0) {
+		uc_mgr_free(mgr);
+		return err;
+	}
 
 	err = snd_config_top(&mgr->local_config);
 	if (err < 0)
@@ -1337,6 +1339,7 @@ int snd_use_case_mgr_open(snd_use_case_mgr_t **uc_mgr,
 	return 0;
 
 _err:
+	uc_mgr_card_close(mgr);
 	uc_mgr_free(mgr);
 	return err;
 }
