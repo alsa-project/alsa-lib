@@ -301,7 +301,8 @@ void uc_mgr_free(snd_use_case_mgr_t *uc_mgr);
 
 static inline int uc_mgr_has_local_config(snd_use_case_mgr_t *uc_mgr)
 {
-	return uc_mgr && snd_config_iterator_first(uc_mgr->local_config);
+	return uc_mgr && snd_config_iterator_first(uc_mgr->local_config) !=
+			 snd_config_iterator_end(uc_mgr->local_config);
 }
 
 int uc_mgr_card_open(snd_use_case_mgr_t *uc_mgr);
