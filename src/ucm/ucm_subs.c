@@ -467,6 +467,10 @@ static int rval_device_lookup_init(snd_use_case_mgr_t *uc_mgr,
 
 	if (snd_config_search(config, "ctl", &d) || snd_config_get_string(d, &s)) {
 		iter->ctl_list = uc_mgr_get_master_ctl(uc_mgr);
+		if (iter->ctl_list == NULL) {
+			uc_error("Control device is not defined!");
+			return -EINVAL;
+		}
 	} else {
 		err = uc_mgr_open_ctl(uc_mgr, &iter->ctl_list, s, 1);
 		if (err < 0) {
