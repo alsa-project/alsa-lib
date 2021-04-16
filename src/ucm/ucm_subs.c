@@ -594,13 +594,52 @@ static char *rval_var(snd_use_case_mgr_t *uc_mgr, const char *id)
 		goto __match2;						\
 	}
 
+/*
+ * skip escaped } character (simple version)
+ */
+static inline const char *strchr_with_escape(const char *str, char c)
+{
+	char *s;
+
+	while (1) {
+		s = strchr(str, c);
+		if (s && s != str) {
+			if (*(s - 1) == '\\') {
+				str = s + 1;
+				continue;
+			}
+		}
+		return s;
+	}
+}
+
+/*
+ * remove escaped } character (simple version)
+ */
+static inline void strncpy_with_escape(char *dst, const char *src, size_t len)
+{
+	char c;
+
+	c = *src++;
+	while (c != '\0' && len > 0) {
+		if (c == '\\' && *src == '}') {
+			c = *src++;
+			len--;
+		}
+		*dst++ = c;
+		len--;
+		c = *src++;
+	}
+	*dst = '\0';
+}
+
 int uc_mgr_get_substituted_value(snd_use_case_mgr_t *uc_mgr,
 				 char **_rvalue,
 				 const char *value)
 {
 	size_t size, nsize, idsize, rvalsize, dpos = 0;
 	const char *tmp;
-	char *r, *nr, *rval, v2[48];
+	char *r, *nr, *rval, v2[128];
 	bool ignore_error, allow_empty;
 	char *(*fcn2)(snd_use_case_mgr_t *, const char *id);
 	int err;
@@ -658,15 +697,14 @@ __merr:
 		}
 		goto __error;
 __match2:
-		tmp = strchr(value + idsize, '}');
+		tmp = strchr_with_escape(value + idsize, '}');
 		if (tmp) {
 			rvalsize = tmp - (value + idsize);
 			if (rvalsize >= sizeof(v2)) {
 				err = -ENOMEM;
 				goto __error;
 			}
-			strncpy(v2, value + idsize, rvalsize);
-			v2[rvalsize] = '\0';
+			strncpy_with_escape(v2, value + idsize, rvalsize);
 			idsize += rvalsize + 1;
 			if (*v2 == '$' && uc_mgr->conf_format >= 3) {
 				tmp = uc_mgr_get_variable(uc_mgr, v2 + 1);
