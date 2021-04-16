@@ -380,12 +380,15 @@ static struct lookup_iterate *rval_pcm_lookup1(struct lookup_iterate *iter,
 	snd_ctl_t *ctl = iter->ctl_list->ctl;
 	int err;
 
+next:
 	if (snd_ctl_pcm_next_device(ctl, &device) < 0 || device < 0)
 		return NULL;
 	pcminfo = iter->info;
 	snd_pcm_info_set_device(pcminfo, device);
 	err = snd_ctl_pcm_info(ctl, pcminfo);
 	if (err < 0) {
+		if (err == -ENOENT)
+			goto next;
 		uc_error("Unable to obtain PCM info (device %d)", device);
 		return NULL;
 	}
