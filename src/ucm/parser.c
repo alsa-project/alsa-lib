@@ -35,28 +35,7 @@
 #include <dirent.h>
 #include <limits.h>
 
-/* Directories to store UCM configuration files for components, like
- * off-soc codecs or embedded DSPs. Components can define their own
- * devices and sequences, to be reused by sound cards/machines. UCM
- * manager should not scan these component directories.
- * Machine use case files can include component configratuation files
- * via alsaconf syntax:
- * <searchdir:component-directory-name> and <component-conf-file-name>.
- * Alsaconf will import the included files automatically. After including
- * a component file, a machine device's sequence can enable or disable
- * a component device via syntax:
- * enadev "component_device_name"
- * disdev "component_device_name"
- */
-static const char * const component_dir[] = {
-	"codecs",	/* for off-soc codecs */
-	"dsps",		/* for DSPs embedded in SoC */
-	"platforms",	/* for common platform implementations */
-	NULL,		/* terminator */
-};
-
 static int filename_filter(const struct dirent *dirent);
-static int is_component_directory(const char *dir);
 
 static int parse_sequence(snd_use_case_mgr_t *uc_mgr,
 			  struct list_head *base,
@@ -2452,20 +2431,6 @@ static int filename_filter(const struct dirent *dirent)
 	return 0;
 }
 
-/* whether input dir is a predefined component directory */
-static int is_component_directory(const char *dir)
-{
-	int i = 0;
-
-	while (component_dir[i]) {
-		if (!strncmp(dir, component_dir[i], PATH_MAX))
-			return 1;
-		i++;
-	};
-
-	return 0;
-}
-
 /* scan all cards and comments
  *
  * Cards are defined by machines. Each card/machine installs its UCM
@@ -2486,9 +2451,9 @@ int uc_mgr_scan_master_configs(const char **_list[])
 	struct dirent **namelist;
 
 	if (env)
-		snprintf(filename, sizeof(filename), "%s", env);
+		snprintf(filename, sizeof(filename), "%s/conf.virt.d", env);
 	else
-		snprintf(filename, sizeof(filename), "%s/ucm2",
+		snprintf(filename, sizeof(filename), "%s/ucm2/conf.virt.d",
 			 snd_config_topdir());
 
 #if defined(_GNU_SOURCE) && !defined(__NetBSD__) && !defined(__FreeBSD__) && !defined(__sun) && !defined(ANDROID)
@@ -2528,10 +2493,6 @@ int uc_mgr_scan_master_configs(const char **_list[])
 	for (i = j = 0; i < cnt; i++) {
 
 		d_name = namelist[i]->d_name;
-
-		/* Skip the directories for component devices */
-		if (is_component_directory(d_name))
-			continue;
 
 		snprintf(fn, sizeof(fn), "%s.conf", d_name);
 		ucm_filename(filename, sizeof(filename), 2, d_name, fn);
