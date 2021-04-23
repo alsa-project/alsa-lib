@@ -251,6 +251,8 @@ static int remap_id_to_child(snd_ctl_remap_t *priv, snd_ctl_elem_id_t *id, snd_c
 		}
 		*id = rid->id_child;
 	} else {
+		if (remap_find_id_child(priv, id))
+			return -ENOENT;
 		numid = remap_find_numid_app(priv, id->numid);
 		if (numid)
 			id->numid = numid->numid_child;
