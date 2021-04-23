@@ -266,16 +266,21 @@ int uc_mgr_open_ctl(snd_use_case_mgr_t *uc_mgr,
 	struct ctl_dev *ctl_dev;
 	snd_ctl_card_info_t *info;
 	const char *id;
-	int err, card;
+	int err, card, ucm_group, ucm_offset;
 
 	snd_ctl_card_info_alloca(&info);
+
+	ucm_group = _snd_is_ucm_device(device);
+	ucm_offset = ucm_group ? 8 : 0;
 
 	/* cache lookup */
 	list_for_each(pos1, &uc_mgr->ctl_list) {
 		ctl_list = list_entry(pos1, struct ctl_list, list);
+		if (ctl_list->ucm_group != ucm_group)
+			continue;
 		list_for_each(pos2, &ctl_list->dev_list) {
 			ctl_dev = list_entry(pos2, struct ctl_dev, list);
-			if (strcmp(ctl_dev->device, device) == 0) {
+			if (strcmp(ctl_dev->device, device + ucm_offset) == 0) {
 				*ctll = ctl_list;
 				if (!slave)
 					ctl_list->slave = 0;
@@ -301,22 +306,26 @@ int uc_mgr_open_ctl(snd_use_case_mgr_t *uc_mgr,
 	/* insert to cache, if just name differs */
 	list_for_each(pos1, &uc_mgr->ctl_list) {
 		ctl_list = list_entry(pos1, struct ctl_list, list);
+		if (ctl_list->ucm_group != ucm_group)
+			continue;
 		if (strcmp(id, snd_ctl_card_info_get_id(ctl_list->ctl_info)) == 0) {
 			card = snd_card_get_index(id);
-			err = uc_mgr_ctl_add(uc_mgr, &ctl_list, ctl, card, info, device, slave);
+			err = uc_mgr_ctl_add(uc_mgr, &ctl_list, ctl, card, info, device + ucm_offset, slave);
 			if (err < 0)
 				goto __nomem;
 			snd_ctl_close(ctl);
+			ctl_list->ucm_group = ucm_group;
 			*ctll = ctl_list;
 			return 0;
 		}
 	}
 
 	ctl_list = NULL;
-	err = uc_mgr_ctl_add(uc_mgr, &ctl_list, ctl, -1, info, device, slave);
+	err = uc_mgr_ctl_add(uc_mgr, &ctl_list, ctl, -1, info, device + ucm_offset, slave);
 	if (err < 0)
 		goto __nomem;
 
+	ctl_list->ucm_group = ucm_group;
 	*ctll = ctl_list;
 	return 0;
 

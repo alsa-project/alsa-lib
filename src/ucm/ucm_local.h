@@ -120,6 +120,7 @@ struct ctl_list {
 	snd_ctl_t *ctl;
 	snd_ctl_card_info_t *ctl_info;
 	int slave;
+	int ucm_group;
 };
 
 struct ucm_dev_name {
