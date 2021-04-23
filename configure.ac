@@ -740,6 +740,7 @@ AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile doc/doxygen.cfg \
           src/alisp/Makefile src/topology/Makefile \
 	  src/conf/Makefile \
 	  src/conf/cards/Makefile \
+	  src/conf/ctl/Makefile \
 	  src/conf/pcm/Makefile \
 	  modules/Makefile modules/mixer/Makefile modules/mixer/simple/Makefile \
 	  alsalisp/Makefile aserver/Makefile \

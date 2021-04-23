@@ -1,4 +1,4 @@
-SUBDIRS=cards pcm
+SUBDIRS=cards ctl pcm
 
 cfg_files = alsa.conf
 if BUILD_ALISP
