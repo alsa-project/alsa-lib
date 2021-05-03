@@ -517,7 +517,10 @@ static int execute_sysw(const char *sysw)
 	if (sysw == NULL || *sysw == '\0')
 		return 0;
 
-	ignore_error = sysw[0] == '-';
+	if (sysw[0] == '-') {
+		ignore_error = true;
+		sysw++;
+	}
 
 	if (sysw[0] == ':')
 		return -EINVAL;
