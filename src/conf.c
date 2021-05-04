@@ -3964,12 +3964,7 @@ int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t 
 
 	assert(root && dst);
 	if ((err = snd_config_search(config, "errors", &n)) >= 0) {
-		char *tmp;
-		err = snd_config_get_ascii(n, &tmp);
-		if (err < 0)
-			return err;
-		errors = snd_config_get_bool_ascii(tmp);
-		free(tmp);
+		errors = snd_config_get_bool(n);
 		if (errors < 0) {
 			SNDERR("Invalid bool value in field errors");
 			return errors;
@@ -4040,6 +4035,75 @@ SND_DLSYM_BUILD_VERSION(snd_config_hook_load, SND_CONFIG_DLSYM_VERSION_HOOK);
 int snd_determine_driver(int card, char **driver);
 #endif
 
+snd_config_t *_snd_config_hook_private_data(int card, const char *driver)
+{
+	snd_config_t *private_data, *v;
+	int err;
+
+	err = snd_config_make_compound(&private_data, NULL, 0);
+	if (err < 0)
+		goto __err;
+	err = snd_config_imake_integer(&v, "integer", card);
+	if (err < 0)
+		goto __err;
+	err = snd_config_add(private_data, v);
+	if (err < 0) {
+		snd_config_delete(v);
+		goto __err;
+	}
+	err = snd_config_imake_string(&v, "string", driver);
+	if (err < 0)
+		goto __err;
+	err = snd_config_add(private_data, v);
+	if (err < 0) {
+		snd_config_delete(v);
+		goto __err;
+	}
+	return private_data;
+
+__err:
+	snd_config_delete(private_data);
+	return NULL;
+}
+
+static int _snd_config_hook_table(snd_config_t *root, snd_config_t *config, snd_config_t *private_data)
+{
+	snd_config_t *n, *tn;
+	const char *id;
+	int err;
+
+	if (snd_config_search(config, "table", &n) < 0)
+		return 0;
+	if ((err = snd_config_expand(n, root, NULL, private_data, &n)) < 0) {
+		SNDERR("Unable to expand table compound");
+		return err;
+	}
+	if (snd_config_search(n, "id", &tn) < 0 ||
+	    snd_config_get_string(tn, &id) < 0) {
+		SNDERR("Unable to find field table.id");
+		snd_config_delete(n);
+		return -EINVAL;
+	}
+	if (snd_config_search(n, "value", &tn) < 0 ||
+	    snd_config_get_type(tn) != SND_CONFIG_TYPE_STRING) {
+		SNDERR("Unable to find field table.value");
+		snd_config_delete(n);
+		return -EINVAL;
+	}
+	snd_config_remove(tn);
+	if ((err = snd_config_set_id(tn, id)) < 0) {
+		snd_config_delete(tn);
+		snd_config_delete(n);
+		return err;
+	}
+	snd_config_delete(n);
+	if ((err = snd_config_add(root, tn)) < 0) {
+		snd_config_delete(tn);
+		return err;
+	}
+	return 0;
+}
+
 /**
  * \brief Loads and parses the given configurations files for each
  *        installed sound card.
@@ -4064,16 +4128,20 @@ int snd_config_hook_load_for_all_cards(snd_config_t *root, snd_config_t *config,
 		if (err < 0)
 			return err;
 		if (card >= 0) {
-			snd_config_t *n, *v, *private_data = NULL;
+			snd_config_t *n, *private_data = NULL;
 			const char *driver;
 			char *fdriver = NULL;
 			err = snd_determine_driver(card, &fdriver);
 			if (err < 0)
 				return err;
 			if (snd_config_search(root, fdriver, &n) >= 0) {
-				if (snd_config_get_string(n, &driver) < 0)
+				if (snd_config_get_string(n, &driver) < 0) {
+					if (snd_config_get_type(n) == SND_CONFIG_TYPE_COMPOUND) {
+						snd_config_get_id(n, &driver);
+						goto __std;
+					}
 					goto __err;
-				assert(driver);
+				}
 				while (1) {
 					char *s = strchr(driver, '.');
 					if (s == NULL)
@@ -4085,25 +4153,15 @@ int snd_config_hook_load_for_all_cards(snd_config_t *root, snd_config_t *config,
 			} else {
 				driver = fdriver;
 			}
-			err = snd_config_make_compound(&private_data, NULL, 0);
-			if (err < 0)
-				goto __err;
-			err = snd_config_imake_integer(&v, "integer", card);
-			if (err < 0)
-				goto __err;
-			err = snd_config_add(private_data, v);
-			if (err < 0) {
-				snd_config_delete(v);
+		      __std:
+			private_data = _snd_config_hook_private_data(card, driver);
+			if (!private_data) {
+				err = -ENOMEM;
 				goto __err;
 			}
-			err = snd_config_imake_string(&v, "string", driver);
+			err = _snd_config_hook_table(root, config, private_data);
 			if (err < 0)
 				goto __err;
-			err = snd_config_add(private_data, v);
-			if (err < 0) {
-				snd_config_delete(v);
-				goto __err;
-			}
 			err = snd_config_hook_load(root, config, &n, private_data);
 		      __err:
 			if (private_data)
