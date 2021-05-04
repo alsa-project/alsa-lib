@@ -913,6 +913,16 @@ static int base_len(const char *name, selem_ctl_type_t *type)
 	const struct suf *p;
 	size_t nlen = strlen(name);
 
+	/* exception: "Capture Volume" and "Capture Switch" */
+	if (!strcmp(name, "Capture Volume")) {
+		*type = CTL_CAPTURE_VOLUME;
+		return strlen("Capture");
+	}
+	if (!strcmp(name, "Capture Switch")) {
+		*type = CTL_CAPTURE_SWITCH;
+		return strlen("Capture");
+	}
+
 	for (p = suffixes; p->suffix; p++) {
 		size_t slen = strlen(p->suffix);
 		size_t l;
@@ -924,16 +934,6 @@ static int base_len(const char *name, selem_ctl_type_t *type)
 				return l;
 			}
 		}
-	}
-
-	/* exception: "Capture Volume" and "Capture Switch" */
-	if (!strcmp(name, "Capture Volume")) {
-		*type = CTL_CAPTURE_VOLUME;
-		return strlen("Capture");
-	}
-	if (!strcmp(name, "Capture Switch")) {
-		*type = CTL_CAPTURE_SWITCH;
-		return strlen("Capture");
 	}
 
 	/* Special case - handle "Input Source" as a capture route.
