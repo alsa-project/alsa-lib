@@ -509,6 +509,7 @@ void uc_mgr_free_sequence_element(struct sequence_element *seq)
 		free(seq->data.sysw);
 		break;
 	case SEQUENCE_ELEMENT_TYPE_EXEC:
+	case SEQUENCE_ELEMENT_TYPE_SHELL:
 		free(seq->data.exec);
 		break;
 	default:

@@ -717,6 +717,14 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 			usleep(s->data.sleep);
 			break;
 		case SEQUENCE_ELEMENT_TYPE_EXEC:
+			err = uc_mgr_exec(s->data.exec);
+			if (err != 0) {
+				uc_error("exec '%s' failed (exit code %d)", s->data.exec, err);
+				goto __fail;
+			}
+			break;
+		case SEQUENCE_ELEMENT_TYPE_SHELL:
+shell_retry:
 			err = system(s->data.exec);
 			if (WIFSIGNALED(err)) {
 				err = -EINTR;
@@ -727,6 +735,8 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 					goto __fail;
 				}
 			} else if (err < 0) {
+				if (errno == EAGAIN)
+					goto shell_retry;
 				err = -errno;
 				goto __fail;
 			}

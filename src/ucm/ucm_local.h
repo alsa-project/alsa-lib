@@ -49,12 +49,13 @@
 #define SEQUENCE_ELEMENT_TYPE_CSET		2
 #define SEQUENCE_ELEMENT_TYPE_SLEEP		3
 #define SEQUENCE_ELEMENT_TYPE_EXEC		4
-#define SEQUENCE_ELEMENT_TYPE_CSET_BIN_FILE	5
-#define SEQUENCE_ELEMENT_TYPE_CSET_TLV		6
-#define SEQUENCE_ELEMENT_TYPE_CSET_NEW		7
-#define SEQUENCE_ELEMENT_TYPE_CTL_REMOVE	8
-#define SEQUENCE_ELEMENT_TYPE_CMPT_SEQ		9
-#define SEQUENCE_ELEMENT_TYPE_SYSSET		10
+#define SEQUENCE_ELEMENT_TYPE_SHELL		5
+#define SEQUENCE_ELEMENT_TYPE_CSET_BIN_FILE	6
+#define SEQUENCE_ELEMENT_TYPE_CSET_TLV		7
+#define SEQUENCE_ELEMENT_TYPE_CSET_NEW		8
+#define SEQUENCE_ELEMENT_TYPE_CTL_REMOVE	9
+#define SEQUENCE_ELEMENT_TYPE_CMPT_SEQ		10
+#define SEQUENCE_ELEMENT_TYPE_SYSSET		11
 
 struct ucm_value {
         struct list_head list;
@@ -355,6 +356,8 @@ int uc_mgr_evaluate_condition(snd_use_case_mgr_t *uc_mgr,
 int uc_mgr_define_regex(snd_use_case_mgr_t *uc_mgr,
 			const char *name,
 			snd_config_t *eval);
+
+int uc_mgr_exec(const char *prog);
 
 /** The name of the environment variable containing the UCM directory */
 #define ALSA_CONFIG_UCM_VAR "ALSA_CONFIG_UCM"

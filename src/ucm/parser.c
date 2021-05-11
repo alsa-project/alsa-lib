@@ -910,12 +910,18 @@ cset:
 
 		if (strcmp(cmd, "exec") == 0) {
 			curr->type = SEQUENCE_ELEMENT_TYPE_EXEC;
+exec:
 			err = parse_string_substitute3(uc_mgr, n, &curr->data.exec);
 			if (err < 0) {
 				uc_error("error: exec requires a string!");
 				return err;
 			}
 			continue;
+		}
+
+		if (strcmp(cmd, "shell") == 0) {
+			curr->type = SEQUENCE_ELEMENT_TYPE_SHELL;
+			goto exec;
 		}
 
 		if (strcmp(cmd, "comment") == 0)
