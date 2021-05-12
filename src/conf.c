@@ -2194,6 +2194,7 @@ int snd_config_merge(snd_config_t *dst, snd_config_t *src, int override)
 			snd_config_t *dn = snd_config_iterator_entry(di);
 			if (strcmp(sn->id, dn->id) == 0) {
 				if (override) {
+					snd_config_remove(sn);
 					err = snd_config_substitute(dn, sn);
 					if (err < 0)
 						return err;
