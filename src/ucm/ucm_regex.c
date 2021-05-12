@@ -166,6 +166,8 @@ int uc_mgr_define_regex(snd_use_case_mgr_t *uc_mgr, const char *name,
 	err = regexec(&re, s, ARRAY_SIZE(match), match, 0);
 	if (err < 0)
 		err = -errno;
+	else if (err == REG_NOMATCH)
+		err = 0;
 	else
 		err = set_variables(uc_mgr, s, ARRAY_SIZE(match), match, name);
 	free(s);
