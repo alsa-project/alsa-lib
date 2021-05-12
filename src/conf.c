@@ -4886,13 +4886,8 @@ static int _snd_config_evaluate(snd_config_t *src,
 			if (err < 0)
 				SNDERR("function %s returned error: %s", func_name, snd_strerror(err));
 			snd_dlclose(h);
-			if (err >= 0 && eval) {
-				/* substitute merges compound members */
-				/* we don't want merging at all */
-				err = snd_config_delete_compound_members(src);
-				if (err >= 0)
-					err = snd_config_substitute(src, eval);
-			}
+			if (err >= 0 && eval)
+				err = snd_config_substitute(src, eval);
 		}
 	       _errbuf:
 		free(buf);
