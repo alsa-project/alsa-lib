@@ -1694,8 +1694,9 @@ static int _snd_config_save_children(snd_config_t *config, snd_output_t *out,
  * \param src Handle to the source node. Must not be the same as \a dst.
  * \return Zero if successful, otherwise a negative error code.
  *
- * If both nodes are compounds, the source compound node members are
- * appended to the destination compound node.
+ * If both nodes are compounds, the source compound node members will
+ * be moved to the destination compound node. The original destination
+ * compound node members will be deleted (overwritten).
  *
  * If the destination node is a compound and the source node is
  * an ordinary type, the compound members are deleted (including
@@ -1710,8 +1711,13 @@ static int _snd_config_save_children(snd_config_t *config, snd_output_t *out,
 int snd_config_substitute(snd_config_t *dst, snd_config_t *src)
 {
 	assert(dst && src);
+	if (dst->type == SND_CONFIG_TYPE_COMPOUND) {
+		int err = snd_config_delete_compound_members(dst);
+		if (err < 0)
+			return err;
+	}
 	if (dst->type == SND_CONFIG_TYPE_COMPOUND &&
-	    src->type == SND_CONFIG_TYPE_COMPOUND) {	/* append */
+	    src->type == SND_CONFIG_TYPE_COMPOUND) {	/* overwrite */
 		snd_config_iterator_t i, next;
 		snd_config_for_each(i, next, src) {
 			snd_config_t *n = snd_config_iterator_entry(i);
@@ -1719,11 +1725,6 @@ int snd_config_substitute(snd_config_t *dst, snd_config_t *src)
 		}
 		src->u.compound.fields.next->prev = &dst->u.compound.fields;
 		src->u.compound.fields.prev->next = &dst->u.compound.fields;
-	} else if (dst->type == SND_CONFIG_TYPE_COMPOUND) {
-		int err;
-		err = snd_config_delete_compound_members(dst);
-		if (err < 0)
-			return err;
 	}
 	free(dst->id);
 	dst->id = src->id;
