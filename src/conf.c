@@ -4056,6 +4056,70 @@ static int config_file_load_user(snd_config_t *root, const char *fn, int errors)
 	return err;
 }
 
+static int config_file_load_user_all(snd_config_t *_root, snd_config_t *_file, int errors)
+{
+	snd_config_t *file = _file, *root = _root, *n;
+	char *name, *name2, *remain, *rname = NULL;
+	int err;
+
+	if (snd_config_get_type(_file) == SND_CONFIG_TYPE_COMPOUND) {
+		if ((err = snd_config_search(_file, "file", &file)) < 0) {
+			SNDERR("Field file not found");
+			return err;
+		}
+		if ((err = snd_config_search(_file, "root", &root)) >= 0) {
+			err = snd_config_get_ascii(root, &rname);
+			if (err < 0) {
+				SNDERR("Field root is bad");
+				return err;
+			}
+			err = snd_config_make_compound(&root, rname, 0);
+			if (err < 0)
+				return err;
+		}
+	}
+	if ((err = snd_config_get_ascii(file, &name)) < 0)
+		goto _err;
+	name2 = name;
+	remain = strstr(name, "|||");
+	while (1) {
+		if (remain) {
+			*remain = '\0';
+			remain += 3;
+		}
+		err = config_file_load_user(root, name2, errors);
+		if (err < 0)
+			goto _err;
+		if (err == 0)	/* first hit wins */
+			break;
+		if (!remain)
+			break;
+		name2 = remain;
+		remain = strstr(remain, "|||");
+	}
+_err:
+	if (root != _root) {
+		if (err == 0) {
+			if (snd_config_get_type(root) == SND_CONFIG_TYPE_COMPOUND) {
+				if (snd_config_is_empty(root))
+					goto _del;
+			}
+			err = snd_config_make_path(&n, _root, rname, 0, 1);
+			if (err < 0)
+				goto _del;
+			err = snd_config_substitute(n, root);
+			if (err == 0)
+				goto _fin;
+		}
+_del:
+		snd_config_delete(root);
+	}
+_fin:
+	free(name);
+	free(rname);
+	return err;
+}
+
 /**
  * \brief Loads and parses the given configurations files.
  * \param[in] root Handle to the root configuration node.
@@ -4107,27 +4171,9 @@ int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t 
 				goto _err;
 			}
 			if (i == idx) {
-				char *name, *name2, *remain;
-				if ((err = snd_config_get_ascii(n, &name)) < 0)
+				err = config_file_load_user_all(root, n, errors);
+				if (err < 0)
 					goto _err;
-				name2 = name;
-				remain = strstr(name, "|||");
-				while (1) {
-					if (remain) {
-						*remain = '\0';
-						remain += 3;
-					}
-					err = config_file_load_user(root, name2, errors);
-					if (err < 0)
-						goto _err;
-					if (err == 0)	/* first hit wins */
-						break;
-					if (!remain)
-						break;
-					name2 = remain;
-					remain = strstr(remain, "|||");
-				}
-				free(name);
 				idx++;
 				hit = 1;
 			}
