@@ -2098,7 +2098,7 @@ static int parse_master_file(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 		if (strcmp(id, "Error") == 0)
 			return error_node(uc_mgr, n);
 
-		uc_error("uknown master file field %s", id);
+		uc_error("unknown master file field %s", id);
 	}
 	return 0;
 }
@@ -2337,7 +2337,17 @@ static int parse_toplevel_config(snd_use_case_mgr_t *uc_mgr,
 			continue;
 		}
 
-		uc_error("uknown toplevel field %s", id);
+		/* alsa-lib configuration */
+		if (uc_mgr->conf_format > 3 && strcmp(id, "LibraryConfig") == 0) {
+			err = parse_libconfig(uc_mgr, n);
+			if (err < 0) {
+				uc_error("error: failed to parse LibConfig");
+				return err;
+			}
+			continue;
+		}
+
+		uc_error("unknown toplevel field %s", id);
 	}
 
 	return -ENOENT;
