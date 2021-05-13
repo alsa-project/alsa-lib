@@ -1833,6 +1833,19 @@ int snd_config_is_array(const snd_config_t *config)
 }
 
 /**
+ * \brief Returns if the compound has no fields (is empty).
+ * \param config Handle to the configuration node.
+ * \return A positive value when true, zero when false, otherwise a negative error code.
+ */
+int snd_config_is_empty(const snd_config_t *config)
+{
+	assert(config);
+	if (config->type != SND_CONFIG_TYPE_COMPOUND)
+		return -EINVAL;
+	return list_empty(&config->u.compound.fields);
+}
+
+/**
  * \brief Returns the id of a configuration node.
  * \param[in] config Handle to the configuration node.
  * \param[out] id The function puts the pointer to the id string at the
