@@ -131,6 +131,8 @@ int snd_config_make_real(snd_config_t **config, const char *key);
 int snd_config_make_string(snd_config_t **config, const char *key);
 int snd_config_make_pointer(snd_config_t **config, const char *key);
 int snd_config_make_compound(snd_config_t **config, const char *key, int join);
+int snd_config_make_path(snd_config_t **config, snd_config_t *root, const char *key,
+			 int join, int override);
 
 int snd_config_imake_integer(snd_config_t **config, const char *key, const long value);
 int snd_config_imake_integer64(snd_config_t **config, const char *key, const long long value);

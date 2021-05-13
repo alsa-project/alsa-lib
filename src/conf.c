@@ -2548,6 +2548,103 @@ int snd_config_make_compound(snd_config_t **config, const char *id,
 }
 
 /**
+ * \brief Creates an empty compound configuration node in the path.
+ * \param[out] config The function puts the handle to the new or
+ *		      existing compound node at the address specified
+ *		      by \a config.
+ * \param[in] root The id of the new node.
+ * \param[in] key The id of the new node.
+ * \param[in] join Join flag.
+ * \param[in] override Override flag.
+ * \return Zero if successful, otherwise a negative error code.
+ *
+ * This function creates a new empty node of type
+ * #SND_CONFIG_TYPE_COMPOUND if the path does not exist. Otherwise,
+ * the node from the current configuration tree is returned without
+ * any modification. The \a join argument is ignored in this case.
+ *
+ * \a join determines how the compound node's id is printed when the
+ * configuration is saved to a text file.  For example, if the join flag
+ * of compound node \c a is zero, the output will look as follows:
+ * \code
+ * a {
+ *     b "hello"
+ *     c 42
+ * }
+ * \endcode
+ * If, however, the join flag of \c a is nonzero, its id will be joined
+ * with its children's ids, like this:
+ * \code
+ * a.b "hello"
+ * a.c 42
+ * \endcode
+ * An \e empty compound node with its join flag set would result in no
+ * output, i.e., after saving and reloading the configuration file, that
+ * compound node would be lost.
+ *
+ * \par Errors:
+ * <dl>
+ * <dt>-ENOMEM<dd>Out of memory.
+ * <dt>-EACCESS<dd>Path exists, but it's not a compound (!override)
+ * </dl>
+ */
+int snd_config_make_path(snd_config_t **config, snd_config_t *root,
+			 const char *key, int join, int override)
+{
+	snd_config_t *n;
+	const char *p;
+	int err;
+
+	while (1) {
+		p = strchr(key, '.');
+		if (p) {
+			err = _snd_config_search(root, key, p - key, &n);
+			if (err < 0) {
+				size_t l = p - key;
+				char *s = malloc(l + 1);
+				if (s == NULL)
+					return -ENOMEM;
+				strncpy(s, key, l);
+				s[l] = '\0';
+				err = snd_config_make_compound(&n, s, join);
+				free(s);
+				if (err < 0)
+					return err;
+				err = snd_config_add(root, n);
+				if (err < 0)
+					return err;
+			}
+			root = n;
+			key = p + 1;
+		} else {
+			err = _snd_config_search(root, key, -1, config);
+			if (err == 0) {
+				if ((*config)->type != SND_CONFIG_TYPE_COMPOUND) {
+					if (override) {
+						err = snd_config_delete(*config);
+						if (err < 0)
+							return err;
+						goto __make;
+					} else {
+						return -EACCES;
+					}
+				}
+				return 0;
+			}
+__make:
+			err = snd_config_make_compound(&n, key, join);
+			if (err < 0)
+				return err;
+			err = snd_config_add(root, n);
+			if (err < 0)
+				return err;
+			*config = n;
+			return 0;
+		}
+	}
+}
+
+/**
  * \brief Creates an integer configuration node with the given initial value.
  * \param[out] config The function puts the handle to the new node at
  *                    the address specified by \a config.
