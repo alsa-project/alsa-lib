@@ -575,7 +575,7 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 		return -EINVAL;
 	}
 
-	ret = _snd_pcm_direct_new(pcmp, &dsnoop, SND_PCM_TYPE_DSNOOP, name, opts, params, stream, mode);
+	ret = _snd_pcm_direct_new(&pcm, &dsnoop, SND_PCM_TYPE_DSNOOP, name, opts, params, stream, mode);
 	if (ret < 0)
 		return ret;
 	first_instance = ret;

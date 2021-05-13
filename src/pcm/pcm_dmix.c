@@ -1009,7 +1009,7 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 		return -EINVAL;
 	}
 
-	ret = _snd_pcm_direct_new(pcmp, &dmix, SND_PCM_TYPE_DMIX, name, opts, params, stream, mode);
+	ret = _snd_pcm_direct_new(&pcm, &dmix, SND_PCM_TYPE_DMIX, name, opts, params, stream, mode);
 	if (ret < 0)
 		return ret;
 	first_instance = ret;

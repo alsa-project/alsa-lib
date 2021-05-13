@@ -702,7 +702,7 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 		return -EINVAL;
 	}
 
-	ret = _snd_pcm_direct_new(pcmp, &dshare, SND_PCM_TYPE_DSHARE, name, opts, params, stream, mode);
+	ret = _snd_pcm_direct_new(&pcm, &dshare, SND_PCM_TYPE_DSHARE, name, opts, params, stream, mode);
 	if (ret < 0)
 		return ret;
 	first_instance = ret;
