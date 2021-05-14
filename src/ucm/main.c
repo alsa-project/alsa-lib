@@ -573,6 +573,42 @@ static int execute_sysw(const char *sysw)
 	return 0;
 }
 
+static int execute_cfgsave(snd_use_case_mgr_t *uc_mgr, const char *filename)
+{
+	snd_config_t *config = uc_mgr->local_config;
+	char *file, *root;
+	snd_output_t *out;
+	int err = 0;
+
+	file = strdup(filename);
+	if (!file)
+		return -ENOMEM;
+	root = strchr(file, ':');
+	if (root) {
+		*root = '\0';
+		err = snd_config_search(config, root + 1, &config);
+		if (err < 0) {
+			uc_error("Unable to find subtree '%s'", root);
+			goto _err;
+		}
+	}
+
+	err = snd_output_stdio_open(&out, file, "w+");
+	if (err < 0) {
+		uc_error("unable to open file '%s': %s", file, snd_strerror(err));
+		goto _err;
+	}
+	err = snd_config_save(config, out);
+	snd_output_close(out);
+	if (err < 0) {
+		uc_error("unable to save configuration: %s", snd_strerror(err));
+		goto _err;
+	}
+_err:
+	free(file);
+	return err;
+}
+
 static int rewrite_device_value(snd_use_case_mgr_t *uc_mgr, const char *name, char **value)
 {
 	char *sval;
@@ -751,6 +787,11 @@ shell_retry:
 						    value_list2,
 						    value_list3,
 						    cdev);
+			if (err < 0)
+				goto __fail;
+			break;
+		case SEQUENCE_ELEMENT_TYPE_CFGSAVE:
+			err = execute_cfgsave(uc_mgr, s->data.cfgsave);
 			if (err < 0)
 				goto __fail;
 			break;

@@ -924,6 +924,16 @@ exec:
 			goto exec;
 		}
 
+		if (strcmp(cmd, "cfg-save") == 0) {
+			curr->type = SEQUENCE_ELEMENT_TYPE_CFGSAVE;
+			err = parse_string_substitute3(uc_mgr, n, &curr->data.cfgsave);
+			if (err < 0) {
+				uc_error("error: sysw requires a string!");
+				return err;
+			}
+			continue;
+		}
+
 		if (strcmp(cmd, "comment") == 0)
 			goto skip;
 

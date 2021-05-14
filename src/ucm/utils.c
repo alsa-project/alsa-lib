@@ -512,6 +512,9 @@ void uc_mgr_free_sequence_element(struct sequence_element *seq)
 	case SEQUENCE_ELEMENT_TYPE_SHELL:
 		free(seq->data.exec);
 		break;
+	case SEQUENCE_ELEMENT_TYPE_CFGSAVE:
+		free(seq->data.cfgsave);
+		break;
 	default:
 		break;
 	}

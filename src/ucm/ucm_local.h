@@ -56,6 +56,7 @@
 #define SEQUENCE_ELEMENT_TYPE_CTL_REMOVE	9
 #define SEQUENCE_ELEMENT_TYPE_CMPT_SEQ		10
 #define SEQUENCE_ELEMENT_TYPE_SYSSET		11
+#define SEQUENCE_ELEMENT_TYPE_CFGSAVE		12
 
 struct ucm_value {
         struct list_head list;
@@ -78,6 +79,7 @@ struct sequence_element {
 		char *cset;
 		char *exec;
 		char *sysw;
+		char *cfgsave;
 		struct component_sequence cmpt_seq; /* component sequence */
 	} data;
 };
