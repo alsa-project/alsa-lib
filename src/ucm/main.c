@@ -495,7 +495,7 @@ static int execute_cset(snd_ctl_t *ctl, const char *cset, unsigned int type)
 	free(value);
 	if (info2) {
 		if (info2->type == SND_CTL_ELEM_TYPE_ENUMERATED)
-			free((void *)info->value.enumerated.names_ptr);
+			free((void *)info2->value.enumerated.names_ptr);
 		free(info2);
 	}
 	free(info);
