@@ -1170,6 +1170,13 @@ int snd_ctl_remap_open(snd_ctl_t **handlep, const char *name, snd_config_t *rema
 		goto _err;
 	}
 
+	/* no-op check, remove the plugin */
+	if (priv->map_items == 0 && priv->remap_items == 0) {
+		remap_free(priv);
+		*handlep = child;
+		return 0;
+	}
+
 	priv->map_read_queue = calloc(priv->map_items, sizeof(priv->map_read_queue[0]));
 	if (priv->map_read_queue == NULL) {
 		result = -ENOMEM;
@@ -1302,13 +1309,14 @@ int _snd_ctl_remap_open(snd_ctl_t **handlep, char *name, snd_config_t *root, snd
 		SNDERR("child is not defined");
 		return -EINVAL;
 	}
-	if (!remap && !map) {
-		SNDERR("remap or create section is not defined");
-		return -EINVAL;
-	}
 	err = _snd_ctl_open_child(&cctl, root, child, mode, conf);
 	if (err < 0)
 		return err;
+	/* no-op, remove the plugin */
+	if (!remap && !map) {
+		*handlep = cctl;
+		return 0;
+	}
 	err = snd_ctl_remap_open(handlep, name, remap, map, cctl, mode);
 	if (err < 0)
 		snd_ctl_close(cctl);
