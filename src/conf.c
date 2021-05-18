@@ -1508,6 +1508,7 @@ static int parse_defs(snd_config_t *parent, input_t *input, int skip, int overri
 
 static void string_print(char *str, int id, snd_output_t *out)
 {
+	int q;
 	unsigned char *p = (unsigned char *)str;
 	if (!p || !*p) {
 		snd_output_puts(out, "''");
@@ -1549,7 +1550,8 @@ static void string_print(char *str, int id, snd_output_t *out)
 	snd_output_puts(out, str);
 	return;
  quoted:
-	snd_output_putc(out, '\'');
+	q = strchr(str, '\'') ? '"' : '\'';
+	snd_output_putc(out, q);
 	p = (unsigned char *)str;
 	while (*p) {
 		int c;
@@ -1579,20 +1581,21 @@ static void string_print(char *str, int id, snd_output_t *out)
 			snd_output_putc(out, '\\');
 			snd_output_putc(out, 'f');
 			break;
-		case '\'':
-			snd_output_putc(out, '\\');
-			snd_output_putc(out, c);
-			break;
 		default:
-			if (c >= 32 && c <= 126 && c != '\'')
+			if (c == q) {
+				snd_output_putc(out, '\\');
 				snd_output_putc(out, c);
-			else
-				snd_output_printf(out, "\\%04o", c);
+			} else {
+				if (c >= 32 && c <= 126)
+					snd_output_putc(out, c);
+				else
+					snd_output_printf(out, "\\%04o", c);
+			}
 			break;
 		}
 		p++;
 	}
-	snd_output_putc(out, '\'');
+	snd_output_putc(out, q);
 }
 
 static void level_print(snd_output_t *out, unsigned int level)
