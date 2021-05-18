@@ -674,6 +674,7 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 	char *cdev = NULL;
 	snd_ctl_t *ctl = NULL;
 	struct ctl_list *ctl_list;
+	bool ignore_error;
 	int err = 0;
 
 	list_for_each(pos, seq) {
@@ -767,19 +768,25 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 			usleep(s->data.sleep);
 			break;
 		case SEQUENCE_ELEMENT_TYPE_EXEC:
-			err = uc_mgr_exec(s->data.exec);
-			if (err != 0) {
+			if (s->data.exec == NULL)
+				break;
+			ignore_error = s->data.exec[0] == '-';
+			err = uc_mgr_exec(s->data.exec + (ignore_error ? 1 : 0));
+			if (ignore_error == false && err != 0) {
 				uc_error("exec '%s' failed (exit code %d)", s->data.exec, err);
 				goto __fail;
 			}
 			break;
 		case SEQUENCE_ELEMENT_TYPE_SHELL:
+			if (s->data.exec == NULL)
+				break;
+			ignore_error = s->data.exec[0] == '-';
 shell_retry:
-			err = system(s->data.exec);
+			err = system(s->data.exec + (ignore_error ? 1 : 0));
 			if (WIFSIGNALED(err)) {
 				err = -EINTR;
 			} if (WIFEXITED(err)) {
-				if (WEXITSTATUS(err) != 0) {
+				if (ignore_error == false && WEXITSTATUS(err) != 0) {
 					uc_error("command '%s' failed (exit code %d)", s->data.exec, WEXITSTATUS(err));
 					err = -EINVAL;
 					goto __fail;
