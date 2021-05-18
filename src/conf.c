@@ -2180,7 +2180,10 @@ int snd_config_add_before(snd_config_t *before, snd_config_t *child)
  * \return Zero if successful, otherwise a negative error code.
  *
  * This function merges all fields from the source compound to the destination compound.
- * When the overwrite flag is set, the related subtree in dst is replaced from src.
+ * When the \a override flag is set, the related subtree in \a dst is replaced from \a src.
+ *
+ * When \a override is not set, the child compounds are traversed and merged. The configuration
+ * elements other than compounds are always substituted (overwritten) from the \a src tree.
  *
  * The src compound is deleted.
  *
@@ -2207,9 +2210,15 @@ int snd_config_merge(snd_config_t *dst, snd_config_t *src, int override)
 		snd_config_for_each(di, dnext, dst) {
 			snd_config_t *dn = snd_config_iterator_entry(di);
 			if (strcmp(sn->id, dn->id) == 0) {
-				if (override) {
+				if (override ||
+				    sn->type != SND_CONFIG_TYPE_COMPOUND ||
+				    dn->type != SND_CONFIG_TYPE_COMPOUND) {
 					snd_config_remove(sn);
 					err = snd_config_substitute(dn, sn);
+					if (err < 0)
+						return err;
+				} else {
+					err = snd_config_merge(dn, sn, 0);
 					if (err < 0)
 						return err;
 				}
