@@ -1607,8 +1607,8 @@ static int _snd_config_save_children(snd_config_t *config, snd_output_t *out,
 				     unsigned int level, unsigned int joins,
 				     int array);
 
-static int _snd_config_save_node_value(snd_config_t *n, snd_output_t *out,
-				       unsigned int level)
+int _snd_config_save_node_value(snd_config_t *n, snd_output_t *out,
+				unsigned int level)
 {
 	int err, array;
 	switch (n->type) {

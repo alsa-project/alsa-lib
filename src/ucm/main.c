@@ -573,20 +573,27 @@ static int execute_sysw(const char *sysw)
 	return 0;
 }
 
+int _snd_config_save_node_value(snd_config_t *n, snd_output_t *out, unsigned int level);
+
 static int execute_cfgsave(snd_use_case_mgr_t *uc_mgr, const char *filename)
 {
 	snd_config_t *config = uc_mgr->local_config;
 	char *file, *root;
 	snd_output_t *out;
+	bool with_root = false;
 	int err = 0;
 
 	file = strdup(filename);
 	if (!file)
 		return -ENOMEM;
 	root = strchr(file, ':');
-	if (root) {
-		*root = '\0';
-		err = snd_config_search(config, root + 1, &config);
+	if (config && root) {
+		*root++ = '\0';
+		if (*root == '+') {
+			with_root = true;
+			root++;
+		}
+		err = snd_config_search(config, root, &config);
 		if (err < 0) {
 			uc_error("Unable to find subtree '%s'", root);
 			goto _err;
@@ -598,7 +605,14 @@ static int execute_cfgsave(snd_use_case_mgr_t *uc_mgr, const char *filename)
 		uc_error("unable to open file '%s': %s", file, snd_strerror(err));
 		goto _err;
 	}
-	err = snd_config_save(config, out);
+	if (!config || snd_config_is_empty(config))
+		goto _err;
+	if (with_root) {
+		snd_output_printf(out, "%s ", root);
+		err = _snd_config_save_node_value(config, out, 0);
+	} else {
+		err = snd_config_save(config, out);
+	}
 	snd_output_close(out);
 	if (err < 0) {
 		uc_error("unable to save configuration: %s", snd_strerror(err));
