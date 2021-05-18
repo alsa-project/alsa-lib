@@ -460,7 +460,7 @@ static int parse_libconfig1(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 				snd_config_delete(cfg);
 				return err;
 			}
-			err = snd_config_merge(uc_mgr->local_config, cfg, 1);
+			err = snd_config_merge(uc_mgr->local_config, cfg, 0);
 			if (err < 0) {
 				snd_config_delete(cfg);
 				return err;
@@ -483,7 +483,7 @@ static int parse_libconfig1(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 			if (err < 0)
 				return err;
 		}
-		err = snd_config_merge(uc_mgr->local_config, config, 1);
+		err = snd_config_merge(uc_mgr->local_config, config, 0);
 		if (err < 0)
 			return err;
 	}
