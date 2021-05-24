@@ -1812,9 +1812,10 @@ static int check_array_item(const char *id, int index)
 }
 
 /**
- * \brief Returns if the compound is an array.
+ * \brief Returns if the compound is an array (and count of items).
  * \param config Handle to the configuration node.
- * \return A positive value when true, zero when false, otherwise a negative error code.
+ * \return A count of items in array, zero when the compound is not an array,
+ *         otherwise a negative error code.
  */
 int snd_config_is_array(const snd_config_t *config)
 {
@@ -1832,7 +1833,7 @@ int snd_config_is_array(const snd_config_t *config)
 			return 0;
 		idx++;
 	}
-	return 1;
+	return idx;
 }
 
 /**
