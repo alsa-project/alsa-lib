@@ -2176,6 +2176,31 @@ int snd_config_add_before(snd_config_t *before, snd_config_t *child)
 	return 0;
 }
 
+/*
+ * append all src items to the end of dst arrray
+ */
+static int _snd_config_array_merge(snd_config_t *dst, snd_config_t *src, int index)
+{
+	snd_config_iterator_t si, snext;
+	int err;
+
+	snd_config_for_each(si, snext, src) {
+		snd_config_t *sn = snd_config_iterator_entry(si);
+		char id[16];
+		snd_config_remove(sn);
+		snprintf(id, sizeof(id), "%d", index++);
+		err = snd_config_set_id(sn, id);
+		if (err < 0) {
+			snd_config_delete(sn);
+			return err;
+		}
+		sn->parent = dst;
+		list_add_tail(&sn->list, &dst->u.compound.fields);
+	}
+	snd_config_delete(src);
+	return 0;
+}
+
 /**
  * \brief In-place merge of two compounds
  * \param dst[out] Compound handle for the merged contents
@@ -2201,13 +2226,16 @@ int snd_config_merge(snd_config_t *dst, snd_config_t *src, int override)
 {
 	snd_config_iterator_t di, si, dnext, snext;
 	bool found;
-	int err;
+	int err, array;
 
 	assert(dst);
 	if (src == NULL)
 		return 0;
 	if (dst->type != SND_CONFIG_TYPE_COMPOUND || src->type != SND_CONFIG_TYPE_COMPOUND)
 		return -EINVAL;
+	array = snd_config_is_array(dst);
+	if (array && snd_config_is_array(src))
+		return _snd_config_array_merge(dst, src, array);
 	snd_config_for_each(si, snext, src) {
 		snd_config_t *sn = snd_config_iterator_entry(si);
 		found = false;
