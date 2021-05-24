@@ -108,6 +108,24 @@ static int find_position_node(snd_config_t **res, snd_config_t *dst,
 	return 0;
 }
 
+static int merge_it(snd_config_t *dst, snd_config_t *n)
+{
+	snd_config_t *dn;
+	const char *id;
+	int err;
+
+	err = snd_config_get_id(n, &id);
+	if (err < 0)
+		return err;
+	err = snd_config_search(dst, id, &dn);
+	if (err < 0)
+		return err;
+	err = snd_config_merge(dn, n, 0); /* merge / append mode */
+	if (err < 0)
+		snd_config_delete(n);
+	return err;
+}
+
 static int compound_merge(const char *id,
 			  snd_config_t *dst, snd_config_t *src,
 			  snd_config_t *before, snd_config_t *after)
@@ -132,6 +150,10 @@ static int compound_merge(const char *id,
 		if (err < 0)
 			return err;
 	}
+
+	/* direct merge? */
+	if (!_before && !_after)
+		return snd_config_merge(dst, src, 0);	/* merge / append mode */
 
 	if (_before && _after) {
 		uc_error("defined both before and after identifiers in the If or Include block");
@@ -175,19 +197,19 @@ static int compound_merge(const char *id,
 		}
 		if (_before) {
 			err = snd_config_add_before(_before, n);
+			if (err == -EEXIST)
+				err = merge_it(dst, n);
 			if (err < 0)
 				return err;
 			_before = NULL;
 			_after = n;
 		} else if (_after) {
 			err = snd_config_add_after(_after, n);
+			if (err == -EEXIST)
+				err = merge_it(dst, n);
 			if (err < 0)
 				return err;
 			_after = n;
-		} else {
-			err = snd_config_add(dst, n);
-			if (err < 0)
-				return err;
 		}
 	}
 
@@ -203,6 +225,7 @@ static int compound_merge(const char *id,
 		}
 	}
 
+	snd_config_delete(src);
 	return 0;
 }
 
@@ -230,16 +253,16 @@ __add:
 			err = snd_config_add(parent, n);
 			if (err < 0)
 				return err;
-			continue;
 		} else {
 			err = snd_config_search(parent, id, &parent2);
 			if (err == -ENOENT)
 				goto __add;
 			err = compound_merge(id, parent2, n, before, after);
-			if (err < 0)
+			if (err < 0) {
+				snd_config_delete(n);
 				return err;
+			}
 		}
-		snd_config_delete(n);
 	}
 	return 0;
 }
