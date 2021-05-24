@@ -2202,24 +2202,28 @@ static int _snd_config_array_merge(snd_config_t *dst, snd_config_t *src, int ind
 }
 
 /**
- * \brief In-place merge of two compounds
- * \param dst[out] Compound handle for the merged contents
- * \param src[in] Compound handle to merge into dst (may be NULL)
+ * \brief In-place merge of two config handles
+ * \param dst[out] Config handle for the merged contents
+ * \param src[in] Config handle to merge into dst (may be NULL)
  * \param override[in] Override flag
  * \return Zero if successful, otherwise a negative error code.
  *
  * This function merges all fields from the source compound to the destination compound.
  * When the \a override flag is set, the related subtree in \a dst is replaced from \a src.
  *
- * When \a override is not set, the child compounds are traversed and merged. The configuration
- * elements other than compounds are always substituted (overwritten) from the \a src tree.
+ * When \a override is not set, the child compounds are traversed and merged.
  *
- * The src compound is deleted.
+ * The configuration elements other than compounds are always substituted (overwritten)
+ * from the \a src config handle.
+ *
+ * The src handle is deleted.
+ *
+ * Note: On error, config handles may be modified.
  *
  * \par Errors:
  * <dl>
- * <dt>-EINVAL<dd>\dst is not a compound
- * <dt>-EINVAL<dd>\src is not a compound
+ * <dt>-EEXIST<dd>identifier already exists (!overwrite)
+ * <dt>-ENOMEM<dd>not enough memory
  * </dl>
  */
 int snd_config_merge(snd_config_t *dst, snd_config_t *src, int override)
@@ -2232,7 +2236,7 @@ int snd_config_merge(snd_config_t *dst, snd_config_t *src, int override)
 	if (src == NULL)
 		return 0;
 	if (dst->type != SND_CONFIG_TYPE_COMPOUND || src->type != SND_CONFIG_TYPE_COMPOUND)
-		return -EINVAL;
+		return snd_config_substitute(dst, src);
 	array = snd_config_is_array(dst);
 	if (array && snd_config_is_array(src))
 		return _snd_config_array_merge(dst, src, array);
