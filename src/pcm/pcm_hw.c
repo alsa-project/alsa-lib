@@ -600,9 +600,9 @@ static int snd_pcm_hw_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 static snd_pcm_state_t snd_pcm_hw_state(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
-	int err = query_status_data(hw);
-	if (err < 0)
-		return err;
+	/* no error checking, the mmap state should be correct
+	 * after SNDRV_PCM_IOCTL_SYNC_PTR */
+	query_status_data(hw);
 	return (snd_pcm_state_t) hw->mmap_status->state;
 }
 
