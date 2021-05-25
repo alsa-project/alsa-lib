@@ -66,11 +66,18 @@ noinst_HEADERS = alsa sys.h search.h list.h aserver.h local.h alsa-symbols.h \
 
 DISTCLEANFILES = stamp-vh version.h alsa asoundlib.h
 
-alsa:
-	ln -s $(top_srcdir)/include alsa
+.DUMMY: alsa_link
+alsa_link:
+	if ! test -h alsa; then \
+		ln -s $(top_srcdir)/include alsa; \
+	fi
 
-version.h: stamp-vh alsa
-	@:
+version.h: stamp-vh alsa_link
+	for f in asoundlib.h version.h; do \
+		if ! test -r $(top_srcdir)/include/$$f; then \
+			ln -s $(abs_top_builddir)/include/$$f $(top_srcdir)/include/$$f; \
+		fi; \
+	done
 
 stamp-vh: $(top_builddir)/configure.ac
 	@echo "/*" > ver.tmp
