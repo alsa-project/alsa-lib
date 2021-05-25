@@ -605,6 +605,17 @@ int tplg_parse_dapm_widget(snd_tplg_t *tplg,
 			continue;
 		}
 
+		if (strcmp(id, "ignore_suspend") == 0) {
+			ival = snd_config_get_bool(n);
+			if (ival < 0)
+				return -EINVAL;
+
+			widget->ignore_suspend = ival;
+
+			tplg_dbg("\t%s: %s", id, val);
+			continue;
+		}
+
 		if (strcmp(id, "subseq") == 0) {
 			if (tplg_get_integer(n, &ival, 0))
 				return -EINVAL;
@@ -700,6 +711,9 @@ int tplg_save_dapm_widget(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 	if (err >= 0 && widget->invert)
 		err = tplg_save_printf(dst, pfx, "\tinvert %u\n",
 				       widget->invert);
+	if (err >= 0 && widget->ignore_suspend)
+		err = tplg_save_printf(dst, pfx, "\tignore_suspend %u\n",
+				       widget->ignore_suspend);
 	if (err >= 0 && widget->subseq)
 		err = tplg_save_printf(dst, pfx, "\tsubseq %u\n",
 				       widget->subseq);
