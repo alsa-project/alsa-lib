@@ -68,7 +68,7 @@ DISTCLEANFILES = stamp-vh version.h alsa asoundlib.h
 
 .DUMMY: alsa_link
 alsa_link:
-	if ! test -h alsa; then \
+	if ! test -r alsa/local.h; then \
 		ln -s $(top_srcdir)/include alsa; \
 	fi
 
