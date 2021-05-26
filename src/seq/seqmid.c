@@ -388,25 +388,43 @@ int snd_seq_sync_output_queue(snd_seq_t *seq)
  */
 int snd_seq_parse_address(snd_seq_t *seq, snd_seq_addr_t *addr, const char *arg)
 {
-	char *p;
-	int client, port;
+	char *p, *buf;
+	const char *s;
+	char c;
+	long client, port = 0;
 	int len;
 
 	assert(addr && arg);
 
-	if ((p = strpbrk(arg, ":.")) != NULL) {
-		if ((port = atoi(p + 1)) < 0)
-			return -EINVAL;
-		len = (int)(p - arg); /* length of client name */
+	c = *arg;
+	if (c == '"' || c == '\'') {
+		s = ++arg;
+		while (*s && *s != c) s++;
+		len = s - arg;
+		if (*s)
+			s++;
+		if (*s) {
+			if (*s != '.' && *s != ':')
+				return -EINVAL;
+			if ((port = atoi(s + 1)) < 0)
+				return -EINVAL;
+		}
 	} else {
-		port = 0;
-		len = strlen(arg);
+		if ((p = strpbrk(arg, ":.")) != NULL) {
+			if ((port = atoi(p + 1)) < 0)
+				return -EINVAL;
+			len = (int)(p - arg); /* length of client name */
+		} else {
+			len = strlen(arg);
+		}
 	}
+	if (len == 0)
+		return -EINVAL;
+	buf = alloca(len + 1);
+	strncpy(buf, arg, len);
+	buf[len] = '\0';
 	addr->port = port;
-	if (isdigit(*arg)) {
-		client = atoi(arg);
-		if (client < 0)
-			return -EINVAL;
+	if (safe_strtol(buf, &client) == 0) {
 		addr->client = client;
 	} else {
 		/* convert from the name */
