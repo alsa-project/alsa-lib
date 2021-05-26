@@ -1367,10 +1367,6 @@ static struct audio_hw_format audio_hw_formats[] = {
 		.name = "AC97",
 	},
 	{
-		.type = SND_SOC_DAI_FORMAT_AC97,
-		.name = "AC97",
-	},
-	{
 		.type = SND_SOC_DAI_FORMAT_PDM,
 		.name = "PDM",
 	},
