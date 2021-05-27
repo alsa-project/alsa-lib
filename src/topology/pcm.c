@@ -812,15 +812,17 @@ static int parse_flag(snd_config_t *n, unsigned int mask_in,
 static int save_flags(unsigned int flags, unsigned int mask,
 		      struct tplg_buf *dst, const char *pfx)
 {
-	static unsigned int flag_masks[3] = {
+	static unsigned int flag_masks[4] = {
 		SND_SOC_TPLG_LNK_FLGBIT_SYMMETRIC_RATES,
 		SND_SOC_TPLG_LNK_FLGBIT_SYMMETRIC_CHANNELS,
 		SND_SOC_TPLG_LNK_FLGBIT_SYMMETRIC_SAMPLEBITS,
+		SND_SOC_TPLG_LNK_FLGBIT_VOICE_WAKEUP,
 	};
-	static const char *flag_ids[3] = {
+	static const char *flag_ids[4] = {
 		"symmetric_rates",
 		"symmetric_channels",
 		"symmetric_sample_bits",
+		"ignore_suspend",
 	};
 	unsigned int i;
 	int err = 0;
