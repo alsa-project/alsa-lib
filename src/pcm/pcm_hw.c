@@ -600,9 +600,10 @@ static int snd_pcm_hw_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 static snd_pcm_state_t snd_pcm_hw_state(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
-	/* no error checking, the mmap state should be correct
-	 * after SNDRV_PCM_IOCTL_SYNC_PTR */
-	query_status_data(hw);
+	/* the -ENODEV may come from the snd_disconnect_ioctl() in kernel */
+	/* in this case, the mmaped state is no longer updated */
+	if (query_status_data(hw) == -ENODEV)
+		return SND_PCM_STATE_DISCONNECTED;
 	return (snd_pcm_state_t) hw->mmap_status->state;
 }
 
