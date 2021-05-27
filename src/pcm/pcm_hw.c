@@ -600,8 +600,8 @@ static int snd_pcm_hw_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 static snd_pcm_state_t snd_pcm_hw_state(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
-	/* the -ENODEV may come from the snd_disconnect_ioctl() in kernel */
-	/* in this case, the mmaped state is no longer updated */
+	/* the -ENODEV may come from the snd_disconnect_ioctl() or
+	   snd_power_wait() in kernel */
 	if (query_status_data(hw) == -ENODEV)
 		return SND_PCM_STATE_DISCONNECTED;
 	return (snd_pcm_state_t) hw->mmap_status->state;
