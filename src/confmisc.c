@@ -154,10 +154,10 @@ int snd_config_get_card(const snd_config_t *conf)
 	long v;
 	int err;
 
-	if ((err = snd_config_get_integer(conf, &v)) < 0) {
+	if (snd_config_get_integer(conf, &v) < 0) {
 		if ((err = snd_config_get_string(conf, &str)) < 0) {
-			snd_config_get_id(conf, &id);
-			SNDERR("Invalid field %s", id);
+			if (snd_config_get_id(conf, &id) >= 0)
+				SNDERR("Invalid field %s", id);
 			return -EINVAL;
 		}
 		err = snd_card_get_index(str);
