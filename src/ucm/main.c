@@ -2146,13 +2146,13 @@ static int get_alibcfg(snd_use_case_mgr_t *uc_mgr, char **str)
  */
 static int get_alibpref(snd_use_case_mgr_t *uc_mgr, char **str)
 {
-	const size_t l = 9;
+	const size_t l = 10;
 	char *s;
 
 	s = malloc(l);
 	if (s == NULL)
 		return -ENOMEM;
-	snprintf(s, l, "_ucm%04X", uc_mgr->ucm_card_number);
+	snprintf(s, l, "_ucm%04X.", uc_mgr->ucm_card_number);
 	*str = s;
 	return 0;
 }
