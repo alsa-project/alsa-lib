@@ -998,7 +998,7 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 		      snd_config_t *root, snd_config_t *sconf,
 		      snd_pcm_stream_t stream, int mode)
 {
-	snd_pcm_t *pcm = NULL, *spcm = NULL;
+	snd_pcm_t *pcm, *spcm = NULL;
 	snd_pcm_direct_t *dmix;
 	int ret, first_instance;
 
@@ -1154,12 +1154,9 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 	} else
 		snd_pcm_direct_semaphore_up(dmix, DIRECT_IPC_SEM_CLIENT);
  _err_nosem:
-	if (dmix) {
-		free(dmix->bindings);
-		free(dmix);
-	}
-	if (pcm)
-		snd_pcm_free(pcm);
+	free(dmix->bindings);
+	free(dmix);
+	snd_pcm_free(pcm);
 	return ret;
 }
 
