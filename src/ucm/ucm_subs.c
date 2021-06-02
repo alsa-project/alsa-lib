@@ -224,7 +224,11 @@ static snd_config_t *parse_lookup_query(const char *query)
 		uc_error("unable to create memory input buffer");
 		return NULL;
 	}
-	snd_config_top(&config);
+	err = snd_config_top(&config);
+	if (err < 0) {
+		snd_input_close(input);
+		return NULL;
+	}
 	err = snd_config_load(config, input);
 	snd_input_close(input);
 	if (err < 0) {
