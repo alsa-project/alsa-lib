@@ -605,8 +605,10 @@ static int execute_cfgsave(snd_use_case_mgr_t *uc_mgr, const char *filename)
 		uc_error("unable to open file '%s': %s", file, snd_strerror(err));
 		goto _err;
 	}
-	if (!config || snd_config_is_empty(config))
+	if (!config || snd_config_is_empty(config)) {
+		snd_output_close(out);
 		goto _err;
+	}
 	if (with_root) {
 		snd_output_printf(out, "%s ", root);
 		err = _snd_config_save_node_value(config, out, 0);
