@@ -2126,24 +2126,20 @@ int _snd_pcm_direct_new(snd_pcm_t **pcmp, snd_pcm_direct_t **_dmix, int type,
 	dmix->type = type;
 
 	ret = snd_pcm_new(pcmp, type, name, stream, mode);
-	if (ret < 0) {
-_err_nosem:
-		free(dmix->bindings);
-		free(dmix);
-		return ret;
-	}
+	if (ret < 0)
+		goto _err_nosem;
 
 	while (1) {
 		ret = snd_pcm_direct_semaphore_create_or_connect(dmix);
 		if (ret < 0) {
 			SNDERR("unable to create IPC semaphore");
-			goto _err_nosem;
+			goto _err_nosem_free;
 		}
 		ret = snd_pcm_direct_semaphore_down(dmix, DIRECT_IPC_SEM_CLIENT);
 		if (ret < 0) {
 			snd_pcm_direct_semaphore_discard(dmix);
 			if (--fail_sem_loop <= 0)
-				goto _err_nosem;
+				goto _err_nosem_free;
 			continue;
 		}
 		break;
@@ -2153,10 +2149,17 @@ _err_nosem:
 	if (ret < 0) {
 		SNDERR("unable to create IPC shm instance");
 		snd_pcm_direct_semaphore_up(dmix, DIRECT_IPC_SEM_CLIENT);
-		goto _err_nosem;
+		goto _err_nosem_free;
 	} else {
 		*_dmix = dmix;
 	}
 
+	return ret;
+_err_nosem_free:
+	snd_pcm_free(*pcmp);
+	*pcmp = NULL;
+_err_nosem:
+	free(dmix->bindings);
+	free(dmix);
 	return ret;
 }
