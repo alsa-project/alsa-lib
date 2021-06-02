@@ -330,8 +330,6 @@ int _snd_timer_hw_open(snd_timer_t **timer, char *name,
 		SNDERR("Unexpected field %s", id);
 		return -EINVAL;
 	}
-	if (card < 0)
-		return -EINVAL;
 	return snd_timer_hw_open(timer, name, dev_class, dev_sclass, card, device, subdevice, mode);
 }
 SND_DLSYM_BUILD_VERSION(_snd_timer_hw_open, SND_TIMER_DLSYM_VERSION);
