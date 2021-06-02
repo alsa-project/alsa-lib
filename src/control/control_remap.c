@@ -1040,7 +1040,7 @@ static int parse_map_vindex(struct snd_ctl_map_ctl *mctl, snd_config_t *conf)
 
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
-		long idx, chn;
+		long idx = -1, chn = -1;
 		const char *id;
 		if (snd_config_get_id(n, &id) < 0)
 			continue;
