@@ -489,7 +489,7 @@ static int rval_device_lookup_init(snd_use_case_mgr_t *uc_mgr,
 		uc_error("Missing device type!");
 		return -EINVAL;
 	}
-	for (t = types; t; t++)
+	for (t = types; t->name; t++)
 		if (strcasecmp(t->name, s) == 0)
 			return t->init(iter, config);
 	uc_error("Device type '%s' is invalid", s);
