@@ -272,7 +272,7 @@ static int if_eval_control_exists(snd_use_case_mgr_t *uc_mgr, snd_config_t *eval
 
 static int if_eval_path(snd_use_case_mgr_t *uc_mgr, snd_config_t *eval)
 {
-	const char *path, *mode = NULL;
+	const char *path, *mode = "";
 	int err, amode = F_OK;
 
 	if (uc_mgr->conf_format < 4) {
