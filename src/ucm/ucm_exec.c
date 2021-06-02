@@ -73,6 +73,7 @@ static int find_exec(const char *name, char *out, size_t len)
 				    || !(st.st_mode & S_IEXEC))
 					continue;
 				snd_strlcpy(out, bin, len);
+				closedir(dir);
 				return 1;
 			}
 			closedir(dir);
