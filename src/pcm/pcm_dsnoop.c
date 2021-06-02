@@ -564,8 +564,8 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 			snd_config_t *root, snd_config_t *sconf,
 			snd_pcm_stream_t stream, int mode)
 {
-	snd_pcm_t *pcm = NULL, *spcm = NULL;
-	snd_pcm_direct_t *dsnoop = NULL;
+	snd_pcm_t *pcm, *spcm = NULL;
+	snd_pcm_direct_t *dsnoop;
 	int ret, first_instance;
 
 	assert(pcmp);
@@ -708,12 +708,9 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 		snd_pcm_direct_semaphore_up(dsnoop, DIRECT_IPC_SEM_CLIENT);
 
  _err_nosem:
-	if (dsnoop) {
-		free(dsnoop->bindings);
-		free(dsnoop);
-	}
-	if (pcm)
-		snd_pcm_free(pcm);
+	free(dsnoop->bindings);
+	free(dsnoop);
+	snd_pcm_free(pcm);
 	return ret;
 }
 
