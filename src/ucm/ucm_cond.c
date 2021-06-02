@@ -160,11 +160,12 @@ static int if_eval_regex_match(snd_use_case_mgr_t *uc_mgr, snd_config_t *eval)
 	if (err < 0)
 		return err;
 	err = regcomp(&re, s, options);
-	free(s);
 	if (err) {
 		uc_error("Regex '%s' compilation failed (code %d)", s, err);
+		free(s);
 		return -EINVAL;
 	}
+	free(s);
 
 	err = uc_mgr_get_substituted_value(uc_mgr, &s, string);
 	if (err < 0) {
