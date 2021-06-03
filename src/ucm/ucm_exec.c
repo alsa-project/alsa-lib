@@ -30,6 +30,7 @@
 #include "ucm_local.h"
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <limits.h>
 #include <dirent.h>
 
 static pthread_mutex_t fork_lock = PTHREAD_MUTEX_INITIALIZER;
