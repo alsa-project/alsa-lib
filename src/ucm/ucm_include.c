@@ -108,7 +108,7 @@ static int find_position_node(snd_config_t **res, snd_config_t *dst,
 	return 0;
 }
 
-static int merge_it(snd_config_t *dst, snd_config_t *n)
+static int merge_it(snd_config_t *dst, snd_config_t *n, snd_config_t **_dn)
 {
 	snd_config_t *dn;
 	const char *id;
@@ -123,6 +123,8 @@ static int merge_it(snd_config_t *dst, snd_config_t *n)
 	err = snd_config_merge(dn, n, 0); /* merge / append mode */
 	if (err < 0)
 		snd_config_delete(n);
+	else
+		*_dn = dn;
 	return err;
 }
 
@@ -198,7 +200,7 @@ static int compound_merge(const char *id,
 		if (_before) {
 			err = snd_config_add_before(_before, n);
 			if (err == -EEXIST)
-				err = merge_it(dst, n);
+				err = merge_it(dst, n, &n);
 			if (err < 0)
 				return err;
 			_before = NULL;
@@ -206,7 +208,7 @@ static int compound_merge(const char *id,
 		} else if (_after) {
 			err = snd_config_add_after(_after, n);
 			if (err == -EEXIST)
-				err = merge_it(dst, n);
+				err = merge_it(dst, n, &n);
 			if (err < 0)
 				return err;
 			_after = n;
