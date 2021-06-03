@@ -1779,7 +1779,7 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 			err = parse_libconfig(uc_mgr, n);
 			if (err < 0) {
 				uc_error("error: failed to parse LibConfig");
-				return err;
+				goto _err;
 			}
 			continue;
 		}
