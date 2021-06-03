@@ -1857,8 +1857,6 @@ static int _snd_pcm_direct_get_slave_ipc_offset(snd_config_t *root,
 			continue;
 		}
 	}
-	if (card < 0)
-		card = 0;
 	if (device < 0)
 		device = 0;
 	if (subdevice < 0)
