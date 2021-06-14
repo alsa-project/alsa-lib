@@ -34,7 +34,11 @@
 #define default_symbol_version(real, name, version) \
 	__asm__ (".symver " ASM_NAME(#real) "," ASM_NAME(#name) "@@" #version)
 
+#ifdef __clang__
+#define EXPORT_SYMBOL __attribute__((visibility("default")))
+#else
 #define EXPORT_SYMBOL __attribute__((visibility("default"),externally_visible))
+#endif
 
 #ifdef USE_VERSIONED_SYMBOLS
 #define use_symbol_version(real, name, version) \
