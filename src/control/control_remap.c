@@ -323,7 +323,7 @@ static int snd_ctl_remap_nonblock(snd_ctl_t *ctl, int nonblock)
 static int snd_ctl_remap_async(snd_ctl_t *ctl, int sig, pid_t pid)
 {
 	snd_ctl_remap_t *priv = ctl->private_data;
-	return snd_ctl_remap_async(priv->child, sig, pid);
+	return snd_ctl_async(priv->child, sig, pid);
 }
 
 static int snd_ctl_remap_subscribe_events(snd_ctl_t *ctl, int subscribe)
