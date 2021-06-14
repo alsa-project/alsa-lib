@@ -305,7 +305,11 @@ static int if_eval_path(snd_use_case_mgr_t *uc_mgr, snd_config_t *eval)
 		return -EINVAL;
 	}
 
+#ifdef HAVE_EACCESS
 	if (eaccess(path, amode))
+#else
+	if (access(path, amode))
+#endif
 		return 0;
 
 	return 1;
