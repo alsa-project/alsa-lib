@@ -1796,17 +1796,20 @@ snd_config_type_t snd_config_get_type(const snd_config_t *config)
 	return config->type;
 }
 
-static int check_array_item(const char *id, int index)
+static int check_array_item(const snd_config_t *config, int index)
 {
 	const char *p;
 	long val;
 
-	for (p = id; *p; p++) {
+	if (config->type == SND_CONFIG_TYPE_COMPOUND)
+		return 0;
+
+	for (p = config->id; *p; p++) {
 		if (*p < '0' || *p > '9')
 			return 0;
 	}
 
-	if (safe_strtol(id, &val))
+	if (safe_strtol(config->id, &val))
 		return 0;
 	return val == index;
 }
@@ -1829,7 +1832,7 @@ int snd_config_is_array(const snd_config_t *config)
 	idx = 0;
 	snd_config_for_each(i, next, config) {
 		node = snd_config_iterator_entry(i);
-		if (!check_array_item(node->id, idx))
+		if (!check_array_item(node, idx))
 			return 0;
 		idx++;
 	}
