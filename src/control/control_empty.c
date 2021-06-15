@@ -30,7 +30,7 @@
 
 #ifndef PIC
 /* entry for static linking */
-const char *_snd_module_ctl_empty = "";
+const char *_snd_module_control_empty = "";
 #endif
 
 /*! \page control_plugins
