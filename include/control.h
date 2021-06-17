@@ -50,7 +50,32 @@ typedef struct snd_aes_iec958 {
 	unsigned char dig_subframe[4];	/**< AES/IEC958 subframe bits */
 } snd_aes_iec958_t;
 
-/** CTL card info container */
+/** \brief CTL card info container.
+ *
+ * This type contains meta information about a sound card, such as the index,
+ * name, longname, etc.
+ *
+ * \par Memory management
+ *
+ * Before using a snd_ctl_card_info_t object, it must be allocated using
+ * snd_ctl_card_info_alloca() or snd_ctl_card_info_malloc(). When using the
+ * latter, it must be freed again using snd_ctl_card_info_free().
+ *
+ * A card info object can be zeroed out using snd_ctl_card_info_clear().
+ *
+ * A card info object can be copied to another one using
+ * snd_ctl_card_info_copy().
+ *
+ * \par Obtaining the Information
+ *
+ * To obtain the card information, it must first be opened using
+ * snd_ctl_open(), and a snd_ctl_card_info_t container must be
+ * allocated. Then, the information can be read using
+ * snd_ctl_card_info_get_card().
+ *
+ * Thereafter, the card properties can be read using the
+ * snd_ctl_card_info_get_*() functions.
+ */
 typedef struct _snd_ctl_card_info snd_ctl_card_info_t;
 
 /** CTL element identifier container */
@@ -442,11 +467,20 @@ void snd_ctl_elem_id_set_name(snd_ctl_elem_id_t *obj, const char *val);
 void snd_ctl_elem_id_set_index(snd_ctl_elem_id_t *obj, unsigned int val);
 
 size_t snd_ctl_card_info_sizeof(void);
+
 /** \hideinitializer
- * \brief allocate an invalid #snd_ctl_card_info_t using standard alloca
- * \param ptr returned pointer
+ * \brief Allocate an invalid #snd_ctl_card_info_t on the stack.
+ *
+ * Allocate space for a card info object on the stack. The allocated
+ * memory need not be freed, because it is on the stack.
+ *
+ * See snd_ctl_card_info_t for details.
+ *
+ * \param ptr Pointer to a snd_ctl_elem_value_t pointer. The address
+ *            of the allocated space will returned here.
  */
 #define snd_ctl_card_info_alloca(ptr) __snd_alloca(ptr, snd_ctl_card_info)
+
 int snd_ctl_card_info_malloc(snd_ctl_card_info_t **ptr);
 void snd_ctl_card_info_free(snd_ctl_card_info_t *obj);
 void snd_ctl_card_info_clear(snd_ctl_card_info_t *obj);

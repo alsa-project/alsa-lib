@@ -33,7 +33,49 @@
 <P>Control interface is designed to access primitive controls. There is
 also an interface for notifying about control and structure changes.
 
+
 \section control_general_overview General overview
+
+In Alsa, there are physical sound cards, such as USB headsets, and
+virtual sound cards, such as "pulse", which represents the PulseAudio
+Sound system. Each sound card offers a control interface, making its
+settings (e.g. volume knobs) available. The complete list of available
+control interfaces can be obtained using snd_device_name_hint(),
+giving -1 as card index and "ctl" as interface type. Each returned
+NAME hint identifies a control interface.
+
+Sound cards have an ID (a string), an index (an int, sometimes called
+the "card number"), a name, a longname, a mixername and a "components"
+property. The file /proc/asound/cards lists most of these properties
+for physical sound cards. Virtual sound cards are not listed in that
+file. The format is:
+
+\verbatim
+index [ID     ] Driver - name
+                longname
+\endverbatim
+
+Note that the mixername and components are not listed.
+
+
+\subsection control_cards_id Identifying and Opening Control Interfaces
+
+To work with a control interface, is must be opened first, using
+snd_ctl_open(). This function takes the interface name.
+
+For physical sound cards, the control interface can be identified
+using the string "hw:<index>" (e.g. `hw:2`). The NAME hint - which is
+"hw:CARD=<ID>" - can also be used. Further, its device file (something
+like `/dev/snd/controlC0`) is also acceptable. Either of them can be
+given to snd_ctl_open().
+
+For virtual sound cards, the NAME hint is given to snd_ctl_open().
+
+The functions snd_card_get_index(), snd_card_get_name() and
+snd_card_get_longname() can be used to find an identifying property
+when another one is already known.
+
+\section control_elements Elements
 
 In ALSA control feature, each sound card can have control elements. The elements
 are managed according to below model.
@@ -65,7 +107,7 @@ are managed according to below model.
      of userspace applications and drivers in kernel.
 
 
-\section identifying_elements Identifying Elements
+\subsection identifying_elements Identifying Elements
 
 Each element has the following identifying properties:
 
@@ -84,7 +126,7 @@ but in practice this is rare). The numid can change on each boot.
 In case of an USB sound card, the numid can also change when it
 is reconnected. The short numid is used to reduce the lookup time.
 
-\section element_lists Element Lists
+\subsection element_lists Element Lists
 
 An element list can be used to obtain a list of all elements of the
 sound card. The list contains generic information (e.g. how many
@@ -93,7 +135,7 @@ elements the card has), and the identifying properties of the elements
 element lists.
 
 
-\section working_with_elements Working with Elements
+\subsection working_with_elements Working with Elements
 
 It is possible to obtain information about an element using the
 snd_ctl_elem_info_*() functions. For enums, the allowed values can be
@@ -108,7 +150,7 @@ actual values or settings. It is also possible to get and set the ID
 values (such as the numid or the name).
 
 
-\section element_sets Element Sets
+\subsection element_sets Element Sets
 
 The type of element set is one of integer, integer64, boolean, enumerators,
 bytes and IEC958 structure. This indicates the type of value for each member in
@@ -329,10 +371,15 @@ int snd_ctl_subscribe_events(snd_ctl_t *ctl, int subscribe)
 
 
 /**
- * \brief Get card related information
- * \param ctl CTL handle
- * \param info Card info pointer
- * \return 0 on success otherwise a negative error code
+ * \brief Get information about the sound card.
+ *
+ * Obtain information about the sound card previously opened using
+ * snd_ctl_open(). The object "info" must be allocated prior to calling this
+ * function. See snd_ctl_card_info_t for details.
+ *
+ * \param ctl The CTL handle.
+ * \param info The card information is stored here.
+ * \return 0 on success, otherwise a negative error code.
  */
 int snd_ctl_card_info(snd_ctl_t *ctl, snd_ctl_card_info_t *info)
 {
@@ -1508,11 +1555,13 @@ int _snd_ctl_open_named_child(snd_ctl_t **pctl, const char *name,
 #endif
 
 /**
- * \brief Opens a CTL
- * \param ctlp Returned CTL handle
- * \param name ASCII identifier of the CTL handle
- * \param mode Open mode (see #SND_CTL_NONBLOCK, #SND_CTL_ASYNC)
- * \return 0 on success otherwise a negative error code
+ * \brief Opens a sound card.
+ *
+ * \param ctlp Returned CTL handle.
+ * \param name A string identifying the card (See \ref control_cards_id).
+ * \param mode Open mode (see #SND_CTL_NONBLOCK, #SND_CTL_ASYNC).
+ *
+ * \return 0 on success otherwise a negative error code.
  */
 int snd_ctl_open(snd_ctl_t **ctlp, const char *name, int mode)
 {
@@ -2027,8 +2076,8 @@ void snd_ctl_elem_id_set_index(snd_ctl_elem_id_t *obj, unsigned int val)
 }
 
 /**
- * \brief get size of #snd_ctl_card_info_t
- * \return size in bytes
+ * \brief get size of #snd_ctl_card_info_t.
+ * \return Size in bytes.
  */
 size_t snd_ctl_card_info_sizeof()
 {
@@ -2036,9 +2085,16 @@ size_t snd_ctl_card_info_sizeof()
 }
 
 /**
- * \brief allocate an invalid #snd_ctl_card_info_t using standard malloc
- * \param ptr returned pointer
- * \return 0 on success otherwise negative error code
+ * \brief Allocate an invalid #snd_ctl_card_info_t on the heap.
+ *
+ * Allocate space for a card info object on the heap. The allocated memory
+ * must be freed using snd_ctl_card_info_free().
+ *
+ * See snd_ctl_card_info_t for details.
+ *
+ * \param ptr Pointer to a snd_ctl_card_info_t pointer. The address
+ *            of the allocated space will be returned here.
+ * \return 0 on success, otherwise a negative error code.
  */
 int snd_ctl_card_info_malloc(snd_ctl_card_info_t **ptr)
 {
@@ -2050,8 +2106,10 @@ int snd_ctl_card_info_malloc(snd_ctl_card_info_t **ptr)
 }
 
 /**
- * \brief frees a previously allocated #snd_ctl_card_info_t
- * \param obj pointer to object to free
+ * \brief Free an #snd_ctl_card_info_t previously allocated using
+ *        snd_ctl_card_info_malloc().
+ *
+ * \param obj Pointer to the snd_ctl_card_info_t.
  */
 void snd_ctl_card_info_free(snd_ctl_card_info_t *obj)
 {
@@ -2059,8 +2117,11 @@ void snd_ctl_card_info_free(snd_ctl_card_info_t *obj)
 }
 
 /**
- * \brief clear given #snd_ctl_card_info_t object
- * \param obj pointer to object to clear
+ * \brief Clear given card info object.
+ *
+ * See snd_ctl_elem_value_t for details.
+ *
+ * \param obj Card info object.
  */
 void snd_ctl_card_info_clear(snd_ctl_card_info_t *obj)
 {
@@ -2068,9 +2129,10 @@ void snd_ctl_card_info_clear(snd_ctl_card_info_t *obj)
 }
 
 /**
- * \brief copy one #snd_ctl_card_info_t to another
- * \param dst pointer to destination
- * \param src pointer to source
+ * \brief Bitwise copy of a #snd_ctl_card_info_t object.
+ *
+ * \param dst Pointer to destination.
+ * \param src Pointer to source.
  */
 void snd_ctl_card_info_copy(snd_ctl_card_info_t *dst, const snd_ctl_card_info_t *src)
 {
@@ -2079,9 +2141,12 @@ void snd_ctl_card_info_copy(snd_ctl_card_info_t *dst, const snd_ctl_card_info_t 
 }
 
 /**
- * \brief Get card number from a CTL card info
- * \param obj CTL card info
- * \return card number
+ * \brief Get the sound card index from the given info object.
+ *
+ * See snd_ctl_card_info_t for more details.
+ *
+ * \param obj The card info object.
+ * \return Sound card index.
  */
 int snd_ctl_card_info_get_card(const snd_ctl_card_info_t *obj)
 {
@@ -2090,9 +2155,12 @@ int snd_ctl_card_info_get_card(const snd_ctl_card_info_t *obj)
 }
 
 /**
- * \brief Get card identifier from a CTL card info
- * \param obj CTL card info
- * \return card identifier
+ * \brief Get the sound card ID from the given info object.
+ *
+ * See snd_ctl_card_info_t for more details.
+ *
+ * \param obj The card info object.
+ * \return Sound card ID.
  */
 const char *snd_ctl_card_info_get_id(const snd_ctl_card_info_t *obj)
 {
@@ -2101,9 +2169,12 @@ const char *snd_ctl_card_info_get_id(const snd_ctl_card_info_t *obj)
 }
 
 /**
- * \brief Get card driver name from a CTL card info
- * \param obj CTL card info
- * \return card driver name
+ * \brief Get the sound card driver from the given info object.
+ *
+ * See snd_ctl_card_info_t for more details.
+ *
+ * \param obj The card info object.
+ * \return The sound card driver.
  */
 const char *snd_ctl_card_info_get_driver(const snd_ctl_card_info_t *obj)
 {
@@ -2112,9 +2183,12 @@ const char *snd_ctl_card_info_get_driver(const snd_ctl_card_info_t *obj)
 }
 
 /**
- * \brief Get card name from a CTL card info
- * \param obj CTL card info
- * \return card name
+ * \brief Get the sound card name from the given info object.
+ *
+ * See snd_ctl_card_info_t for more details.
+ *
+ * \param obj The card info object.
+ * \return Sound card name.
  */
 const char *snd_ctl_card_info_get_name(const snd_ctl_card_info_t *obj)
 {
@@ -2123,9 +2197,12 @@ const char *snd_ctl_card_info_get_name(const snd_ctl_card_info_t *obj)
 }
 
 /**
- * \brief Get card long name from a CTL card info
- * \param obj CTL card info
- * \return card long name
+ * \brief Get the sound cards long name from the given info object.
+ *
+ * See snd_ctl_card_info_t for more details.
+ *
+ * \param obj The card info object.
+ * \return Sound cards long name.
  */
 const char *snd_ctl_card_info_get_longname(const snd_ctl_card_info_t *obj)
 {
@@ -2134,9 +2211,12 @@ const char *snd_ctl_card_info_get_longname(const snd_ctl_card_info_t *obj)
 }
 
 /**
- * \brief Get card mixer name from a CTL card info
- * \param obj CTL card info
- * \return card mixer name
+ * \brief Get the sound card mixer name from the given info object.
+ *
+ * See snd_ctl_card_info_t for more details.
+ *
+ * \param obj The card info object.
+ * \return Sound card mixer name.
  */
 const char *snd_ctl_card_info_get_mixername(const snd_ctl_card_info_t *obj)
 {
@@ -2145,9 +2225,12 @@ const char *snd_ctl_card_info_get_mixername(const snd_ctl_card_info_t *obj)
 }
 
 /**
- * \brief Get card component list from a CTL card info
- * \param obj CTL card info
- * \return card mixer identifier
+ * \brief Get the sound cards "components" property from the given info object.
+ *
+ * See snd_ctl_card_info_t for more details.
+ *
+ * \param obj The card info object.
+ * \return Sound cards "components" property.
  */
 const char *snd_ctl_card_info_get_components(const snd_ctl_card_info_t *obj)
 {

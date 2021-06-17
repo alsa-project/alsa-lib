@@ -77,8 +77,8 @@ static int snd_card_load1(int card)
 
 /**
  * \brief Try to load the driver for a card.
- * \param card Card number.
- * \return 1 if driver is present, zero if driver is not present
+ * \param card Card index.
+ * \return 1 if driver is present, zero if driver is not present.
  */
 int snd_card_load(int card)
 {
@@ -86,14 +86,24 @@ int snd_card_load(int card)
 }
 
 /**
- * \brief Try to determine the next card.
- * \param rcard pointer to card number
- * \result zero if success, otherwise a negative error code
+ * \brief Iterate over physical sound cards.
  *
- * Tries to determine the next card from given card number.
- * If card number is -1, then the first available card is
- * returned. If the result card number is -1, no more cards
- * are available.
+ * This function takes the index of a physical sound card and sets it to the
+ * index of the next card. If index is -1, it is set to the index of the first
+ * card. After the last card, the index is set to -1.
+ *
+ * For example, if you have 2 sound cards (with index 0 and 1), the index will
+ * be modified as follows:
+ *
+ * - -1 --> 0
+ * - 0 --> 1
+ * - 1 --> -1
+ *
+ * This does not work for virtual sound cards.
+ *
+ * \param rcard Index of current card. The index of the next card is stored
+ *        here.
+ * \result zero if success, otherwise a negative error code.
  */
 int snd_card_next(int *rcard)
 {
@@ -114,13 +124,18 @@ int snd_card_next(int *rcard)
 }
 
 /**
- * \brief Convert card string to an integer value.
- * \param string String containing card identifier
- * \return zero if success, otherwise a negative error code
+ * \brief Convert a card string to the card index.
  *
- * The accepted format is an integer value in ASCII representation
- * or the card identifier (the id parameter for sound-card drivers).
- * The control device name like /dev/snd/controlC0 is accepted, too.
+ * This works only for physical sound cards, not for virtual cards.
+ *
+ * \param string A string identifying the card.
+ * \return The index of the card. On error, a a negative error code
+ *         is returned.
+ *
+ * The accepted formats for "string" are:
+ * - The index of the card (as listed in /proc/asound/cards), given as string
+ * - The ID of the card (as listed in /proc/asound/cards)
+ * - The control device name (like /dev/snd/controlC0)
  */
 int snd_card_get_index(const char *string)
 {
@@ -163,8 +178,9 @@ int snd_card_get_index(const char *string)
 
 /**
  * \brief Obtain the card name.
- * \param card Card number
- * \param name Result - card name corresponding to card number
+ *
+ * \param card The index of the card.
+ * \param name Result - card name corresponding to card index.
  * \result zero if success, otherwise a negative error code
  *
  * The value returned in name is allocated with strdup and should be
@@ -193,9 +209,9 @@ int snd_card_get_name(int card, char **name)
 
 /**
  * \brief Obtain the card long name.
- * \param card Card number
- * \param name Result - card long name corresponding to card number
- * \result zero if success, otherwise a negative error code
+ * \param card Index of the card.
+ * \param name Result - card long name corresponding to card index.
+ * \result Zero if success, otherwise a negative error code.
  *
  * The value returned in name is allocated with strdup and should be
  * freed when no longer used.
