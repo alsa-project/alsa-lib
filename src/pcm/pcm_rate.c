@@ -76,6 +76,45 @@ struct _snd_pcm_rate {
 
 #endif /* DOC_HIDDEN */
 
+/* allocate a channel area and a temporary buffer for the given size */
+static snd_pcm_channel_area_t *
+rate_alloc_tmp_buf(snd_pcm_rate_t *rate, snd_pcm_format_t format,
+		   unsigned int channels, unsigned int frames)
+{
+	snd_pcm_channel_area_t *ap;
+	int width = snd_pcm_format_physical_width(format);
+	int i;
+
+	ap = malloc(sizeof(*ap) * channels);
+	if (!ap)
+		return NULL;
+	ap->addr = malloc(frames * channels * width / 8);
+	if (!ap->addr) {
+		free(ap);
+		return NULL;
+	}
+
+	/* set up in interleaved format */
+	for (i = 0; i < channels; i++) {
+		ap[i].addr = ap[0].addr + (i * width) / 8;
+		ap[i].first = 0;
+		ap[i].step = width * channels;
+	}
+
+	return ap;
+}
+
+static void rate_free_tmp_buf(snd_pcm_channel_area_t **ptr)
+{
+	snd_pcm_channel_area_t *c = *ptr;
+
+	if (c) {
+		free(c->addr);
+		free(c);
+		*ptr = NULL;
+	}
+}
+
 static int snd_pcm_rate_hw_refine_cprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_rate_t *rate = pcm->private_data;
@@ -286,27 +325,12 @@ static int snd_pcm_rate_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	if (err < 0)
 		return err;
 
-	rate->pareas = malloc(2 * channels * sizeof(*rate->pareas));
-	if (rate->pareas == NULL)
+	rate->pareas = rate_alloc_tmp_buf(rate, cinfo->format, channels,
+					  cinfo->period_size);
+	rate->sareas = rate_alloc_tmp_buf(rate, sinfo->format, channels,
+					  sinfo->period_size);
+	if (!rate->pareas || !rate->sareas)
 		goto error;
-
-	cwidth = snd_pcm_format_physical_width(cinfo->format);
-	swidth = snd_pcm_format_physical_width(sinfo->format);
-	rate->pareas[0].addr = malloc(((cwidth * channels * cinfo->period_size) / 8) +
-				      ((swidth * channels * sinfo->period_size) / 8));
-	if (rate->pareas[0].addr == NULL)
-		goto error;
-
-	rate->sareas = rate->pareas + channels;
-	rate->sareas[0].addr = (char *)rate->pareas[0].addr + ((cwidth * channels * cinfo->period_size) / 8);
-	for (chn = 0; chn < channels; chn++) {
-		rate->pareas[chn].addr = (char *)rate->pareas[0].addr + (cwidth * chn * cinfo->period_size) / 8;
-		rate->pareas[chn].first = 0;
-		rate->pareas[chn].step = cwidth;
-		rate->sareas[chn].addr = (char *)rate->sareas[0].addr + (swidth * chn * sinfo->period_size) / 8;
-		rate->sareas[chn].first = 0;
-		rate->sareas[chn].step = swidth;
-	}
 
 	if (rate->ops.convert_s16) {
 		rate->get_idx = snd_pcm_linear_get_index(rate->info.in.format, SND_PCM_FORMAT_S16);
@@ -322,11 +346,8 @@ static int snd_pcm_rate_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	return 0;
 
  error:
-	if (rate->pareas) {
-		free(rate->pareas[0].addr);
-		free(rate->pareas);
-		rate->pareas = NULL;
-	}
+	rate_free_tmp_buf(&rate->pareas);
+	rate_free_tmp_buf(&rate->sareas);
 	if (rate->ops.free)
 		rate->ops.free(rate->obj);
 	return -ENOMEM;
@@ -335,12 +356,9 @@ static int snd_pcm_rate_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 static int snd_pcm_rate_hw_free(snd_pcm_t *pcm)
 {
 	snd_pcm_rate_t *rate = pcm->private_data;
-	if (rate->pareas) {
-		free(rate->pareas[0].addr);
-		free(rate->pareas);
-		rate->pareas = NULL;
-		rate->sareas = NULL;
-	}
+
+	rate_free_tmp_buf(&rate->pareas);
+	rate_free_tmp_buf(&rate->sareas);
 	if (rate->ops.free)
 		rate->ops.free(rate->obj);
 	free(rate->src_buf);
