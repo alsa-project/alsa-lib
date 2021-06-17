@@ -147,6 +147,7 @@ int snd_card_get_index(const char *string)
 		return -EINVAL;
 	if ((isdigit(*string) && *(string + 1) == 0) ||
 	    (isdigit(*string) && isdigit(*(string + 1)) && *(string + 2) == 0)) {
+		/* We got an index */
 		if (sscanf(string, "%i", &card) != 1)
 			return -EINVAL;
 		if (card < 0 || card >= SND_MAX_CARDS)
@@ -156,8 +157,10 @@ int snd_card_get_index(const char *string)
 			return card;
 		return err;
 	}
-	if (string[0] == '/')	/* device name */
+	if (string[0] == '/')
+		/* We got a device name */
 		return snd_card_load2(string);
+	/* We got in ID */
 	for (card = 0; card < SND_MAX_CARDS; card++) {
 #ifdef SUPPORT_ALOAD
 		if (! snd_card_load(card))

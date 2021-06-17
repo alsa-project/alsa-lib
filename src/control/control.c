@@ -3127,7 +3127,7 @@ size_t snd_ctl_elem_value_sizeof()
 /**
  * \brief Allocate an invalid #snd_ctl_elem_value_t on the heap.
  *
- * Allocate space for a value object on the head. The allocated memory
+ * Allocate space for a value object on the heap. The allocated memory
  * must be freed using snd_ctl_elem_value_free().
  *
  * See snd_ctl_elem_value_t for details.

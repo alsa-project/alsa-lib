@@ -155,7 +155,7 @@ typedef struct _snd_ctl_elem_list snd_ctl_elem_list_t;
 /** CTL element info container */
 typedef struct _snd_ctl_elem_info snd_ctl_elem_info_t;
 
-/** CTL element value container
+/** CTL element value container.
  *
  * Contains the value(s) (i.e. members) of a single element. All
  * values of a given element are of the same type.
@@ -166,6 +166,11 @@ typedef struct _snd_ctl_elem_info snd_ctl_elem_info_t;
  * snd_ctl_elem_value_alloca() or snd_ctl_elem_value_malloc(). When
  * using the latter, it must be freed again using
  * snd_ctl_elem_value_free().
+ *
+ * A value object can be zeroed out using snd_ctl_elem_value_clear().
+ *
+ * A value object can be copied to another one using
+ * snd_ctl_elem_value_copy().
  *
  * \par Identifier
  *
@@ -621,7 +626,7 @@ size_t snd_ctl_elem_value_sizeof(void);
  * \brief Allocate an invalid #snd_ctl_elem_value_t on the stack.
  *
  * Allocate space for a value object on the stack. The allocated
- * memory need not be freed, because is on the stack.
+ * memory need not be freed, because it is on the stack.
  *
  * See snd_ctl_elem_value_t for details.
  *
