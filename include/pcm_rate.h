@@ -38,7 +38,7 @@ extern "C" {
 /**
  * Protocol version
  */
-#define SND_PCM_RATE_PLUGIN_VERSION	0x010002
+#define SND_PCM_RATE_PLUGIN_VERSION	0x010003
 
 /** hw_params information for a single side */
 typedef struct snd_pcm_rate_side_info {
@@ -54,6 +54,11 @@ typedef struct snd_pcm_rate_info {
 	struct snd_pcm_rate_side_info out;
 	unsigned int channels;
 } snd_pcm_rate_info_t;
+
+enum {
+	SND_PCM_RATE_FLAG_INTERLEAVED = (1U << 0),	/** only interleaved format */
+	SND_PCM_RATE_FLAG_SYNC_FORMATS = (1U << 1),	/** both input and output formats have to be identical */
+};
 
 /** Callback table of rate-converter */
 typedef struct snd_pcm_rate_ops {
@@ -114,6 +119,13 @@ typedef struct snd_pcm_rate_ops {
 	 * new ops since version 0x010002
 	 */
 	void (*dump)(void *obj, snd_output_t *out);
+	/**
+	 * get the supported input and output formats (optional);
+	 * new ops since version 0x010003
+	 */
+	int (*get_supported_formats)(void *obj, uint64_t *in_formats,
+				     uint64_t *out_formats,
+				     unsigned int *flags);
 } snd_pcm_rate_ops_t;
 
 /** open function type */
@@ -147,6 +159,28 @@ typedef struct snd_pcm_rate_old_ops {
 	snd_pcm_uframes_t (*input_frames)(void *obj, snd_pcm_uframes_t frames);
 	snd_pcm_uframes_t (*output_frames)(void *obj, snd_pcm_uframes_t frames);
 } snd_pcm_rate_old_ops_t;
+
+/* old rate_ops for protocol version 0x010002 */
+typedef struct snd_pcm_rate_v2_ops {
+	void (*close)(void *obj);
+	int (*init)(void *obj, snd_pcm_rate_info_t *info);
+	void (*free)(void *obj);
+	void (*reset)(void *obj);
+	int (*adjust_pitch)(void *obj, snd_pcm_rate_info_t *info);
+	void (*convert)(void *obj,
+			const snd_pcm_channel_area_t *dst_areas,
+			snd_pcm_uframes_t dst_offset, unsigned int dst_frames,
+			const snd_pcm_channel_area_t *src_areas,
+			snd_pcm_uframes_t src_offset, unsigned int src_frames);
+	void (*convert_s16)(void *obj, int16_t *dst, unsigned int dst_frames,
+			    const int16_t *src, unsigned int src_frames);
+	snd_pcm_uframes_t (*input_frames)(void *obj, snd_pcm_uframes_t frames);
+	snd_pcm_uframes_t (*output_frames)(void *obj, snd_pcm_uframes_t frames);
+	unsigned int version;
+	int (*get_supported_rates)(void *obj, unsigned int *rate_min,
+				   unsigned int *rate_max);
+	void (*dump)(void *obj, snd_output_t *out);
+} snd_pcm_rate_v2_ops_t;
 #endif
 
 #ifdef __cplusplus
