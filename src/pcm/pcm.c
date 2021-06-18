@@ -6500,6 +6500,9 @@ int snd_pcm_sw_params_set_avail_min(snd_pcm_t *pcm, snd_pcm_sw_params_t *params,
  * \param params Software configuration container
  * \param val returned minimum available frames to consider PCM ready
  * \return 0 otherwise a negative error code
+ *
+ * This is a threshold value when the PCM stream is considered as ready for
+ * another read/write operation or poll event.
  */
 #ifndef DOXYGEN
 EXPORT_SYMBOL int INTERNAL(snd_pcm_sw_params_get_avail_min)(const snd_pcm_sw_params_t *params, snd_pcm_uframes_t *val)
@@ -6960,6 +6963,8 @@ snd_pcm_uframes_t snd_pcm_status_get_avail(const snd_pcm_status_t *obj)
 /** 
  * \brief Get maximum number of frames available from a PCM status container after last #snd_pcm_status call
  * \return Maximum number of frames ready to be read/written
+ *
+ * This value returns the peak for the available frames between #snd_pcm_status calls.
  */
 snd_pcm_uframes_t snd_pcm_status_get_avail_max(const snd_pcm_status_t *obj)
 {
