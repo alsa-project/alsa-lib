@@ -1627,43 +1627,37 @@ int snd_pcm_direct_set_timer_params(snd_pcm_direct_t *dmix)
 int snd_pcm_direct_check_interleave(snd_pcm_direct_t *dmix, snd_pcm_t *pcm)
 {
 	unsigned int chn, channels;
-	int bits, interleaved = 1;
+	int bits;
 	const snd_pcm_channel_area_t *dst_areas;
 	const snd_pcm_channel_area_t *src_areas;
 
 	bits = snd_pcm_format_physical_width(pcm->format);
 	if ((bits % 8) != 0)
-		interleaved = 0;
+		goto __nointerleaved;
 	channels = dmix->channels;
+	if (channels != dmix->spcm->channels)
+		goto __nointerleaved;
 	dst_areas = snd_pcm_mmap_areas(dmix->spcm);
 	src_areas = snd_pcm_mmap_areas(pcm);
 	for (chn = 1; chn < channels; chn++) {
-		if (dst_areas[chn-1].addr != dst_areas[chn].addr) {
-			interleaved = 0;
-			break;
-		}
-		if (src_areas[chn-1].addr != src_areas[chn].addr) {
-			interleaved = 0;
-			break;
-		}
+		if (dst_areas[chn-1].addr != dst_areas[chn].addr)
+			goto __nointerleaved;
+		if (src_areas[chn-1].addr != src_areas[chn].addr)
+			goto __nointerleaved;
 	}
 	for (chn = 0; chn < channels; chn++) {
-		if (dmix->bindings && dmix->bindings[chn] != chn) {
-			interleaved = 0;
-			break;
-		}
+		if (dmix->bindings && dmix->bindings[chn] != chn)
+			goto __nointerleaved;
 		if (dst_areas[chn].first != chn * bits ||
-		    dst_areas[chn].step != channels * bits) {
-			interleaved = 0;
-			break;
-		}
+		    dst_areas[chn].step != channels * bits)
+			goto __nointerleaved;
 		if (src_areas[chn].first != chn * bits ||
-		    src_areas[chn].step != channels * bits) {
-			interleaved = 0;
-			break;
-		}
+		    src_areas[chn].step != channels * bits)
+			goto __nointerleaved;
 	}
-	return dmix->interleaved = interleaved;
+	return dmix->interleaved = 1;
+__nointerleaved:
+	return dmix->interleaved = 0;
 }
 
 /*
