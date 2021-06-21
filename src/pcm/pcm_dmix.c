@@ -393,17 +393,13 @@ static int snd_pcm_dmix_sync_ptr0(snd_pcm_t *pcm, snd_pcm_uframes_t slave_hw_ptr
 	
 	old_slave_hw_ptr = dmix->slave_hw_ptr;
 	dmix->slave_hw_ptr = slave_hw_ptr;
-	diff = slave_hw_ptr - old_slave_hw_ptr;
+	diff = pcm_frame_diff(slave_hw_ptr, old_slave_hw_ptr, dmix->slave_boundary);
 	if (diff == 0)		/* fast path */
 		return 0;
 	if (dmix->state != SND_PCM_STATE_RUNNING &&
 	    dmix->state != SND_PCM_STATE_DRAINING)
 		/* not really started yet - don't update hw_ptr */
 		return 0;
-	if (diff < 0) {
-		slave_hw_ptr += dmix->slave_boundary;
-		diff = slave_hw_ptr - old_slave_hw_ptr;
-	}
 	dmix->hw_ptr += diff;
 	dmix->hw_ptr %= pcm->boundary;
 	if (pcm->stop_threshold >= pcm->boundary)	/* don't care */
