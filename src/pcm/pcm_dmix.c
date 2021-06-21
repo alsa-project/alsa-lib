@@ -491,6 +491,7 @@ static int snd_pcm_dmix_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	}
 
 	status->state = snd_pcm_dmix_state(pcm);
+	status->hw_ptr = *pcm->hw.ptr; /* boundary may be different */
 	status->appl_ptr = *pcm->appl.ptr; /* slave PCM doesn't set appl_ptr */
 	status->trigger_tstamp = dmix->trigger_tstamp;
 	status->avail = snd_pcm_mmap_playback_avail(pcm);
