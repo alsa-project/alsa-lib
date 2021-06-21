@@ -632,19 +632,6 @@ static inline snd_pcm_sframes_t snd_pcm_mmap_delay(snd_pcm_t *pcm)
 		return snd_pcm_mmap_capture_delay(pcm);
 }
 
-static inline void *snd_pcm_channel_area_addr(const snd_pcm_channel_area_t *area, snd_pcm_uframes_t offset)
-{
-	unsigned int bitofs = area->first + area->step * offset;
-	assert(bitofs % 8 == 0);
-	return (char *) area->addr + bitofs / 8;
-}
-
-static inline unsigned int snd_pcm_channel_area_step(const snd_pcm_channel_area_t *area)
-{
-	assert(area->step % 8 == 0);
-	return area->step / 8;
-}
-
 static inline snd_pcm_sframes_t _snd_pcm_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size)
 {
 	/* lock handled in the callback */
