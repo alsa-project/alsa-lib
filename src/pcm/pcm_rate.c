@@ -82,12 +82,12 @@ struct _snd_pcm_rate {
 
 /* allocate a channel area and a temporary buffer for the given size */
 static snd_pcm_channel_area_t *
-rate_alloc_tmp_buf(snd_pcm_rate_t *rate, snd_pcm_format_t format,
+rate_alloc_tmp_buf(snd_pcm_format_t format,
 		   unsigned int channels, unsigned int frames)
 {
 	snd_pcm_channel_area_t *ap;
 	int width = snd_pcm_format_physical_width(format);
-	int i;
+	unsigned int i;
 
 	ap = malloc(sizeof(*ap) * channels);
 	if (!ap)
@@ -354,7 +354,7 @@ static int snd_pcm_rate_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	snd_pcm_rate_t *rate = pcm->private_data;
 	snd_pcm_t *slave = rate->gen.slave;
 	snd_pcm_rate_side_info_t *sinfo, *cinfo;
-	unsigned int channels, cwidth, swidth, chn, acc;
+	unsigned int channels, acc;
 	int need_src_buf, need_dst_buf;
 	int err = snd_pcm_hw_params_slave(pcm, params,
 					  snd_pcm_rate_hw_refine_cchange,
@@ -401,9 +401,9 @@ static int snd_pcm_rate_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 		return -EBUSY;
 	}
 
-	rate->pareas = rate_alloc_tmp_buf(rate, cinfo->format, channels,
+	rate->pareas = rate_alloc_tmp_buf(cinfo->format, channels,
 					  cinfo->period_size);
-	rate->sareas = rate_alloc_tmp_buf(rate, sinfo->format, channels,
+	rate->sareas = rate_alloc_tmp_buf(sinfo->format, channels,
 					  sinfo->period_size);
 	if (!rate->pareas || !rate->sareas) {
 		err = -ENOMEM;
@@ -442,7 +442,7 @@ static int snd_pcm_rate_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 		rate->src_conv_idx =
 			snd_pcm_linear_convert_index(rate->orig_in_format,
 						     rate->info.in.format);
-		rate->src_buf = rate_alloc_tmp_buf(rate, rate->info.in.format,
+		rate->src_buf = rate_alloc_tmp_buf(rate->info.in.format,
 						   channels, rate->info.in.period_size);
 		if (!rate->src_buf) {
 			err = -ENOMEM;
@@ -454,7 +454,7 @@ static int snd_pcm_rate_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 		rate->dst_conv_idx =
 			snd_pcm_linear_convert_index(rate->info.out.format,
 						     rate->orig_out_format);
-		rate->dst_buf = rate_alloc_tmp_buf(rate, rate->info.out.format,
+		rate->dst_buf = rate_alloc_tmp_buf(rate->info.out.format,
 						   channels, rate->info.out.period_size);
 		if (!rate->dst_buf) {
 			err = -ENOMEM;
