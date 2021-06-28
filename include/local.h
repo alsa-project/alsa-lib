@@ -374,11 +374,21 @@ int _snd_config_load_with_include(snd_config_t *config, snd_input_t *in,
 void *INTERNAL(snd_dlopen)(const char *name, int mode, char *errbuf, size_t errbuflen);
 #endif
 
+#ifdef BUILD_UCM
+
 const char *uc_mgr_alibcfg_by_device(snd_config_t **config, const char *name);
 
 static inline int _snd_is_ucm_device(const char *name)
 {
 	return name && name[0] == '_' && name[1] == 'u' && name[2] == 'c' && name[3] == 'm';
 }
+
+#else
+
+static inline const char *uc_mgr_alibcfg_by_device(snd_config_t **config, const char *name) { return NULL; }
+static inline int _snd_is_ucm_device(const char *name) { return 0; }
+
+
+#endif
 
 #endif
