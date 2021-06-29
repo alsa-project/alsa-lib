@@ -1173,6 +1173,10 @@ int snd_ctl_remap_open(snd_ctl_t **handlep, const char *name, snd_config_t *rema
 	/* no-op check, remove the plugin */
 	if (priv->map_items == 0 && priv->remap_items == 0) {
 		remap_free(priv);
+		free(child->name);
+		child->name = name ? strdup(name) : NULL;
+		if (name && !child->name)
+			return -ENOMEM;
 		*handlep = child;
 		return 0;
 	}
