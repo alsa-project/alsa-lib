@@ -1059,6 +1059,10 @@ int snd_pcm_status(snd_pcm_t *pcm, snd_pcm_status_t *status)
  * This is a faster way to obtain only the PCM state without calling
  * \link ::snd_pcm_status() \endlink.
  *
+ * Note that this function always returns one of the
+ * #snd_pcm_state_t enum variants.
+ * It will never return a negative error code.
+ *
  * The function is thread-safe when built with the proper option.
  */
 snd_pcm_state_t snd_pcm_state(snd_pcm_t *pcm)
