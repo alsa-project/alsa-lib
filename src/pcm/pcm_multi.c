@@ -669,6 +669,9 @@ static snd_pcm_sframes_t snd_pcm_multi_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t 
 				return -EIO;
 		}
 	}
+	
+	snd_pcm_mmap_appl_backward(pcm, frames);
+	
 	return frames;
 }
 
@@ -699,6 +702,9 @@ static snd_pcm_sframes_t snd_pcm_multi_forward(snd_pcm_t *pcm, snd_pcm_uframes_t
 				return -EIO;
 		}
 	}
+	
+	snd_pcm_mmap_appl_forward(pcm, frames);
+	
 	return frames;
 }
 
@@ -782,8 +788,9 @@ static snd_pcm_sframes_t snd_pcm_multi_mmap_commit(snd_pcm_t *pcm,
 		if ((snd_pcm_uframes_t)result != size)
 			return -EIO;
 	}
-	multi->appl_ptr += size;
-	multi->appl_ptr %= pcm->boundary;
+	
+	snd_pcm_mmap_appl_forward(pcm, size);
+
 	return size;
 }
 
