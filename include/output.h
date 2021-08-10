@@ -32,6 +32,8 @@
 extern "C" {
 #endif
 
+#include <stdarg.h>
+
 /**
  *  \defgroup Output Output Interface
  *

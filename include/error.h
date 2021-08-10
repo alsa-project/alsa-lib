@@ -32,6 +32,8 @@
 extern "C" {
 #endif
 
+#include <stdarg.h>
+
 /**
  *  \defgroup Error Error handling
  *  Error handling macros and functions.
