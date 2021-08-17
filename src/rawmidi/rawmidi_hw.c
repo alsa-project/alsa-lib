@@ -285,6 +285,7 @@ int snd_rawmidi_hw_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 		rmidi->poll_fd = fd;
 		rmidi->ops = &snd_rawmidi_hw_ops;
 		rmidi->private_data = hw;
+		rmidi->version = ver;
 		hw->open++;
 		*inputp = rmidi;
 	}
@@ -300,6 +301,7 @@ int snd_rawmidi_hw_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 		rmidi->poll_fd = fd;
 		rmidi->ops = &snd_rawmidi_hw_ops;
 		rmidi->private_data = hw;
+		rmidi->version = ver;
 		hw->open++;
 		*outputp = rmidi;
 	}

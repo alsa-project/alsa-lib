@@ -79,6 +79,39 @@ typedef enum _snd_rawmidi_type {
 	SND_RAWMIDI_TYPE_VIRTUAL
 } snd_rawmidi_type_t;
 
+/** Type of clock used with rawmidi tstamp framing */
+typedef enum _snd_rawmidi_clock {
+	SND_RAWMIDI_CLOCK_NONE = 0,
+	SND_RAWMIDI_CLOCK_REALTIME = 1,
+	SND_RAWMIDI_CLOCK_MONOTONIC = 2,
+	SND_RAWMIDI_CLOCK_MONOTONIC_RAW = 3,
+} snd_rawmidi_clock_t;
+
+/** Enable or disable rawmidi framing */
+typedef enum _snd_rawmidi_framing {
+	SND_RAWMIDI_FRAMING_NONE = 0,
+	SND_RAWMIDI_FRAMING_TSTAMP = 1,
+} snd_rawmidi_framing_t;
+
+#define SND_RAWMIDI_FRAME_TYPE_DEFAULT 0
+
+#define SND_RAWMIDI_FRAMING_DATA_LENGTH 16
+
+/** Incoming RawMidi bytes is put inside this container if tstamp type framing is enabled. */
+typedef struct _snd_rawmidi_framing_tstamp {
+	/**
+	 * For now, frame_type is always SND_RAWMIDI_FRAME_TYPE_DEFAULT.
+	 * Midi 2.0 is expected to add new types here.
+	 * Applications are expected to skip unknown frame types.
+	 */
+	__u8 frame_type;
+	__u8 length; /* number of valid bytes in data field */
+	__u8 reserved[2];
+	__u32 tv_nsec;		/* nanoseconds */
+	__u64 tv_sec;		/* seconds */
+	__u8 data[SND_RAWMIDI_FRAMING_DATA_LENGTH];
+} snd_rawmidi_framing_tstamp_t;
+
 int snd_rawmidi_open(snd_rawmidi_t **in_rmidi, snd_rawmidi_t **out_rmidi,
 		     const char *name, int mode);
 int snd_rawmidi_open_lconf(snd_rawmidi_t **in_rmidi, snd_rawmidi_t **out_rmidi,
@@ -126,6 +159,11 @@ int snd_rawmidi_params_set_avail_min(snd_rawmidi_t *rmidi, snd_rawmidi_params_t 
 size_t snd_rawmidi_params_get_avail_min(const snd_rawmidi_params_t *params);
 int snd_rawmidi_params_set_no_active_sensing(snd_rawmidi_t *rmidi, snd_rawmidi_params_t *params, int val);
 int snd_rawmidi_params_get_no_active_sensing(const snd_rawmidi_params_t *params);
+int snd_rawmidi_params_set_framing_type(const snd_rawmidi_t *rawmidi, snd_rawmidi_params_t *params, snd_rawmidi_framing_t val);
+snd_rawmidi_framing_t snd_rawmidi_params_get_framing_type(const snd_rawmidi_params_t *params);
+int snd_rawmidi_params_set_clock_type(const snd_rawmidi_t *rawmidi, snd_rawmidi_params_t *params, snd_rawmidi_clock_t val);
+snd_rawmidi_clock_t snd_rawmidi_params_get_clock_type(const snd_rawmidi_params_t *params);
+
 int snd_rawmidi_params(snd_rawmidi_t *rmidi, snd_rawmidi_params_t * params);
 int snd_rawmidi_params_current(snd_rawmidi_t *rmidi, snd_rawmidi_params_t *params);
 size_t snd_rawmidi_status_sizeof(void);
