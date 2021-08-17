@@ -13,6 +13,7 @@ static void usage(void)
 	fprintf(stderr, "    -o device-id : test ALSA output device\n");
 	fprintf(stderr, "    -I node      : test input node\n");
 	fprintf(stderr, "    -O node      : test output node\n");
+	fprintf(stderr, "    -c clock     : kernel clock type (0=none, 1=realtime, 2=monotonic, 3=monotonic raw)\n");
 	fprintf(stderr, "    -t: test midi thru\n");
 	fprintf(stderr, "  example:\n");
 	fprintf(stderr, "    rawmidi -i hw:0,0 -O /dev/midi1\n");
@@ -37,7 +38,8 @@ int main(int argc,char** argv)
 	char *device_out = NULL;
 	char *node_in = NULL;
 	char *node_out = NULL;
-	
+	int clock_type = -1;
+
 	int fd_in = -1,fd_out = -1;
 	snd_rawmidi_t *handle_in = 0,*handle_out = 0;
 	
@@ -57,6 +59,10 @@ int main(int argc,char** argv)
 					break;
 				case 't':
 					thru = 1;
+					break;
+				case 'c':
+					if (i + 1 < argc)
+						clock_type = atoi(argv[++i]);
 					break;
 				case 'i':
 					if (i + 1 < argc)
@@ -133,20 +139,67 @@ int main(int argc,char** argv)
 		}		
 	}
 
-
-
 	if (!thru) {
 		if (handle_in || fd_in!=-1) {
+			if (clock_type != -1) {
+				snd_rawmidi_params_t *params;
+				snd_rawmidi_params_malloc(&params);
+				if (!handle_in) {
+					fprintf(stderr, "-c only usable with -i");
+					clock_type = -1;
+				}
+				if (clock_type != -1) {
+					fprintf(stderr, "Enable kernel clock type %d\n", clock_type);
+					snd_rawmidi_params_current(handle_in, params);
+					err = snd_rawmidi_params_set_framing_type(handle_in, params, 1);
+					if (err) {
+						fprintf(stderr,"snd_rawmidi_params_set_framing_type failed: %d\n", err);
+						clock_type = -1;
+					}
+				}
+				if (clock_type != -1) {
+					err = snd_rawmidi_params_set_clock_type(handle_in, params, clock_type);
+					if (err) {
+						fprintf(stderr, "snd_rawmidi_params_set_clock_type failed: %d\n", err);
+						clock_type = -1;
+					}
+				}
+				if (clock_type != -1) {
+					err = snd_rawmidi_params(handle_in, params);
+					if (err) {
+						fprintf(stderr, "snd_rawmidi_params failed: %d\n", err);
+						clock_type = -1;
+					}
+				}
+				snd_rawmidi_params_free(params);
+			}
+
 			fprintf(stderr,"Read midi in\n");
 			fprintf(stderr,"Press ctrl-c to stop\n");
 		}
 
 		if (handle_in) {
 			unsigned char ch;
+			snd_rawmidi_framing_tstamp_t frame;
 			while (!stop) {
-				snd_rawmidi_read(handle_in,&ch,1);
-				if (verbose) {
-					fprintf(stderr,"read %02x\n",ch);
+				if (clock_type != -1) {
+					snd_rawmidi_read(handle_in, &frame, sizeof(frame));
+					if (verbose) {
+						int i;
+						if (frame.frame_type) {
+							fprintf(stderr, "read unknown frame %d", frame.frame_type);
+							continue;
+						}
+						fprintf(stderr, "read [%lld:%09d]", frame.tv_sec, frame.tv_nsec);
+						for (i = 0; i < frame.length; i++)
+							fprintf(stderr, " %02x", frame.data[i]);
+						fprintf(stderr, "\n");
+					}
+				}
+				else {
+					snd_rawmidi_read(handle_in,&ch,1);
+					if (verbose)
+						fprintf(stderr,"read %02x\n",ch);
 				}
 			}
 		}
