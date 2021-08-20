@@ -44,6 +44,10 @@ typedef int64_t __s64;
 #define __be8  __u8
 #endif
 
+#ifndef __kernel_long_t
+#define __kernel_long_t long
+#endif
+
 #ifndef __user
 #define __user
 #endif
