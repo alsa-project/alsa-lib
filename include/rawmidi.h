@@ -93,26 +93,6 @@ typedef enum _snd_rawmidi_framing {
 	SND_RAWMIDI_FRAMING_TSTAMP = 1,
 } snd_rawmidi_framing_t;
 
-#define SND_RAWMIDI_FRAME_TYPE_DEFAULT 0
-
-#define SND_RAWMIDI_FRAMING_DATA_LENGTH 16
-
-/** Incoming RawMidi bytes is put inside this container if tstamp type framing is enabled. */
-struct _snd_rawmidi_framing_tstamp {
-	/**
-	 * For now, frame_type is always SND_RAWMIDI_FRAME_TYPE_DEFAULT.
-	 * Midi 2.0 is expected to add new types here.
-	 * Applications are expected to skip unknown frame types.
-	 */
-	uint8_t frame_type;
-	uint8_t length; /* number of valid bytes in data field */
-	uint8_t reserved[2];
-	uint32_t tv_nsec;		/* nanoseconds */
-	uint64_t tv_sec;		/* seconds */
-	uint8_t data[SND_RAWMIDI_FRAMING_DATA_LENGTH];
-} __attribute__((packed));
-typedef struct _snd_rawmidi_framing_tstamp snd_rawmidi_framing_tstamp_t;
-
 int snd_rawmidi_open(snd_rawmidi_t **in_rmidi, snd_rawmidi_t **out_rmidi,
 		     const char *name, int mode);
 int snd_rawmidi_open_lconf(snd_rawmidi_t **in_rmidi, snd_rawmidi_t **out_rmidi,
@@ -184,6 +164,7 @@ int snd_rawmidi_drain(snd_rawmidi_t *rmidi);
 int snd_rawmidi_drop(snd_rawmidi_t *rmidi);
 ssize_t snd_rawmidi_write(snd_rawmidi_t *rmidi, const void *buffer, size_t size);
 ssize_t snd_rawmidi_read(snd_rawmidi_t *rmidi, void *buffer, size_t size);
+ssize_t snd_rawmidi_tread(snd_rawmidi_t *rmidi, struct timespec *tstamp, void *buffer, size_t size);
 const char *snd_rawmidi_name(snd_rawmidi_t *rmidi);
 snd_rawmidi_type_t snd_rawmidi_type(snd_rawmidi_t *rmidi);
 snd_rawmidi_stream_t snd_rawmidi_stream(snd_rawmidi_t *rawmidi);

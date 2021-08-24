@@ -1071,11 +1071,30 @@ ssize_t snd_rawmidi_write(snd_rawmidi_t *rawmidi, const void *buffer, size_t siz
  * \param rawmidi RawMidi handle
  * \param buffer buffer to store the input MIDI bytes
  * \param size input buffer size in bytes
+ * \retval count of MIDI bytes otherwise a negative error code
  */
 ssize_t snd_rawmidi_read(snd_rawmidi_t *rawmidi, void *buffer, size_t size)
 {
 	assert(rawmidi);
 	assert(rawmidi->stream == SND_RAWMIDI_STREAM_INPUT);
+	if ((rawmidi->params_mode & SNDRV_RAWMIDI_MODE_FRAMING_MASK) == SNDRV_RAWMIDI_MODE_FRAMING_TSTAMP)
+		size &= ~(sizeof(struct snd_rawmidi_framing_tstamp) - 1);
 	assert(buffer || size == 0);
 	return (rawmidi->ops->read)(rawmidi, buffer, size);
+}
+
+/**
+ * \brief read MIDI bytes from MIDI stream with timestamp
+ * \param rawmidi RawMidi handle
+ * \param[out] tstamp timestamp for the returned MIDI bytes
+ * \param buffer buffer to store the input MIDI bytes
+ * \param size input buffer size in bytes
+ * \retval count of MIDI bytes otherwise a negative error code
+ */
+ssize_t snd_rawmidi_tread(snd_rawmidi_t *rawmidi, struct timespec *tstamp, void *buffer, size_t size)
+{
+	assert(rawmidi);
+	assert(rawmidi->stream == SND_RAWMIDI_STREAM_INPUT);
+	assert(buffer || size == 0);
+	return (rawmidi->ops->tread)(rawmidi, tstamp, buffer, size);
 }
