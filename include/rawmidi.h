@@ -98,19 +98,20 @@ typedef enum _snd_rawmidi_framing {
 #define SND_RAWMIDI_FRAMING_DATA_LENGTH 16
 
 /** Incoming RawMidi bytes is put inside this container if tstamp type framing is enabled. */
-typedef struct _snd_rawmidi_framing_tstamp {
+struct _snd_rawmidi_framing_tstamp {
 	/**
 	 * For now, frame_type is always SND_RAWMIDI_FRAME_TYPE_DEFAULT.
 	 * Midi 2.0 is expected to add new types here.
 	 * Applications are expected to skip unknown frame types.
 	 */
-	__u8 frame_type;
-	__u8 length; /* number of valid bytes in data field */
-	__u8 reserved[2];
-	__u32 tv_nsec;		/* nanoseconds */
-	__u64 tv_sec;		/* seconds */
-	__u8 data[SND_RAWMIDI_FRAMING_DATA_LENGTH];
-} snd_rawmidi_framing_tstamp_t;
+	uint8_t frame_type;
+	uint8_t length; /* number of valid bytes in data field */
+	uint8_t reserved[2];
+	uint32_t tv_nsec;		/* nanoseconds */
+	uint64_t tv_sec;		/* seconds */
+	uint8_t data[SND_RAWMIDI_FRAMING_DATA_LENGTH];
+} __attribute__((packed));
+typedef struct _snd_rawmidi_framing_tstamp snd_rawmidi_framing_tstamp_t;
 
 int snd_rawmidi_open(snd_rawmidi_t **in_rmidi, snd_rawmidi_t **out_rmidi,
 		     const char *name, int mode);
