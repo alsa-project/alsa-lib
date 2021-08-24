@@ -179,27 +179,32 @@ int main(int argc,char** argv)
 		}
 
 		if (handle_in) {
-			unsigned char ch;
-			snd_rawmidi_framing_tstamp_t frame;
+			ssize_t ret, ret2;
+			unsigned char buf[1024];
 			while (!stop) {
-				if (clock_type != -1) {
-					snd_rawmidi_read(handle_in, &frame, sizeof(frame));
-					if (verbose) {
-						int i;
-						if (frame.frame_type) {
-							fprintf(stderr, "read unknown frame %d", frame.frame_type);
-							continue;
+				ret = snd_rawmidi_read(handle_in, &buf, sizeof(buf));
+				if (clock_type != -1 && ret > 0) {
+					unsigned char *ptr = buf;
+					while (ret > 0) {
+						struct timespec tstamp;
+						unsigned char *data;
+						size_t j, data_size;
+						ret2 = snd_rawmidi_decode_frame0(handle_in, ptr, ret, &tstamp, &data, &data_size);
+						if (ret2 <= 0) {
+							fprintf(stderr, "read unknown frame %zd\n", ret2);
+							break;
 						}
-						fprintf(stderr, "read [%lld:%09d]", frame.tv_sec, frame.tv_nsec);
-						for (i = 0; i < frame.length; i++)
-							fprintf(stderr, " %02x", frame.data[i]);
+						ptr += ret2;
+						ret -= ret2;
+						fprintf(stderr, "read [%lld:%09lld]", (long long)tstamp.tv_sec, (long long)tstamp.tv_nsec);
+						for (j = 0; j < data_size; j++)
+							fprintf(stderr, " %02x", data[j]);
 						fprintf(stderr, "\n");
 					}
-				}
-				else {
-					snd_rawmidi_read(handle_in,&ch,1);
+				} else {
 					if (verbose)
-						fprintf(stderr,"read %02x\n",ch);
+						for (i = 0; i < ret; i++)
+							fprintf(stderr,"read %02x\n",buf[i]);
 				}
 			}
 		}

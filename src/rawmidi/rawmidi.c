@@ -1075,6 +1075,41 @@ ssize_t snd_rawmidi_read(snd_rawmidi_t *rawmidi, void *buffer, size_t size)
 {
 	assert(rawmidi);
 	assert(rawmidi->stream == SND_RAWMIDI_STREAM_INPUT);
+	if ((rawmidi->mode & SNDRV_RAWMIDI_MODE_FRAMING_MASK) == SNDRV_RAWMIDI_MODE_FRAMING_TSTAMP)
+		size &= ~(sizeof(struct snd_rawmidi_framing_tstamp) - 1);
 	assert(buffer || size == 0);
 	return (rawmidi->ops->read)(rawmidi, buffer, size);
+}
+
+/**
+ * \brief decode the MIDI frame with timestamp
+ * \param rawmidi RawMidi handle
+ * \param buffer frame buffer with the frame stream
+ * \param size frame buffer size in bytes
+ * \param tstamp returned timestamp
+ * \param data returned pointer to the midi data
+ * \param data_size returned size of the midi data
+ * \return number of consumed bytes otherwise a negative error code
+ */
+ssize_t snd_rawmidi_decode_frame0(snd_rawmidi_t *rawmidi, void *buffer, size_t size,
+				  struct timespec *tstamp, void *data, size_t *data_size)
+{
+	struct snd_rawmidi_framing_tstamp *f;
+
+	assert(rawmidi && buffer && tstamp && data && data_size);
+	assert(rawmidi->stream == SND_RAWMIDI_STREAM_INPUT);
+	if (size < sizeof(*data))
+		return 0;
+	if ((rawmidi->mode & SNDRV_RAWMIDI_MODE_FRAMING_MASK) != SNDRV_RAWMIDI_MODE_FRAMING_TSTAMP)
+		return -EINVAL;
+	f = buffer;
+	if (f->frame_type != 0)
+		return -EINVAL;
+	if (f->length == 0 || f->length > SNDRV_RAWMIDI_FRAMING_DATA_LENGTH)
+		return -EINVAL;
+	tstamp->tv_sec = f->tv_sec;
+	tstamp->tv_nsec = f->tv_nsec;
+	*(void **)data = f->data;
+	*data_size = f->length;
+	return sizeof(*f);
 }
