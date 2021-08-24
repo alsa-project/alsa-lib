@@ -42,8 +42,20 @@ typedef struct {
 	int open;
 	int fd;
 	int card, device, subdevice;
+	unsigned char *buf;
+	size_t buf_size;	/* total buffer size in bytes */
+	size_t buf_fill;	/* filled buffer size in bytes */
+	size_t buf_pos;		/* offset to frame in the read buffer (bytes) */
+	size_t buf_fpos;	/* offset to the frame data array (bytes 0-16) */
 } snd_rawmidi_hw_t;
 #endif
+
+static void buf_reset(snd_rawmidi_hw_t *hw)
+{
+	hw->buf_fill = 0;
+	hw->buf_pos = 0;
+	hw->buf_fpos = 0;
+}
 
 static int snd_rawmidi_hw_close(snd_rawmidi_t *rmidi)
 {
@@ -57,6 +69,7 @@ static int snd_rawmidi_hw_close(snd_rawmidi_t *rmidi)
 		err = -errno;
 		SYSERR("close failed\n");
 	}
+	free(hw->buf);
 	free(hw);
 	return err;
 }
@@ -100,6 +113,7 @@ static int snd_rawmidi_hw_params(snd_rawmidi_t *rmidi, snd_rawmidi_params_t * pa
 		SYSERR("SNDRV_RAWMIDI_IOCTL_PARAMS failed");
 		return -errno;
 	}
+	buf_reset(hw);
 	return 0;
 }
 
@@ -122,6 +136,7 @@ static int snd_rawmidi_hw_drop(snd_rawmidi_t *rmidi)
 		SYSERR("SNDRV_RAWMIDI_IOCTL_DROP failed");
 		return -errno;
 	}
+	buf_reset(hw);
 	return 0;
 }
 
@@ -156,6 +171,96 @@ static ssize_t snd_rawmidi_hw_read(snd_rawmidi_t *rmidi, void *buffer, size_t si
 	return result;
 }
 
+static ssize_t read_from_ts_buf(snd_rawmidi_hw_t *hw, struct timespec *tstamp,
+				void *buffer, size_t size)
+{
+	struct snd_rawmidi_framing_tstamp *f;
+	size_t flen;
+	ssize_t result = 0;
+
+	f = (struct snd_rawmidi_framing_tstamp *)(hw->buf + hw->buf_pos);
+	while (hw->buf_fill >= sizeof(*f)) {
+		if (f->frame_type == 0) {
+			tstamp->tv_sec = f->tv_sec;
+			tstamp->tv_nsec = f->tv_nsec;
+			break;
+		}
+		hw->buf_pos += sizeof(*f);
+		hw->buf_fill -= sizeof(*f);
+		f++;
+	}
+	while (size > 0 && hw->buf_fill >= sizeof(*f)) {
+		/* skip other frames */
+		if (f->frame_type != 0)
+			goto __next;
+		if (f->length == 0 || f->length > SNDRV_RAWMIDI_FRAMING_DATA_LENGTH)
+			return -EINVAL;
+		if (tstamp->tv_sec != (time_t)f->tv_sec ||
+		    tstamp->tv_nsec != f->tv_nsec)
+			break;
+		flen = f->length - hw->buf_fpos;
+		if (size < flen) {
+			/* partial copy */
+			memcpy(buffer, f->data + hw->buf_fpos, size);
+			hw->buf_fpos += size;
+			result += size;
+			break;
+		}
+		memcpy(buffer, f->data + hw->buf_fpos, flen);
+		hw->buf_fpos = 0;
+		buffer += flen;
+		size -= flen;
+		result += flen;
+	     __next:
+		hw->buf_pos += sizeof(*f);
+		hw->buf_fill -= sizeof(*f);
+		f++;
+	}
+	return result;
+}
+
+static ssize_t snd_rawmidi_hw_tread(snd_rawmidi_t *rmidi, struct timespec *tstamp,
+				    void *buffer, size_t size)
+{
+	snd_rawmidi_hw_t *hw = rmidi->private_data;
+	ssize_t result = 0, ret;
+	size_t alloc_size;
+
+	/* no timestamp */
+	tstamp->tv_sec = tstamp->tv_nsec = 0;
+
+	/* copy buffered frames */
+	if (hw->buf_fill > 0) {
+		result = read_from_ts_buf(hw, tstamp, buffer, size);
+		if (result < 0 || size == (size_t)result ||
+		    hw->buf_fill >= sizeof(struct snd_rawmidi_framing_tstamp))
+			return result;
+		buffer += result;
+		size -= result;
+	}
+
+	alloc_size = page_align(size * 2);	/* keep room for the frame meta data */
+	if (alloc_size > hw->buf_size) {
+		void *buf = realloc(hw->buf, alloc_size);
+		if (buf == NULL)
+			return result > 0 ? result : -ENOMEM;
+		hw->buf = buf;
+		hw->buf_size = alloc_size;
+	}
+
+	buf_reset(hw);
+	ret = read(hw->fd, hw->buf, hw->buf_size);
+	if (ret < 0)
+		return result > 0 ? result : -errno;
+	if (ret < (ssize_t)sizeof(struct snd_rawmidi_framing_tstamp))
+		return result;
+	hw->buf_fill = ret;
+	ret = read_from_ts_buf(hw, tstamp, buffer, size);
+	if (ret < 0 && result > 0)
+		return result;
+	return ret + result;
+}
+
 static const snd_rawmidi_ops_t snd_rawmidi_hw_ops = {
 	.close = snd_rawmidi_hw_close,
 	.nonblock = snd_rawmidi_hw_nonblock,
@@ -166,6 +271,7 @@ static const snd_rawmidi_ops_t snd_rawmidi_hw_ops = {
 	.drain = snd_rawmidi_hw_drain,
 	.write = snd_rawmidi_hw_write,
 	.read = snd_rawmidi_hw_read,
+	.tread = snd_rawmidi_hw_tread
 };
 
 

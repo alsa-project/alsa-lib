@@ -179,27 +179,27 @@ int main(int argc,char** argv)
 		}
 
 		if (handle_in) {
-			unsigned char ch;
-			snd_rawmidi_framing_tstamp_t frame;
+			unsigned char buf[1024];
+			ssize_t ret;
 			while (!stop) {
 				if (clock_type != -1) {
-					snd_rawmidi_read(handle_in, &frame, sizeof(frame));
-					if (verbose) {
-						int i;
-						if (frame.frame_type) {
-							fprintf(stderr, "read unknown frame %d", frame.frame_type);
-							continue;
-						}
-						fprintf(stderr, "read [%lld:%09d]", frame.tv_sec, frame.tv_nsec);
-						for (i = 0; i < frame.length; i++)
-							fprintf(stderr, " %02x", frame.data[i]);
+					struct timespec tstamp;
+					ret = snd_rawmidi_tread(handle_in, &tstamp, buf, sizeof(buf));
+					if (ret < 0)
+						fprintf(stderr, "read timestamp error: %d - %s\n", (int)ret, snd_strerror(ret));
+					if (ret > 0 && verbose) {
+						fprintf(stderr, "read [%lld:%09lld]", (long long)tstamp.tv_sec, (long long)tstamp.tv_nsec);
+						for (i = 0; i < ret; i++)
+							fprintf(stderr, " %02x", buf[i]);
 						fprintf(stderr, "\n");
 					}
-				}
-				else {
-					snd_rawmidi_read(handle_in,&ch,1);
-					if (verbose)
-						fprintf(stderr,"read %02x\n",ch);
+				} else {
+					ret = snd_rawmidi_read(handle_in, buf, sizeof(buf));
+					if (ret < 0)
+						fprintf(stderr, "read error: %d - %s\n", (int)ret, snd_strerror(ret));
+					if (ret > 0 && verbose)
+						for (i = 0; i < ret; i++)
+							fprintf(stderr,"read %02x\n",buf[i]);
 				}
 			}
 		}

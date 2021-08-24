@@ -34,6 +34,7 @@ typedef struct {
 	int (*drain)(snd_rawmidi_t *rawmidi);
 	ssize_t (*write)(snd_rawmidi_t *rawmidi, const void *buffer, size_t size);
 	ssize_t (*read)(snd_rawmidi_t *rawmidi, void *buffer, size_t size);
+	ssize_t (*tread)(snd_rawmidi_t *rawmidi, struct timespec *tstamp, void *buffer, size_t size);
 } snd_rawmidi_ops_t;
 
 struct _snd_rawmidi {
