@@ -780,6 +780,9 @@ int uc_mgr_card_open(snd_use_case_mgr_t *uc_mgr)
 	while (uc_mgr_card_find(ucm_card_assign)) {
 		ucm_card_assign++;
 		ucm_card_assign &= 0xffff;
+		/* avoid zero card instance number */
+		if (ucm_card_assign == 0)
+			ucm_card_assign++;
 		if (ucm_card_assign == prev) {
 			pthread_mutex_unlock(&ucm_cards_mutex);
 			return -ENOMEM;
