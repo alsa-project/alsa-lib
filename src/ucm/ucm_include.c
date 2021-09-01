@@ -91,17 +91,23 @@ static void config_dump(snd_config_t *cfg)
 }
 #endif
 
-static int find_position_node(snd_config_t **res, snd_config_t *dst,
+static int find_position_node(snd_use_case_mgr_t *uc_mgr,
+			      snd_config_t **res, snd_config_t *dst,
 			      const char *id, snd_config_t *pos)
 {
 	const char *s;
+	char *s1;
 	int err;
 
 	err = get_string(pos, id, &s);
 	if (err < 0 && err != -ENOENT)
 		return err;
 	if (err == 0) {
-		err = snd_config_search(dst, s, res);
+		err = uc_mgr_get_substituted_value(uc_mgr, &s1, s);
+		if (err < 0)
+			return err;
+		err = snd_config_search(dst, s1, res);
+		free(s1);
 		if (err < 0 && err != -ENOENT)
 			return err;
 	}
@@ -128,7 +134,7 @@ static int merge_it(snd_config_t *dst, snd_config_t *n, snd_config_t **_dn)
 	return err;
 }
 
-static int compound_merge(const char *id,
+static int compound_merge(snd_use_case_mgr_t *uc_mgr, const char *id,
 			  snd_config_t *dst, snd_config_t *src,
 			  snd_config_t *before, snd_config_t *after)
 {
@@ -143,12 +149,12 @@ static int compound_merge(const char *id,
 	}
 
 	if (before) {
-		err = find_position_node(&_before, dst, id, before);
+		err = find_position_node(uc_mgr, &_before, dst, id, before);
 		if (err < 0)
 			return err;
 	}
 	if (after) {
-		err = find_position_node(&_after, dst, id, after);
+		err = find_position_node(uc_mgr, &_after, dst, id, after);
 		if (err < 0)
 			return err;
 	}
@@ -259,7 +265,7 @@ __add:
 			err = snd_config_search(parent, id, &parent2);
 			if (err == -ENOENT)
 				goto __add;
-			err = compound_merge(id, parent2, n, before, after);
+			err = compound_merge(uc_mgr, id, parent2, n, before, after);
 			if (err < 0) {
 				snd_config_delete(n);
 				return err;
