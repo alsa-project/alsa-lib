@@ -164,6 +164,7 @@ static int snd_rawmidi_params_default(snd_rawmidi_t *rawmidi, snd_rawmidi_params
 	params->avail_min = 1;
 	params->no_active_sensing = 1;
 	params->mode = 0;
+	memset(params->reserved, 0, sizeof(params->reserved));
 	return 0;
 }
 
