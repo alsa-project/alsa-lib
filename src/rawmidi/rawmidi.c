@@ -1112,5 +1112,7 @@ ssize_t snd_rawmidi_tread(snd_rawmidi_t *rawmidi, struct timespec *tstamp, void 
 	assert(rawmidi);
 	assert(rawmidi->stream == SND_RAWMIDI_STREAM_INPUT);
 	assert(buffer || size == 0);
+	if ((rawmidi->params_mode & SNDRV_RAWMIDI_MODE_FRAMING_MASK) == SNDRV_RAWMIDI_MODE_FRAMING_TSTAMP)
+		return -EINVAL;
 	return (rawmidi->ops->tread)(rawmidi, tstamp, buffer, size);
 }
