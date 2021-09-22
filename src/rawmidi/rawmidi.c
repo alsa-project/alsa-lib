@@ -118,14 +118,14 @@ hw:soundwave,1,2
 hw:DEV=1,CARD=soundwave,SUBDEV=2
 \endcode
 
-\section rawmidi_framing Framing of rawmidi data
+\section read_mode Read mode
 
-Optionally, incoming rawmidi bytes can be put inside a frame of type snd_rawmidi_framing_tstamp_t.
-The main current benefit is that can enable in-kernel timestamping of incoming bytes, and that
-timestamp is likely to be more precise than what userspace can offer.
+Optionally, incoming rawmidi bytes can be marked with timestamps. The library hides
+the kernel implementation (linux kernel 5.14+) and exports
+the \link ::snd_rawmidi_tread() \endlink  function which returns the
+midi bytes marked with the identical timestamp in one iteration.
 
-Tstamp type framing requires a kernel >= 5.14 and a buffer size that is a multiple of
-sizeof(snd_rawmidi_framing_tstamp_t). It is only available on input streams.
+The timestamping is available only on input streams.
 
 \section rawmidi_examples Examples
 
