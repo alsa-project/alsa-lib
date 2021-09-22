@@ -823,38 +823,54 @@ int snd_rawmidi_params_get_no_active_sensing(const snd_rawmidi_params_t *params)
 }
 
 /**
- * \brief enable or disable rawmidi framing
+ * \brief set read mode
  * \param rawmidi RawMidi handle
  * \param params pointer to snd_rawmidi_params_t structure
- * \param val type of rawmidi framing
+ * \param val type of read_mode
  * \return 0 on success, otherwise a negative error code.
  *
  * Notable error codes:
  * -EINVAL - "val" is invalid
- * -ENOTSUP - Kernel is too old to support framing.
+ * -ENOTSUP - mode is not supported
  *
  */
-int snd_rawmidi_params_set_framing_type(const snd_rawmidi_t *rawmidi, snd_rawmidi_params_t *params, snd_rawmidi_framing_t val)
+int snd_rawmidi_params_set_read_mode(const snd_rawmidi_t *rawmidi, snd_rawmidi_params_t *params, snd_rawmidi_read_mode_t val)
 {
+	unsigned int framing;
 	assert(rawmidi && params);
-	if (val > SNDRV_RAWMIDI_MODE_FRAMING_MASK >> SNDRV_RAWMIDI_MODE_FRAMING_SHIFT)
+
+	switch (val) {
+	case SND_RAWMIDI_READ_STANDARD:
+		framing = SNDRV_RAWMIDI_MODE_FRAMING_NONE;
+		break;
+	case SND_RAWMIDI_READ_TSTAMP:
+		framing = SNDRV_RAWMIDI_MODE_FRAMING_TSTAMP;
+		break;
+	default:
 		return -EINVAL;
-	if (val != SNDRV_RAWMIDI_MODE_FRAMING_NONE &&
+	}
+
+	if (framing != SNDRV_RAWMIDI_MODE_FRAMING_NONE &&
 		(rawmidi->version < SNDRV_PROTOCOL_VERSION(2, 0, 2) || rawmidi->stream != SND_RAWMIDI_STREAM_INPUT))
 		return -ENOTSUP;
-	params->mode = (params->mode & ~SNDRV_RAWMIDI_MODE_FRAMING_MASK) + (val << SNDRV_RAWMIDI_MODE_FRAMING_SHIFT);
+	params->mode = (params->mode & ~SNDRV_RAWMIDI_MODE_FRAMING_MASK) | framing;
 	return 0;
 }
 
 /**
- * \brief get current framing type
+ * \brief get current read mode
  * \param params pointer to snd_rawmidi_params_t structure
- * \return the current type (0 = no framing, 1 = tstamp type framing)
+ * \return the current read mode (see enum)
  */
-snd_rawmidi_framing_t snd_rawmidi_params_get_framing_type(const snd_rawmidi_params_t *params)
+snd_rawmidi_read_mode_t snd_rawmidi_params_get_read_mode(const snd_rawmidi_params_t *params)
 {
+	unsigned int framing;
+
 	assert(params);
-	return (params->mode & SNDRV_RAWMIDI_MODE_FRAMING_MASK) >> SNDRV_RAWMIDI_MODE_FRAMING_SHIFT;
+	framing = params->mode & SNDRV_RAWMIDI_MODE_FRAMING_MASK;
+	if (framing == SNDRV_RAWMIDI_MODE_FRAMING_TSTAMP)
+		return SND_RAWMIDI_READ_TSTAMP;
+	return SND_RAWMIDI_READ_STANDARD;
 }
 
 /**

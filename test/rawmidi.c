@@ -151,9 +151,9 @@ int main(int argc,char** argv)
 				if (clock_type != -1) {
 					fprintf(stderr, "Enable kernel clock type %d\n", clock_type);
 					snd_rawmidi_params_current(handle_in, params);
-					err = snd_rawmidi_params_set_framing_type(handle_in, params, 1);
+					err = snd_rawmidi_params_set_read_mode(handle_in, params, SND_RAWMIDI_READ_TSTAMP);
 					if (err) {
-						fprintf(stderr,"snd_rawmidi_params_set_framing_type failed: %d\n", err);
+						fprintf(stderr,"snd_rawmidi_params_set_read_mode failed: %d\n", err);
 						clock_type = -1;
 					}
 				}
