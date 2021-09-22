@@ -844,6 +844,8 @@ int snd_rawmidi_params_set_read_mode(const snd_rawmidi_t *rawmidi, snd_rawmidi_p
 		framing = SNDRV_RAWMIDI_MODE_FRAMING_NONE;
 		break;
 	case SND_RAWMIDI_READ_TSTAMP:
+		if (rawmidi->ops->tread == NULL)
+			return -ENOTSUP;
 		framing = SNDRV_RAWMIDI_MODE_FRAMING_TSTAMP;
 		break;
 	default:
@@ -1114,5 +1116,7 @@ ssize_t snd_rawmidi_tread(snd_rawmidi_t *rawmidi, struct timespec *tstamp, void 
 	assert(buffer || size == 0);
 	if ((rawmidi->params_mode & SNDRV_RAWMIDI_MODE_FRAMING_MASK) == SNDRV_RAWMIDI_MODE_FRAMING_TSTAMP)
 		return -EINVAL;
+	if (rawmidi->ops->tread == NULL)
+		return -ENOTSUP;
 	return (rawmidi->ops->tread)(rawmidi, tstamp, buffer, size);
 }
