@@ -354,6 +354,11 @@ int snd_rawmidi_hw_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 		snd_ctl_close(ctl);
 		return -SND_ERROR_INCOMPATIBLE_VERSION;
 	}
+	if (SNDRV_PROTOCOL_VERSION(2, 0, 2) <= ver) {
+		/* inform the protocol version we're supporting */
+		unsigned int user_ver = SNDRV_RAWMIDI_VERSION;
+		ioctl(fd, SNDRV_RAWMIDI_IOCTL_USER_PVERSION, &user_ver);
+	}
 	if (subdevice >= 0) {
 		memset(&info, 0, sizeof(info));
 		info.stream = outputp ? SNDRV_RAWMIDI_STREAM_OUTPUT : SNDRV_RAWMIDI_STREAM_INPUT;
