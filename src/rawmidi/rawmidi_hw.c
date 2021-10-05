@@ -114,6 +114,12 @@ static int snd_rawmidi_hw_params(snd_rawmidi_t *rmidi, snd_rawmidi_params_t * pa
 		return -errno;
 	}
 	buf_reset(hw);
+	if (hw->buf &&
+	    ((params->mode & SNDRV_RAWMIDI_MODE_FRAMING_MASK) != SNDRV_RAWMIDI_MODE_FRAMING_TSTAMP)) {
+		free(hw->buf);
+		hw->buf = NULL;
+		hw->buf_size = 0;
+	}
 	return 0;
 }
 
