@@ -359,7 +359,6 @@ snd_dlobj_cache_get0(const char *lib, const char *name,
 		free(c);
 	      __err:
 		snd_dlclose(dlobj);
-		snd_dlobj_unlock();
 		return NULL;
 	}
 	c->dlobj = dlobj;
