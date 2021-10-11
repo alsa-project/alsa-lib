@@ -108,17 +108,32 @@ static int snd_rawmidi_hw_info(snd_rawmidi_t *rmidi, snd_rawmidi_info_t * info)
 static int snd_rawmidi_hw_params(snd_rawmidi_t *rmidi, snd_rawmidi_params_t * params)
 {
 	snd_rawmidi_hw_t *hw = rmidi->private_data;
+	int tstamp;
 	params->stream = rmidi->stream;
 	if (ioctl(hw->fd, SNDRV_RAWMIDI_IOCTL_PARAMS, params) < 0) {
 		SYSERR("SNDRV_RAWMIDI_IOCTL_PARAMS failed");
 		return -errno;
 	}
 	buf_reset(hw);
-	if (hw->buf &&
-	    ((params->mode & SNDRV_RAWMIDI_MODE_FRAMING_MASK) != SNDRV_RAWMIDI_MODE_FRAMING_TSTAMP)) {
+	tstamp = (params->mode & SNDRV_RAWMIDI_MODE_FRAMING_MASK) == SNDRV_RAWMIDI_MODE_FRAMING_TSTAMP;
+	if (hw->buf && !tstamp) {
 		free(hw->buf);
 		hw->buf = NULL;
 		hw->buf_size = 0;
+	} else if (tstamp) {
+		size_t alloc_size;
+		void *buf;
+
+		alloc_size = page_size();
+		if (params->buffer_size > alloc_size)
+			alloc_size = params->buffer_size;
+		if (alloc_size != hw->buf_size) {
+			buf = realloc(hw->buf, alloc_size);
+			if (buf == NULL)
+				return -ENOMEM;
+			hw->buf = buf;
+			hw->buf_size = alloc_size;
+		}
 	}
 	return 0;
 }
@@ -230,7 +245,6 @@ static ssize_t snd_rawmidi_hw_tread(snd_rawmidi_t *rmidi, struct timespec *tstam
 {
 	snd_rawmidi_hw_t *hw = rmidi->private_data;
 	ssize_t result = 0, ret;
-	size_t alloc_size;
 
 	/* no timestamp */
 	tstamp->tv_sec = tstamp->tv_nsec = 0;
@@ -243,15 +257,6 @@ static ssize_t snd_rawmidi_hw_tread(snd_rawmidi_t *rmidi, struct timespec *tstam
 			return result;
 		buffer += result;
 		size -= result;
-	}
-
-	alloc_size = page_align(size * 2);	/* keep room for the frame meta data */
-	if (alloc_size > hw->buf_size) {
-		void *buf = realloc(hw->buf, alloc_size);
-		if (buf == NULL)
-			return result > 0 ? result : -ENOMEM;
-		hw->buf = buf;
-		hw->buf_size = alloc_size;
 	}
 
 	buf_reset(hw);
