@@ -62,14 +62,14 @@ typedef int snd_pcm_route_ttable_entry_t;
 #define SND_PCM_PLUGIN_ROUTE_HALF (SND_PCM_PLUGIN_ROUTE_RESOLUTION / 2)	/**< half value */
 #define SND_PCM_PLUGIN_ROUTE_FULL SND_PCM_PLUGIN_ROUTE_RESOLUTION	/**< full value */
 #endif
-
+struct snd_pcm_ctl_route;
 /*
  *  Hardware plugin
  */
 int snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 		    int card, int device, int subdevice,
 		    snd_pcm_stream_t stream, int mode,
-		    int mmap_emulation, int sync_ptr_ioctl);
+		    int mmap_emulation, int sync_ptr_ioctl, struct snd_pcm_ctl_route *ctl_routes);
 int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 		     snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *conf,
 		     snd_pcm_stream_t stream, int mode);

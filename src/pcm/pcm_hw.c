@@ -87,6 +87,11 @@ static const snd_pcm_fast_ops_t snd_pcm_hw_fast_ops_timer;
  *
  */
 
+typedef struct snd_pcm_ctl_route {
+	const char *elem;
+	const char *value;
+} snd_pcm_ctl_route_t;
+
 typedef struct {
 	int version;
 	int fd;
@@ -1415,6 +1420,152 @@ static int snd_pcm_hw_set_chmap(snd_pcm_t *pcm, const snd_pcm_chmap_t *map)
 	return ret;
 }
 
+static snd_pcm_ctl_route_t *
+snd_pcm_hw_parse_ctl_routes(snd_config_t *conf)
+{
+	snd_pcm_ctl_route_t *route_list;
+	snd_config_iterator_t i, next;
+	const char *str;
+	int nums, err;
+
+	if (snd_config_get_type(conf) != SND_CONFIG_TYPE_COMPOUND) {
+		return NULL;
+	}
+
+	nums = 0;
+	snd_config_for_each(i, next, conf) {
+		nums++;
+	}
+
+	route_list = calloc(nums + 1, sizeof(*route_list));
+	if (!route_list) {
+		return NULL;
+	}
+
+	nums = 0;
+	snd_config_for_each(i, next, conf) {
+		snd_config_t *n = snd_config_iterator_entry(i);
+		if (snd_config_get_id(n, &route_list[nums].elem) < 0) {
+			SNDERR("Missing route ID #%d\n", nums);
+			continue;
+		}
+
+		err = snd_config_get_string(n, &route_list[nums].value);
+		if (err < 0) {
+			SNDERR("Missing route value #%d\n", nums);
+			goto _err;
+		}
+		nums++;
+	}
+	return route_list;
+
+       _err:
+	free(route_list);
+	return NULL;
+}
+
+static int snd_pcm_hw_get_enum_item_index(snd_ctl_t *ctl, snd_ctl_elem_id_t *id, const char *name)
+{
+	snd_ctl_elem_info_t info = {};
+	int err;
+	unsigned int i, items;
+
+	snd_ctl_elem_info_set_id(&info, id);
+
+	if ((err = snd_ctl_elem_info(ctl, &info)) < 0) {
+		SNDERR("snd_ctl_elem_info failure: %s\n", snd_strerror(err));
+		return err;
+	}
+	if (SND_CTL_ELEM_TYPE_ENUMERATED != snd_ctl_elem_info_get_type(&info)) {
+		SNDERR("\"%s\" control isn't enum type (%s)\n", name,
+				snd_ctl_elem_type_name(snd_ctl_elem_info_get_type(&info)));
+		return -EINVAL;
+	}
+
+	items = snd_ctl_elem_info_get_items(&info);
+	for (i = 0; i < items; i++) {
+		const char *itemname;
+
+		/* need to reload the info to get the selected name copied into info */
+		snd_ctl_elem_info_set_item(&info, i);
+		if ((err = snd_ctl_elem_info(ctl, &info)) < 0) {
+			return err;
+		}
+		itemname = snd_ctl_elem_info_get_item_name(&info);
+		if (strcmp(name, itemname) == 0) {
+			return i;
+		}
+	}
+
+	return -EINVAL;
+}
+
+static int snd_pcm_hw_set_enum_ctl(snd_ctl_t *ctl, snd_ctl_elem_id_t *ctl_id, const char* enum_value)
+{
+	snd_ctl_elem_value_t ctl_value = {};
+	int enum_index;
+
+	/* lookup enum value by name */
+	enum_index = snd_pcm_hw_get_enum_item_index(ctl, ctl_id, enum_value);
+	if (enum_index < 0) {
+		SNDERR("enum value \"%s\" for control \"%s\" not found: %d\n",
+				enum_value, snd_ctl_elem_id_get_name(ctl_id), enum_index);
+		return enum_index;
+	}
+
+	/* apply value */
+	snd_ctl_elem_value_set_id(&ctl_value, ctl_id);
+	snd_ctl_elem_value_set_enumerated(&ctl_value, 0, enum_index);
+	return snd_ctl_elem_write(ctl, &ctl_value);
+}
+
+static void snd_pcm_hw_set_routes(snd_ctl_t *ctl, snd_pcm_ctl_route_t *routes)
+{
+	snd_ctl_elem_list_t clist = {};
+	snd_pcm_ctl_route_t *route;
+	int err;
+
+	/* inspired by snd_hctl_load, need to reallocate the list
+	 * until all elem IDs are placed on it */
+	if ((err = snd_ctl_elem_list(ctl, &clist)) < 0) {
+		goto _err;
+	}
+	while (clist.count != clist.used) {
+		if ((err = snd_ctl_elem_list_alloc_space(&clist, clist.count)) < 0) {
+			goto _err;
+		}
+		if ((err = snd_ctl_elem_list(ctl, &clist)) < 0) {
+			goto _err;
+		}
+	}
+	/* lookup each route in the elem list */
+	for (route = routes; (route->elem != NULL) && (route->value != NULL); route++) {
+		snd_ctl_elem_id_t ctl_id = {};
+		int i;
+
+		for (i = 0; i < clist.count; i++) {
+			const char *name;
+
+			snd_ctl_elem_list_get_id(&clist, i, &ctl_id);
+			name = snd_ctl_elem_id_get_name(&ctl_id);
+
+			if (strcmp(name, route->elem) == 0) {
+				/* elem found, set the requested value */
+				snd_pcm_hw_set_enum_ctl(ctl, &ctl_id, route->value);
+				break;
+			}
+		}
+		if (i == clist.count) {
+			SNDERR("Cannot find control \"%s\"\n", route->elem);
+			continue;
+		}
+	}
+
+       _err:
+	/* don't forget to clean up the elem list buffer */
+	snd_ctl_elem_list_free_space(&clist);
+}
+
 static void snd_pcm_hw_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
@@ -1667,7 +1818,7 @@ int snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 		    int card, int device, int subdevice,
 		    snd_pcm_stream_t stream, int mode,
 		    int mmap_emulation ATTRIBUTE_UNUSED,
-		    int sync_ptr_ioctl)
+		    int sync_ptr_ioctl, snd_pcm_ctl_route_t *ctl_routes)
 {
 	char filename[sizeof(SNDRV_FILE_PCM_STREAM_PLAYBACK) + 20];
 	const char *filefmt;
@@ -1694,6 +1845,9 @@ int snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 		return -EINVAL;
 	}
 	sprintf(filename, filefmt, card, device);
+
+	if (ctl_routes)
+		snd_pcm_hw_set_routes(ctl, ctl_routes);
 
       __again:
       	if (attempt++ > 3) {
@@ -1764,6 +1918,9 @@ pcm.name {
 	[channels INT]		# Restrict only to the given channels
 	[rate INT]		# Restrict only to the given rate
 	[chmap MAP]		# Override channel maps; MAP is a string array
+	[routing {
+		"Mux" "IN1"
+	}]			# DAPM dynamic routing list to configure when opening the plugin
 }
 \endcode
 
@@ -1801,6 +1958,7 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 	snd_config_t *n;
 	int nonblock = 1; /* non-block per default */
 	snd_pcm_chmap_query_t **chmap = NULL;
+	snd_pcm_ctl_route_t *route_list = NULL;
 	snd_pcm_hw_t *hw;
 
 	/* look for defaults.pcm.nonblock definition */
@@ -1892,6 +2050,16 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 			}
 			continue;
 		}
+		if (strcmp(id, "routing") == 0) {
+			free(route_list);
+			route_list = snd_pcm_hw_parse_ctl_routes(n);
+			if (!route_list) {
+				SNDERR("Invalid routing for %s", id);
+				err = -EINVAL;
+				goto fail;
+			}
+			continue;
+		}
 		SNDERR("Unknown field %s", id);
 		err = -EINVAL;
 		goto fail;
@@ -1903,7 +2071,8 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 	}
 	err = snd_pcm_hw_open(pcmp, name, card, device, subdevice, stream,
 			      mode | (nonblock ? SND_PCM_NONBLOCK : 0),
-			      0, sync_ptr_ioctl);
+			      0, sync_ptr_ioctl, route_list);
+	free(route_list);
 	if (err < 0)
 		goto fail;
 	if (nonblock && ! (mode & SND_PCM_NONBLOCK)) {
@@ -1932,6 +2101,7 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 
 fail:
         snd_pcm_free_chmaps(chmap);
+        free(route_list);
         return err;
 }
 
