@@ -104,7 +104,10 @@ typedef struct {
 	int period_timer_need_poll;
 	/* restricted parameters */
 	snd_pcm_format_t format;
-	int rate;
+	struct {
+		int min;
+		int max;
+	} rates;
 	int channels;
 	/* for chmap */
 	unsigned int chmap_caps;
@@ -347,9 +350,13 @@ static int snd_pcm_hw_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 		if (err < 0)
 			return err;
 	}
-	if (hw->rate > 0) {
+	if (hw->rates.min > 0) {
 		err = _snd_pcm_hw_param_set_minmax(params, SND_PCM_HW_PARAM_RATE,
-						   hw->rate, 0, hw->rate + 1, -1);
+#if 1 // TODO: find out which arguments are correct
+						   hw->rates.min, 0, hw->rates.max + 1, -1);
+#else
+						   hw->rates.min, 0, hw->rates.max, 0);
+#endif
 		if (err < 0)
 			return err;
 	}
@@ -1616,7 +1623,7 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name, int fd,
 	hw->fd = fd;
 	/* no restriction */
 	hw->format = SND_PCM_FORMAT_UNKNOWN;
-	hw->rate = 0;
+	hw->rates.min = hw->rates.max = 0;
 	hw->channels = 0;
 
 	ret = snd_pcm_new(&pcm, SND_PCM_TYPE_HW, name, info.stream, mode);
@@ -1796,7 +1803,7 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 	long card = -1, device = 0, subdevice = -1;
 	const char *str;
 	int err, sync_ptr_ioctl = 0;
-	int rate = 0, channels = 0;
+	int rate = 0, channels = 0, min_rate = 0, max_rate = 0;
 	snd_pcm_format_t format = SND_PCM_FORMAT_UNKNOWN;
 	snd_config_t *n;
 	int nonblock = 1; /* non-block per default */
@@ -1863,6 +1870,26 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 			rate = val;
 			continue;
 		}
+		if (strcmp(id, "min_rate") == 0) {
+			long val;
+			err = snd_config_get_integer(n, &val);
+			if (err < 0) {
+				SNDERR("Invalid type for %s", id);
+				goto fail;
+			}
+			min_rate = val;
+			continue;
+		}
+		if (strcmp(id, "max_rate") == 0) {
+			long val;
+			err = snd_config_get_integer(n, &val);
+			if (err < 0) {
+				SNDERR("Invalid type for %s", id);
+				goto fail;
+			}
+			max_rate = val;
+			continue;
+		}
 		if (strcmp(id, "format") == 0) {
 			err = snd_config_get_string(n, &str);
 			if (err < 0) {
@@ -1901,6 +1928,11 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 		err = -EINVAL;
 		goto fail;
 	}
+	if ((min_rate < 0) || (max_rate < min_rate)) {
+		SNDERR("min_rate - max_rate configuration invalid");
+		err = -EINVAL;
+		goto fail;
+	}
 	err = snd_pcm_hw_open(pcmp, name, card, device, subdevice, stream,
 			      mode | (nonblock ? SND_PCM_NONBLOCK : 0),
 			      0, sync_ptr_ioctl);
@@ -1923,8 +1955,14 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 		hw->format = format;
 	if (channels > 0)
 		hw->channels = channels;
-	if (rate > 0)
-		hw->rate = rate;
+	if ((min_rate == 0) && (max_rate == 0)) {
+		min_rate = rate;
+		max_rate = rate;
+	}
+	if (min_rate > 0) {
+		hw->rates.min = min_rate;
+		hw->rates.max = max_rate;
+	}
 	if (chmap)
 		hw->chmap_override = chmap;
 
