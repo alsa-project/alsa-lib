@@ -227,6 +227,7 @@ struct snd_use_case_mgr {
 	char *comment;
 	int conf_format;
 	unsigned int ucm_card_number;
+	int suppress_nodev_errors;
 
 	/* UCM cards list */
 	struct list_head cards_list;

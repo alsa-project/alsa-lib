@@ -239,7 +239,8 @@ static int error_node(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 		uc_error("error: failed to get Error string");
 		return err;
 	}
-	uc_error("%s", s);
+	if (!uc_mgr->suppress_nodev_errors)
+		uc_error("%s", s);
 	free(s);
 	return -ENXIO;
 }

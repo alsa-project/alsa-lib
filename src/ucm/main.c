@@ -1383,6 +1383,11 @@ int snd_use_case_mgr_open(snd_use_case_mgr_t **uc_mgr,
 	INIT_LIST_HEAD(&mgr->variable_list);
 	pthread_mutex_init(&mgr->mutex, NULL);
 
+	if (card_name && *card_name == '-') {
+		card_name++;
+		mgr->suppress_nodev_errors = 1;
+	}
+
 	err = uc_mgr_card_open(mgr);
 	if (err < 0) {
 		uc_mgr_free(mgr);
@@ -1402,6 +1407,8 @@ int snd_use_case_mgr_open(snd_use_case_mgr_t **uc_mgr,
 	/* get info on use_cases and verify against card */
 	err = import_master_config(mgr);
 	if (err < 0) {
+		if (err == -ENXIO && mgr->suppress_nodev_errors)
+			goto _err;
 		uc_error("error: failed to import %s use case configuration %d",
 			 card_name, err);
 		goto _err;
