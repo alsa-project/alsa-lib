@@ -59,7 +59,7 @@ int SND_PCM_PLUGIN_ENTRY(plugin) (snd_pcm_t **pcmp, const char *name,\
 #include "pcm_extplug.h"
 
 int snd_pcm_parse_control_id(snd_config_t *conf, snd_ctl_elem_id_t *ctl_id, int *cardp,
-			     int *cchannelsp, int *hwctlp);
+			     int *cchannelsp, int *hwctlp) __attribute__((deprecated));
 
 /** \} */
 
