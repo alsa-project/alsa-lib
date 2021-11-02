@@ -811,7 +811,6 @@ void uc_mgr_card_close(snd_use_case_mgr_t *uc_mgr)
  */
 const char *uc_mgr_alibcfg_by_device(snd_config_t **top, const char *name)
 {
-	char buf[7];
 	long card_num;
 	snd_config_t *config;
 	snd_use_case_mgr_t *uc_mgr;
@@ -819,11 +818,7 @@ const char *uc_mgr_alibcfg_by_device(snd_config_t **top, const char *name)
 
 	if (strncmp(name, "_ucm", 4) || strlen(name) < 12 || name[8] != '.')
 		return NULL;
-	buf[0] = '0';
-	buf[1] = 'x';
-	strncpy(buf + 2, name + 4, 4);
-	buf[6] = '\0';
-	err = safe_strtol(buf, &card_num);
+	err = safe_strtol_base(name, &card_num, 16);
 	if (err < 0 || card_num < 0 || card_num > 0xffff)
 		return NULL;
 	config = NULL;

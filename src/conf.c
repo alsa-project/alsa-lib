@@ -668,14 +668,14 @@ static int safe_strtoll(const char *str, long long *val)
 	return 0;
 }
 
-int safe_strtol(const char *str, long *val)
+int safe_strtol_base(const char *str, long *val, int base)
 {
 	char *end;
 	long v;
 	if (!*str)
 		return -EINVAL;
 	errno = 0;
-	v = strtol(str, &end, 0);
+	v = strtol(str, &end, base);
 	if (errno)
 		return -errno;
 	if (*end)
