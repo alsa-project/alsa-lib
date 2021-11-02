@@ -414,12 +414,8 @@ static int write_hex(char *buf, char *str, int width)
 	void *p = &val;
 
         errno = 0;
-	val = strtol(str, NULL, 16);
-
-	if ((errno == ERANGE && (val == LONG_MAX || val == LONG_MIN))
-		|| (errno != 0 && val == 0)) {
+	if (safe_strtol_base(str, &val, 16) < 0)
 		return -EINVAL;
-        }
 
 	switch (width) {
 	case 1:

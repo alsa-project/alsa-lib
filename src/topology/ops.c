@@ -34,15 +34,22 @@ static const struct map_elem control_map[] = {
 
 static int lookup_ops(const char *c)
 {
-	unsigned int i;
+	int i;
+	long ret;
 
-	for (i = 0; i < ARRAY_SIZE(control_map); i++) {
+	for (i = 0; i < (int)ARRAY_SIZE(control_map); i++) {
 		if (strcmp(control_map[i].name, c) == 0)
 			return control_map[i].id;
 	}
 
 	/* cant find string name in our table so we use its ID number */
-	return strtol(c, NULL, 0);
+	i = safe_strtol(c, &ret);
+	if (i < 0) {
+		SNDERR("wrong kcontrol ops value string '%s'", c);
+		return i;
+	}
+
+	return ret;
 }
 
 const char *tplg_ops_name(int type)
