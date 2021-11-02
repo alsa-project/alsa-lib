@@ -983,8 +983,8 @@ int snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 	return 0;
 }
 
-int _snd_pcm_parse_control_id(snd_config_t *conf, snd_ctl_elem_id_t *ctl_id,
-			      int *cardp, int *cchannels)
+static int _snd_pcm_parse_control_id(snd_config_t *conf, snd_ctl_elem_id_t *ctl_id,
+				     int *cardp, int *cchannels)
 {
 	snd_config_iterator_t i, next;
 	int iface = SND_CTL_ELEM_IFACE_MIXER;
