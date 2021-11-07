@@ -1470,7 +1470,7 @@ static int parse_modifier_name(snd_use_case_mgr_t *uc_mgr,
 			     void *data1,
 			     void *data2 ATTRIBUTE_UNUSED)
 {
-	return parse_compound(uc_mgr, cfg, parse_modifier, data1, data2);
+	return parse_compound_check_legacy(uc_mgr, cfg, parse_modifier, data1);
 }
 
 static int verb_dev_list_add(struct use_case_verb *verb,
