@@ -821,7 +821,7 @@ const char *uc_mgr_alibcfg_by_device(snd_config_t **top, const char *name)
 		return NULL;
 	strncpy(buf, name + 4, 4);
 	buf[4] = '\0';
-	err = safe_strtol_base(name, &card_num, 16);
+	err = safe_strtol_base(buf, &card_num, 16);
 	if (err < 0 || card_num < 0 || card_num > 0xffff)
 		return NULL;
 	config = NULL;
