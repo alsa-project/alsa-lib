@@ -548,6 +548,55 @@ static void test_for_each(void)
 	ALSA_CHECK(snd_config_delete(c));
 }
 
+static int _expand_fcn(snd_config_t **dst, const char *s, void *private_data ATTRIBUTE_UNUSED)
+{
+	if (strcmp(s, "var10") == 0)
+		return snd_config_imake_integer(dst, NULL, 10);
+	if (strcmp(s, "var50") == 0)
+		return snd_config_imake_integer(dst, NULL, 50);
+	return snd_config_imake_string(dst, NULL, "");
+}
+
+static void test_evaluate_string(void)
+{
+	struct {
+		const char *expr;
+		long long result;
+	} *p, e[] = {
+		{ .expr = "$var10", .result = 10 },
+		{ .expr = "$var50", .result = 50 },
+		{ .expr = "$[1+1]", .result = 2 },
+		{ .expr = "$[10-5]", .result = 5 },
+		{ .expr = "$[10*5]", .result = 50 },
+		{ .expr = "$[15/5]", .result = 3 },
+		{ .expr = "$[12%5]", .result = 2 },
+		{ .expr = "$[0xaa|0x55]", .result = 0xff },
+		{ .expr = "$[0xff&0xfc]", .result = 0xfc },
+		{ .expr = "$[4294967296+10]", .result = 4294967306LL },
+		{ .expr = "$[$var10+1]", .result = 11 },
+		{ .expr = "$[$var10 + $var50]", .result = 60 },
+		{ .expr = "$[ $var10 + $[ $var50 + 10 ] ]", .result = 70 },
+		{ .expr = NULL, .result = 0 },
+	};
+	snd_config_t *dst;
+	long l;
+	long long ll;
+
+	for (p = e; p->expr; p++) {
+		ALSA_CHECK(snd_config_evaluate_string(&dst, p->expr, _expand_fcn, NULL));
+		if (snd_config_get_type(dst) == SND_CONFIG_TYPE_INTEGER) {
+			ALSA_CHECK(snd_config_get_integer(dst, &l));
+			TEST_CHECK(l == p->result);
+		} else if (snd_config_get_type(dst) == SND_CONFIG_TYPE_INTEGER64) {
+			ALSA_CHECK(snd_config_get_integer64(dst, &ll));
+			TEST_CHECK(ll == p->result);
+		} else {
+			ALSA_CHECK(0);
+		}
+		ALSA_CHECK(snd_config_delete(dst));
+	}
+}
+
 int main(void)
 {
 	test_top();
@@ -578,5 +627,6 @@ int main(void)
 	test_get_ascii();
 	test_iterators();
 	test_for_each();
+	test_evaluate_string();
 	return TEST_EXIT_CODE();
 }

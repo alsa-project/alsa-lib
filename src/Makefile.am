@@ -14,7 +14,7 @@ SYMFUNCS =
 endif
 
 lib_LTLIBRARIES = libasound.la
-libasound_la_SOURCES = conf.c confmisc.c input.c output.c async.c error.c dlmisc.c socket.c shmarea.c userfile.c names.c
+libasound_la_SOURCES = conf.c confeval.c confmisc.c input.c output.c async.c error.c dlmisc.c socket.c shmarea.c userfile.c names.c
 
 SUBDIRS=control
 libasound_la_LIBADD = control/libcontrol.la

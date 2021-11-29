@@ -108,11 +108,18 @@ int snd_config_search_definition(snd_config_t *config,
 				 const char *base, const char *key,
 				 snd_config_t **result);
 
+typedef int (*snd_config_expand_fcn_t)(snd_config_t **dst, const char *s, void *private_data);
+
+int snd_config_expand_custom(snd_config_t *config, snd_config_t *root,
+			     snd_config_expand_fcn_t fcn, void *private_data,
+			     snd_config_t **result);
 int snd_config_expand(snd_config_t *config, snd_config_t *root,
 		      const char *args, snd_config_t *private_data,
 		      snd_config_t **result);
 int snd_config_evaluate(snd_config_t *config, snd_config_t *root,
 			snd_config_t *private_data, snd_config_t **result);
+int snd_config_evaluate_string(snd_config_t **dst, const char *s,
+			       snd_config_expand_fcn_t fcn, void *private_data);
 
 int snd_config_add(snd_config_t *config, snd_config_t *child);
 int snd_config_add_before(snd_config_t *before, snd_config_t *child);

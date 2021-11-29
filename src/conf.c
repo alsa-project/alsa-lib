@@ -318,6 +318,15 @@ Arguments are referred to with a dollar-sign ($) and the name of the argument:
   card $CARD
 \endcode
 
+\section confarg_math simple math expressions
+
+The simple math expressions are identified using a unix shell like expression syntax
+with a dollar-sign ($) and bracket ([):
+
+\code
+  card "$[$CARD + 1]"
+\endcode
+
 \section confarg_usage Usage
 
 To use a block with arguments, write the argument values after the key,
@@ -354,6 +363,7 @@ pcm.demo {
 	device $DEVICE
 }
 \endcode
+
 
 */
 
@@ -4802,21 +4812,23 @@ typedef int (*snd_config_walk_callback_t)(snd_config_t *src,
 					  snd_config_t *root,
 					  snd_config_t **dst,
 					  snd_config_walk_pass_t pass,
-					  snd_config_t *private_data);
+					  snd_config_expand_fcn_t fcn,
+					  void *private_data);
 #endif
 
 static int snd_config_walk(snd_config_t *src,
 			   snd_config_t *root,
 			   snd_config_t **dst, 
 			   snd_config_walk_callback_t callback,
-			   snd_config_t *private_data)
+			   snd_config_expand_fcn_t fcn,
+			   void *private_data)
 {
 	int err;
 	snd_config_iterator_t i, next;
 
 	switch (snd_config_get_type(src)) {
 	case SND_CONFIG_TYPE_COMPOUND:
-		err = callback(src, root, dst, SND_CONFIG_WALK_PASS_PRE, private_data);
+		err = callback(src, root, dst, SND_CONFIG_WALK_PASS_PRE, fcn, private_data);
 		if (err <= 0)
 			return err;
 		snd_config_for_each(i, next, src) {
@@ -4824,7 +4836,7 @@ static int snd_config_walk(snd_config_t *src,
 			snd_config_t *d = NULL;
 
 			err = snd_config_walk(s, root, (dst && *dst) ? &d : NULL,
-					      callback, private_data);
+					      callback, fcn, private_data);
 			if (err < 0)
 				goto _error;
 			if (err && d) {
@@ -4833,7 +4845,7 @@ static int snd_config_walk(snd_config_t *src,
 					goto _error;
 			}
 		}
-		err = callback(src, root, dst, SND_CONFIG_WALK_PASS_POST, private_data);
+		err = callback(src, root, dst, SND_CONFIG_WALK_PASS_POST, fcn, private_data);
 		if (err <= 0) {
 		_error:
 			if (dst && *dst)
@@ -4841,7 +4853,7 @@ static int snd_config_walk(snd_config_t *src,
 		}
 		break;
 	default:
-		err = callback(src, root, dst, SND_CONFIG_WALK_PASS_LEAF, private_data);
+		err = callback(src, root, dst, SND_CONFIG_WALK_PASS_LEAF, fcn, private_data);
 		break;
 	}
 	return err;
@@ -4851,7 +4863,8 @@ static int _snd_config_copy(snd_config_t *src,
 			    snd_config_t *root ATTRIBUTE_UNUSED,
 			    snd_config_t **dst,
 			    snd_config_walk_pass_t pass,
-			    snd_config_t *private_data ATTRIBUTE_UNUSED)
+			    snd_config_expand_fcn_t fcn ATTRIBUTE_UNUSED,
+			    void *private_data ATTRIBUTE_UNUSED)
 {
 	int err;
 	const char *id = src->id;
@@ -4932,14 +4945,23 @@ static int _snd_config_copy(snd_config_t *src,
 int snd_config_copy(snd_config_t **dst,
 		    snd_config_t *src)
 {
-	return snd_config_walk(src, NULL, dst, _snd_config_copy, NULL);
+	return snd_config_walk(src, NULL, dst, _snd_config_copy, NULL, NULL);
+}
+
+static int _snd_config_expand_vars(snd_config_t **dst, const char *s, void *private_data)
+{
+	snd_config_t *val, *vars = private_data;
+	if (snd_config_search(vars, s, &val) < 0)
+		return snd_config_make_string(dst, "");
+	return snd_config_copy(dst, val);
 }
 
 static int _snd_config_expand(snd_config_t *src,
 			      snd_config_t *root ATTRIBUTE_UNUSED,
 			      snd_config_t **dst,
 			      snd_config_walk_pass_t pass,
-			      snd_config_t *private_data)
+			      snd_config_expand_fcn_t fcn,
+			      void *private_data)
 {
 	int err;
 	const char *id = src->id;
@@ -4989,14 +5011,10 @@ static int _snd_config_expand(snd_config_t *src,
 		case SND_CONFIG_TYPE_STRING:
 		{
 			const char *s;
-			snd_config_t *val;
 			snd_config_t *vars = private_data;
 			snd_config_get_string(src, &s);
 			if (s && *s == '$') {
-				s++;
-				if (snd_config_search(vars, s, &val) < 0)
-					return 0;
-				err = snd_config_copy(dst, val);
+				err = snd_config_evaluate_string(dst, s, fcn, vars);
 				if (err < 0)
 					return err;
 				err = snd_config_set_id(*dst, id);
@@ -5025,7 +5043,8 @@ static int _snd_config_evaluate(snd_config_t *src,
 				snd_config_t *root,
 				snd_config_t **dst ATTRIBUTE_UNUSED,
 				snd_config_walk_pass_t pass,
-				snd_config_t *private_data)
+				snd_config_expand_fcn_t fcn ATTRIBUTE_UNUSED,
+				void *private_data)
 {
 	int err;
 	if (pass == SND_CONFIG_WALK_PASS_PRE) {
@@ -5139,7 +5158,7 @@ int snd_config_evaluate(snd_config_t *config, snd_config_t *root,
 {
 	/* FIXME: Only in place evaluation is currently implemented */
 	assert(result == NULL);
-	return snd_config_walk(config, root, result, _snd_config_evaluate, private_data);
+	return snd_config_walk(config, root, result, _snd_config_evaluate, NULL, private_data);
 }
 
 static int load_defaults(snd_config_t *subs, snd_config_t *defs)
@@ -5543,6 +5562,41 @@ static int parse_args(snd_config_t *subs, const char *str, snd_config_t *defs)
  * \brief Expands a configuration node, applying arguments and functions.
  * \param[in] config Handle to the configuration node.
  * \param[in] root Handle to the root configuration node.
+ * \param[in] fcn Custom function to obtain the referred variable name
+ * \param[in] private_data Private data node for the custom function
+ * \param[out] result The function puts the handle to the result
+ *                    configuration node at the address specified by
+ *                    \a result.
+ * \return A non-negative value if successful, otherwise a negative error code.
+ *
+ * If \a config has arguments (defined by a child with id \c \@args),
+ * this function replaces any string node beginning with $ with the
+ * respective argument value, or the default argument value, or nothing.
+ * Furthermore, any functions are evaluated (see #snd_config_evaluate).
+ * The resulting copy of \a config is returned in \a result.
+ *
+ * The new tree is not evaluated (\ref snd_config_evaluate).
+ */
+int snd_config_expand_custom(snd_config_t *config, snd_config_t *root,
+			     snd_config_expand_fcn_t fcn, void *private_data,
+			     snd_config_t **result)
+{
+	snd_config_t *res;
+	int err;
+
+	err = snd_config_walk(config, root, &res, _snd_config_expand, fcn, private_data);
+	if (err < 0) {
+		SNDERR("Expand error (walk): %s", snd_strerror(err));
+		return err;
+	}
+	*result = res;
+	return 1;
+}
+
+/**
+ * \brief Expands a configuration node, applying arguments and functions.
+ * \param[in] config Handle to the configuration node.
+ * \param[in] root Handle to the root configuration node.
  * \param[in] args Arguments string, can be \c NULL.
  * \param[in] private_data Handle to the private data node for functions.
  * \param[out] result The function puts the handle to the result
@@ -5589,7 +5643,7 @@ int snd_config_expand(snd_config_t *config, snd_config_t *root, const char *args
 			SNDERR("Args evaluate error: %s", snd_strerror(err));
 			goto _end;
 		}
-		err = snd_config_walk(config, root, &res, _snd_config_expand, subs);
+		err = snd_config_walk(config, root, &res, _snd_config_expand, _snd_config_expand_vars, subs);
 		if (err < 0) {
 			SNDERR("Expand error (walk): %s", snd_strerror(err));
 			goto _end;
