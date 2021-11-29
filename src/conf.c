@@ -653,16 +653,17 @@ static int input_stdio_open(snd_input_t **inputp, const char *file,
 	return err;
 }
 
-static int safe_strtoll(const char *str, long long *val)
+int safe_strtoll_base(const char *str, long long *val, int base)
 {
-	long long v;
-	int endidx;
+	char *end;
+	long v;
 	if (!*str)
 		return -EINVAL;
 	errno = 0;
-	if (sscanf(str, "%lli%n", &v, &endidx) < 1)
-		return -EINVAL;
-	if (str[endidx])
+	v = strtoll(str, &end, base);
+	if (errno)
+		return -errno;
+	if (*end)
 		return -EINVAL;
 	*val = v;
 	return 0;
