@@ -574,7 +574,6 @@ static void test_evaluate_string(void)
 		{ .expr = "$[0xff&0xfc]", .result = 0xfc },
 		{ .expr = "$[4294967296+10]", .result = 4294967306LL },
 		{ .expr = "$[$var10+1]", .result = 11 },
-		{ .expr = "$[1+1+1]", .result = 11 },
 		{ .expr = "$[$var10 + $var50]", .result = 60 },
 		{ .expr = "$[ $var10 + $[ $var50 + 10 ] ]", .result = 70 },
 		{ .expr = "$[ ( $var10 + ( $var50 + 112 ) ) + 5 ]", .result = 177 },
