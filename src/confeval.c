@@ -40,13 +40,13 @@
 
 typedef long long value_type_t;
 
-static const char *_find_end_of_expression(const char *s)
+static const char *_find_end_of_expression(const char *s, char begin, char end)
 {
 	int count = 1;
 	while (*s) {
-		if (*s == '[') {
+		if (*s == begin) {
 			count++;
-		} else if (*s == ']') {
+		} else if (*s == end) {
 			count--;
 			if (count == 0)
 				return s + 1;
@@ -126,7 +126,7 @@ int _snd_eval_string(snd_config_t **dst, const char *s,
 	const char *save, *e;
 	char *m;
 	value_type_t left, right;
-	int err, c, op;
+	int err, c, op, off;
 	enum {
 		LEFT,
 		OP,
@@ -164,16 +164,22 @@ int _snd_eval_string(snd_config_t **dst, const char *s,
 			s++;
 			continue;
 		}
-		if (c == '$') {
+		if (c == '(') {
+			e = _find_end_of_expression(s + 1, '(', ')');
+			off = 1;
+			goto _expr;
+		} else if (c == '$') {
 			if (s[1] == '[') {
-				e = _find_end_of_expression(s + 2);
+				e = _find_end_of_expression(s + 2, '[', ']');
+				off = 2;
+  _expr:
 				if (e == NULL)
 					return -EINVAL;
-				m = malloc(e - s - 1);
+				m = malloc(e - s - (off - 1));
 				if (m == NULL)
 					return -ENOMEM;
-				memcpy(m, s + 2, e - s - 2);
-				m[e - s - 3] = '\0';
+				memcpy(m, s + off, e - s - off);
+				m[e - s - (off + 1)] = '\0';
 				err = _snd_eval_string(&tmp, m, fcn, private_data);
 				free(m);
 				if (err < 0)
@@ -203,6 +209,8 @@ int _snd_eval_string(snd_config_t **dst, const char *s,
 			snd_config_delete(tmp);
 		} else if (c == '-' || (c >= '0' && c <= '9')) {
 			err = _parse_integer(op == LEFT ? &left : &right, &s);
+		} else {
+			return -EINVAL;
 		}
 		if (err < 0)
 			return err;
