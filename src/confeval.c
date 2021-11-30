@@ -116,7 +116,7 @@ static int _to_integer(value_type_t *val, snd_config_t *c)
 	default:
 		return -EINVAL;
 	}
-	return 0;
+	return err;
 }
 
 int _snd_eval_string(snd_config_t **dst, const char *s,
