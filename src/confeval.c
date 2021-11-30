@@ -119,8 +119,8 @@ static int _to_integer(value_type_t *val, snd_config_t *c)
 	return 0;
 }
 
-static int _eval_string(snd_config_t **dst, const char *s,
-			snd_config_expand_fcn_t fcn, void *private_data)
+int _snd_eval_string(snd_config_t **dst, const char *s,
+		     snd_config_expand_fcn_t fcn, void *private_data)
 {
 	snd_config_t *tmp;
 	const char *save, *e;
@@ -174,7 +174,7 @@ static int _eval_string(snd_config_t **dst, const char *s,
 					return -ENOMEM;
 				memcpy(m, s + 2, e - s - 2);
 				m[e - s - 3] = '\0';
-				err = _eval_string(&tmp, m, fcn, private_data);
+				err = _snd_eval_string(&tmp, m, fcn, private_data);
 				free(m);
 				if (err < 0)
 					return err;
@@ -250,7 +250,7 @@ int snd_config_evaluate_string(snd_config_t **dst, const char *s,
 	if (*s != '$')
 		return -EINVAL;
 	if (s[1] == '[') {
-		err = _eval_string(dst, s, fcn, private_data);
+		err = _snd_eval_string(dst, s, fcn, private_data);
 		if (err < 0)
 			SNDERR("wrong expression '%s'", s);
 	} else {

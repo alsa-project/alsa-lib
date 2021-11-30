@@ -585,6 +585,42 @@ static char *rval_var(snd_use_case_mgr_t *uc_mgr, const char *id)
 	return NULL;
 }
 
+int _snd_eval_string(snd_config_t **dst, const char *s,
+		     snd_config_expand_fcn_t fcn, void *private_data);
+
+static int rval_eval_var_cb(snd_config_t **dst, const char *s, void *private_data)
+{
+	snd_use_case_mgr_t *uc_mgr = private_data;
+	const char *v;
+
+	v = uc_mgr_get_variable(uc_mgr, s);
+	if (v == NULL)
+		return -ENOENT;
+	return snd_config_imake_string(dst, NULL, v);
+}
+
+static char *rval_eval(snd_use_case_mgr_t *uc_mgr, const char *e)
+{
+	snd_config_t *dst;
+	char *r;
+	int err;
+
+	if (uc_mgr->conf_format < 5) {
+		uc_error("variable substitution is supported in v5+ syntax");
+		return NULL;
+	}
+	err = _snd_eval_string(&dst, e, rval_eval_var_cb, uc_mgr);
+	if (err < 0) {
+		uc_error("unable to evaluate '%s'", e);
+		return NULL;
+	}
+	err = snd_config_get_ascii(dst, &r);
+	snd_config_delete(dst);
+	if (err < 0)
+		return NULL;
+	return r;
+}
+
 #define MATCH_VARIABLE(name, id, fcn, empty_ok)				\
 	if (strncmp((name), (id), sizeof(id) - 1) == 0) { 		\
 		rval = fcn(uc_mgr);					\
@@ -688,6 +724,7 @@ __std:
 		MATCH_VARIABLE2(value, "${env:", rval_env, false);
 		MATCH_VARIABLE2(value, "${sys:", rval_sysfs, false);
 		MATCH_VARIABLE2(value, "${var:", rval_var, true);
+		MATCH_VARIABLE2(value, "${eval:", rval_eval, false);
 		MATCH_VARIABLE2(value, "${find-card:", rval_card_lookup, false);
 		MATCH_VARIABLE2(value, "${find-device:", rval_device_lookup, false);
 		MATCH_VARIABLE2(value, "${CardNumberByName:", rval_card_number_by_name, false);
