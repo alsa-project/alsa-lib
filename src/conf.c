@@ -2051,6 +2051,49 @@ int snd_config_load(snd_config_t *config, snd_input_t *in)
 }
 
 /**
+ * \brief Loads a configuration tree from a string.
+ * \param[out] The function puts the handle to the configuration
+ *	       node loaded from the file(s) at the address specified
+ *             by \a config.
+ * \param[in] s String with the ASCII configuration
+ * \param[in] size String size, if zero, a C string is expected (with termination)
+ * \return Zero if successful, otherwise a negative error code.
+ *
+ * The definitions loaded from the string are put to \a config, which
+ * is created as a new top node.
+ *
+ * \par Errors:
+ * Any errors encountered when parsing the input or returned by hooks or
+ * functions.
+ */
+int snd_config_load_string(snd_config_t **config, const char *s, size_t size)
+{
+	snd_input_t *input;
+	snd_config_t *dst;
+	int err;
+
+	assert(config && s);
+	if (size == 0)
+		size = strlen(s);
+	err = snd_input_buffer_open(&input, s, size);
+	if (err < 0)
+		return err;
+	err = snd_config_top(&dst);
+	if (err < 0) {
+		snd_input_close(input);
+		return err;
+	}
+	err = snd_config_load(dst, input);
+	snd_input_close(input);
+	if (err < 0) {
+		snd_config_delete(dst);
+		return err;
+	}
+	*config = dst;
+	return 0;
+}
+
+/**
  * \brief Loads a configuration tree and overrides existing configuration nodes.
  * \param config Handle to a top level configuration node.
  * \param in Input handle to read the configuration from.

@@ -598,6 +598,22 @@ static void test_evaluate_string(void)
 	}
 }
 
+static void test_load_string(void)
+{
+	const char **cfg, *configs[] = {
+		"a=1,b=2",
+		"j 3;z 15;",
+		"x 0 y -1",
+		NULL
+	};
+	snd_config_t *dst;
+
+	for (cfg = configs; *cfg; cfg++) {
+		ALSA_CHECK(snd_config_load_string(&dst, *cfg, 0));
+		ALSA_CHECK(snd_config_delete(dst));
+	}
+}
+
 int main(void)
 {
 	test_top();
@@ -629,5 +645,6 @@ int main(void)
 	test_iterators();
 	test_for_each();
 	test_evaluate_string();
+	test_load_string();
 	return TEST_EXIT_CODE();
 }

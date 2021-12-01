@@ -89,6 +89,7 @@ const char *snd_config_topdir(void);
 int snd_config_top(snd_config_t **config);
 
 int snd_config_load(snd_config_t *config, snd_input_t *in);
+int snd_config_load_string(snd_config_t **config, const char *s, size_t size);
 int snd_config_load_override(snd_config_t *config, snd_input_t *in);
 int snd_config_save(snd_config_t *config, snd_output_t *out);
 int snd_config_update(void);

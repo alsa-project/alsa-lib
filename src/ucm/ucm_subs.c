@@ -213,32 +213,6 @@ struct lookup_iterate {
 	void *info;
 };
 
-static snd_config_t *parse_lookup_query(const char *query)
-{
-	snd_input_t *input;
-	snd_config_t *config;
-	int err;
-
-	err = snd_input_buffer_open(&input, query, strlen(query));
-	if (err < 0) {
-		uc_error("unable to create memory input buffer");
-		return NULL;
-	}
-	err = snd_config_top(&config);
-	if (err < 0) {
-		snd_input_close(input);
-		return NULL;
-	}
-	err = snd_config_load(config, input);
-	snd_input_close(input);
-	if (err < 0) {
-		snd_config_delete(config);
-		uc_error("wrong arguments '%s'", query);
-		return NULL;
-	}
-	return config;
-}
-
 static char *rval_lookup_main(snd_use_case_mgr_t *uc_mgr,
 			      const char *query,
 			      struct lookup_iterate *iter)
@@ -257,9 +231,11 @@ static char *rval_lookup_main(snd_use_case_mgr_t *uc_mgr,
 		return NULL;
 	}
 
-	config = parse_lookup_query(query);
-	if (config == NULL)
+	err = snd_config_load_string(&config, query, 0);
+	if (err < 0) {
+		uc_error("The lookup arguments '%s' are invalid", query);
 		return NULL;
+	}
 	if (iter->init && iter->init(uc_mgr, iter, config))
 		goto null;
 	if (snd_config_search(config, "field", &d)) {
