@@ -190,7 +190,7 @@ int _snd_eval_string(snd_config_t **dst, const char *s,
 			} else {
 				e = s + 1;
 				while (*e) {
-					if (!isalnum(*e))
+					if (!isalnum(*e) && *e != '_')
 						break;
 					e++;
 				}
