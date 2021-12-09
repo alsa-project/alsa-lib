@@ -203,6 +203,11 @@ int _snd_eval_string(snd_config_t **dst, const char *s,
 				free(m);
 				if (err < 0)
 					return err;
+				if (tmp == NULL) {
+					err = snd_config_imake_integer(&tmp, NULL, 0);
+					if (err < 0)
+						return err;
+				}
 				s = e;
 			}
 			err = _to_integer(op == LEFT ? &left : &right, tmp);

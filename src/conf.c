@@ -4994,8 +4994,10 @@ int snd_config_copy(snd_config_t **dst,
 static int _snd_config_expand_vars(snd_config_t **dst, const char *s, void *private_data)
 {
 	snd_config_t *val, *vars = private_data;
-	if (snd_config_search(vars, s, &val) < 0)
-		return snd_config_make_string(dst, "");
+	if (snd_config_search(vars, s, &val) < 0) {
+		*dst = NULL;
+		return 0;
+	}
 	return snd_config_copy(dst, val);
 }
 
@@ -5060,6 +5062,8 @@ static int _snd_config_expand(snd_config_t *src,
 				err = snd_config_evaluate_string(dst, s, fcn, vars);
 				if (err < 0)
 					return err;
+				if (*dst == NULL)
+					return 0;
 				err = snd_config_set_id(*dst, id);
 				if (err < 0) {
 					snd_config_delete(*dst);
