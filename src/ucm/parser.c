@@ -31,6 +31,7 @@
  */
 
 #include "ucm_local.h"
+#include <sys/stat.h>
 #include <stdbool.h>
 #include <dirent.h>
 #include <limits.h>
@@ -2186,6 +2187,7 @@ static int parse_toplevel_path(snd_use_case_mgr_t *uc_mgr,
 	snd_config_t *n, *n2;
 	const char *id;
 	char *dir = NULL, *file = NULL, fn[PATH_MAX];
+	struct stat st;
 	long version;
 	int err;
 
@@ -2260,23 +2262,51 @@ static int parse_toplevel_path(snd_use_case_mgr_t *uc_mgr,
 		}
 
 		ucm_filename(fn, sizeof(fn), version, dir, file);
-		if (access(fn, R_OK) == 0) {
-			if (replace_string(&uc_mgr->conf_dir_name, dir) == NULL) {
-				err = -ENOMEM;
-				goto __error;
+		if (access(fn, R_OK) == 0 && lstat(fn, &st) == 0) {
+			if (st.st_mode & S_IFLNK) {
+				ssize_t r;
+				char *link, *dir2, *p;
+
+				link = malloc(PATH_MAX);
+				if (link == NULL)
+					goto __enomem;
+				r = readlink(fn, link, PATH_MAX - 1);
+				if (r <= 0) {
+					free(link);
+					goto __next;
+				}
+				link[r] = '\0';
+				p = strrchr(link, '/');
+				if (p) {
+					*p = '\0';
+					dir2 = malloc(PATH_MAX);
+					if (dir2 == NULL) {
+						free(link);
+						goto __enomem;
+					}
+					strncpy(dir2, dir, PATH_MAX - 1);
+					strncat(dir2, "/", PATH_MAX - 1);
+					strncat(dir2, link, PATH_MAX - 1);
+					fn[PATH_MAX - 1] = '\0';
+					free(dir);
+					dir = dir2;
+				}
+				free(link);
 			}
-			if (replace_string(&uc_mgr->conf_file_name, file) == NULL) {
-				err = -ENOMEM;
-				goto __error;
-			}
+			if (replace_string(&uc_mgr->conf_dir_name, dir) == NULL)
+				goto __enomem;
+			if (replace_string(&uc_mgr->conf_file_name, file) == NULL)
+				goto __enomem;
 			strncpy(filename, fn, PATH_MAX);
+			filename[PATH_MAX - 1] = '\0';
 			uc_mgr->conf_format = version;
 			goto __ok;
 		}
 
 __next:
 		free(file);
-		free(dir);
+		if (dir != fn)
+			free(dir);
 		dir = NULL;
 		file = NULL;
 	}
@@ -2284,11 +2314,16 @@ __next:
 	err = -ENOENT;
 	goto __error;
 
+__enomem:
+	err = -ENOMEM;
+	goto __error;
+
 __ok:
 	err = 0;
 __error:
 	free(file);
-	free(dir);
+	if (dir != fn)
+		free(dir);
 	return err;
 }
 
