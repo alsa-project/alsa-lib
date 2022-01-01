@@ -22,25 +22,6 @@
 #include "tplg_local.h"
 
 /*
- * Safe strtol call
- */
-int safe_strtol_base(const char *str, long *val, int base)
-{
-	char *end;
-	long v;
-	if (!*str)
-		return -EINVAL;
-	errno = 0;
-	v = strtol(str, &end, base);
-	if (errno)
-		return -errno;
-	if (*end)
-		return -EINVAL;
-	*val = v;
-	return 0;
-}
-
-/*
  * Get integer value
  */
 int tplg_get_integer(snd_config_t *n, int *val, int base)
