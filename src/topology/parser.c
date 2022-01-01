@@ -24,7 +24,7 @@
 /*
  * Safe strtol call
  */
-int safe_strtol_base(const char *str, long *val, int base)
+int tplg_safe_strtol_base(const char *str, long *val, int base)
 {
 	char *end;
 	long v;
@@ -59,7 +59,7 @@ int tplg_get_integer(snd_config_t *n, int *val, int base)
 		err = snd_config_get_string(n, &str);
 		if (err < 0)
 			return err;
-		err = safe_strtol_base(str, &lval, base);
+		err = tplg_safe_strtol_base(str, &lval, base);
 		if (err < 0)
 			return err;
 		goto __retval;

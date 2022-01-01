@@ -407,6 +407,9 @@ int tplg_save_stream_caps(snd_tplg_t *tplg, struct tplg_elem *elem,
 int tplg_save_dai(snd_tplg_t *tplg, struct tplg_elem *elem,
 		  struct tplg_buf *dst, const char *pfx);
 
+int tplg_safe_strtol_base(const char *str, long *val, int base);
+static inline int tplg_safe_strtol(const char *str, long *val) { return tplg_safe_strtol_base(str, val, 0); }
+
 int tplg_decode_template(snd_tplg_t *tplg,
 			 size_t pos,
 			 struct snd_soc_tplg_hdr *hdr,

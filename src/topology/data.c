@@ -414,7 +414,7 @@ static int write_hex(char *buf, char *str, int width)
 	void *p = &val;
 
         errno = 0;
-	if (safe_strtol_base(str, &val, 16) < 0)
+	if (tplg_safe_strtol_base(str, &val, 16) < 0)
 		return -EINVAL;
 
 	switch (width) {
