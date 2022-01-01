@@ -232,10 +232,14 @@ size_t page_align(size_t size);
 size_t page_size(void);
 size_t page_ptr(size_t object_offset, size_t object_size, size_t *offset, size_t *mmap_offset);
 
-int safe_strtoll_base(const char *str, long long *val, int base);
+#define safe_strtoll_base _snd_safe_strtoll_base
+int _snd_safe_strtoll_base(const char *str, long long *val, int base);
 static inline int safe_strtoll(const char *str, long long *val) { return safe_strtoll_base(str, val, 0); }
-int safe_strtol_base(const char *str, long *val, int base);
+#define safe_strtol_base _snd_safe_strtol_base
+int _snd_safe_strtol_base(const char *str, long *val, int base);
 static inline int safe_strtol(const char *str, long *val) { return safe_strtol_base(str, val, 0); }
+#define safe_strtod _snd_safe_strtod
+int _snd_safe_strtod(const char *str, double *val);
 
 int snd_send_fd(int sock, void *data, size_t len, int fd);
 int snd_receive_fd(int sock, void *data, size_t len, int *fd);

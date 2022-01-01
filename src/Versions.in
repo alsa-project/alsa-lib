@@ -134,3 +134,9 @@ ALSA_1.1.6 {
 
     @SYMBOL_PREFIX@snd_dlopen;
 } ALSA_0.9.7;
+
+ALSA_1.2.6 {
+  global:
+
+    @SYMBOL_PREFIX@_snd_safe_strto*;
+} ALSA_1.1.6;

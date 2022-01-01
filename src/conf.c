@@ -663,7 +663,7 @@ static int input_stdio_open(snd_input_t **inputp, const char *file,
 	return err;
 }
 
-int safe_strtoll_base(const char *str, long long *val, int base)
+int _snd_safe_strtoll_base(const char *str, long long *val, int base)
 {
 	char *end;
 	long v;
@@ -679,7 +679,7 @@ int safe_strtoll_base(const char *str, long long *val, int base)
 	return 0;
 }
 
-int safe_strtol_base(const char *str, long *val, int base)
+int _snd_safe_strtol_base(const char *str, long *val, int base)
 {
 	char *end;
 	long v;
@@ -695,7 +695,7 @@ int safe_strtol_base(const char *str, long *val, int base)
 	return 0;
 }
 
-static int safe_strtod(const char *str, double *val)
+int _snd_safe_strtod(const char *str, double *val)
 {
 	char *end;
 	double v;
