@@ -775,8 +775,8 @@ pymixer_melement_new(struct pymixer *pymixer, PyObject *args)
 	obj = PyDict_GetItemString(pymixer->mdict, class);
 	if (obj) {
 		obj1 = PyTuple_New(4);
-		if (PyTuple_SET_ITEM(obj1, 0, (PyObject *)pymixer))
-			Py_INCREF((PyObject *)pymixer);
+		PyTuple_SET_ITEM(obj1, 0, (PyObject *)pymixer);
+		Py_INCREF((PyObject *)pymixer);
 		PyTuple_SET_ITEM(obj1, 1, PyUnicode_FromString(name));
 		PyTuple_SET_ITEM(obj1, 2, PyInt_FromLong(index));
 		PyTuple_SET_ITEM(obj1, 3, PyInt_FromLong(weight));
@@ -920,8 +920,8 @@ static PyObject *new_helem(struct python_priv *priv, snd_hctl_elem_t *helem)
 	obj = PyDict_GetItemString(priv->py_mdict, "HElement");
 	if (obj) {
 		obj1 = PyTuple_New(3);
-		if (PyTuple_SET_ITEM(obj1, 0, py_hctl))
-			Py_INCREF(py_hctl);
+		PyTuple_SET_ITEM(obj1, 0, py_hctl);
+		Py_INCREF(py_hctl);
 		PyTuple_SET_ITEM(obj1, 1, PyFloat_FromDouble(1));
 		PyTuple_SET_ITEM(obj1, 2, PyInt_FromLong((long)helem));
 		obj2 = PyObject_CallObject(obj, obj1);
@@ -995,11 +995,11 @@ int alsa_mixer_simple_event(snd_mixer_class_t *class, unsigned int mask,
 		}
         	if (o == NULL)
         		return 0;
-        	if (PyTuple_SET_ITEM(t, 1, o))
-        		Py_INCREF(o);
+		PyTuple_SET_ITEM(t, 1, o);
+		Py_INCREF(o);
         	o = melem ? find_melem(priv, melem) : Py_None;
-        	if (PyTuple_SET_ITEM(t, 2, o))
-        		Py_INCREF(o);
+		PyTuple_SET_ITEM(t, 2, o);
+		Py_INCREF(o);
 		r = PyObject_CallObject(priv->py_event_func, t);
 		Py_DECREF(t);
 		if (r) {
@@ -1066,8 +1066,8 @@ static int alsa_mixer_simple_pyinit(struct python_priv *priv,
 		obj1 = PyTuple_New(3);
 		PyTuple_SET_ITEM(obj1, 0, PyInt_FromLong((long)class));
 		PyTuple_SET_ITEM(obj1, 1, PyInt_FromLong((long)mixer));
-		if (PyTuple_SET_ITEM(obj1, 2, mdict))
-			Py_INCREF(mdict);
+		PyTuple_SET_ITEM(obj1, 2, mdict);
+		Py_INCREF(mdict);
 		obj2 = PyObject_CallObject(obj, obj1);
 		Py_XDECREF(obj1);
 		PyDict_SetItemString(mdict, "mixer", obj2);
