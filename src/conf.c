@@ -2276,7 +2276,7 @@ static int _snd_config_array_merge(snd_config_t *dst, snd_config_t *src, int ind
  *
  * \par Errors:
  * <dl>
- * <dt>-EEXIST<dd>identifier already exists (!overwrite)
+ * <dt>-EEXIST<dd>identifier already exists (!override)
  * <dt>-ENOMEM<dd>not enough memory
  * </dl>
  */
