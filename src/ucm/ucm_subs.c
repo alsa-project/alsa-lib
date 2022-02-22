@@ -727,6 +727,8 @@ __match2:
 			strncpy_with_escape(v2, value + idsize, rvalsize);
 			idsize += rvalsize + 1;
 			if (*v2 == '$' && uc_mgr->conf_format >= 3) {
+				if (strncmp(value, "${eval:", 7) == 0)
+					goto __direct_fcn2;
 				tmp = uc_mgr_get_variable(uc_mgr, v2 + 1);
 				if (tmp == NULL) {
 					uc_error("define '%s' is not reachable in this context!", v2 + 1);
@@ -735,6 +737,7 @@ __match2:
 					rval = fcn2(uc_mgr, tmp);
 				}
 			} else {
+__direct_fcn2:
 				rval = fcn2(uc_mgr, v2);
 			}
 			goto __rval;
