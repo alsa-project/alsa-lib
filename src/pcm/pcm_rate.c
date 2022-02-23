@@ -781,16 +781,25 @@ static int snd_pcm_rate_commit_area(snd_pcm_t *pcm, snd_pcm_rate_t *rate,
 	snd_pcm_sframes_t result;
 
 	areas = snd_pcm_mmap_areas(pcm);
-	if (cont >= size) {
+	/*
+	 * Because snd_pcm_rate_write_areas1() below will convert a full source period
+	 * then there had better be a full period available in the current buffer.
+	 */
+	if (cont >= pcm->period_size) {
 		result = snd_pcm_mmap_begin(rate->gen.slave, &slave_areas, &slave_offset, &slave_frames);
 		if (result < 0)
 			return result;
-		if (slave_frames < slave_size) {
+		/*
+		 * Because snd_pcm_rate_write_areas1() below will convert to a full slave period
+		 * then there had better be a full slave period available in the slave buffer.
+		 */
+		if (slave_frames < rate->gen.slave->period_size) {
 			snd_pcm_rate_write_areas1(pcm, areas, appl_offset, rate->sareas, 0);
 			goto __partial;
 		}
 		snd_pcm_rate_write_areas1(pcm, areas, appl_offset,
 					  slave_areas, slave_offset);
+		/* Only commit the requested slave_size, even if more was actually converted */
 		result = snd_pcm_mmap_commit(rate->gen.slave, slave_offset, slave_size);
 		if (result < (snd_pcm_sframes_t)slave_size) {
 			if (result < 0)
