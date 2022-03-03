@@ -206,6 +206,7 @@ static int snd_pcm_dshare_sync_ptr(snd_pcm_t *pcm)
 		dshare->state = SNDRV_PCM_STATE_DISCONNECTED;
 		return -ENODEV;
 	case SND_PCM_STATE_XRUN:
+	case SND_PCM_STATE_SUSPENDED:
 		if ((err = snd_pcm_direct_slave_recover(dshare)) < 0)
 			return err;
 		break;
@@ -260,11 +261,11 @@ static snd_pcm_state_t snd_pcm_dshare_state(snd_pcm_t *pcm)
 	snd_pcm_state_t state;
 	state = snd_pcm_state(dshare->spcm);
 	switch (state) {
-	case SND_PCM_STATE_SUSPENDED:
 	case SND_PCM_STATE_DISCONNECTED:
 		dshare->state = state;
 		return state;
 	case SND_PCM_STATE_XRUN:
+	case SND_PCM_STATE_SUSPENDED:
 		if ((err = snd_pcm_direct_slave_recover(dshare)) < 0)
 			return err;
 		break;
@@ -532,11 +533,10 @@ static snd_pcm_sframes_t snd_pcm_dshare_mmap_commit(snd_pcm_t *pcm,
 
 	switch (snd_pcm_state(dshare->spcm)) {
 	case SND_PCM_STATE_XRUN:
+	case SND_PCM_STATE_SUSPENDED:
 		if ((err = snd_pcm_direct_slave_recover(dshare)) < 0)
 			return err;
 		break;
-	case SND_PCM_STATE_SUSPENDED:
-		return -ESTRPIPE;
 	default:
 		break;
 	}

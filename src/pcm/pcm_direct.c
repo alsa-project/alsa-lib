@@ -560,8 +560,11 @@ int snd_pcm_direct_timer_stop(snd_pcm_direct_t *dmix)
 	return 0;
 }
 
+#define RECOVERIES_FLAG_SUSPENDED	(1U << 31)
+#define RECOVERIES_MASK			((1U << 31) - 1)
+
 /*
- * Recover slave on XRUN.
+ * Recover slave on XRUN or SUSPENDED.
  * Even if direct plugins disable xrun detection, there might be an xrun
  * raised directly by some drivers.
  * The first client recovers slave pcm.
@@ -569,6 +572,8 @@ int snd_pcm_direct_timer_stop(snd_pcm_direct_t *dmix)
  */
 int snd_pcm_direct_slave_recover(snd_pcm_direct_t *direct)
 {
+	unsigned int recoveries;
+	int state;
 	int ret;
 	int semerr;
 
@@ -579,7 +584,8 @@ int snd_pcm_direct_slave_recover(snd_pcm_direct_t *direct)
 		return semerr;
 	}
 
-	if (snd_pcm_state(direct->spcm) != SND_PCM_STATE_XRUN) {
+	state = snd_pcm_state(direct->spcm);
+	if (state != SND_PCM_STATE_XRUN && state != SND_PCM_STATE_SUSPENDED) {
 		/* ignore... someone else already did recovery */
 		semerr = snd_pcm_direct_semaphore_up(direct,
 						     DIRECT_IPC_SEM_CLIENT);
@@ -588,6 +594,24 @@ int snd_pcm_direct_slave_recover(snd_pcm_direct_t *direct)
 			return semerr;
 		}
 		return 0;
+	}
+
+	recoveries = direct->shmptr->s.recoveries;
+	recoveries = (recoveries + 1) & RECOVERIES_MASK;
+	if (state == SND_PCM_STATE_SUSPENDED)
+		recoveries |= RECOVERIES_FLAG_SUSPENDED;
+	direct->shmptr->s.recoveries = recoveries;
+
+	/* some buggy drivers require the device resumed before prepared;
+	 * when a device has RESUME flag and is in SUSPENDED state, resume
+	 * here but immediately drop to bring it to a sane active state.
+	 */
+	if (state == SND_PCM_STATE_SUSPENDED &&
+	    (direct->spcm->info & SND_PCM_INFO_RESUME)) {
+		snd_pcm_resume(direct->spcm);
+		snd_pcm_drop(direct->spcm);
+		snd_pcm_direct_timer_stop(direct);
+		snd_pcm_direct_clear_timer_queue(direct);
 	}
 
 	ret = snd_pcm_prepare(direct->spcm);
@@ -621,7 +645,6 @@ int snd_pcm_direct_slave_recover(snd_pcm_direct_t *direct)
 		}
 		return ret;
 	}
-	direct->shmptr->s.recoveries++;
 	semerr = snd_pcm_direct_semaphore_up(direct,
 						 DIRECT_IPC_SEM_CLIENT);
 	if (semerr < 0) {
@@ -632,11 +655,15 @@ int snd_pcm_direct_slave_recover(snd_pcm_direct_t *direct)
 }
 
 /*
- * enter xrun state, if slave xrun occurred
- * @return: 0 for no xrun or a negative error code for xrun
+ * enter xrun or suspended state, if slave xrun occurred or suspended
+ * @return: 0 for no xrun/suspend or a negative error code for xrun/suspend
  */
 int snd_pcm_direct_client_chk_xrun(snd_pcm_direct_t *direct, snd_pcm_t *pcm)
 {
+	if (direct->state == SND_PCM_STATE_XRUN)
+		return -EPIPE;
+	else if (direct->state == SND_PCM_STATE_SUSPENDED)
+		return -ESTRPIPE;
 	if (direct->shmptr->s.recoveries != direct->recoveries) {
 		/* no matter how many xruns we missed -
 		 * so don't increment but just update to actual counter
@@ -649,10 +676,14 @@ int snd_pcm_direct_client_chk_xrun(snd_pcm_direct_t *direct, snd_pcm_t *pcm)
 		 * if slave already entered xrun again the event is lost.
 		 * snd_pcm_direct_clear_timer_queue(direct);
 		 */
-		direct->state = SND_PCM_STATE_XRUN;
+		if (direct->recoveries & RECOVERIES_FLAG_SUSPENDED) {
+			direct->state = SND_PCM_STATE_SUSPENDED;
+			return -ESTRPIPE;
+		} else {
+			direct->state = SND_PCM_STATE_XRUN;
+			return -EPIPE;
+		}
 	}
-	if (direct->state == SND_PCM_STATE_XRUN)
-		return -EPIPE;
 	return 0;
 }
 
@@ -721,13 +752,13 @@ timer_changed:
 	}
 	switch (snd_pcm_state(dmix->spcm)) {
 	case SND_PCM_STATE_XRUN:
+	case SND_PCM_STATE_SUSPENDED:
 		/* recover slave and update client state to xrun
 		 * before returning POLLERR
 		 */
 		snd_pcm_direct_slave_recover(dmix);
 		snd_pcm_direct_client_chk_xrun(dmix, pcm);
 		/* fallthrough */
-	case SND_PCM_STATE_SUSPENDED:
 	case SND_PCM_STATE_SETUP:
 		events |= POLLERR;
 		break;
@@ -1074,27 +1105,10 @@ int snd_pcm_direct_prepare(snd_pcm_t *pcm)
 int snd_pcm_direct_resume(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dmix = pcm->private_data;
-	snd_pcm_t *spcm = dmix->spcm;
+	int err;
 
-	snd_pcm_direct_semaphore_down(dmix, DIRECT_IPC_SEM_CLIENT);
-	/* some buggy drivers require the device resumed before prepared;
-	 * when a device has RESUME flag and is in SUSPENDED state, resume
-	 * here but immediately drop to bring it to a sane active state.
-	 */
-	if ((spcm->info & SND_PCM_INFO_RESUME) &&
-	    snd_pcm_state(spcm) == SND_PCM_STATE_SUSPENDED) {
-		snd_pcm_resume(spcm);
-		snd_pcm_drop(spcm);
-		snd_pcm_direct_timer_stop(dmix);
-		snd_pcm_direct_clear_timer_queue(dmix);
-		snd_pcm_areas_silence(snd_pcm_mmap_areas(spcm), 0,
-				      spcm->channels, spcm->buffer_size,
-				      spcm->format);
-		snd_pcm_prepare(spcm);
-		snd_pcm_start(spcm);
-	}
-	snd_pcm_direct_semaphore_up(dmix, DIRECT_IPC_SEM_CLIENT);
-	return -ENOSYS;
+	err = snd_pcm_direct_slave_recover(dmix);
+	return err < 0 ? err : -ENOSYS;
 }
 
 #define COPY_SLAVE(field) (dmix->shmptr->s.field = spcm->field)
