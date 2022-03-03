@@ -212,8 +212,9 @@ static int snd_pcm_dshare_sync_ptr(snd_pcm_t *pcm)
 	default:
 		break;
 	}
-	if (snd_pcm_direct_client_chk_xrun(dshare, pcm))
-		return -EPIPE;
+	err = snd_pcm_direct_client_chk_xrun(dshare, pcm);
+	if (err < 0)
+		return err;
 	if (dshare->slowptr)
 		snd_pcm_hwsync(dshare->spcm);
 
@@ -539,8 +540,9 @@ static snd_pcm_sframes_t snd_pcm_dshare_mmap_commit(snd_pcm_t *pcm,
 	default:
 		break;
 	}
-	if (snd_pcm_direct_client_chk_xrun(dshare, pcm))
-		return -EPIPE;
+	err = snd_pcm_direct_client_chk_xrun(dshare, pcm);
+	if (err < 0)
+		return err;
 	if (! size)
 		return 0;
 	snd_pcm_mmap_appl_forward(pcm, size);

@@ -437,8 +437,9 @@ static int snd_pcm_dmix_sync_ptr(snd_pcm_t *pcm)
 	default:
 		break;
 	}
-	if (snd_pcm_direct_client_chk_xrun(dmix, pcm))
-		return -EPIPE;
+	err = snd_pcm_direct_client_chk_xrun(dmix, pcm);
+	if (err < 0)
+		return err;
 	if (dmix->slowptr)
 		snd_pcm_hwsync(dmix->spcm);
 
@@ -840,8 +841,9 @@ static snd_pcm_sframes_t snd_pcm_dmix_mmap_commit(snd_pcm_t *pcm,
 	default:
 		break;
 	}
-	if (snd_pcm_direct_client_chk_xrun(dmix, pcm))
-		return -EPIPE;
+	err = snd_pcm_direct_client_chk_xrun(dmix, pcm);
+	if (err < 0)
+		return err;
 	if (! size)
 		return 0;
 	snd_pcm_mmap_appl_forward(pcm, size);

@@ -633,7 +633,7 @@ int snd_pcm_direct_slave_recover(snd_pcm_direct_t *direct)
 
 /*
  * enter xrun state, if slave xrun occurred
- * @return: 0 - no xrun >0: xrun happened
+ * @return: 0 for no xrun or a negative error code for xrun
  */
 int snd_pcm_direct_client_chk_xrun(snd_pcm_direct_t *direct, snd_pcm_t *pcm)
 {
@@ -650,8 +650,9 @@ int snd_pcm_direct_client_chk_xrun(snd_pcm_direct_t *direct, snd_pcm_t *pcm)
 		 * snd_pcm_direct_clear_timer_queue(direct);
 		 */
 		direct->state = SND_PCM_STATE_XRUN;
-		return 1;
 	}
+	if (direct->state == SND_PCM_STATE_XRUN)
+		return -EPIPE;
 	return 0;
 }
 

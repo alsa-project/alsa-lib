@@ -145,8 +145,9 @@ static int snd_pcm_dsnoop_sync_ptr(snd_pcm_t *pcm)
 	default:
 		break;
 	}
-	if (snd_pcm_direct_client_chk_xrun(dsnoop, pcm))
-		return -EPIPE;
+	err = snd_pcm_direct_client_chk_xrun(dsnoop, pcm);
+	if (err < 0)
+		return err;
 	if (dsnoop->slowptr)
 		snd_pcm_hwsync(dsnoop->spcm);
 	old_slave_hw_ptr = dsnoop->slave_hw_ptr;
@@ -430,8 +431,9 @@ static snd_pcm_sframes_t snd_pcm_dsnoop_mmap_commit(snd_pcm_t *pcm,
 	default:
 		break;
 	}
-	if (snd_pcm_direct_client_chk_xrun(dsnoop, pcm))
-		return -EPIPE;
+	err = snd_pcm_direct_client_chk_xrun(dsnoop, pcm);
+	if (err < 0)
+		return err;
 	if (dsnoop->state == SND_PCM_STATE_RUNNING) {
 		err = snd_pcm_dsnoop_sync_ptr(pcm);
 		if (err < 0)
