@@ -658,8 +658,23 @@ int snd_pcm_direct_slave_recover(snd_pcm_direct_t *direct)
  * enter xrun or suspended state, if slave xrun occurred or suspended
  * @return: 0 for no xrun/suspend or a negative error code for xrun/suspend
  */
-int snd_pcm_direct_client_chk_xrun(snd_pcm_direct_t *direct, snd_pcm_t *pcm)
+int snd_pcm_direct_check_xrun(snd_pcm_direct_t *direct, snd_pcm_t *pcm)
 {
+	int err;
+
+	switch (snd_pcm_state(direct->spcm)) {
+	case SND_PCM_STATE_DISCONNECTED:
+		direct->state = SNDRV_PCM_STATE_DISCONNECTED;
+		return -ENODEV;
+	case SND_PCM_STATE_XRUN:
+	case SND_PCM_STATE_SUSPENDED:
+		if ((err = snd_pcm_direct_slave_recover(direct)) < 0)
+			return err;
+		break;
+	default:
+		break;
+	}
+
 	if (direct->state == SND_PCM_STATE_XRUN)
 		return -EPIPE;
 	else if (direct->state == SND_PCM_STATE_SUSPENDED)
@@ -750,19 +765,11 @@ timer_changed:
 		}
 		empty = avail < pcm->avail_min;
 	}
-	switch (snd_pcm_state(dmix->spcm)) {
-	case SND_PCM_STATE_XRUN:
-	case SND_PCM_STATE_SUSPENDED:
-		/* recover slave and update client state to xrun
-		 * before returning POLLERR
-		 */
-		snd_pcm_direct_slave_recover(dmix);
-		snd_pcm_direct_client_chk_xrun(dmix, pcm);
-		/* fallthrough */
-	case SND_PCM_STATE_SETUP:
+
+	if (snd_pcm_direct_check_xrun(dmix, pcm) < 0 ||
+	    snd_pcm_state(dmix->spcm) == SND_PCM_STATE_SETUP) {
 		events |= POLLERR;
-		break;
-	default:
+	} else {
 		if (empty) {
 			/* here we have a race condition:
 			 * if period event arrived after the avail_update call
@@ -786,7 +793,6 @@ timer_changed:
 				break;
 			}
 		}
-		break;
 	}
 	*revents = events;
 	return 0;

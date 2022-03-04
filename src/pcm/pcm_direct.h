@@ -345,7 +345,7 @@ snd_pcm_chmap_query_t **snd_pcm_direct_query_chmaps(snd_pcm_t *pcm);
 snd_pcm_chmap_t *snd_pcm_direct_get_chmap(snd_pcm_t *pcm);
 int snd_pcm_direct_set_chmap(snd_pcm_t *pcm, const snd_pcm_chmap_t *map);
 int snd_pcm_direct_slave_recover(snd_pcm_direct_t *direct);
-int snd_pcm_direct_client_chk_xrun(snd_pcm_direct_t *direct, snd_pcm_t *pcm);
+int snd_pcm_direct_check_xrun(snd_pcm_direct_t *direct, snd_pcm_t *pcm);
 int snd_timer_async(snd_timer_t *timer, int sig, pid_t pid);
 struct timespec snd_pcm_hw_fast_tstamp(snd_pcm_t *pcm);
 void snd_pcm_direct_reset_slave_ptr(snd_pcm_t *pcm, snd_pcm_direct_t *dmix);

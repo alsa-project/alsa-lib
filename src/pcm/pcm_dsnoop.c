@@ -134,19 +134,7 @@ static int snd_pcm_dsnoop_sync_ptr(snd_pcm_t *pcm)
 	snd_pcm_sframes_t diff;
 	int err;
 
-	switch (snd_pcm_state(dsnoop->spcm)) {
-	case SND_PCM_STATE_DISCONNECTED:
-		dsnoop->state = SNDRV_PCM_STATE_DISCONNECTED;
-		return -ENODEV;
-	case SND_PCM_STATE_XRUN:
-	case SND_PCM_STATE_SUSPENDED:
-		if ((err = snd_pcm_direct_slave_recover(dsnoop)) < 0)
-			return err;
-		break;
-	default:
-		break;
-	}
-	err = snd_pcm_direct_client_chk_xrun(dsnoop, pcm);
+	err = snd_pcm_direct_check_xrun(dsnoop, pcm);
 	if (err < 0)
 		return err;
 	if (dsnoop->slowptr)
@@ -208,22 +196,8 @@ static int snd_pcm_dsnoop_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 static snd_pcm_state_t snd_pcm_dsnoop_state(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dsnoop = pcm->private_data;
-	int err;
-	snd_pcm_state_t state;
-	state = snd_pcm_state(dsnoop->spcm);
-	switch (state) {
-	case SND_PCM_STATE_DISCONNECTED:
-		dsnoop->state = state;
-		return state;
-	case SND_PCM_STATE_XRUN:
-	case SND_PCM_STATE_SUSPENDED:
-		if ((err = snd_pcm_direct_slave_recover(dsnoop)) < 0)
-			return err;
-		break;
-	default:
-		break;
-	}
-	snd_pcm_direct_client_chk_xrun(dsnoop, pcm);
+
+	snd_pcm_direct_check_xrun(dsnoop, pcm);
 	return dsnoop->state;
 }
 
@@ -422,16 +396,7 @@ static snd_pcm_sframes_t snd_pcm_dsnoop_mmap_commit(snd_pcm_t *pcm,
 	snd_pcm_direct_t *dsnoop = pcm->private_data;
 	int err;
 
-	switch (snd_pcm_state(dsnoop->spcm)) {
-	case SND_PCM_STATE_XRUN:
-	case SND_PCM_STATE_SUSPENDED:
-		if ((err = snd_pcm_direct_slave_recover(dsnoop)) < 0)
-			return err;
-		break;
-	default:
-		break;
-	}
-	err = snd_pcm_direct_client_chk_xrun(dsnoop, pcm);
+	err = snd_pcm_direct_check_xrun(dsnoop, pcm);
 	if (err < 0)
 		return err;
 	if (dsnoop->state == SND_PCM_STATE_RUNNING) {
