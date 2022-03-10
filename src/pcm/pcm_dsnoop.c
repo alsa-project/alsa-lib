@@ -134,14 +134,14 @@ static int snd_pcm_dsnoop_sync_ptr(snd_pcm_t *pcm)
 	snd_pcm_sframes_t diff;
 	int err;
 
-	err = snd_pcm_direct_check_xrun(dsnoop, pcm);
-	if (err < 0)
-		return err;
 	if (dsnoop->slowptr)
 		snd_pcm_hwsync(dsnoop->spcm);
 	old_slave_hw_ptr = dsnoop->slave_hw_ptr;
 	snoop_timestamp(pcm);
 	slave_hw_ptr = dsnoop->slave_hw_ptr;
+	err = snd_pcm_direct_check_xrun(dsnoop, pcm);
+	if (err < 0)
+		return err;
 	diff = pcm_frame_diff(slave_hw_ptr, old_slave_hw_ptr, dsnoop->slave_boundary);
 	if (diff == 0)		/* fast path */
 		return 0;

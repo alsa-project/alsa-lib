@@ -199,15 +199,17 @@ static int snd_pcm_dshare_sync_ptr0(snd_pcm_t *pcm, snd_pcm_uframes_t slave_hw_p
 static int snd_pcm_dshare_sync_ptr(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dshare = pcm->private_data;
+	snd_pcm_uframes_t slave_hw_ptr;
 	int err;
 
+	if (dshare->slowptr)
+		snd_pcm_hwsync(dshare->spcm);
+	slave_hw_ptr = *dshare->spcm->hw.ptr;
 	err = snd_pcm_direct_check_xrun(dshare, pcm);
 	if (err < 0)
 		return err;
-	if (dshare->slowptr)
-		snd_pcm_hwsync(dshare->spcm);
 
-	return snd_pcm_dshare_sync_ptr0(pcm, *dshare->spcm->hw.ptr);
+	return snd_pcm_dshare_sync_ptr0(pcm, slave_hw_ptr);
 }
 
 /*

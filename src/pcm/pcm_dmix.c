@@ -424,15 +424,17 @@ static int snd_pcm_dmix_sync_ptr0(snd_pcm_t *pcm, snd_pcm_uframes_t slave_hw_ptr
 static int snd_pcm_dmix_sync_ptr(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dmix = pcm->private_data;
+	snd_pcm_uframes_t slave_hw_ptr;
 	int err;
 
+	if (dmix->slowptr)
+		snd_pcm_hwsync(dmix->spcm);
+	slave_hw_ptr = *dmix->spcm->hw.ptr;
 	err = snd_pcm_direct_check_xrun(dmix, pcm);
 	if (err < 0)
 		return err;
-	if (dmix->slowptr)
-		snd_pcm_hwsync(dmix->spcm);
 
-	return snd_pcm_dmix_sync_ptr0(pcm, *dmix->spcm->hw.ptr);
+	return snd_pcm_dmix_sync_ptr0(pcm, slave_hw_ptr);
 }
 
 /*
