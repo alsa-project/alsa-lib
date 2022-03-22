@@ -1334,6 +1334,25 @@ const snd_config_t *snd_pcm_rate_get_default_converter(snd_config_t *root)
 	return NULL;
 }
 
+/**
+ * \brief Convert rate pcm frames to corresponding rate slave pcm frames
+ * \param pcm PCM handle
+ * \param frames Frames to be converted to slave frames
+ * \retval Corresponding slave frames
+*/
+snd_pcm_uframes_t snd_pcm_rate_slave_frames(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
+{
+	snd_pcm_uframes_t sframes;
+	snd_pcm_rate_t *rate = pcm->private_data;
+
+	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
+		sframes = rate->ops.output_frames(rate->obj, frames);
+	else
+		sframes = rate->ops.input_frames(rate->obj, frames);
+
+	return sframes;
+}
+
 static void rate_initial_setup(snd_pcm_rate_t *rate)
 {
 	if (rate->plugin_version == SND_PCM_RATE_PLUGIN_VERSION)

@@ -614,6 +614,14 @@ int snd_pcm_plugin_may_wait_for_avail_min(snd_pcm_t *pcm,
 			return 0;
 
 		needed_slave_avail_min = pcm->avail_min - available;
+
+		/* proportional adaption if rate converter is in place..
+		 * Can happen only on built-in rate plugin.
+		 * This code is also used by extplug, but extplug does not allow to alter the sampling rate.
+		 */
+		if (snd_pcm_type(pcm) == SND_PCM_TYPE_RATE)
+			needed_slave_avail_min = snd_pcm_rate_slave_frames(pcm, needed_slave_avail_min);
+
 		if (slave->avail_min != needed_slave_avail_min) {
 			snd_pcm_sw_params_t *swparams;
 			snd_pcm_sw_params_alloca(&swparams);
