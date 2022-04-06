@@ -1066,7 +1066,34 @@ int snd_pcm_direct_munmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 snd_pcm_chmap_query_t **snd_pcm_direct_query_chmaps(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dmix = pcm->private_data;
-	return snd_pcm_query_chmaps(dmix->spcm);
+	snd_pcm_chmap_query_t **smaps, **maps;
+	unsigned int i, j;
+
+	if (dmix->bindings == NULL)
+		return snd_pcm_query_chmaps(dmix->spcm);
+
+	maps = calloc(2, sizeof(*maps));
+	if (!maps)
+		return NULL;
+	maps[0] = calloc(dmix->channels + 2, sizeof(int *));
+	if (!maps[0]) {
+		free(maps);
+		return NULL;
+	}
+	smaps = snd_pcm_query_chmaps(dmix->spcm);
+	if (smaps == NULL) {
+		snd_pcm_free_chmaps(maps);
+		return NULL;
+	}
+	maps[0]->type = SND_CHMAP_TYPE_FIXED;
+	maps[0]->map.channels = dmix->channels;
+	for (i = 0; i < dmix->channels; i++) {
+		j = dmix->bindings[i];
+		if (j == UINT_MAX || smaps[0]->map.channels < j)
+			continue;
+		maps[0]->map.pos[i] = smaps[0]->map.pos[j];
+	}
+	return maps;
 }
 
 snd_pcm_chmap_t *snd_pcm_direct_get_chmap(snd_pcm_t *pcm)
