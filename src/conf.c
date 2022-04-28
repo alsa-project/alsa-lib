@@ -4062,7 +4062,7 @@ static int snd_config_hooks(snd_config_t *config, snd_config_t *private_data)
 	return err;
 }
 
-static int config_filename_filter(const struct dirent *dirent)
+static int config_filename_filter(const struct dirent64 *dirent)
 {
 	size_t flen;
 
@@ -4100,13 +4100,13 @@ static int config_file_open(snd_config_t *root, const char *filename)
 
 static int config_file_load(snd_config_t *root, const char *fn, int errors)
 {
-	struct stat st;
-	struct dirent **namelist;
+	struct stat64 st;
+	struct dirent64 **namelist;
 	int err, n;
 
 	if (!errors && access(fn, R_OK) < 0)
 		return 1;
-	if (stat(fn, &st) < 0) {
+	if (stat64(fn, &st) < 0) {
 		SNDERR("cannot stat file/directory %s", fn);
 		return 1;
 	}
@@ -4114,12 +4114,12 @@ static int config_file_load(snd_config_t *root, const char *fn, int errors)
 		return config_file_open(root, fn);
 #ifndef DOC_HIDDEN
 #if defined(_GNU_SOURCE) && !defined(__NetBSD__) && !defined(__FreeBSD__) && !defined(__sun) && !defined(ANDROID)
-#define SORTFUNC	versionsort
+#define SORTFUNC	versionsort64
 #else
-#define SORTFUNC	alphasort
+#define SORTFUNC	alphasort64
 #endif
 #endif
-	n = scandir(fn, &namelist, config_filename_filter, SORTFUNC);
+	n = scandir64(fn, &namelist, config_filename_filter, SORTFUNC);
 	if (n > 0) {
 		int j;
 		err = 0;
@@ -4543,9 +4543,9 @@ int snd_config_update_r(snd_config_t **_top, snd_config_update_t **_update, cons
 		c++;
 	}
 	for (k = 0; k < local->count; ++k) {
-		struct stat st;
+		struct stat64 st;
 		struct finfo *lf = &local->finfo[k];
-		if (stat(lf->name, &st) >= 0) {
+		if (stat64(lf->name, &st) >= 0) {
 			lf->dev = st.st_dev;
 			lf->ino = st.st_ino;
 			lf->mtime = st.st_mtime;
