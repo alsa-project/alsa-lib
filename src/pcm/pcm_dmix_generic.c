@@ -330,7 +330,7 @@ static void generic_mix_areas_32_swap(unsigned int size,
 	register signed int sample;
 
 	for (;;) {
-		sample = bswap_32(*src) >> 8;
+		sample = (signed int) bswap_32(*src) >> 8;
 		if (! *dst) {
 			*sum = sample;
 			*dst = *src;
@@ -364,7 +364,7 @@ static void generic_remix_areas_32_swap(unsigned int size,
 	register signed int sample;
 
 	for (;;) {
-		sample = bswap_32(*src) >> 8;
+		sample = (signed int) bswap_32(*src) >> 8;
 		if (! *dst) {
 			*sum = -sample;
 			*dst = bswap_32(-sample);
