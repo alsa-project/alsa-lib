@@ -844,7 +844,7 @@ pcm.name {
 	ipc_perm INT		# IPC permissions (octal, default 0600)
 	hw_ptr_alignment STR	# Slave application and hw pointer alignment type
 		# STR can be one of the below strings :
-		# no
+		# no (or off)
 		# roundup
 		# rounddown
 		# auto (default)

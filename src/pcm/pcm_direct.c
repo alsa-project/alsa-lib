@@ -1984,7 +1984,7 @@ int snd_pcm_direct_parse_open_conf(snd_config_t *root, snd_config_t *conf,
 				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
-			if (strcmp(str, "no") == 0)
+			if (strcmp(str, "no") == 0 || strcmp(str, "off") == 0)
 				rec->hw_ptr_alignment = SND_PCM_HW_PTR_ALIGNMENT_NO;
 			else if (strcmp(str, "roundup") == 0)
 				rec->hw_ptr_alignment = SND_PCM_HW_PTR_ALIGNMENT_ROUNDUP;
