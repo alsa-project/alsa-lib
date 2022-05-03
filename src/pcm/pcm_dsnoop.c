@@ -251,8 +251,7 @@ static int snd_pcm_dsnoop_reset(snd_pcm_t *pcm)
 	snd_pcm_direct_t *dsnoop = pcm->private_data;
 	dsnoop->hw_ptr %= pcm->period_size;
 	dsnoop->appl_ptr = dsnoop->hw_ptr;
-	dsnoop->slave_appl_ptr = dsnoop->slave_hw_ptr;
-	snd_pcm_direct_reset_slave_ptr(pcm, dsnoop);
+	snd_pcm_direct_reset_slave_ptr(pcm, dsnoop, dsnoop->slave_hw_ptr);
 	return 0;
 }
 
@@ -265,8 +264,7 @@ static int snd_pcm_dsnoop_start(snd_pcm_t *pcm)
 		return -EBADFD;
 	snd_pcm_hwsync(dsnoop->spcm);
 	snoop_timestamp(pcm);
-	dsnoop->slave_appl_ptr = dsnoop->slave_hw_ptr;
-	snd_pcm_direct_reset_slave_ptr(pcm, dsnoop);
+	snd_pcm_direct_reset_slave_ptr(pcm, dsnoop, dsnoop->slave_hw_ptr);
 	err = snd_timer_start(dsnoop->timer);
 	if (err < 0)
 		return err;

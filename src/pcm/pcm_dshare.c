@@ -305,8 +305,7 @@ static int snd_pcm_dshare_reset(snd_pcm_t *pcm)
 	snd_pcm_direct_t *dshare = pcm->private_data;
 	dshare->hw_ptr %= pcm->period_size;
 	dshare->appl_ptr = dshare->last_appl_ptr = dshare->hw_ptr;
-	dshare->slave_appl_ptr = dshare->slave_hw_ptr = *dshare->spcm->hw.ptr;
-	snd_pcm_direct_reset_slave_ptr(pcm, dshare);
+	snd_pcm_direct_reset_slave_ptr(pcm, dshare, *dshare->spcm->hw.ptr);
 	return 0;
 }
 
@@ -315,8 +314,7 @@ static int snd_pcm_dshare_start_timer(snd_pcm_t *pcm, snd_pcm_direct_t *dshare)
 	int err;
 
 	snd_pcm_hwsync(dshare->spcm);
-	dshare->slave_appl_ptr = dshare->slave_hw_ptr = *dshare->spcm->hw.ptr;
-	snd_pcm_direct_reset_slave_ptr(pcm, dshare);
+	snd_pcm_direct_reset_slave_ptr(pcm, dshare, *dshare->spcm->hw.ptr);
 	err = snd_timer_start(dshare->timer);
 	if (err < 0)
 		return err;
