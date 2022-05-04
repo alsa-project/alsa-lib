@@ -388,11 +388,21 @@ static int snd_pcm_multi_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 	return 0;
 }
 
+static snd_pcm_sframes_t snd_pcm_multi_avail_update(snd_pcm_t *pcm);
 static int snd_pcm_multi_status(snd_pcm_t *pcm, snd_pcm_status_t *status)
 {
 	snd_pcm_multi_t *multi = pcm->private_data;
 	snd_pcm_t *slave = multi->slaves[multi->master_slave].pcm;
-	return snd_pcm_status(slave, status);
+
+	int err = snd_pcm_status(slave, status);
+	if (err < 0)
+		return err;
+	snd_pcm_sframes_t avail = snd_pcm_multi_avail_update(pcm);
+	if (avail < 0)
+		return avail;
+	status->hw_ptr = *pcm->hw.ptr;
+	status->avail = avail;
+	return 0;
 }
 
 static snd_pcm_state_t snd_pcm_multi_state(snd_pcm_t *pcm)
