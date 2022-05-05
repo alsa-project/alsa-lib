@@ -320,6 +320,9 @@ static int snd_pcm_hw_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 		SYSMSG("SNDRV_PCM_IOCTL_INFO failed (%i)", err);
 		return err;
 	}
+	/* may be configurable (optional) */
+	if (__snd_pcm_info_eld_fixup_check(info))
+		return __snd_pcm_info_eld_fixup(info);
 	return 0;
 }
 

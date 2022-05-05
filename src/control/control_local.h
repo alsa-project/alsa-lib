@@ -124,3 +124,12 @@ int __snd_ctl_add_elem_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
 int __snd_ctl_ascii_elem_id_parse(snd_ctl_elem_id_t *dst,
 				  const char *str,
 				  const char **ret_ptr);
+
+static inline int
+__snd_pcm_info_eld_fixup_check(snd_pcm_info_t *info)
+{
+	return info->stream == SND_PCM_STREAM_PLAYBACK &&
+	       strncmp((char *)info->name, "HDMI ", 5) == 0;
+}
+
+int __snd_pcm_info_eld_fixup(snd_pcm_info_t *info);

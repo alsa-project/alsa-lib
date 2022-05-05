@@ -287,6 +287,9 @@ static int snd_ctl_hw_pcm_info(snd_ctl_t *handle, snd_pcm_info_t * info)
 	snd_ctl_hw_t *hw = handle->private_data;
 	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_PCM_INFO, info) < 0)
 		return -errno;
+	/* may be configurable (optional) */
+	if (__snd_pcm_info_eld_fixup_check(info))
+		return __snd_pcm_info_eld_fixup(info);
 	return 0;
 }
 
