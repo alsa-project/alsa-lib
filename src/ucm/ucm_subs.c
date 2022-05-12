@@ -582,7 +582,7 @@ static char *rval_eval(snd_use_case_mgr_t *uc_mgr, const char *e)
 	int err;
 
 	if (uc_mgr->conf_format < 5) {
-		uc_error("variable substitution is supported in v5+ syntax");
+		uc_error("variable evaluation is supported in v5+ syntax");
 		return NULL;
 	}
 	err = _snd_eval_string(&dst, e, rval_eval_var_cb, uc_mgr);
@@ -595,6 +595,41 @@ static char *rval_eval(snd_use_case_mgr_t *uc_mgr, const char *e)
 	if (err < 0)
 		return NULL;
 	return r;
+}
+
+static int rval_evali(snd_use_case_mgr_t *uc_mgr, snd_config_t *node, const char *e)
+{
+	snd_config_t *dst;
+	const char *id;
+	char *s;
+	size_t l;
+	int err;
+
+	if (uc_mgr->conf_format < 5) {
+		uc_error("variable evaluation is supported in v5+ syntax");
+		return -EINVAL;
+	}
+	err = snd_config_get_id(node, &id);
+	if (err < 0)
+		return err;
+	l = strlen(e);
+	if (e[l-1] != '}')
+		return -EINVAL;
+	s = malloc(l + 1);
+	if (s == NULL)
+		return -ENOMEM;
+	strcpy(s, e);
+	s[l-1] = '\0';
+	err = _snd_eval_string(&dst, s + 8, rval_eval_var_cb, uc_mgr);
+	free(s);
+	if (err < 0) {
+		uc_error("unable to evaluate '%s'", e);
+		return err;
+	}
+	err = snd_config_set_id(dst, id);
+	if (err < 0)
+		return err;
+	return snd_config_substitute(node, dst);
 }
 
 #define MATCH_VARIABLE(name, id, fcn, empty_ok)				\
@@ -819,6 +854,8 @@ int uc_mgr_substitute_tree(snd_use_case_mgr_t *uc_mgr, snd_config_t *node)
 				return err;
 			if (!uc_mgr_substitute_check(s2))
 				return 0;
+			if (strncmp(s2, "${evali:", 8) == 0)
+				return rval_evali(uc_mgr, node, s2);
 			err = uc_mgr_get_substituted_value(uc_mgr, &s, s2);
 			if (err < 0)
 				return err;

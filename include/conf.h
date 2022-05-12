@@ -129,6 +129,7 @@ int snd_config_remove(snd_config_t *config);
 int snd_config_delete(snd_config_t *config);
 int snd_config_delete_compound_members(const snd_config_t *config);
 int snd_config_copy(snd_config_t **dst, snd_config_t *src);
+int snd_config_substitute(snd_config_t *dst, snd_config_t *src);
 int snd_config_merge(snd_config_t *dst, snd_config_t *src, int override);
 
 int snd_config_make(snd_config_t **config, const char *key,

@@ -383,6 +383,12 @@ ${eval:<str>}        | Evaluate expression like *($var+2)/3* [**Syntax 5**]
 ${find-card:<str>}   | Find a card - see _Find card substitution_ section
 ${find-device:<str>} | Find a device - see _Find device substitution_ section
 
+#### Special whole string substitution
+
+Substituted string   | Value
+---------------------|---------------------
+${evali:<str>}       | Evaluate expression like *($var+2)/3* [**Syntax 5**]; target node will be integer; substituted only in the LibraryConfig subtree
+
 #### Find card substitution
 
 This substitutions finds the ALSA card and returns the appropriate identifier or
