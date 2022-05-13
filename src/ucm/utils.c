@@ -743,7 +743,8 @@ void uc_mgr_free_verb(snd_use_case_mgr_t *uc_mgr)
 
 void uc_mgr_free(snd_use_case_mgr_t *uc_mgr)
 {
-	snd_config_delete(uc_mgr->local_config);
+	if (uc_mgr->local_config)
+		snd_config_delete(uc_mgr->local_config);
 	uc_mgr_free_verb(uc_mgr);
 	uc_mgr_free_ctl_list(uc_mgr);
 	free(uc_mgr->card_name);
