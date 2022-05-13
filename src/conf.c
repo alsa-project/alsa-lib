@@ -1741,6 +1741,8 @@ int snd_config_substitute(snd_config_t *dst, snd_config_t *src)
 		src->u.compound.fields.prev->next = &dst->u.compound.fields;
 	}
 	free(dst->id);
+	if (dst->type == SND_CONFIG_TYPE_STRING)
+		free(dst->u.string);
 	dst->id = src->id;
 	dst->type = src->type;
 	dst->u = src->u;
