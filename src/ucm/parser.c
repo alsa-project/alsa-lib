@@ -327,13 +327,168 @@ static int evaluate_define(snd_use_case_mgr_t *uc_mgr,
 		free(var);
 		if (err < 0)
 			return err;
-		uc_mgr_set_variable(uc_mgr, id, s);
+		err = uc_mgr_set_variable(uc_mgr, id, s);
 		free(s);
+		if (err < 0)
+			return err;
 	}
 
 	snd_config_delete(d);
 
 	return evaluate_regex(uc_mgr, cfg);
+}
+
+/*
+ * Evaluate macro definitions (in-place delete)
+ */
+static int evaluate_define_macro(snd_use_case_mgr_t *uc_mgr,
+				 snd_config_t *cfg)
+{
+	snd_config_t *d;
+	int err;
+
+	err = snd_config_search(cfg, "DefineMacro", &d);
+	if (err == -ENOENT)
+		return 1;
+	if (err < 0)
+		return err;
+
+	if (snd_config_get_type(d) != SND_CONFIG_TYPE_COMPOUND) {
+		uc_error("compound type expected for DefineMacro");
+		return -EINVAL;
+	}
+
+	if (uc_mgr->conf_format < 5) {
+		uc_error("DefineMacro is supported in v5+ syntax");
+		return -EINVAL;
+	}
+
+	err = snd_config_merge(uc_mgr->macros, d, 0);
+	if (err < 0)
+		return err;
+	return 0;
+}
+
+static int evaluate_macro1(snd_use_case_mgr_t *uc_mgr,
+			   snd_config_t *dst,
+			   snd_config_t *args)
+{
+	snd_config_iterator_t i, next;
+	snd_config_t *m, *mc, *a, *n;
+	const char *mid, *id;
+	char name[128], *var;
+	const char *s;
+	int err;
+
+	err = snd_config_get_id(args, &mid);
+	if (err < 0)
+		return err;
+	err = snd_config_search(uc_mgr->macros, mid, &m);
+	if (err < 0) {
+		uc_error("Macro '%s' is not defined", mid);
+		return err;
+	}
+
+	a = args;
+	if (snd_config_get_type(args) == SND_CONFIG_TYPE_STRING) {
+		err = snd_config_get_string(args, &s);
+		if (err < 0)
+			return err;
+		err = snd_config_load_string(&a, s, 0);
+		if (err < 0)
+			return err;
+	} else if (snd_config_get_type(args) != SND_CONFIG_TYPE_COMPOUND) {
+		return -EINVAL;
+	}
+
+	/* set arguments */
+	snd_config_for_each(i, next, a) {
+		n = snd_config_iterator_entry(i);
+		err = snd_config_get_id(n, &id);
+		if (err < 0)
+			return err;
+		err = snd_config_get_ascii(n, &var);
+		if (err < 0)
+			return err;
+		snprintf(name, sizeof(name), "%s_%s", mid, id);
+		err = uc_mgr_set_variable(uc_mgr, name, var);
+		free(var);
+		if (err < 0)
+			return err;
+	}
+
+	/* merge + substitute variables */
+	err = snd_config_copy(&mc, m);
+	if (err < 0)
+		goto __err_path;
+	err = uc_mgr_config_tree_merge(uc_mgr, dst, mc, NULL, NULL);
+	snd_config_delete(mc);
+
+	/* delete arguments */
+	snd_config_for_each(i, next, a) {
+		n = snd_config_iterator_entry(i);
+		err = snd_config_get_id(n, &id);
+		if (err < 0)
+			return err;
+		snprintf(name, sizeof(name), "%s_%s", mid, id);
+		err = uc_mgr_delete_variable(uc_mgr, name);
+		if (err < 0)
+			return err;
+	}
+
+__err_path:
+	if (a != args)
+		snd_config_delete(a);
+	return err;
+}
+
+/*
+ * Evaluate macro definitions and instances (in-place delete)
+ */
+static int evaluate_macro(snd_use_case_mgr_t *uc_mgr,
+			  snd_config_t *cfg)
+{
+	snd_config_iterator_t i, i2, next, next2;
+	snd_config_t *d, *n, *n2;
+	int err, ret;
+
+	ret = evaluate_define_macro(uc_mgr, cfg);
+	if (ret < 0)
+		return ret;
+
+	err = snd_config_search(cfg, "Macro", &d);
+	if (err == -ENOENT)
+		return ret;
+	if (err < 0)
+		return err;
+
+	if (snd_config_get_type(d) != SND_CONFIG_TYPE_COMPOUND) {
+		uc_error("compound type expected for DefineMacro");
+		return -EINVAL;
+	}
+
+	if (uc_mgr->conf_format < 5) {
+		uc_error("Macro is supported in v5+ syntax");
+		return -EINVAL;
+	}
+
+	snd_config_for_each(i, next, d) {
+		n = snd_config_iterator_entry(i);
+		if (snd_config_get_type(n) != SND_CONFIG_TYPE_COMPOUND) {
+			uc_error("compound type expected for DefineMacro");
+			return -EINVAL;
+		}
+		snd_config_for_each(i2, next2, n) {
+			n2 = snd_config_iterator_entry(i2);
+			err = evaluate_macro1(uc_mgr, cfg, n2);
+			if (err < 0)
+				return err;
+		}
+	}
+
+	snd_config_delete(d);
+
+	return 0;
 }
 
 /*
@@ -382,9 +537,15 @@ static int evaluate_condition(snd_use_case_mgr_t *uc_mgr,
 int uc_mgr_evaluate_inplace(snd_use_case_mgr_t *uc_mgr,
 			    snd_config_t *cfg)
 {
-	int err1 = 0, err2 = 0, err3 = 0;
+	long iterations = 10000;
+	int err1 = 0, err2 = 0, err3 = 0, err4 = 0;
 
-	while (err1 == 0 || err2 == 0 || err3 == 0) {
+	while (err1 == 0 || err2 == 0 || err3 == 0 || err4 == 0) {
+		if (iterations == 0) {
+			uc_error("Maximal inplace evaluation iterations number reached (recursive references?)");
+			return -EINVAL;
+		}
+		iterations--;
 		/* variables at first */
 		err1 = evaluate_define(uc_mgr, cfg);
 		if (err1 < 0)
@@ -393,12 +554,17 @@ int uc_mgr_evaluate_inplace(snd_use_case_mgr_t *uc_mgr,
 		err2 = evaluate_include(uc_mgr, cfg);
 		if (err2 < 0)
 			return err2;
-		/* include may define another variables */
+		/* include or macro may define another variables */
 		/* conditions may depend on them */
 		if (err2 == 0)
 			continue;
-		err3 = evaluate_condition(uc_mgr, cfg);
+		err3 = evaluate_macro(uc_mgr, cfg);
 		if (err3 < 0)
+			return err3;
+		if (err3 == 0)
+			continue;
+		err4 = evaluate_condition(uc_mgr, cfg);
+		if (err4 < 0)
 			return err3;
 	}
 	return 0;
@@ -2458,6 +2624,10 @@ int uc_mgr_import_master_config(snd_use_case_mgr_t *uc_mgr)
 		goto __error;
 
 	err = parse_master_file(uc_mgr, cfg);
+	if (uc_mgr->macros) {
+		snd_config_delete(uc_mgr->macros);
+		uc_mgr->macros = NULL;
+	}
 	snd_config_delete(cfg);
 	if (err < 0) {
 		uc_mgr_free_ctl_list(uc_mgr);

@@ -1398,6 +1398,10 @@ int snd_use_case_mgr_open(snd_use_case_mgr_t **uc_mgr,
 	if (err < 0)
 		goto _err;
 
+	err = snd_config_top(&mgr->macros);
+	if (err < 0)
+		goto _err;
+
 	mgr->card_name = strdup(card_name);
 	if (mgr->card_name == NULL) {
 		err = -ENOMEM;

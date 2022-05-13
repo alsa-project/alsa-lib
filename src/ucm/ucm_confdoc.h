@@ -452,6 +452,41 @@ substrings are stored to a separate variable with the sequence number postfix.
 
 Variables can be substituted using the `${var:rval1}` reference for example.
 
+### Macros
+
+Macros were added for *Syntax* version *5*. The *DefineMacro* defines new
+macro like:
+
+~~~{.html}
+DefineMacro.macro1 {
+  Define.a "${var:macro1_arg1}"
+  Define.b "${var:macro1_other}"
+  # Device or any other block may be defined here...
+}
+~~~
+
+The arguments in the macro are refered as the variables with the macro
+name prefix and underscore (*'_'*) delimiter. The configuration block
+in the DefineMacro subtree is always evaluated (including arguments
+and variables) at the time of the instantiation.
+
+The macros can be instantiated (expanded) using:
+
+~~~{.html}
+# short version
+Macro.id1.macro1 "arg1='something 1',other='other x'"
+
+# long version
+Macro.id1.macro1 {
+  arg1 'something 1'
+  other 'other x'
+}
+~~~
+
+The second identifier (in example as *id1*) must be unique, but the contents
+is ignored. It just differentiate the items in the subtree (allowing multiple
+instances for one macro).
+
 ### Conditions
 
 The configuration tree evaluation supports the conditions - *If* blocks. Each *If* blocks

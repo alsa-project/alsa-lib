@@ -866,6 +866,12 @@ int uc_mgr_substitute_tree(snd_use_case_mgr_t *uc_mgr, snd_config_t *node)
 		}
 		return 0;
 	}
+	/* exception - macros are evaluated when instantied */
+	err = snd_config_get_id(node, &id);
+	if (err < 0)
+		return err;
+	if (id && strcmp(id, "DefineMacro") == 0)
+		return 0;
 	snd_config_for_each(i, next, node) {
 		n = snd_config_iterator_entry(i);
 		err = uc_mgr_substitute_tree(uc_mgr, n);

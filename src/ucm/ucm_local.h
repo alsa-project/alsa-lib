@@ -262,6 +262,9 @@ struct snd_use_case_mgr {
 	/* list of opened control devices */
 	struct list_head ctl_list;
 
+	/* tree with macros */
+	snd_config_t *macros;
+
 	/* local library configuration */
 	snd_config_t *local_config;
 
@@ -333,6 +336,8 @@ const char *uc_mgr_get_variable(snd_use_case_mgr_t *uc_mgr,
 int uc_mgr_set_variable(snd_use_case_mgr_t *uc_mgr,
 			const char *name,
 			const char *val);
+
+int uc_mgr_delete_variable(snd_use_case_mgr_t *uc_mgr, const char *name);
 
 int uc_mgr_get_substituted_value(snd_use_case_mgr_t *uc_mgr,
 				 char **_rvalue,

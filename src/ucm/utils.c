@@ -400,6 +400,14 @@ int uc_mgr_config_load(int format, const char *file, snd_config_t **cfg)
 	return 0;
 }
 
+static void uc_mgr_free_value1(struct ucm_value *val)
+{
+	free(val->name);
+	free(val->data);
+	list_del(&val->list);
+	free(val);
+}
+
 void uc_mgr_free_value(struct list_head *base)
 {
 	struct list_head *pos, *npos;
@@ -407,10 +415,7 @@ void uc_mgr_free_value(struct list_head *base)
 	
 	list_for_each_safe(pos, npos, base) {
 		val = list_entry(pos, struct ucm_value, list);
-		free(val->name);
-		free(val->data);
-		list_del(&val->list);
-		free(val);
+		uc_mgr_free_value1(val);
 	}
 }
 
@@ -704,6 +709,22 @@ int uc_mgr_set_variable(snd_use_case_mgr_t *uc_mgr, const char *name,
 	return 0;
 }
 
+int uc_mgr_delete_variable(snd_use_case_mgr_t *uc_mgr, const char *name)
+{
+	struct list_head *pos;
+	struct ucm_value *curr;
+
+	list_for_each(pos, &uc_mgr->variable_list) {
+		curr = list_entry(pos, struct ucm_value, list);
+		if (strcmp(curr->name, name) == 0) {
+			uc_mgr_free_value1(curr);
+			return 0;
+		}
+	}
+
+	return -ENOENT;
+}
+
 void uc_mgr_free_verb(snd_use_case_mgr_t *uc_mgr)
 {
 	struct list_head *pos, *npos;
@@ -745,6 +766,8 @@ void uc_mgr_free(snd_use_case_mgr_t *uc_mgr)
 {
 	if (uc_mgr->local_config)
 		snd_config_delete(uc_mgr->local_config);
+	if (uc_mgr->macros)
+		snd_config_delete(uc_mgr->macros);
 	uc_mgr_free_verb(uc_mgr);
 	uc_mgr_free_ctl_list(uc_mgr);
 	free(uc_mgr->card_name);
