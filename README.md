@@ -1,7 +1,7 @@
 # alsa-lib
 ## Advanced Linux Sound Architecture (ALSA) project
 
-![Build alsa-lib](https://github.com/alsa-project/alsa-lib/workflows/Build%20alsa-lib/badge.svg?branch=master)
+[![Build alsa-lib](https://github.com/alsa-project/alsa-lib/workflows/Build%20alsa-lib/badge.svg?branch=master)](https://github.com/alsa-project/alsa-lib/actions/workflows/build.yml)
 
 The alsa-lib is a library to interface with ALSA in the Linux kernel and
 virtual devices using a plugin system.
