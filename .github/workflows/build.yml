@@ -96,3 +96,7 @@ jobs:
     - name: Install
       run: |
         make install
+
+  gitcompile:
+    run: sed 's/-Wunused-const-variable=0//g' < gitcompile > gitcompile.sh
+    run: bash gitcompile.sh
