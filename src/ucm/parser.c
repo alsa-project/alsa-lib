@@ -278,6 +278,10 @@ static int evaluate_regex(snd_use_case_mgr_t *uc_mgr,
 		err = snd_config_get_id(n, &id);
 		if (err < 0)
 			return err;
+		if (id[0] == '@') {
+			uc_error("error: value names starting with '@' are reserved for application variables");
+			return -EINVAL;
+		}
 		err = uc_mgr_define_regex(uc_mgr, id, n);
 		if (err < 0)
 			return err;
@@ -327,6 +331,11 @@ static int evaluate_define(snd_use_case_mgr_t *uc_mgr,
 		free(var);
 		if (err < 0)
 			return err;
+		if (id[0] == '@') {
+			free(s);
+			uc_error("error: value names starting with '@' are reserved for application variables");
+			return -EINVAL;
+		}
 		err = uc_mgr_set_variable(uc_mgr, id, s);
 		free(s);
 		if (err < 0)

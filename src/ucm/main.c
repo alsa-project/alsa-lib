@@ -1357,6 +1357,57 @@ static int set_device(snd_use_case_mgr_t *uc_mgr,
 }
 
 /**
+ * \brief Parse open arguments
+ * \param uc_mgr Use case manager
+ * \param name name of card to open
+ * \return the rest of the card name to open
+ */
+const char *parse_open_variables(snd_use_case_mgr_t *uc_mgr, const char *name)
+{
+	const char *end, *id;
+	char *args, *var;
+	snd_config_t *cfg, *n;
+	snd_config_iterator_t i, next;
+	char vname[128];
+	size_t l;
+	int err;
+
+	end = strstr(name, ">>>");
+	if (end == NULL)
+		return name;
+	l = end - name - 3;
+	args = alloca(l + 1);
+	strncpy(args, name + 3, l);
+	args[l] = '\0';
+
+	err = snd_config_load_string(&cfg, args, 0);
+	if (err < 0) {
+		uc_error("error: open arguments are not valid (%s)", args);
+		goto skip;
+	}
+
+	/* set arguments */
+	snd_config_for_each(i, next, cfg) {
+		n = snd_config_iterator_entry(i);
+		err = snd_config_get_id(n, &id);
+		if (err < 0)
+			goto skip;
+		err = snd_config_get_ascii(n, &var);
+		if (err < 0)
+			goto skip;
+		snprintf(vname, sizeof(vname), "@%s", id);
+		err = uc_mgr_set_variable(uc_mgr, vname, var);
+		free(var);
+		if (err < 0)
+			goto skip;
+	}
+
+	snd_config_delete(cfg);
+skip:
+	return end + 3;
+}
+
+/**
  * \brief Init sound card use case manager.
  * \param uc_mgr Returned use case manager pointer
  * \param card_name name of card to open
@@ -1387,6 +1438,9 @@ int snd_use_case_mgr_open(snd_use_case_mgr_t **uc_mgr,
 		card_name++;
 		mgr->suppress_nodev_errors = 1;
 	}
+
+	if (card_name[0] == '<' && card_name[1] == '<' && card_name[2] == '<')
+		card_name = parse_open_variables(mgr, card_name);
 
 	err = uc_mgr_card_open(mgr);
 	if (err < 0) {
