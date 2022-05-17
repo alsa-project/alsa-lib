@@ -484,7 +484,10 @@ static int evaluate_macro(snd_use_case_mgr_t *uc_mgr,
 	snd_config_for_each(i, next, d) {
 		n = snd_config_iterator_entry(i);
 		if (snd_config_get_type(n) != SND_CONFIG_TYPE_COMPOUND) {
-			uc_error("compound type expected for DefineMacro");
+			const char *id;
+			if (snd_config_get_id(n, &id))
+				id = "";
+			uc_error("compound type expected for Macro.%s", id);
 			return -EINVAL;
 		}
 		snd_config_for_each(i2, next2, n) {
