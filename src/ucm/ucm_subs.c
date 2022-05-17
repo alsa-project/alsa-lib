@@ -549,13 +549,20 @@ static char *rval_sysfs(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED, const char 
 static char *rval_var(snd_use_case_mgr_t *uc_mgr, const char *id)
 {
 	const char *v;
+	bool ignore_not_found = false;
 
 	if (uc_mgr->conf_format < 3) {
 		uc_error("variable substitution is supported in v3+ syntax");
 		return NULL;
 	}
 
+	if (id[0] == '-') {
+		ignore_not_found = true;
+		id++;
+	}
 	v = uc_mgr_get_variable(uc_mgr, id);
+	if (v == NULL && ignore_not_found)
+		v = "";
 	if (v)
 		return strdup(v);
 	return NULL;
