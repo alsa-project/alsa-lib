@@ -575,7 +575,13 @@ int uc_mgr_evaluate_inplace(snd_use_case_mgr_t *uc_mgr,
 		/* conditions may depend on them */
 		if (err2 == 0)
 			continue;
+		uc_mgr->macro_hops++;
+		if (uc_mgr->macro_hops > 100) {
+			uc_error("Maximal macro hops reached!");
+			return -EINVAL;
+		}
 		err3 = evaluate_macro(uc_mgr, cfg);
+		uc_mgr->macro_hops--;
 		if (err3 < 0)
 			return err3;
 		if (err3 == 0)

@@ -264,6 +264,7 @@ struct snd_use_case_mgr {
 
 	/* tree with macros */
 	snd_config_t *macros;
+	int macro_hops;
 
 	/* local library configuration */
 	snd_config_t *local_config;
