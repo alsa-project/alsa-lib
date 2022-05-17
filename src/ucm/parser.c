@@ -430,6 +430,11 @@ static int evaluate_macro1(snd_use_case_mgr_t *uc_mgr,
 	err = snd_config_copy(&mc, m);
 	if (err < 0)
 		goto __err_path;
+	err = uc_mgr_evaluate_inplace(uc_mgr, mc);
+	if (err < 0) {
+		snd_config_delete(mc);
+		goto __err_path;
+	}
 	err = uc_mgr_config_tree_merge(uc_mgr, dst, mc, NULL, NULL);
 	snd_config_delete(mc);
 
