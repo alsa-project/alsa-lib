@@ -559,6 +559,8 @@ static char *rval_var(snd_use_case_mgr_t *uc_mgr, const char *id)
 	if (id[0] == '-') {
 		ignore_not_found = true;
 		id++;
+	} else if (id[0] == '@') {
+		ignore_not_found = true;
 	}
 	v = uc_mgr_get_variable(uc_mgr, id);
 	if (v == NULL && ignore_not_found)
