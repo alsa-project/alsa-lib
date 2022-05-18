@@ -614,8 +614,8 @@ static int rval_evali(snd_use_case_mgr_t *uc_mgr, snd_config_t *node, const char
 	size_t l;
 	int err;
 
-	if (uc_mgr->conf_format < 5) {
-		uc_error("variable evaluation is supported in v5+ syntax");
+	if (uc_mgr->conf_format < 6) {
+		uc_error("variable evaluation is supported in v6+ syntax");
 		return -EINVAL;
 	}
 	err = snd_config_get_id(node, &id);

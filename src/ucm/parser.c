@@ -367,8 +367,8 @@ static int evaluate_define_macro(snd_use_case_mgr_t *uc_mgr,
 		return -EINVAL;
 	}
 
-	if (uc_mgr->conf_format < 5) {
-		uc_error("DefineMacro is supported in v5+ syntax");
+	if (uc_mgr->conf_format < 6) {
+		uc_error("DefineMacro is supported in v6+ syntax");
 		return -EINVAL;
 	}
 
@@ -481,8 +481,8 @@ static int evaluate_macro(snd_use_case_mgr_t *uc_mgr,
 		return -EINVAL;
 	}
 
-	if (uc_mgr->conf_format < 5) {
-		uc_error("Macro is supported in v5+ syntax");
+	if (uc_mgr->conf_format < 6) {
+		uc_error("Macro is supported in v6+ syntax");
 		return -EINVAL;
 	}
 
