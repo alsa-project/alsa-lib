@@ -531,8 +531,7 @@ static int evaluate_include(snd_use_case_mgr_t *uc_mgr,
 /*
  * Evaluate condition (in-place)
  */
-static int evaluate_condition(snd_use_case_mgr_t *uc_mgr,
-			      snd_config_t *cfg)
+static int evaluate_condition(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 {
 	snd_config_t *n;
 	int err;
@@ -549,15 +548,67 @@ static int evaluate_condition(snd_use_case_mgr_t *uc_mgr,
 }
 
 /*
+ * Evaluate variant (in-place)
+ */
+static int evaluate_variant(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
+{
+	snd_config_iterator_t i, next;
+	snd_config_t *n, *c;
+	const char *id;
+	int err;
+
+	err = snd_config_search(cfg, "Variant", &c);
+	if (err == -ENOENT)
+		return 1;
+	if (err < 0)
+		return err;
+
+	if (uc_mgr->conf_format < 6) {
+		uc_error("Variant is supported in v6+ syntax");
+		return -EINVAL;
+	}
+
+	if (uc_mgr->parse_master_section)
+		return 1;
+
+	if (uc_mgr->parse_variant == NULL)
+		goto __ret;
+
+	snd_config_for_each(i, next, c) {
+		n = snd_config_iterator_entry(i);
+
+		if (snd_config_get_id(n, &id) < 0)
+			return -EINVAL;
+
+		if (strcmp(id, uc_mgr->parse_variant))
+			continue;
+
+		err = uc_mgr_evaluate_inplace(uc_mgr, n);
+		if (err < 0)
+			return err;
+
+		err = uc_mgr_config_tree_merge(uc_mgr, cfg, n, NULL, NULL);
+		if (err < 0)
+			return err;
+		snd_config_delete(c);
+		return 0;
+	}
+
+__ret:
+	snd_config_delete(c);
+	return 1;
+}
+
+/*
  * In-place evaluate
  */
 int uc_mgr_evaluate_inplace(snd_use_case_mgr_t *uc_mgr,
 			    snd_config_t *cfg)
 {
 	long iterations = 10000;
-	int err1 = 0, err2 = 0, err3 = 0, err4 = 0;
+	int err1 = 0, err2 = 0, err3 = 0, err4 = 0, err5 = 0;
 
-	while (err1 == 0 || err2 == 0 || err3 == 0 || err4 == 0) {
+	while (err1 == 0 || err2 == 0 || err3 == 0 || err4 == 0 || err5 == 0) {
 		if (iterations == 0) {
 			uc_error("Maximal inplace evaluation iterations number reached (recursive references?)");
 			return -EINVAL;
@@ -575,20 +626,25 @@ int uc_mgr_evaluate_inplace(snd_use_case_mgr_t *uc_mgr,
 		/* conditions may depend on them */
 		if (err2 == 0)
 			continue;
+		err3 = evaluate_variant(uc_mgr, cfg);
+		if (err3 < 0)
+			return err3;
+		if (err3 == 0)
+			continue;
 		uc_mgr->macro_hops++;
 		if (uc_mgr->macro_hops > 100) {
 			uc_error("Maximal macro hops reached!");
 			return -EINVAL;
 		}
-		err3 = evaluate_macro(uc_mgr, cfg);
+		err4 = evaluate_macro(uc_mgr, cfg);
 		uc_mgr->macro_hops--;
-		if (err3 < 0)
-			return err3;
-		if (err3 == 0)
-			continue;
-		err4 = evaluate_condition(uc_mgr, cfg);
 		if (err4 < 0)
-			return err3;
+			return err4;
+		if (err4 == 0)
+			continue;
+		err5 = evaluate_condition(uc_mgr, cfg);
+		if (err5 < 0)
+			return err5;
 	}
 	return 0;
 }
@@ -1999,6 +2055,65 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 }
 
 /*
+ * Parse variant information
+ */
+static int parse_variant(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg,
+			 char **_vfile, char **_vcomment)
+{
+	snd_config_iterator_t i, next;
+	snd_config_t *n;
+	char *file = NULL, *comment = NULL;
+	int err;
+
+	/* parse master config sections */
+	snd_config_for_each(i, next, cfg) {
+		const char *id;
+		n = snd_config_iterator_entry(i);
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
+
+		/* get use case verb file name */
+		if (strcmp(id, "File") == 0) {
+			if (_vfile) {
+				err = parse_string_substitute3(uc_mgr, n, &file);
+				if (err < 0) {
+					uc_error("failed to get File");
+					goto __error;
+				}
+			}
+			continue;
+		}
+
+		/* get optional use case comment */
+		if (strncmp(id, "Comment", 7) == 0) {
+			if (_vcomment) {
+				err = parse_string_substitute3(uc_mgr, n, &comment);
+				if (err < 0) {
+					uc_error("error: failed to get Comment");
+					goto __error;
+				}
+			}
+			continue;
+		}
+
+		uc_error("unknown field '%s' in Variant section", id);
+		err = -EINVAL;
+		goto __error;
+	}
+
+	if (_vfile)
+		*_vfile = file;
+	if (_vcomment)
+		*_vcomment = comment;
+	return 0;
+
+__error:
+	free(file);
+	free(comment);
+	return err;
+}
+
+/*
  * Parse master section for "Use Case" and "File" tags.
  */
 static int parse_master_section(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg,
@@ -2006,8 +2121,9 @@ static int parse_master_section(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg,
 				void *data2 ATTRIBUTE_UNUSED)
 {
 	snd_config_iterator_t i, next;
-	snd_config_t *n;
+	snd_config_t *n, *variant = NULL;
 	char *use_case_name, *file = NULL, *comment = NULL;
+	bool variant_ok = false;
 	int err;
 
 	if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
@@ -2022,7 +2138,9 @@ static int parse_master_section(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg,
 	}
 
 	/* in-place evaluation */
+	uc_mgr->parse_master_section = 1;
 	err = uc_mgr_evaluate_inplace(uc_mgr, cfg);
+	uc_mgr->parse_master_section = 0;
 	if (err < 0)
 		goto __error;
 
@@ -2053,20 +2171,69 @@ static int parse_master_section(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg,
 			continue;
 		}
 
-		uc_error("unknown field %s in master section");
+		if (uc_mgr->conf_format >= 6 && strcmp(id, "Variant") == 0) {
+			snd_config_iterator_t i2, next2;
+			variant = n;
+			snd_config_for_each(i2, next2, n) {
+				const char *id2;
+				snd_config_t *n2;
+				n2 = snd_config_iterator_entry(i2);
+				if (snd_config_get_id(n2, &id2) < 0)
+					continue;
+				err = uc_mgr_evaluate_inplace(uc_mgr, n2);
+				if (err < 0)
+					goto __error;
+				if (strcmp(use_case_name, id2) == 0)
+					variant_ok = true;
+			}
+			continue;
+		}
+
+		uc_error("unknown field '%s' in SectionUseCase", id);
 	}
 
-	uc_dbg("use_case_name %s file '%s'", use_case_name, file);
-
-	/* do we have both use case name and file ? */
-	if (!file) {
-		uc_error("error: use case missing file");
+	if (variant && !variant_ok) {
+		uc_error("error: undefined variant '%s'", use_case_name);
 		err = -EINVAL;
 		goto __error;
 	}
 
-	/* parse verb file */
-	err = parse_verb_file(uc_mgr, use_case_name, comment, file);
+	if (!variant) {
+		uc_dbg("use_case_name %s file '%s'", use_case_name, file);
+
+		/* do we have both use case name and file ? */
+		if (!file) {
+			uc_error("error: use case missing file");
+			err = -EINVAL;
+			goto __error;
+		}
+
+		/* parse verb file */
+		err = parse_verb_file(uc_mgr, use_case_name, comment, file);
+	} else {
+		/* parse variants */
+		snd_config_for_each(i, next, variant) {
+			char *vfile, *vcomment;
+			const char *id;
+			n = snd_config_iterator_entry(i);
+			if (snd_config_get_id(n, &id) < 0)
+				continue;
+			if (!parse_is_name_safe(id)) {
+				err = -EINVAL;
+				goto __error;
+			}
+			err = parse_variant(uc_mgr, n, &vfile, &vcomment);
+			if (err < 0)
+				break;
+			uc_mgr->parse_variant = id;
+			err = parse_verb_file(uc_mgr, id,
+						vcomment ? vcomment : comment,
+						vfile ? vfile : file);
+			uc_mgr->parse_variant = NULL;
+			free(vfile);
+			free(vcomment);
+		}
+	}
 
 __error:
 	free(use_case_name);

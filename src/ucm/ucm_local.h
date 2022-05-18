@@ -228,6 +228,8 @@ struct snd_use_case_mgr {
 	int conf_format;
 	unsigned int ucm_card_number;
 	int suppress_nodev_errors;
+	const char *parse_variant;
+	int parse_master_section;
 
 	/* UCM cards list */
 	struct list_head cards_list;
