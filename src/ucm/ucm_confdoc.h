@@ -389,7 +389,7 @@ ${find-device:<str>} | Find a device - see _Find device substitution_ section
 
 Substituted string   | Value
 ---------------------|---------------------
-${evali:<str>}       | Evaluate expression like *($var+2)/3* [**Syntax 5**]; target node will be integer; substituted only in the LibraryConfig subtree
+${evali:<str>}       | Evaluate expression like *($var+2)/3* [**Syntax 6**]; target node will be integer; substituted only in the LibraryConfig subtree
 
 #### Find card substitution
 
@@ -456,7 +456,7 @@ Variables can be substituted using the `${var:rval1}` reference for example.
 
 ### Macros
 
-Macros were added for *Syntax* version *5*. The *DefineMacro* defines new
+Macros were added for *Syntax* version *6*. The *DefineMacro* defines new
 macro like:
 
 ~~~{.html}
@@ -566,6 +566,41 @@ If.fmic {
 }
 ~~~
 
+### Variants
+
+To avoid duplication of the many configuration files for the cases with
+minimal configuration changes, there is the variant extension. Variants were
+added for *Syntax* version *6*.
+
+The bellow example will create two verbs - "HiFi" and "HiFi 7.1" with
+the different playback channels (2 and 8) for the "Speaker" device.
+
+Example (main configuration file):
+
+~~~{.html}
+SectionUseCase."HiFi" {
+  File "HiFi.conf"
+  Variant."HiFi" {
+    Comment "HiFi"
+  }
+  Variant."HiFi 7+1" {
+    Comment "HiFi 7.1"
+  }
+}
+~~~
+
+Example (verb configuration file - HiFi.conf):
+
+~~~{.html}
+SectionDevice."Speaker" {
+  Value {
+    PlaybackChannels 2
+  }
+  Variant."HiFi 7+1".Value {
+    PlaybackChannels 8
+  }
+}
+~~~
 
 */
 
