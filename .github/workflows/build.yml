@@ -13,10 +13,12 @@ jobs:
         dnf -y upgrade
         dnf -y install @development-tools libtool bzip2
     - name: Checkout
-      uses: actions/checkout@v2
-    - name: Checkout all tags
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: Safe git directory
       run: |
-        git fetch --prune --unshallow
+        git config --global --add safe.directory "$GITHUB_WORKSPACE"
     - name: Modify version
       run: |
         mv configure.ac configure.ac.old
@@ -73,7 +75,7 @@ jobs:
       image: ubuntu:latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
     - name: Prepare environment
       run: |
         export DEBIAN_FRONTEND=noninteractive
