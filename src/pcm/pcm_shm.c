@@ -61,7 +61,7 @@ static long snd_pcm_shm_action_fd0(snd_pcm_t *pcm, int *fd)
 {
 	snd_pcm_shm_t *shm = pcm->private_data;
 	int err;
-	char buf[1];
+	char buf[1] = "";
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 
 	err = write(shm->socket, buf, 1);
@@ -113,7 +113,7 @@ static long snd_pcm_shm_action(snd_pcm_t *pcm)
 {
 	snd_pcm_shm_t *shm = pcm->private_data;
 	int err, result;
-	char buf[1];
+	char buf[1] = "";
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 
 	if (ctrl->hw.changed || ctrl->appl.changed)
@@ -148,7 +148,7 @@ static long snd_pcm_shm_action_fd(snd_pcm_t *pcm, int *fd)
 {
 	snd_pcm_shm_t *shm = pcm->private_data;
 	int err;
-	char buf[1];
+	char buf[1] = "";
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 
 	if (ctrl->hw.changed || ctrl->appl.changed)

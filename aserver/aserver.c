@@ -530,7 +530,7 @@ transport_ops_t pcm_shm_ops = {
 static int ctl_handler(waiter_t *waiter, unsigned short events)
 {
 	client_t *client = waiter->private_data;
-	char buf[1];
+	char buf[1] = "";
 	ssize_t n;
 	if (events & POLLIN) {
 		n = write(client->poll_fd, buf, 1);
