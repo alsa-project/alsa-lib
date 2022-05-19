@@ -32,6 +32,7 @@
  *   http://www.medianet.ag
  */
   
+#include "config.h"
 #include <dirent.h>
 #include <locale.h>
 #include <math.h>
@@ -1147,7 +1148,7 @@ static int snd_pcm_ladspa_check_dir(snd_pcm_ladspa_plugin_t * const plugin,
 				    const unsigned long ladspa_id)
 {
 	DIR *dir;
-	struct dirent * dirent;
+	struct dirent64 * dirent;
 	int len = strlen(path), err;
 	int need_slash;
 	char *filename;
@@ -1161,7 +1162,7 @@ static int snd_pcm_ladspa_check_dir(snd_pcm_ladspa_plugin_t * const plugin,
 		return -ENOENT;
 		
 	while (1) {
-		dirent = readdir(dir);
+		dirent = readdir64(dir);
 		if (!dirent) {
 			closedir(dir);
 			return 0;
