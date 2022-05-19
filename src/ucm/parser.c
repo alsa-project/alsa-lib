@@ -419,7 +419,7 @@ static int evaluate_macro1(snd_use_case_mgr_t *uc_mgr,
 		err = snd_config_get_ascii(n, &var);
 		if (err < 0)
 			return err;
-		snprintf(name, sizeof(name), "%s_%s", mid, id);
+		snprintf(name, sizeof(name), "__%s", id);
 		err = uc_mgr_set_variable(uc_mgr, name, var);
 		free(var);
 		if (err < 0)
@@ -444,7 +444,7 @@ static int evaluate_macro1(snd_use_case_mgr_t *uc_mgr,
 		err = snd_config_get_id(n, &id);
 		if (err < 0)
 			return err;
-		snprintf(name, sizeof(name), "%s_%s", mid, id);
+		snprintf(name, sizeof(name), "__%s", id);
 		err = uc_mgr_delete_variable(uc_mgr, name);
 		if (err < 0)
 			return err;

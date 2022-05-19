@@ -461,16 +461,16 @@ macro like:
 
 ~~~{.html}
 DefineMacro.macro1 {
-  Define.a "${var:macro1_arg1}"
-  Define.b "${var:macro1_other}"
+  Define.a "${var:__arg1}"
+  Define.b "${var:__other}"
   # Device or any other block may be defined here...
 }
 ~~~
 
-The arguments in the macro are refered as the variables with the macro
-name prefix and underscore (*'_'*) delimiter. The configuration block
-in the DefineMacro subtree is always evaluated (including arguments
-and variables) at the time of the instantiation.
+The arguments in the macro are refered as the variables with the double
+underscore name prefix (like *__variable*). The configuration block in
+the DefineMacro subtree is always evaluated (including arguments and variables)
+at the time of the instantiation.
 
 The macros can be instantiated (expanded) using:
 
