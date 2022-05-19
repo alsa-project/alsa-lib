@@ -499,7 +499,7 @@ static char *rval_env(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED, const char *i
 static char *rval_sysfs(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED, const char *id)
 {
 	char path[PATH_MAX], link[PATH_MAX + 1];
-	struct stat sb;
+	struct stat64 sb;
 	ssize_t len;
 	const char *e;
 	int fd;
@@ -510,7 +510,7 @@ static char *rval_sysfs(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED, const char 
 	if (id[0] == '/')
 		id++;
 	snprintf(path, sizeof(path), "%s/%s", e, id);
-	if (lstat(path, &sb) != 0)
+	if (lstat64(path, &sb) != 0)
 		return NULL;
 	if (S_ISLNK(sb.st_mode)) {
 		len = readlink(path, link, sizeof(link) - 1);

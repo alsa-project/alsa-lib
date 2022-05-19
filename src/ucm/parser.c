@@ -36,7 +36,7 @@
 #include <dirent.h>
 #include <limits.h>
 
-static int filename_filter(const struct dirent *dirent);
+static int filename_filter(const struct dirent64 *dirent);
 
 static int parse_sequence(snd_use_case_mgr_t *uc_mgr,
 			  struct list_head *base,
@@ -2549,7 +2549,7 @@ static int parse_toplevel_path(snd_use_case_mgr_t *uc_mgr,
 	snd_config_t *n, *n2;
 	const char *id;
 	char *dir = NULL, *file = NULL, fn[PATH_MAX];
-	struct stat st;
+	struct stat64 st;
 	long version;
 	int err;
 
@@ -2624,7 +2624,7 @@ static int parse_toplevel_path(snd_use_case_mgr_t *uc_mgr,
 		}
 
 		ucm_filename(fn, sizeof(fn), version, dir, file);
-		if (access(fn, R_OK) == 0 && lstat(fn, &st) == 0) {
+		if (access(fn, R_OK) == 0 && lstat64(fn, &st) == 0) {
 			if (st.st_mode & S_IFLNK) {
 				ssize_t r;
 				char *link, *dir2, *p;
@@ -2838,7 +2838,7 @@ __error:
 	return err;
 }
 
-static int filename_filter(const struct dirent *dirent)
+static int filename_filter(const struct dirent64 *dirent)
 {
 	if (dirent == NULL)
 		return 0;
@@ -2872,7 +2872,7 @@ int uc_mgr_scan_master_configs(const char **_list[])
 	int i, j, cnt, err;
 	long l;
 	ssize_t ss;
-	struct dirent **namelist;
+	struct dirent64 **namelist;
 
 	if (env)
 		snprintf(filename, sizeof(filename), "%s/conf.virt.d", env);
@@ -2881,11 +2881,11 @@ int uc_mgr_scan_master_configs(const char **_list[])
 			 snd_config_topdir());
 
 #if defined(_GNU_SOURCE) && !defined(__NetBSD__) && !defined(__FreeBSD__) && !defined(__sun) && !defined(ANDROID)
-#define SORTFUNC	versionsort
+#define SORTFUNC	versionsort64
 #else
-#define SORTFUNC	alphasort
+#define SORTFUNC	alphasort64
 #endif
-	err = scandir(filename, &namelist, filename_filter, SORTFUNC);
+	err = scandir64(filename, &namelist, filename_filter, SORTFUNC);
 	if (err < 0) {
 		err = -errno;
 		uc_error("error: could not scan directory %s: %s",

@@ -44,10 +44,10 @@ static int find_exec(const char *name, char *out, size_t len)
 	char bin[PATH_MAX];
 	char *path, *tmp, *tmp2 = NULL;
 	DIR *dir;
-	struct dirent *de;
-	struct stat st;
+	struct dirent64 *de;
+	struct stat64 st;
 	if (name[0] == '/') {
-		if (lstat(name, &st))
+		if (lstat64(name, &st))
 			return 0;
 		if (!S_ISREG(st.st_mode) || !(st.st_mode & S_IEXEC))
 			return 0;
@@ -63,12 +63,12 @@ static int find_exec(const char *name, char *out, size_t len)
 	tmp = strtok_r(path, ":", &tmp2);
 	while (tmp && !ret) {
 		if ((dir = opendir(tmp))) {
-			while ((de = readdir(dir))) {
+			while ((de = readdir64(dir))) {
 				if (strstr(de->d_name, name) != de->d_name)
 					continue;
 				snprintf(bin, sizeof(bin), "%s/%s", tmp,
 					 de->d_name);
-				if (lstat(bin, &st))
+				if (lstat64(bin, &st))
 					continue;
 				if (!S_ISREG(st.st_mode)
 				    || !(st.st_mode & S_IEXEC))

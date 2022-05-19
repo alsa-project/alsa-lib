@@ -166,7 +166,7 @@ static int read_tlv_file(unsigned int **res,
 {
 	int err = 0;
 	int fd;
-	struct stat st;
+	struct stat64 st;
 	size_t sz;
 	ssize_t sz_read;
 	struct snd_ctl_tlv *tlv;
@@ -176,7 +176,7 @@ static int read_tlv_file(unsigned int **res,
 		err = -errno;
 		return err;
 	}
-	if (fstat(fd, &st) == -1) {
+	if (fstat64(fd, &st) == -1) {
 		err = -errno;
 		goto __fail;
 	}
@@ -218,7 +218,7 @@ static int binary_file_parse(snd_ctl_elem_value_t *dst,
 {
 	int err = 0;
 	int fd;
-	struct stat st;
+	struct stat64 st;
 	size_t sz;
 	ssize_t sz_read;
 	char *res;
@@ -236,7 +236,7 @@ static int binary_file_parse(snd_ctl_elem_value_t *dst,
 		err = -errno;
 		return err;
 	}
-	if (stat(filepath, &st) == -1) {
+	if (stat64(filepath, &st) == -1) {
 		err = -errno;
 		goto __fail;
 	}
