@@ -57,6 +57,8 @@
 #define SEQUENCE_ELEMENT_TYPE_CMPT_SEQ		10
 #define SEQUENCE_ELEMENT_TYPE_SYSSET		11
 #define SEQUENCE_ELEMENT_TYPE_CFGSAVE		12
+#define SEQUENCE_ELEMENT_TYPE_DEV_ENABLE_SEQ	13
+#define SEQUENCE_ELEMENT_TYPE_DEV_DISABLE_SEQ	14
 
 struct ucm_value {
         struct list_head list;
@@ -80,6 +82,7 @@ struct sequence_element {
 		char *exec;
 		char *sysw;
 		char *cfgsave;
+		char *device;
 		struct component_sequence cmpt_seq; /* component sequence */
 	} data;
 };
@@ -230,6 +233,7 @@ struct snd_use_case_mgr {
 	int suppress_nodev_errors;
 	const char *parse_variant;
 	int parse_master_section;
+	int sequence_hops;
 
 	/* UCM cards list */
 	struct list_head cards_list;

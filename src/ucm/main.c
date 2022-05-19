@@ -59,12 +59,23 @@ static int get_value3(snd_use_case_mgr_t *uc_mgr,
 		      struct list_head *value_list2,
 		      struct list_head *value_list3);
 
+static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
+			    struct use_case_verb *verb,
+			    struct list_head *seq,
+			    struct list_head *value_list1,
+			    struct list_head *value_list2,
+			    struct list_head *value_list3);
+
 static int execute_component_seq(snd_use_case_mgr_t *uc_mgr,
 				 struct component_sequence *cmpt_seq,
 				 struct list_head *value_list1,
 				 struct list_head *value_list2,
 				 struct list_head *value_list3,
 				 char *cdev);
+
+static inline struct use_case_device *
+	find_device(snd_use_case_mgr_t *uc_mgr, struct use_case_verb *verb,
+		    const char *device_name, int check_supported);
 
 static int check_identifier(const char *identifier, const char *prefix)
 {
@@ -660,6 +671,29 @@ static int rewrite_device_value(snd_use_case_mgr_t *uc_mgr, const char *name, ch
 	return 0;
 }
 
+static int run_device_sequence(snd_use_case_mgr_t *uc_mgr, struct use_case_verb *verb,
+			       const char *name, bool enable)
+{
+	struct use_case_device *device;
+
+	if (verb == NULL) {
+		uc_error("error: enadev2 / disdev2 must be executed inside the verb context");
+		return -ENOENT;
+	}
+
+	device = find_device(uc_mgr, verb, name, 0);
+	if (device == NULL) {
+		uc_error("error: unable to find device '%s'\n", name);
+		return -ENOENT;
+	}
+
+	return execute_sequence(uc_mgr, verb,
+				enable ? &device->enable_list : &device->disable_list,
+				&device->value_list,
+				&verb->value_list,
+				&uc_mgr->value_list);
+}
+
 /**
  * \brief Execute the sequence
  * \param uc_mgr Use case manager
@@ -667,6 +701,7 @@ static int rewrite_device_value(snd_use_case_mgr_t *uc_mgr, const char *name, ch
  * \return zero on success, otherwise a negative error code
  */
 static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
+			    struct use_case_verb *verb,
 			    struct list_head *seq,
 			    struct list_head *value_list1,
 			    struct list_head *value_list2,
@@ -680,6 +715,11 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 	bool ignore_error;
 	int err = 0;
 
+	if (uc_mgr->sequence_hops > 100) {
+		uc_error("error: too many inner sequences!");
+		return -EINVAL;
+	}
+	uc_mgr->sequence_hops++;
 	list_for_each(pos, seq) {
 		s = list_entry(pos, struct sequence_element, list);
 		switch (s->type) {
@@ -819,17 +859,26 @@ shell_retry:
 			if (err < 0)
 				goto __fail;
 			break;
+		case SEQUENCE_ELEMENT_TYPE_DEV_ENABLE_SEQ:
+		case SEQUENCE_ELEMENT_TYPE_DEV_DISABLE_SEQ:
+			err = run_device_sequence(uc_mgr, verb, s->data.device,
+							s->type == SEQUENCE_ELEMENT_TYPE_DEV_ENABLE_SEQ);
+			if (err < 0)
+				goto __fail;
+			break;
 		default:
 			uc_error("unknown sequence command %i", s->type);
 			break;
 		}
 	}
 	free(cdev);
+	uc_mgr->sequence_hops--;
 	return 0;
       __fail_nomem:
 	err = -ENOMEM;
       __fail:
 	free(cdev);
+	uc_mgr->sequence_hops--;
 	return err;
 
 }
@@ -865,7 +914,7 @@ static int execute_component_seq(snd_use_case_mgr_t *uc_mgr,
 		seq = &device->disable_list;
 
 	/* excecute the sequence of the component dev */
-	err = execute_sequence(uc_mgr, seq,
+	err = execute_sequence(uc_mgr, uc_mgr->active_verb, seq,
 			       &device->value_list,
 			       &uc_mgr->active_verb->value_list,
 			       &uc_mgr->value_list);
@@ -927,7 +976,7 @@ static int set_defaults(snd_use_case_mgr_t *uc_mgr)
 
 	if (uc_mgr->default_list_executed)
 		return 0;
-	err = execute_sequence(uc_mgr, &uc_mgr->default_list,
+	err = execute_sequence(uc_mgr, NULL, &uc_mgr->default_list,
 			       &uc_mgr->value_list, NULL, NULL);
 	if (err < 0) {
 		uc_error("Unable to execute default sequence");
@@ -1279,7 +1328,7 @@ static int set_verb(snd_use_case_mgr_t *uc_mgr,
 	} else {
 		seq = &verb->disable_list;
 	}
-	err = execute_sequence(uc_mgr, seq,
+	err = execute_sequence(uc_mgr, verb, seq,
 			       &verb->value_list,
 			       &uc_mgr->value_list,
 			       NULL);
@@ -1310,7 +1359,7 @@ static int set_modifier(snd_use_case_mgr_t *uc_mgr,
 	} else {
 		seq = &modifier->disable_list;
 	}
-	err = execute_sequence(uc_mgr, seq,
+	err = execute_sequence(uc_mgr, uc_mgr->active_verb, seq,
 			       &modifier->value_list,
 			       &uc_mgr->active_verb->value_list,
 			       &uc_mgr->value_list);
@@ -1344,7 +1393,7 @@ static int set_device(snd_use_case_mgr_t *uc_mgr,
 	} else {
 		seq = &device->disable_list;
 	}
-	err = execute_sequence(uc_mgr, seq,
+	err = execute_sequence(uc_mgr, uc_mgr->active_verb, seq,
 			       &device->value_list,
 			       &uc_mgr->active_verb->value_list,
 			       &uc_mgr->value_list);
@@ -1562,7 +1611,7 @@ static int dismantle_use_case(snd_use_case_mgr_t *uc_mgr)
 	}
 	uc_mgr->active_verb = NULL;
 
-	err = execute_sequence(uc_mgr, &uc_mgr->default_list,
+	err = execute_sequence(uc_mgr, NULL, &uc_mgr->default_list,
 			       &uc_mgr->value_list, NULL, NULL);
 	
 	return err;
@@ -1578,7 +1627,7 @@ int snd_use_case_mgr_reset(snd_use_case_mgr_t *uc_mgr)
 	int err;
 
 	pthread_mutex_lock(&uc_mgr->mutex);
-	err = execute_sequence(uc_mgr, &uc_mgr->default_list,
+	err = execute_sequence(uc_mgr, NULL, &uc_mgr->default_list,
 			       &uc_mgr->value_list, NULL, NULL);
 	INIT_LIST_HEAD(&uc_mgr->active_modifiers);
 	INIT_LIST_HEAD(&uc_mgr->active_devices);
@@ -2405,7 +2454,7 @@ static int set_fixedboot_user(snd_use_case_mgr_t *uc_mgr,
 	}
 	if (list_empty(&uc_mgr->fixedboot_list))
 		return -ENOENT;
-	err = execute_sequence(uc_mgr, &uc_mgr->fixedboot_list,
+	err = execute_sequence(uc_mgr, NULL, &uc_mgr->fixedboot_list,
 			       &uc_mgr->value_list, NULL, NULL);
 	if (err < 0) {
 		uc_error("Unable to execute force boot sequence");
@@ -2425,7 +2474,7 @@ static int set_boot_user(snd_use_case_mgr_t *uc_mgr,
 	}
 	if (list_empty(&uc_mgr->boot_list))
 		return -ENOENT;
-	err = execute_sequence(uc_mgr, &uc_mgr->boot_list,
+	err = execute_sequence(uc_mgr, NULL, &uc_mgr->boot_list,
 			       &uc_mgr->value_list, NULL, NULL);
 	if (err < 0) {
 		uc_error("Unable to execute boot sequence");
@@ -2454,7 +2503,8 @@ static int handle_transition_verb(snd_use_case_mgr_t *uc_mgr,
 	list_for_each(pos, &uc_mgr->active_verb->transition_list) {
 		trans = list_entry(pos, struct transition_sequence, list);
 		if (strcmp(trans->name, new_verb->name) == 0) {
-			err = execute_sequence(uc_mgr, &trans->transition_list,
+			err = execute_sequence(uc_mgr, uc_mgr->active_verb,
+					       &trans->transition_list,
 					       &uc_mgr->active_verb->value_list,
 					       &uc_mgr->value_list,
 					       NULL);
@@ -2565,7 +2615,8 @@ static int switch_device(snd_use_case_mgr_t *uc_mgr,
 	list_for_each(pos, &xold->transition_list) {
 		trans = list_entry(pos, struct transition_sequence, list);
 		if (strcmp(trans->name, new_device) == 0) {
-			err = execute_sequence(uc_mgr, &trans->transition_list,
+			err = execute_sequence(uc_mgr, uc_mgr->active_verb,
+					       &trans->transition_list,
 					       &xold->value_list,
 					       &uc_mgr->active_verb->value_list,
 					       &uc_mgr->value_list);
@@ -2617,7 +2668,8 @@ static int switch_modifier(snd_use_case_mgr_t *uc_mgr,
 	list_for_each(pos, &xold->transition_list) {
 		trans = list_entry(pos, struct transition_sequence, list);
 		if (strcmp(trans->name, new_modifier) == 0) {
-			err = execute_sequence(uc_mgr, &trans->transition_list,
+			err = execute_sequence(uc_mgr, uc_mgr->active_verb,
+					       &trans->transition_list,
 					       &xold->value_list,
 					       &uc_mgr->active_verb->value_list,
 					       &uc_mgr->value_list);

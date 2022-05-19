@@ -520,6 +520,10 @@ void uc_mgr_free_sequence_element(struct sequence_element *seq)
 	case SEQUENCE_ELEMENT_TYPE_CFGSAVE:
 		free(seq->data.cfgsave);
 		break;
+	case SEQUENCE_ELEMENT_TYPE_DEV_ENABLE_SEQ:
+	case SEQUENCE_ELEMENT_TYPE_DEV_DISABLE_SEQ:
+		free(seq->data.device);
+		break;
 	default:
 		break;
 	}

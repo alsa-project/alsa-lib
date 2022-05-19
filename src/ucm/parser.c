@@ -1076,25 +1076,31 @@ cset:
 			continue;
 		}
 
-		if (strcmp(cmd, "enadev") == 0) {
-			/* need to enable a component device */
+		if (strcmp(cmd, "enadev") == 0 ||
+		    strcmp(cmd, "disdev") == 0) {
+			/* need to enable or disable a component device */
 			curr->type = SEQUENCE_ELEMENT_TYPE_CMPT_SEQ;
-			err = parse_component_seq(uc_mgr, n, 1,
+			err = parse_component_seq(uc_mgr, n,
+						strcmp(cmd, "enadev") == 0,
 						&curr->data.cmpt_seq);
 			if (err < 0) {
-				uc_error("error: enadev requires a valid device!");
+				uc_error("error: %s requires a valid device!", cmd);
 				return err;
 			}
 			continue;
 		}
 
-		if (strcmp(cmd, "disdev") == 0) {
-			/* need to disable a component device */
-			curr->type = SEQUENCE_ELEMENT_TYPE_CMPT_SEQ;
-			err = parse_component_seq(uc_mgr, n, 0,
-						&curr->data.cmpt_seq);
+		if (strcmp(cmd, "enadev2") == 0) {
+			curr->type = SEQUENCE_ELEMENT_TYPE_DEV_ENABLE_SEQ;
+			goto device;
+		}
+
+		if (strcmp(cmd, "disdev2") == 0) {
+			curr->type = SEQUENCE_ELEMENT_TYPE_DEV_DISABLE_SEQ;
+device:
+			err = parse_string_substitute3(uc_mgr, n, &curr->data.device);
 			if (err < 0) {
-				uc_error("error: disdev requires a valid device!");
+				uc_error("error: %s requires a valid device!", cmd);
 				return err;
 			}
 			continue;
