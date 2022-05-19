@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <ctype.h>
 #include "control_local.h"
 
 static void __fill_eld_ctl_id(snd_ctl_elem_id_t *id, int dev, int subdev)
