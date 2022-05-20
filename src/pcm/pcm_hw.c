@@ -355,12 +355,8 @@ static int snd_pcm_hw_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	}
 	if (hw->rates.min > 0) {
 		err = _snd_pcm_hw_param_set_minmax(params, SND_PCM_HW_PARAM_RATE,
-#if 1 // TODO: find out which arguments are correct
 						   hw->rates.min, 0, hw->rates.max + 1, -1);
-#else
-						   hw->rates.min, 0, hw->rates.max, 0);
-#endif
-		if (err < 0)
+
 			return err;
 	}
 
@@ -1773,6 +1769,7 @@ pcm.name {
 	[format STR]		# Restrict only to the given format
 	[channels INT]		# Restrict only to the given channels
 	[rate INT]		# Restrict only to the given rate
+	  or [rate [INT INT]]	# Restrict only to the given rate range (min max)
 	[chmap MAP]		# Override channel maps; MAP is a string array
 }
 \endcode
@@ -1806,7 +1803,7 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 	long card = -1, device = 0, subdevice = -1;
 	const char *str;
 	int err, sync_ptr_ioctl = 0;
-	int rate = 0, channels = 0, min_rate = 0, max_rate = 0;
+	int min_rate = 0, max_rate = 0, channels = 0;
 	snd_pcm_format_t format = SND_PCM_FORMAT_UNKNOWN;
 	snd_config_t *n;
 	int nonblock = 1; /* non-block per default */
@@ -1865,12 +1862,37 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 		}
 		if (strcmp(id, "rate") == 0) {
 			long val;
-			err = snd_config_get_integer(n, &val);
-			if (err < 0) {
-				SNDERR("Invalid type for %s", id);
-				goto fail;
+			if (snd_config_get_type(n) == SND_CONFIG_TYPE_COMPOUND &&
+			    snd_config_is_array(n)) {
+				snd_config_t *m;
+				err = snd_config_search(n, "0", &m);
+				if (err < 0) {
+					SNDERR("array expected for rate compound");
+					goto fail;
+				}
+				err = snd_config_get_integer(m, &val);
+				if (err < 0) {
+					SNDERR("Invalid type for rate.0");
+					goto fail;
+				}
+				min_rate = max_rate = val;
+				err = snd_config_search(n, "1", &m);
+				if (err >= 0) {
+					err = snd_config_get_integer(m, &val);
+					if (err < 0) {
+						SNDERR("Invalid type for rate.0");
+						goto fail;
+					}
+					max_rate = val;
+				}
+			} else {
+				err = snd_config_get_integer(n, &val);
+				if (err < 0) {
+					SNDERR("Invalid type for %s", id);
+					goto fail;
+				}
+				min_rate = max_rate = val;
 			}
-			rate = val;
 			continue;
 		}
 		if (strcmp(id, "min_rate") == 0) {
@@ -1958,10 +1980,6 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 		hw->format = format;
 	if (channels > 0)
 		hw->channels = channels;
-	if ((min_rate == 0) && (max_rate == 0)) {
-		min_rate = rate;
-		max_rate = rate;
-	}
 	if (min_rate > 0) {
 		hw->rates.min = min_rate;
 		hw->rates.max = max_rate;
