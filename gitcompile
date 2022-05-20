@@ -2,7 +2,8 @@
 
 set -e
 
-bit32=
+bits32=
+cbits32=
 modules=
 alisp=
 lto=
@@ -12,6 +13,7 @@ if [ $# -ne 0 ]; then
     case "$1" in
     32)
       bits32=yes
+      cbits32="-m32"
       echo "Forced 32-bit library build..."
       shift ;;
     modules)
@@ -40,7 +42,7 @@ if [ $# -ne 0 -a -z "$bit32" ]; then
   args="$@"
 elif [ -r /etc/asound/library_args ]; then
   args="`cat /etc/asound/library_args`"
-  if [ -z "$bit32" ]; then
+  if [ -z "$bits32" ]; then
     test -r /etc/asound/library64_args && \
       args="`cat /etc/asound/library64_args`"
   fi
@@ -48,7 +50,7 @@ else
   prefix="/usr"
   libdir="/usr/lib"
   libdir2="/usr/lib"
-  if [ -z "$bit32" ]; then
+  if [ -z "$bits32" ]; then
     test -d /usr/lib64 && libdir="/usr/lib64"
     test -f /lib64/libasound.so.2 && libdir="/lib64"
     test -d /usr/lib64 && libdir2="/usr/lib64"
@@ -80,7 +82,7 @@ autoheader
 automake --foreign --copy --add-missing
 touch depcomp		# seems to be missing for old automake
 autoconf
-export CFLAGS="-O2 -Wall -W -Wunused-const-variable=0 -pipe -g $lto"
+export CFLAGS="$cbits32 -O2 -Wall -W -Wunused-const-variable=0 -pipe -g $lto"
 if [ -n "$lto" ]; then
   export AR="gcc-ar"
   export RANLIB="gcc-ranlib"
