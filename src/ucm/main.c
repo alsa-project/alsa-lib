@@ -307,7 +307,7 @@ static const char *parse_uint(const char *p, const char *prefix, size_t len,
 		uc_error("unable to parse '%s'", prefix);
 		return NULL;
 	}
-	if (v < min || v > max) {
+	if ((unsigned int)v < min || (unsigned int)v > max) {
 		uc_error("value '%s' out of range %u-%u %(%ld)", min, max, v);
 		return NULL;
 	}
