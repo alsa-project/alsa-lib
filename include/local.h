@@ -76,6 +76,16 @@
 #error "Unsupported endian..."
 #endif
 
+#ifndef HAVE_LFS
+#define stat64 stat
+#define lstat64 lstat
+#define dirent64 dirent
+#define readdir64 readdir
+#define scandir64 scandir
+#define versionsort64 versionsort
+#define alphasort64 alphasort
+#endif
+
 #define _snd_config_iterator list_head
 #define _snd_interval snd_interval
 #define _snd_pcm_info snd_pcm_info
