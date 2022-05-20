@@ -574,8 +574,10 @@ static int snd_pcm_plugin_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	return 0;
 }
 
-int snd_pcm_plugin_may_wait_for_avail_min(snd_pcm_t *pcm,
-					  snd_pcm_uframes_t avail)
+int snd_pcm_plugin_may_wait_for_avail_min_conv(
+				snd_pcm_t *pcm,
+				snd_pcm_uframes_t avail,
+				snd_pcm_uframes_t (*conv)(snd_pcm_t *, snd_pcm_uframes_t))
 {
 	if (pcm->stream == SND_PCM_STREAM_CAPTURE &&
 	    pcm->access != SND_PCM_ACCESS_RW_INTERLEAVED &&
@@ -619,8 +621,8 @@ int snd_pcm_plugin_may_wait_for_avail_min(snd_pcm_t *pcm,
 		 * Can happen only on built-in rate plugin.
 		 * This code is also used by extplug, but extplug does not allow to alter the sampling rate.
 		 */
-		if (snd_pcm_type(pcm) == SND_PCM_TYPE_RATE)
-			needed_slave_avail_min = snd_pcm_rate_slave_frames(pcm, needed_slave_avail_min);
+		if (conv)
+			needed_slave_avail_min = conv(pcm, needed_slave_avail_min);
 
 		if (slave->avail_min != needed_slave_avail_min) {
 			snd_pcm_sw_params_t *swparams;
@@ -642,6 +644,12 @@ int snd_pcm_plugin_may_wait_for_avail_min(snd_pcm_t *pcm,
 		avail = available;
 	}
 	return snd_pcm_generic_may_wait_for_avail_min(pcm, avail);
+}
+
+int snd_pcm_plugin_may_wait_for_avail_min(snd_pcm_t *pcm,
+					  snd_pcm_uframes_t avail)
+{
+	return snd_pcm_plugin_may_wait_for_avail_min_conv(pcm, avail, NULL);
 }
 
 const snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops = {

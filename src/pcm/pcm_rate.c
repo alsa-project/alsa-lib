@@ -1282,6 +1282,32 @@ static int snd_pcm_rate_close(snd_pcm_t *pcm)
 	return snd_pcm_generic_close(pcm);
 }
 
+/**
+ * \brief Convert rate pcm frames to corresponding rate slave pcm frames
+ * \param pcm PCM handle
+ * \param frames Frames to be converted to slave frames
+ * \retval Corresponding slave frames
+*/
+static snd_pcm_uframes_t snd_pcm_rate_slave_frames(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
+{
+	snd_pcm_uframes_t sframes;
+	snd_pcm_rate_t *rate = pcm->private_data;
+
+	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
+		sframes = rate->ops.output_frames(rate->obj, frames);
+	else
+		sframes = rate->ops.input_frames(rate->obj, frames);
+
+	return sframes;
+}
+
+static int snd_pcm_rate_may_wait_for_avail_min(snd_pcm_t *pcm,
+					       snd_pcm_uframes_t avail)
+{
+	return snd_pcm_plugin_may_wait_for_avail_min_conv(pcm, avail,
+							  snd_pcm_rate_slave_frames);
+}
+
 static const snd_pcm_fast_ops_t snd_pcm_rate_fast_ops = {
 	.status = snd_pcm_rate_status,
 	.state = snd_pcm_rate_state,
@@ -1308,7 +1334,7 @@ static const snd_pcm_fast_ops_t snd_pcm_rate_fast_ops = {
 	.poll_descriptors_count = snd_pcm_generic_poll_descriptors_count,
 	.poll_descriptors = snd_pcm_generic_poll_descriptors,
 	.poll_revents = snd_pcm_rate_poll_revents,
-	.may_wait_for_avail_min = snd_pcm_plugin_may_wait_for_avail_min,
+	.may_wait_for_avail_min = snd_pcm_rate_may_wait_for_avail_min,
 };
 
 static const snd_pcm_ops_t snd_pcm_rate_ops = {
@@ -1341,25 +1367,6 @@ const snd_config_t *snd_pcm_rate_get_default_converter(snd_config_t *root)
 	if (snd_config_search(root, "defaults.pcm.rate_converter", &n) >= 0)
 		return n;
 	return NULL;
-}
-
-/**
- * \brief Convert rate pcm frames to corresponding rate slave pcm frames
- * \param pcm PCM handle
- * \param frames Frames to be converted to slave frames
- * \retval Corresponding slave frames
-*/
-snd_pcm_uframes_t snd_pcm_rate_slave_frames(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
-{
-	snd_pcm_uframes_t sframes;
-	snd_pcm_rate_t *rate = pcm->private_data;
-
-	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
-		sframes = rate->ops.output_frames(rate->obj, frames);
-	else
-		sframes = rate->ops.input_frames(rate->obj, frames);
-
-	return sframes;
 }
 
 static void rate_initial_setup(snd_pcm_rate_t *rate)

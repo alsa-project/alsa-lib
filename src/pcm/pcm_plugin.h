@@ -50,6 +50,8 @@ typedef struct {
 /* make local functions really local */
 #define snd_pcm_plugin_init \
 	snd1_pcm_plugin_init
+#define snd_pcm_plugin_may_wait_for_avail_min_conv \
+	snd1_pcm_plugin_may_wait_for_avail_min_conv
 #define snd_pcm_plugin_may_wait_for_avail_min \
 	snd1_pcm_plugin_may_wait_for_avail_min
 #define snd_pcm_plugin_fast_ops \
@@ -66,6 +68,8 @@ typedef struct {
 void snd_pcm_plugin_init(snd_pcm_plugin_t *plugin);
 snd_pcm_sframes_t snd_pcm_plugin_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
 snd_pcm_sframes_t snd_pcm_plugin_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
+int snd_pcm_plugin_may_wait_for_avail_min_conv(snd_pcm_t *pcm, snd_pcm_uframes_t avail,
+					       snd_pcm_uframes_t (*conv)(snd_pcm_t *, snd_pcm_uframes_t));
 int snd_pcm_plugin_may_wait_for_avail_min(snd_pcm_t *pcm, snd_pcm_uframes_t avail);
 
 extern const snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops;

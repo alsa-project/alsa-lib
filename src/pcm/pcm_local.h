@@ -286,8 +286,6 @@ struct _snd_pcm {
 	snd1_pcm_wait_nocheck
 #define snd_pcm_rate_get_default_converter \
 	snd1_pcm_rate_get_default_converter
-#define snd_pcm_rate_slave_frames \
-	snd1_pcm_rate_slave_frames
 #define snd_pcm_set_hw_ptr \
 	snd1_pcm_set_hw_ptr
 #define snd_pcm_set_appl_ptr \
@@ -1010,8 +1008,6 @@ int __snd_pcm_mmap_emul_open(snd_pcm_t **pcmp, const char *name,
 int snd_pcm_wait_nocheck(snd_pcm_t *pcm, int timeout);
 
 const snd_config_t *snd_pcm_rate_get_default_converter(snd_config_t *root);
-
-snd_pcm_uframes_t snd_pcm_rate_slave_frames(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
 
 #define SND_PCM_HW_PARBIT_ACCESS	(1U << SND_PCM_HW_PARAM_ACCESS)
 #define SND_PCM_HW_PARBIT_FORMAT	(1U << SND_PCM_HW_PARAM_FORMAT)
