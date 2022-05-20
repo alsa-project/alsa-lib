@@ -237,17 +237,10 @@ fi
 
 dnl Check for scandir64
 AC_MSG_CHECKING(for LFS calls)
-lfs=
-AC_ARG_WITH(lfs,
-  AS_HELP_STRING([--with-lfs], [Use LFS calls (default = yes)]),
-  [ have_lfs="$withval" ], [ have_lfs="yes" ])
-HAVE_LIBDL=
-if test "$have_lfs" = "yes"; then
-  AC_TRY_LINK([#include <dirent.h>],
+AC_TRY_LINK([#include <dirent.h>],
     [struct dirent64 a; ],
     [have_lfs=yes],
     [have_lfs=no])
-fi
 if test "$have_lfs" = "yes"; then
   AC_MSG_RESULT(yes)
   AC_DEFINE([HAVE_LFS], 1, [Have LFS])
