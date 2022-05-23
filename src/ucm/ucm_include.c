@@ -305,13 +305,14 @@ int uc_mgr_evaluate_include(snd_use_case_mgr_t *uc_mgr,
 		if (a == NULL)
 			continue;
 		err = uc_mgr_evaluate_inplace(uc_mgr, a);
-		if (err < 0)
+		if (err < 0) {
+			snd_config_delete(a);
 			return err;
+		}
 		err = uc_mgr_config_tree_merge(uc_mgr, parent, a, before, after);
+		snd_config_delete(a);
 		if (err < 0)
 			return err;
-		snd_config_delete(a);
-		
 	}
 	return 0;
 }
