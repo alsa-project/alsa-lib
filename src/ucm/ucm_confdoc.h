@@ -222,8 +222,9 @@ SectionModifier."Capture Voice" {
 
 Command name   | Description
 ---------------|----------------------------------------------
-enadev2        | execute device enable sequence
-disdev2        | execute device disable sequence
+enadev2 ARG    | execute device enable sequence
+disdev2 ARG    | execute device disable sequence
+disdevall ""   | execute device disable sequence for all devices in verb
 cdev ARG       | ALSA control device name for snd_ctl_open()
 cset ARG       | ALSA control set - snd_ctl_ascii_elem_id_parse() + snd_ctl_ascii_value_parse()
 cset-new ARG   | Create new ALSA user control element - snd_ctl_ascii_elem_id_parse() + description

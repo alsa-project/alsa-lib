@@ -694,6 +694,31 @@ static int run_device_sequence(snd_use_case_mgr_t *uc_mgr, struct use_case_verb 
 				&uc_mgr->value_list);
 }
 
+static int run_device_all_sequence(snd_use_case_mgr_t *uc_mgr, struct use_case_verb *verb)
+{
+	struct use_case_device *device;
+	struct list_head *pos;
+	int err;
+
+	if (verb == NULL) {
+		uc_error("error: disdevall must be executed inside the verb context");
+		return -ENOENT;
+	}
+
+	list_for_each(pos, &verb->device_list) {
+		device = list_entry(pos, struct use_case_device, list);
+
+		err = execute_sequence(uc_mgr, verb,
+					&device->disable_list,
+					&device->value_list,
+					&verb->value_list,
+					&uc_mgr->value_list);
+		if (err < 0)
+			return err;
+	}
+	return 0;
+}
+
 /**
  * \brief Execute the sequence
  * \param uc_mgr Use case manager
@@ -863,6 +888,11 @@ shell_retry:
 		case SEQUENCE_ELEMENT_TYPE_DEV_DISABLE_SEQ:
 			err = run_device_sequence(uc_mgr, verb, s->data.device,
 							s->type == SEQUENCE_ELEMENT_TYPE_DEV_ENABLE_SEQ);
+			if (err < 0)
+				goto __fail;
+			break;
+		case SEQUENCE_ELEMENT_TYPE_DEV_DISABLE_ALL:
+			err = run_device_all_sequence(uc_mgr, verb);
 			if (err < 0)
 				goto __fail;
 			break;

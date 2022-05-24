@@ -1106,6 +1106,11 @@ device:
 			continue;
 		}
 
+		if (strcmp(cmd, "disdevall") == 0) {
+			curr->type = SEQUENCE_ELEMENT_TYPE_DEV_DISABLE_ALL;
+			continue;
+		}
+
 		if (strcmp(cmd, "cset-bin-file") == 0) {
 			curr->type = SEQUENCE_ELEMENT_TYPE_CSET_BIN_FILE;
 			goto cset;
