@@ -315,6 +315,12 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
  *      - playback device sample rate
  *   - PlaybackChannels
  *      - playback device channel count
+ *   - PlaybackChannel#
+ *      - describe index of the logical channel in the PCM stream
+ *      - e.g. "PlaybackChannel0 2" - logical channel 0 is third channel in the PCM stream
+ *   - PlaybackChannelPos#
+ *      - describe sound position of the logical channel (ALSA chmap names)
+ *      - e.g. "PlaybackChannel0 FR" - logical channel 0 is at front left
  *   - PlaybackCTL
  *      - playback control device name
  *   - PlaybackVolume
@@ -329,6 +335,12 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
  *      - capture device sample rate
  *   - CaptureChannels
  *      - capture device channel count
+ *   - CaptureChannel#
+ *      - describe index of the logical channel in the PCM stream
+ *      - e.g. "CaptureChannel0 2" - logical channel 0 is third channel in the PCM stream
+ *   - CaptureChannelPos#
+ *      - describe sound position of the logical channel (ALSA chmap names)
+ *      - e.g. "CaptureChannel0 FR" - logical channel 0 is at front left
  *   - CaptureCTL
  *      - capture control device name
  *   - CaptureVolume
