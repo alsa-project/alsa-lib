@@ -3921,7 +3921,7 @@ snd_config_t *snd_config = NULL;
 struct finfo {
 	char *name;
 	dev_t dev;
-	ino_t ino;
+	ino64_t ino;
 	time_t mtime;
 };
 

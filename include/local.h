@@ -84,6 +84,7 @@
 #define scandir64 scandir
 #define versionsort64 versionsort
 #define alphasort64 alphasort
+#define ino64_t ino_t
 #endif
 
 #define _snd_config_iterator list_head
