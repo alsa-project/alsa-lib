@@ -734,6 +734,14 @@ void uc_mgr_free_verb(snd_use_case_mgr_t *uc_mgr)
 	struct list_head *pos, *npos;
 	struct use_case_verb *verb;
 
+	if (uc_mgr->local_config) {
+		snd_config_delete(uc_mgr->local_config);
+		uc_mgr->local_config = NULL;
+	}
+	if (uc_mgr->macros) {
+		snd_config_delete(uc_mgr->macros);
+		uc_mgr->macros = NULL;
+	}
 	list_for_each_safe(pos, npos, &uc_mgr->verb_list) {
 		verb = list_entry(pos, struct use_case_verb, list);
 		free(verb->name);
@@ -768,10 +776,6 @@ void uc_mgr_free_verb(snd_use_case_mgr_t *uc_mgr)
 
 void uc_mgr_free(snd_use_case_mgr_t *uc_mgr)
 {
-	if (uc_mgr->local_config)
-		snd_config_delete(uc_mgr->local_config);
-	if (uc_mgr->macros)
-		snd_config_delete(uc_mgr->macros);
 	uc_mgr_free_verb(uc_mgr);
 	uc_mgr_free_ctl_list(uc_mgr);
 	free(uc_mgr->card_name);

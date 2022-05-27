@@ -2807,6 +2807,14 @@ int uc_mgr_import_master_config(snd_use_case_mgr_t *uc_mgr)
 	const char *name;
 	int err;
 
+	err = snd_config_top(&uc_mgr->local_config);
+	if (err < 0)
+		return err;
+
+	err = snd_config_top(&uc_mgr->macros);
+	if (err < 0)
+		return err;
+
 	name = uc_mgr->card_name;
 	if (strncmp(name, "hw:", 3) == 0) {
 		err = get_by_card(uc_mgr, name);
