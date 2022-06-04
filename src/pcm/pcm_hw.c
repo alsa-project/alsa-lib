@@ -325,7 +325,8 @@ static int snd_pcm_hw_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 	}
 	/* may be configurable (optional) */
 	if (__snd_pcm_info_eld_fixup_check(info))
-		return __snd_pcm_info_eld_fixup(info);
+		if (__snd_pcm_info_eld_fixup(info))
+			SYSMSG("ELD lookup failed, using old HDMI output names\n");
 	return 0;
 }
 
