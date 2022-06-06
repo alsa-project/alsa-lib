@@ -74,8 +74,13 @@ int __snd_pcm_info_eld_fixup(snd_pcm_info_t * info)
 	if (cinfo.count < 20 || cinfo.count > 256)
 		return -EIO;
 	l = eld[4] & 0x1f;
-	if (l == 0 || l > 16 || 20 + l > cinfo.count)
-		return -EIO;
+	if (l == 0)
+		/* no monitor name detected */
+		goto __present;
+	if (l > 16 || 20 + l > cinfo.count) {
+		SNDERR("ELD decode failed, using old HDMI output names\n");
+		return 0;
+	}
 	s = alloca(l + 1);
 	s[l] = '\0';
 	/* sanitize */
@@ -90,7 +95,12 @@ int __snd_pcm_info_eld_fixup(snd_pcm_info_t * info)
 			s[l] = c;
 		}
 	}
-	if (valid > 3)
+	if (valid > 3) {
 		snd_strlcpy((char *)info->name, s, sizeof(info->name));
+	} else {
+__present:
+		strncat((char *)info->name, " *", sizeof(info->name) - 1);
+		((char *)info->name)[sizeof(info->name)-1] = '\0';
+	}
 	return 0;
 }
