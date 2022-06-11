@@ -28,6 +28,8 @@
 #ifndef __ALSA_INPUT_H
 #define __ALSA_INPUT_H
 
+#include <stdarg.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
