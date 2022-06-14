@@ -104,8 +104,7 @@ static void mix_select_callbacks(snd_pcm_direct_t *dmix)
 		/* try to determine the capabilities of the CPU */
 		in = fopen("/proc/cpuinfo", "r");
 		if (in) {
-			while (!feof(in)) {
-				fgets(line, sizeof(line), in);
+			while (!feof(in) && (fgets(line, sizeof(line), in) != NULL)) {
 				if (!strncmp(line, "processor", 9))
 					smp++;
 				else if (!strncmp(line, "flags", 5)) {

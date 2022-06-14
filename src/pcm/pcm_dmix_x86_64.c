@@ -87,8 +87,7 @@ static void mix_select_callbacks(snd_pcm_direct_t *dmix)
 		/* try to determine, if we have SMP */
 		in = fopen("/proc/cpuinfo", "r");
 		if (in) {
-			while (!feof(in)) {
-				fgets(line, sizeof(line), in);
+			while (!feof(in) && (fgets(line, sizeof(line), in) != NULL)) {
 				if (!strncmp(line, "processor", 9))
 					smp++;
 			}
