@@ -2880,12 +2880,26 @@ int uc_mgr_scan_master_configs(const char **_list[])
 {
 	char filename[PATH_MAX], dfl[PATH_MAX], fn[FILENAME_MAX];
 	char *env = getenv(ALSA_CONFIG_UCM2_VAR);
+	snd_use_case_mgr_t *uc_mgr;
 	const char **list, *d_name;
+	char *s;
 	snd_config_t *cfg, *c;
-	int i, j, cnt, err;
+	int i, j, cnt, err, cards;
 	long l;
 	ssize_t ss;
 	struct dirent64 **namelist;
+
+	i = -1;
+	cards = 0;
+	while (1) {
+		err = snd_card_next(&i);
+		if (err < 0)
+			return err;
+		if (i < 0)
+			break;
+		cards++;
+	}
+	cards += 4;	/* plug-and-play */
 
 	if (env)
 		snprintf(filename, sizeof(filename), "%s/conf.virt.d", env);
@@ -2921,13 +2935,46 @@ int uc_mgr_scan_master_configs(const char **_list[])
 		}
 	}
 
-	list = calloc(1, cnt * 2 * sizeof(char *));
+	j = 0;
+	list = calloc(1, (cards + cnt) * 2 * sizeof(char *));
 	if (list == NULL) {
 		err = -ENOMEM;
 		goto __err;
 	}
 
-	for (i = j = 0; i < cnt; i++) {
+	i = -1;
+	while (j / 2 < cards) {
+		err = snd_card_next(&i);
+		if (err < 0)
+			goto __err;
+		if (i < 0)
+			break;
+		snprintf(fn, sizeof(fn), "-hw:%d", i);
+		err = snd_use_case_mgr_open(&uc_mgr, fn);
+		if (err == -ENOENT || err == -ENXIO)
+			continue;
+		if (err < 0) {
+			uc_error("Unable to open '%s': %s", fn, snd_strerror(err));
+			goto __err;
+		}
+		err = snd_use_case_get(uc_mgr, "comment", (const char **)&s);
+		if (err < 0) {
+			err = snd_card_get_longname(i, &s);
+			if (err < 0)
+				goto __err;
+		}
+		snd_use_case_mgr_close(uc_mgr);
+		list[j] = strdup(fn + 1);
+		if (list[j] == NULL) {
+			free(s);
+			err = -ENOMEM;
+			goto __err;
+		}
+		list[j + 1] = s;
+		j += 2;
+	}
+
+	for (i = 0; i < cnt; i++) {
 
 		d_name = namelist[i]->d_name;
 
@@ -2984,23 +3031,21 @@ int uc_mgr_scan_master_configs(const char **_list[])
 		}
 		j += 2;
 	}
-	err = j;
+	err = 0;
 
       __err:
-	for (i = 0; i < cnt; i++) {
+	for (i = 0; i < cnt; i++)
 		free(namelist[i]);
-		if (err < 0) {
+	free(namelist);
+	if (err < 0) {
+		for (i = 0; i < j; i++) {
 			free((void *)list[i * 2]);
 			free((void *)list[i * 2 + 1]);
 		}
-	}
-	free(namelist);
-
-	if (err >= 0) {
-		*_list = list;
-	} else {
 		free(list);
+		return err;
 	}
 
-	return err;
+	*_list = list;
+	return j;
 }
