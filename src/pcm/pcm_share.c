@@ -205,6 +205,7 @@ static snd_pcm_uframes_t _snd_pcm_share_missing(snd_pcm_t *pcm)
 	snd_pcm_sframes_t hw_avail;
 	snd_pcm_uframes_t missing = INT_MAX;
 	snd_pcm_sframes_t ready_missing;
+	ssize_t s;
 	// printf("state=%s hw_ptr=%ld appl_ptr=%ld slave appl_ptr=%ld safety=%ld silence=%ld\n", snd_pcm_state_name(share->state), slave->hw_ptr, share->appl_ptr, *slave->pcm->appl_ptr, slave->safety_threshold, slave->silence_frames);
 	switch (share->state) {
 	case SND_PCM_STATE_RUNNING:
@@ -290,15 +291,17 @@ static snd_pcm_uframes_t _snd_pcm_share_missing(snd_pcm_t *pcm)
 		char buf[1];
 		if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 			if (ready)
-				read(share->slave_socket, buf, 1);
+				s = read(share->slave_socket, buf, 1);
 			else
-				write(share->client_socket, buf, 1);
+				s = write(share->client_socket, buf, 1);
 		} else {
 			if (ready)
-				write(share->slave_socket, buf, 1);
+				s = write(share->slave_socket, buf, 1);
 			else
-				read(share->client_socket, buf, 1);
+				s = read(share->client_socket, buf, 1);
 		}
+		if (s == -1)
+			return INT_MAX;
 		share->ready = ready;
 	}
 	if (!running)
