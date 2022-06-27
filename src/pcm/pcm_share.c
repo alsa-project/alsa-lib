@@ -289,19 +289,25 @@ static snd_pcm_uframes_t _snd_pcm_share_missing(snd_pcm_t *pcm)
  update_poll:
 	if (ready != share->ready) {
 		char buf[1];
-		if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
-			if (ready)
-				s = read(share->slave_socket, buf, 1);
-			else
-				s = write(share->client_socket, buf, 1);
-		} else {
-			if (ready)
-				s = write(share->slave_socket, buf, 1);
-			else
-				s = read(share->client_socket, buf, 1);
+		while (1) {
+			if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
+				if (ready)
+					s = read(share->slave_socket, buf, 1);
+				else
+					s = write(share->client_socket, buf, 1);
+			} else {
+				if (ready)
+					s = write(share->slave_socket, buf, 1);
+				else
+					s = read(share->client_socket, buf, 1);
+			}
+			if (s < 0) {
+				if (errno == EINTR)
+					continue;
+				return INT_MAX;
+			}
+			break;
 		}
-		if (s == -1)
-			return INT_MAX;
 		share->ready = ready;
 	}
 	if (!running)
