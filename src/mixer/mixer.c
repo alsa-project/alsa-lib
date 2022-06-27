@@ -87,6 +87,11 @@ int snd_mixer_open(snd_mixer_t **mixerp, int mode ATTRIBUTE_UNUSED)
  * \return 0 on success otherwise a negative error code
  *
  * For use by mixer element class specific code.
+ *
+ * The implementation of mixer class typically calls it at #SND_CTL_EVENT_MASK_ADD event. Once
+ * attaching, the implementation should make sure to detach it by call of #snd_mixer_elem_detach()
+ * at #SND_CTL_EVENT_MASK_REMOVE event. Unless detaching, mixer API internal hits assertion due
+ * to unsatisfied postcondition after the event.
  */
 int snd_mixer_elem_attach(snd_mixer_elem_t *melem,
 			  snd_hctl_elem_t *helem)
@@ -106,6 +111,10 @@ int snd_mixer_elem_attach(snd_mixer_elem_t *melem,
  * \return 0 on success otherwise a negative error code
  *
  * For use by mixer element class specific code.
+ *
+ * The implementation of mixer class typically calls it at #SND_CTL_EVENT_MASK_REMOVE event for
+ * attached mixer element at #SND_CTL_EVENT_MASK_ADD. Unless detaching, mixer API internal hits
+ * assertion due to unsatisfied postcondition after the event.
  */
 int snd_mixer_elem_detach(snd_mixer_elem_t *melem,
 			  snd_hctl_elem_t *helem)
@@ -146,6 +155,9 @@ static int hctl_elem_event_handler(snd_hctl_elem_t *helem,
 			if (err < 0)
 				res = err;
 		}
+		// NOTE: Unsatisfied postcondition. Typically, some of registerd implementation of
+		// mixer class forget to detach mixer element from hcontrol element which has been
+		// attached at ADD event.
 		assert(bag_empty(bag));
 		bag_free(bag);
 		return res;
