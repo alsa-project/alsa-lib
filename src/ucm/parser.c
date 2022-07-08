@@ -2630,7 +2630,7 @@ static int parse_toplevel_path(snd_use_case_mgr_t *uc_mgr,
 
 		ucm_filename(fn, sizeof(fn), version, dir, file);
 		if (access(fn, R_OK) == 0 && lstat64(fn, &st) == 0) {
-			if (st.st_mode & S_IFLNK) {
+			if (S_ISLNK(st.st_mode)) {
 				ssize_t r;
 				char *link, *dir2, *p;
 
