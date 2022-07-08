@@ -415,15 +415,15 @@ static int evaluate_macro1(snd_use_case_mgr_t *uc_mgr,
 		n = snd_config_iterator_entry(i);
 		err = snd_config_get_id(n, &id);
 		if (err < 0)
-			return err;
+			goto __err_path;
 		err = snd_config_get_ascii(n, &var);
 		if (err < 0)
-			return err;
+			goto __err_path;
 		snprintf(name, sizeof(name), "__%s", id);
 		err = uc_mgr_set_variable(uc_mgr, name, var);
 		free(var);
 		if (err < 0)
-			return err;
+			goto __err_path;
 	}
 
 	/* merge + substitute variables */
@@ -443,11 +443,11 @@ static int evaluate_macro1(snd_use_case_mgr_t *uc_mgr,
 		n = snd_config_iterator_entry(i);
 		err = snd_config_get_id(n, &id);
 		if (err < 0)
-			return err;
+			goto __err_path;
 		snprintf(name, sizeof(name), "__%s", id);
 		err = uc_mgr_delete_variable(uc_mgr, name);
 		if (err < 0)
-			return err;
+			goto __err_path;
 	}
 
 __err_path:

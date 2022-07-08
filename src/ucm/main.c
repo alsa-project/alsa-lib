@@ -1481,8 +1481,8 @@ const char *parse_open_variables(snd_use_case_mgr_t *uc_mgr, const char *name)
 			goto skip;
 	}
 
-	snd_config_delete(cfg);
 skip:
+	snd_config_delete(cfg);
 	return end + 3;
 }
 
