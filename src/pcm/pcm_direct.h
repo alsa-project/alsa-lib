@@ -224,6 +224,8 @@ struct snd_pcm_direct {
 	snd1_pcm_direct_nonblock
 #define snd_pcm_direct_async \
 	snd1_pcm_direct_async
+#define snd_pcm_direct_poll_descriptors \
+	snd1_pcm_direct_poll_descriptors
 #define snd_pcm_direct_poll_revents \
 	snd1_pcm_direct_poll_revents
 #define snd_pcm_direct_info \
@@ -264,6 +266,10 @@ struct snd_pcm_direct {
 	snd1_pcm_direct_set_chmap
 #define snd_pcm_direct_reset_slave_ptr \
 	snd1_pcm_direct_reset_slave_ptr
+#define snd_pcm_direct_check_xrun \
+	snd1_pcm_direct_check_xrun
+#define snd_pcm_direct_slave_recover \
+	snd1_pcm_direct_slave_recover
 
 int snd_pcm_direct_semaphore_create_or_connect(snd_pcm_direct_t *dmix);
 
