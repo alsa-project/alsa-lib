@@ -27,6 +27,11 @@
 #define bswap_16 bswap16
 #define bswap_32 bswap32
 #define bswap_64 bswap64
+#elif defined(__OpenBSD__)
+#include <sys/endian.h>
+#define bswap_16 swap16
+#define bswap_32 swap32
+#define bswap_64 swap64
 #elif defined (__sun)
 #include <sys/byteorder.h>
 #define bswap_16 BSWAP_16

@@ -335,7 +335,7 @@ else
 fi
 
 dnl Check for headers
-AC_CHECK_HEADERS([endian.h sys/endian.h sys/shm.h])
+AC_CHECK_HEADERS([endian.h sys/endian.h sys/shm.h malloc.h])
 
 dnl Check for resmgr support...
 AC_MSG_CHECKING(for resmgr support)

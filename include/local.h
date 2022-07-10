@@ -34,6 +34,9 @@
 #include <endian.h>
 #elif defined(HAVE_SYS_ENDIAN_H)
 #include <sys/endian.h>
+#else
+#error Header defining endianness not defined
+#endif
 #ifndef __BYTE_ORDER
 #define __BYTE_ORDER BYTE_ORDER
 #endif
@@ -42,9 +45,6 @@
 #endif
 #ifndef __BIG_ENDIAN
 #define __BIG_ENDIAN BIG_ENDIAN
-#endif
-#else
-#error Header defining endianness not defined
 #endif
 #include <stdarg.h>
 #include <poll.h>
@@ -85,6 +85,8 @@
 #define versionsort64 versionsort
 #define alphasort64 alphasort
 #define ino64_t ino_t
+#define fstat64 fstat
+#define stat64 stat
 #endif
 
 #define _snd_config_iterator list_head

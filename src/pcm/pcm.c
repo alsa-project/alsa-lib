@@ -660,7 +660,9 @@ playback devices.
 
 #include <stdio.h>
 #include <string.h>
+#if HAVE_MALLOC_H
 #include <malloc.h>
+#endif
 #include <stdarg.h>
 #include <signal.h>
 #include <ctype.h>

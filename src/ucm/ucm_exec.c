@@ -33,6 +33,11 @@
 #include <limits.h>
 #include <dirent.h>
 
+#if defined(__NetBSD__) || defined(__OpenBSD__)
+#include <signal.h>
+extern char **environ;
+#endif
+
 static pthread_mutex_t fork_lock = PTHREAD_MUTEX_INITIALIZER;
 
 /*
