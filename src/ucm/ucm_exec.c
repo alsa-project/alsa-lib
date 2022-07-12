@@ -33,7 +33,7 @@
 #include <limits.h>
 #include <dirent.h>
 
-#if defined(__NetBSD__) || defined(__OpenBSD__)
+#if defined(__NetBSD__) || defined(__OpenBSD__) || defined(__FreeBSD__)
 #include <signal.h>
 extern char **environ;
 #endif

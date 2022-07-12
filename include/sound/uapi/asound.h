@@ -28,7 +28,7 @@
 #include <linux/types.h>
 #include <asm/byteorder.h>
 #else
-#include <endian.h>
+#include <sys/endian.h>
 #include <sys/ioctl.h>
 #endif
 
