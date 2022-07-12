@@ -22,7 +22,7 @@ typedef int64_t __s64;
 #define __cpu_to_le16 LE_16(x)
 #define __cpu_to_be16 BE_16(x)
 #else
-#include <endian.h>
+#include <sys/endian.h>
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 #define __cpu_to_le32(x) (x)
 #define __cpu_to_be32(x) bswap_32(x)

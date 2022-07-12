@@ -764,8 +764,9 @@ AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile doc/doxygen.cfg \
 dnl Create asoundlib.h dynamically according to configure options
 echo "Creating asoundlib.h..."
 cp "$srcdir"/include/asoundlib-head.h include/asoundlib.h
+if test "$ac_cv_header_sys_endian_h" != "yes"; then
 test "$ac_cv_header_endian_h" = "yes" && echo "#include <endian.h>" >> include/asoundlib.h
-if test "$ac_cv_header_sys_endian_h" = "yes"; then
+else
 cat >> include/asoundlib.h <<EOF
 #include <sys/endian.h>
 #ifndef __BYTE_ORDER
