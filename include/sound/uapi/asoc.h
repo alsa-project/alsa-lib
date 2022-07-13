@@ -186,6 +186,9 @@
 #define SND_SOC_TPLG_FSYNC_CM         SND_SOC_TPLG_FSYNC_CP
 #define SND_SOC_TPLG_FSYNC_CS         SND_SOC_TPLG_FSYNC_CC
 
+/* Max length of element name strings */
+#define SNDRV_CTL_ELEM_ID_NAME_MAXLEN 44
+
 /*
  * Block Header.
  * This header precedes all object and object arrays below.
