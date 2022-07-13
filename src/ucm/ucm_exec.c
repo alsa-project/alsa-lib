@@ -33,9 +33,13 @@
 #include <limits.h>
 #include <dirent.h>
 
-#if defined(__NetBSD__) || defined(__OpenBSD__) || defined(__FreeBSD__)
+#if defined(__NetBSD__) || defined(__OpenBSD__) || defined(__FreeBSD__) || defined(__DragonFly__)
 #include <signal.h>
+#if defined(__DragonFly__)
+#define environ NULL /* XXX */
+#else
 extern char **environ;
+#endif
 #endif
 
 static pthread_mutex_t fork_lock = PTHREAD_MUTEX_INITIALIZER;
