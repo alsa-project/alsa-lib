@@ -229,7 +229,7 @@ static int snd_pcm_dshare_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	case SNDRV_PCM_STATE_DRAINING:
 	case SNDRV_PCM_STATE_RUNNING:
 		snd_pcm_dshare_sync_ptr0(pcm, status->hw_ptr);
-		status->delay += snd_pcm_mmap_playback_delay(pcm);
+		status->delay = snd_pcm_mmap_playback_delay(pcm);
 		break;
 	default:
 		break;
