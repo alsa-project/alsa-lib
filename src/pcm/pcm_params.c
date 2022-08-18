@@ -2407,6 +2407,8 @@ int _snd_pcm_hw_params_internal(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	INTERNAL(snd_pcm_hw_params_get_subformat)(params, &pcm->subformat);
 	INTERNAL(snd_pcm_hw_params_get_channels)(params, &pcm->channels);
 	INTERNAL(snd_pcm_hw_params_get_rate)(params, &pcm->rate, 0);
+	snd_interval_copy(&pcm->periods, &params->intervals[SND_PCM_HW_PARAM_PERIODS - SND_PCM_HW_PARAM_FIRST_INTERVAL]);
+	snd_interval_copy(&pcm->buffer_time, &params->intervals[SND_PCM_HW_PARAM_BUFFER_TIME - SND_PCM_HW_PARAM_FIRST_INTERVAL]);
 	INTERNAL(snd_pcm_hw_params_get_period_time)(params, &pcm->period_time, 0);
 	INTERNAL(snd_pcm_hw_params_get_period_size)(params, &pcm->period_size, 0);
 	INTERNAL(snd_pcm_hw_params_get_buffer_size)(params, &pcm->buffer_size);
