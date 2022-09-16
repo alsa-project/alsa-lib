@@ -218,6 +218,11 @@ SectionModifier."Capture Voice" {
 }
 ~~~
 
+### Sequence graphs
+
+\image html ucm-seq-verb.svg
+\image html ucm-seq-device.svg
+
 ### Sequence commands
 
 Command name   | Description
@@ -277,6 +282,8 @@ if the card's configuration is missing. The purpose is to let the users modify t
 configuration like volumes or switches. The alsactl ensures the persistency (store
 the state of the controls to the /var tree and loads the previous state in the next
 boot).
+
+\image html ucm-seq-boot.svg
 
 ### Device volume
 

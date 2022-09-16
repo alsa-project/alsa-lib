@@ -1,0 +1,26 @@
+@startuml
+title "UCM device sequence graph"
+
+start
+split
+  :Enable device;
+  :EnableSequence;
+  :Use device;
+  :Disable device;
+  :DisableSequence;
+split again
+  :Switch device;
+  :Disable old device;
+  if (TransitionSequence) then (present)
+    :TransitionSequence;
+    :Enable new device;
+  else (not present)
+    :Disable old device;
+    :DisableSequence;
+    :Enable new device;
+    :EnableSequence;
+  endif
+end split
+stop
+
+@enduml

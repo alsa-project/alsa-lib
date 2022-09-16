@@ -1,0 +1,17 @@
+@startuml
+title "UCM sequence boot order (using udev and alsactl)"
+
+start
+:Sound card detected (udev);
+:UCM: FixedBootSequence;
+if (Card state (/var/lib/alsa/asound.state)) then (not present)
+  :UCM: BootSequence;
+else (present)
+  :alsactl: Restore state (from asound.state);
+endif
+:Standard sound card use (with or without UCM);
+:Save sound card state (asound.state);
+:Sound card detached;
+stop
+
+@enduml

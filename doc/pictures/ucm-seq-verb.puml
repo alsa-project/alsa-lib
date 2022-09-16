@@ -1,0 +1,30 @@
+@startuml
+title "UCM verb sequence graph"
+
+
+start
+split
+  :Enable verb;
+  :SectionDefaults sequence;
+  :EnableSequence;
+
+  :Enable, use and disable verb devices;
+
+  :Disable verb;
+  :DisableSequence;
+split again
+  :Switch verb;
+  :Disable old verb;
+  if (TransitionSequence) then (present)
+    :TransitionSequence;
+    :Enable new verb;
+  else (not present)
+    :Disable old verb;
+    :DisableSequence;
+    :Enable new verb;
+    :EnableSequence;
+  endif
+end split
+stop
+
+@enduml
