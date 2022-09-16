@@ -63,6 +63,8 @@ use case verbs for that sound card. i.e.:
 # Example master file for blah sound card
 # By Joe Blogs <joe@bloggs.org>
 
+Syntax 6
+
 # Use Case name for user interface
 Comment "Nice Abstracted Soundcard"
 
@@ -91,7 +93,11 @@ ValueDefaults {
 # ALSA card controls which may be modified by user after initial settings.
 
 BootSequence [
-  cset "name='My control' on"
+  cset "name='Master Playback Switch',index=2 0,0"
+  cset "name='Master Playback Volume',index=2 25,25"
+  msleep 50
+  cset "name='Master Playback Switch',index=2 1,1"
+  cset "name='Master Playback Volume',index=2 50,50"
 ]
 
 # Define fixed boot sequence
@@ -117,23 +123,16 @@ SectionVerb {
 
   # enable and disable sequences are compulsory
   EnableSequence [
-    cset "name='Master Playback Switch',index=2 0,0"
-    cset "name='Master Playback Volume',index=2 25,25"
-    msleep 50
-    cset "name='Master Playback Switch',index=2 1,1"
-    cset "name='Master Playback Volume',index=2 50,50"
+    disdevall ""	# run DisableSequence for all devices
   ]
 
   DisableSequence [
-    cset "name='Master Playback Switch',index=2 0,0"
-    cset "name='Master Playback Volume',index=2 25,25"
-    msleep 50
-    cset "name='Master Playback Switch',index=2 1,1"
-    cset "name='Master Playback Volume',index=2 50,50"
+    cset "name='Power Save' on"
   ]
 
   # Optional transition verb
   TransitionSequence."ToCaseName" [
+    disdevall ""	# run DisableSequence for all devices
     msleep 1
   ]
 
@@ -212,6 +211,7 @@ SectionModifier."Capture Voice" {
   Value {
     TQ Voice
     CapturePCM "hw:${CardId},11"
+    PlaybackMixerElem "Master"
     PlaybackVolume "name='Master Playback Volume',index=2"
     PlaybackSwitch "name='Master Playback Switch',index=2"
   }
@@ -288,9 +288,20 @@ boot).
 ### Device volume
 
 It is expected that the applications handle the volume settings. It is not recommended
-to set the fixed values for the volume settings to the Enable / Disable sequences for
+to set the fixed values for the volume settings in the Enable / Disable sequences for
 verbs or devices, if the device exports the hardware volume (MixerElem or Volume/Switch
-values). The default volume settings should be set in the *BootSequence*.
+values). The default volume settings should be set in the *BootSequence*. The purpose
+for this scheme is to allow users to override defaults using the alsactl sound card
+state management.
+
+Checklist:
+
+1. Set default volume in BootSequence
+2. Verb's EnableSequence should ensure that all devices are turned off (mixer paths)
+   to avoid simultaneous device use - the previous state is unknown (see *disdevall*
+   and *disdev2* commands or create a new custom command sequence)
+
+\image html ucm-volume.svg
 
 ### Dynamic configuration tree
 

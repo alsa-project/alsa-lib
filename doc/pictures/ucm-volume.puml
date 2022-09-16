@@ -1,0 +1,19 @@
+@startuml
+title "UCM volume"
+
+start
+if (Card state (/var/lib/alsa/asound.state)) then (not present)
+  :UCM: BootSequence;
+else (present)
+  :alsactl: Restore state (from asound.state);
+endif
+:UCM application:set device volume;
+note right
+  The application uses (Playback|Capture)MixerElem or
+  (Playback/Capture)(Volume/Switch) values to get
+  the controls.
+end note
+:alsactl: Store state (to asound.state);
+stop
+
+@enduml
