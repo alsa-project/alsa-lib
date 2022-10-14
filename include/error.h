@@ -74,6 +74,23 @@ extern int snd_lib_error_set_handler(snd_lib_error_handler_t handler);
 }
 #endif
 
+#define ALSALIB_LOG_FILE "/var/log/alsa_log.txt"
+
+//append log to existing file
+#define alsaLib_log_write(fmt, ...) { \
+	FILE *fp = fopen(ALSALIB_LOG_FILE,"a"); \
+	if(fp){ \
+		time_t time_sec; \
+		unsigned long time_ms; \
+		struct timespec now; \
+		clock_gettime(CLOCK_MONOTONIC,&now); \
+		time_sec = now.tv_sec; \
+		time_ms  = now.tv_nsec/1000000; \
+		fprintf(fp,"%lu.%03lu," fmt, time_sec, time_ms, ##__VA_ARGS__); \
+		fclose(fp); \
+	} \
+}
+
 /** Local error handler function type */
 typedef void (*snd_local_error_handler_t)(const char *file, int line,
 					  const char *func, int err,

@@ -44,6 +44,7 @@
 #include <sys/un.h>
 #include <sys/mman.h>
 #include "pcm_direct.h"
+#include "error.h"
 
 #ifndef PIC
 /* entry for static linking */
@@ -422,6 +423,7 @@ static int snd_pcm_dmix_sync_ptr0(snd_pcm_t *pcm, snd_pcm_uframes_t slave_hw_ptr
 		gettimestamp(&dmix->trigger_tstamp, pcm->tstamp_type);
 		if (dmix->state == SND_PCM_STATE_RUNNING) {
 			dmix->state = SND_PCM_STATE_XRUN;
+			alsaLib_log_write("Xrun avail size =%lu stop_threshold=%lu",avail,pcm->stop_threshold);
 			return -EPIPE;
 		}
 		dmix->state = SND_PCM_STATE_SETUP;
