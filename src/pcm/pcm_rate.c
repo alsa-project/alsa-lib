@@ -770,7 +770,7 @@ static snd_pcm_sframes_t snd_pcm_rate_forward(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
 
 static int snd_pcm_rate_commit_area(snd_pcm_t *pcm, snd_pcm_rate_t *rate,
 				    snd_pcm_uframes_t appl_offset,
-				    snd_pcm_uframes_t size,
+				    snd_pcm_uframes_t size ATTRIBUTE_UNUSED,
 				    snd_pcm_uframes_t slave_size)
 {
 	snd_pcm_uframes_t cont = pcm->buffer_size - appl_offset;
@@ -816,7 +816,7 @@ static int snd_pcm_rate_commit_area(snd_pcm_t *pcm, snd_pcm_rate_t *rate,
 				   pcm->format);
 		snd_pcm_areas_copy(rate->pareas, cont,
 				   areas, 0,
-				   pcm->channels, size - cont,
+				   pcm->channels, pcm->period_size - cont,
 				   pcm->format);
 
 		snd_pcm_rate_write_areas1(pcm, rate->pareas, 0, rate->sareas, 0);
