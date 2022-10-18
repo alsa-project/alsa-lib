@@ -47,7 +47,7 @@ int __snd_pcm_info_eld_fixup(snd_pcm_info_t * info)
 	snd_ctl_elem_info_t cinfo = {0};
 	snd_ctl_elem_value_t value = {0};
 	unsigned char *eld;
-	unsigned int l;
+	unsigned int l, spc;
 	char *s, c;
 	int ret, valid;
 
@@ -82,20 +82,23 @@ int __snd_pcm_info_eld_fixup(snd_pcm_info_t * info)
 		return 0;
 	}
 	s = alloca(l + 1);
-	s[l] = '\0';
 	/* sanitize */
 	valid = 0;
+	spc = 0;
 	while (l > 0) {
 		l--;
 		c = eld[20 + l];
-		if (c < ' ' || c >= 0x7f) {
+		if (c <= ' ' || c >= 0x7f) {
 			s[l] = ' ';
 		} else {
 			valid += !!isalnum(c);
 			s[l] = c;
+			if (spc == 0)
+				spc = l + 1;
 		}
 	}
 	if (valid > 3) {
+		s[spc] = '\0';
 		snd_strlcpy((char *)info->name, s, sizeof(info->name));
 	} else {
 __present:
