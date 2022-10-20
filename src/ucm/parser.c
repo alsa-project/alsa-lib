@@ -247,6 +247,36 @@ static int error_node(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 }
 
 /*
+ *
+ */
+static int parse_syntax_field(snd_use_case_mgr_t *uc_mgr,
+			      snd_config_t *cfg, const char *filename)
+{
+	snd_config_t *n;
+	long l;
+	int err;
+
+	err = snd_config_search(cfg, "Syntax", &n);
+	if (err < 0) {
+		uc_error("Syntax field not found in %s", filename);
+		return -EINVAL;
+	}
+	err = snd_config_get_integer(n, &l);
+	if (err < 0) {
+		uc_error("Syntax field is invalid in %s", filename);
+		return err;
+	}
+	if (l < 2 || l > SYNTAX_VERSION_MAX) {
+		uc_error("Incompatible syntax %ld in %s", l, filename);
+		return -EINVAL;
+	}
+	/* delete this field to optimize strcmp() call in the parsing loop */
+	snd_config_delete(n);
+	uc_mgr->conf_format = l;
+	return l;
+}
+
+/*
  * Evaluate variable regex definitions (in-place delete)
  */
 static int evaluate_regex(snd_use_case_mgr_t *uc_mgr,
@@ -2366,7 +2396,6 @@ static int parse_master_file(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
 	const char *id;
-	long l;
 	int err;
 
 	if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
@@ -2375,23 +2404,9 @@ static int parse_master_file(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 	}
 
 	if (uc_mgr->conf_format >= 2) {
-		err = snd_config_search(cfg, "Syntax", &n);
-		if (err < 0) {
-			uc_error("Syntax field not found in %s", uc_mgr->conf_file_name);
-			return -EINVAL;
-		}
-		err = snd_config_get_integer(n, &l);
-		if (err < 0) {
-			uc_error("Syntax field is invalid in %s", uc_mgr->conf_file_name);
+		err = parse_syntax_field(uc_mgr, cfg, uc_mgr->conf_file_name);
+		if (err < 0)
 			return err;
-		}
-		if (l < 2 || l > SYNTAX_VERSION_MAX) {
-			uc_error("Incompatible syntax %d in %s", l, uc_mgr->conf_file_name);
-			return -EINVAL;
-		}
-		/* delete this field to avoid strcmp() call in the loop */
-		snd_config_delete(n);
-		uc_mgr->conf_format = l;
 	}
 
 	/* in-place evaluation */
@@ -2472,6 +2487,10 @@ static int parse_master_file(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 		/* error */
 		if (strcmp(id, "Error") == 0)
 			return error_node(uc_mgr, n);
+
+		/* skip further Syntax value updates (Include) */
+		if (strcmp(id, "Syntax") == 0)
+			continue;
 
 		uc_error("unknown master file field %s", id);
 	}
@@ -2701,7 +2720,6 @@ static int parse_toplevel_config(snd_use_case_mgr_t *uc_mgr,
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
 	const char *id;
-	long l;
 	int err;
 
 	if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
@@ -2709,23 +2727,9 @@ static int parse_toplevel_config(snd_use_case_mgr_t *uc_mgr,
 		return -EINVAL;
 	}
 
-	err = snd_config_search(cfg, "Syntax", &n);
-	if (err < 0) {
-		uc_error("Syntax field not found in %s", filename);
-		return -EINVAL;
-	}
-	err = snd_config_get_integer(n, &l);
-	if (err < 0) {
-		uc_error("Syntax field is invalid in %s", filename);
+	err = parse_syntax_field(uc_mgr, cfg, filename);
+	if (err < 0)
 		return err;
-	}
-	if (l < 2 || l > SYNTAX_VERSION_MAX) {
-		uc_error("Incompatible syntax %d in %s", l, filename);
-		return -EINVAL;
-	}
-	/* delete this field to avoid strcmp() call in the loop */
-	snd_config_delete(n);
-	uc_mgr->conf_format = l;
 
 	/* in-place evaluation */
 	err = uc_mgr_evaluate_inplace(uc_mgr, cfg);
@@ -2755,6 +2759,10 @@ static int parse_toplevel_config(snd_use_case_mgr_t *uc_mgr,
 			}
 			continue;
 		}
+
+		/* skip further Syntax value updates (Include) */
+		if (strcmp(id, "Syntax") == 0)
+			continue;
 
 		uc_error("unknown toplevel field %s", id);
 	}
