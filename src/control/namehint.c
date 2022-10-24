@@ -602,9 +602,7 @@ int snd_device_name_hint(int card, const char *iface, void ***hints)
 	list.siface = iface;
 	list.show_all = 0;
 	list.cardname = NULL;
-	if (strcmp(iface, "card") == 0)
-		list.iface = SND_CTL_ELEM_IFACE_CARD;
-	else if (strcmp(iface, "pcm") == 0)
+	if (strcmp(iface, "pcm") == 0)
 		list.iface = SND_CTL_ELEM_IFACE_PCM;
 	else if (strcmp(iface, "rawmidi") == 0)
 		list.iface = SND_CTL_ELEM_IFACE_RAWMIDI;
