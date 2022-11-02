@@ -2793,7 +2793,7 @@ int snd_use_case_parse_ctl_elem_id(snd_ctl_elem_id_t *dst,
 	    strcmp(ucm_id, "CaptureSwitch"))
 		return -EINVAL;
 	snd_ctl_elem_id_clear(dst);
-	if (strcasestr(ucm_id, "name="))
+	if (strcasestr(value, "name="))
 		return __snd_ctl_ascii_elem_id_parse(dst, value, NULL);
 	iface = SND_CTL_ELEM_IFACE_MIXER;
 	if (jack_control)
