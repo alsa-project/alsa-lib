@@ -597,8 +597,12 @@ int snd_pcm_plugin_may_wait_for_avail_min_conv(
 		 * a) the slave can provide contineous hw_ptr between periods
 		 * b) avail_min does not match one slave_period
 		 */
-		snd_pcm_plugin_t *plugin = pcm->private_data;
-		snd_pcm_t *slave = plugin->gen.slave;
+		snd_pcm_generic_t *generic = pcm->private_data;
+		/*
+		 * do not use snd_pcm_plugin_t pointer here
+		 * this code is used from the generic plugins, too
+		 */
+		snd_pcm_t *slave = generic->slave;
 		snd_pcm_uframes_t needed_slave_avail_min;
 		snd_pcm_sframes_t available;
 
@@ -622,7 +626,7 @@ int snd_pcm_plugin_may_wait_for_avail_min_conv(
 		 * This code is also used by extplug, but extplug does not allow to alter the sampling rate.
 		 */
 		if (conv)
-			needed_slave_avail_min = conv(pcm->fast_op_arg, needed_slave_avail_min);
+			needed_slave_avail_min = conv(pcm, needed_slave_avail_min);
 
 		if (slave->avail_min != needed_slave_avail_min) {
 			snd_pcm_sw_params_t *swparams;

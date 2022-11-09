@@ -1144,7 +1144,7 @@ static inline int snd_pcm_may_wait_for_avail_min(snd_pcm_t *pcm, snd_pcm_uframes
 	if (avail >= pcm->avail_min)
 		return 0;
 	if (pcm->fast_ops->may_wait_for_avail_min)
-		return pcm->fast_ops->may_wait_for_avail_min(pcm, avail);
+		return pcm->fast_ops->may_wait_for_avail_min(pcm->fast_op_arg, avail);
 	return 1;
 }
 
