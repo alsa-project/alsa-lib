@@ -622,7 +622,7 @@ int snd_pcm_plugin_may_wait_for_avail_min_conv(
 		 * This code is also used by extplug, but extplug does not allow to alter the sampling rate.
 		 */
 		if (conv)
-			needed_slave_avail_min = conv(pcm, needed_slave_avail_min);
+			needed_slave_avail_min = conv(pcm->fast_op_arg, needed_slave_avail_min);
 
 		if (slave->avail_min != needed_slave_avail_min) {
 			snd_pcm_sw_params_t *swparams;
