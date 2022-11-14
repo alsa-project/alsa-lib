@@ -33,9 +33,12 @@
 #include <sched.h>
 #include <errno.h>
 #include <getopt.h>
+#include <time.h>
 #include "../include/asoundlib.h"
 #include <sys/time.h>
 #include <math.h>
+
+typedef struct timespec timestamp_t;
 
 char *pdevice = "hw:0,0";
 char *cdevice = "hw:0,0";
@@ -50,9 +53,39 @@ int loop_sec = 30;		/* seconds */
 int block = 0;			/* block mode */
 int use_poll = 0;
 int resample = 1;
+int sys_latency = 0;		/* data I/O: use system timings instead driver wakeups */
+int pos_dump = 0;		/* dump positions */
+int realtime_check = 0;
 unsigned long loop_limit;
+snd_pcm_uframes_t playback_buffer_size;
 
 snd_output_t *output = NULL;
+
+static inline long long frames_to_micro(size_t frames)
+{
+	return (long long)((frames * 1000000LL) + (rate / 2)) / rate;
+}
+
+void timestamp_now(timestamp_t *tstamp)
+{
+	if (clock_gettime(CLOCK_MONOTONIC_RAW, tstamp))
+		printf("clock_gettime() failed\n");
+}
+
+long long timestamp_diff_micro(timestamp_t *tstamp)
+{
+	timestamp_t now, diff;
+	timestamp_now(&now);
+	if (tstamp->tv_nsec > now.tv_nsec) {
+		diff.tv_sec = now.tv_sec - tstamp->tv_sec - 1;
+		diff.tv_nsec = (now.tv_nsec + 1000000000L) - tstamp->tv_nsec;
+	} else {
+		diff.tv_sec = now.tv_sec - tstamp->tv_sec;
+		diff.tv_nsec = now.tv_nsec - tstamp->tv_nsec;
+	}
+	/* microseconds */
+	return (diff.tv_sec * 1000000) + ((diff.tv_nsec + 500L) / 1000L);
+}
 
 int setparams_stream(snd_pcm_t *handle,
 		     snd_pcm_hw_params_t *params,
@@ -95,6 +128,14 @@ int setparams_stream(snd_pcm_t *handle,
 	if ((int)rrate != rate) {
 		printf("Rate doesn't match (requested %iHz, get %iHz)\n", rate, err);
 		return -EINVAL;
+	}
+	/* we do not want driver wakeups */
+	if (sys_latency > 0 && snd_pcm_hw_params_can_disable_period_wakeup(params)) {
+		err = snd_pcm_hw_params_set_period_wakeup(handle, params, 0);
+		if (err < 0) {
+			printf("Cannot disable period wakeups for %s\n", id);
+			return err;
+		}
 	}
 	return 0;
 }
@@ -227,6 +268,7 @@ int setparams(snd_pcm_t *phandle, snd_pcm_t *chandle, int *bufsize)
 		goto __again;
 
 	snd_pcm_hw_params_get_buffer_size(p_params, &p_size);
+	playback_buffer_size = p_size;
 	if (p_psize * 2 < p_size) {
                 snd_pcm_hw_params_get_periods_min(p_params, &val, NULL);
                 if (val > 2) {
@@ -390,7 +432,7 @@ long writebuf(snd_pcm_t *handle, char *buf, long len, size_t *frames)
 	}
 	return 0;
 }
-			
+
 #define FILTERSWEEP_LFO_CENTER 2000.
 #define FILTERSWEEP_LFO_DEPTH 1800.
 #define FILTERSWEEP_LFO_FREQ 0.2
@@ -434,6 +476,19 @@ void applyeffect(char* buffer,int r)
 	}
 }
 
+static ssize_t get_avail(snd_pcm_t *pcm)
+{
+	ssize_t avail;
+
+	while (1) {
+		avail = snd_pcm_avail(pcm);
+		if (avail == -EAGAIN)
+			continue;
+		break;
+	}
+	return avail;
+}
+
 void help(void)
 {
 	int k;
@@ -444,6 +499,7 @@ void help(void)
 "-C,--cdevice   capture device\n"
 "-m,--min       minimum latency in frames\n"
 "-M,--max       maximum latency in frames\n"
+"-U,--updates   I/O updates in milliseconds (0 = off)\n"
 "-F,--frames    frames to transfer\n"
 "-f,--format    sample format\n"
 "-c,--channels  channels\n"
@@ -454,6 +510,8 @@ void help(void)
 "-b,--block     block mode\n"
 "-p,--poll      use poll (wait for event - reduces CPU usage)\n"
 "-e,--effect    apply an effect (bandpass filter sweep)\n"
+"-x,--posdump   dump buffer positions\n"
+"-X,--realtime  do a realtime check (buffering)\n"
 );
         printf("Recognized sample formats are:");
         for (k = 0; k < SND_PCM_FORMAT_LAST; ++k) {
@@ -480,6 +538,7 @@ int main(int argc, char *argv[])
 		{"cdevice", 1, NULL, 'C'},
 		{"min", 1, NULL, 'm'},
 		{"max", 1, NULL, 'M'},
+		{"updates", 1, NULL, 'U'},
 		{"frames", 1, NULL, 'F'},
 		{"format", 1, NULL, 'f'},
 		{"channels", 1, NULL, 'c'},
@@ -490,20 +549,23 @@ int main(int argc, char *argv[])
 		{"block", 0, NULL, 'b'},
 		{"poll", 0, NULL, 'p'},
 		{"effect", 0, NULL, 'e'},
+		{"posdump", 0, NULL, 'x'},
+		{"realtime", 0, NULL, 'X'},
 		{NULL, 0, NULL, 0},
 	};
 	snd_pcm_t *phandle, *chandle;
 	char *buffer;
 	int err, latency, morehelp;
-	int ok;
+	int ok, first_avail;
 	snd_timestamp_t p_tstamp, c_tstamp;
-	ssize_t r;
+	ssize_t r, cap_avail, cap_avail_max, pbk_fill, pbk_fill_min;
 	size_t frames_in, frames_out, in_max;
+	timestamp_t tstamp_start;
 	int effect = 0;
 	morehelp = 0;
 	while (1) {
 		int c;
-		if ((c = getopt_long(argc, argv, "hP:C:m:M:F:f:c:r:B:E:s:bpen", long_option, NULL)) < 0)
+		if ((c = getopt_long(argc, argv, "hP:C:m:M:U:F:f:c:r:B:E:s:bpenxX", long_option, NULL)) < 0)
 			break;
 		switch (c) {
 		case 'h':
@@ -524,6 +586,10 @@ int main(int argc, char *argv[])
 		case 'M':
 			err = atoi(optarg) / 2;
 			latency_max = latency_min > err ? latency_min : err;
+			break;
+		case 'U':
+			err = atoi(optarg);
+			sys_latency = err <= 0 ? 0 : err;
 			break;
 		case 'f':
 			format = snd_pcm_format_value(optarg);
@@ -564,6 +630,12 @@ int main(int argc, char *argv[])
 		case 'n':
 			resample = 0;
 			break;
+		case 'x':
+			pos_dump = 1;
+			break;
+		case 'X':
+			realtime_check = 1;
+			break;
 		}
 	}
 
@@ -579,15 +651,27 @@ int main(int argc, char *argv[])
 
 	loop_limit = loop_sec * rate;
 	latency = latency_min - 4;
-	buffer = malloc((latency_max * snd_pcm_format_physical_width(format) / 8) * 2);
+	buffer = malloc((latency_max * 2 * snd_pcm_format_physical_width(format) / 8) * channels);
+
+	/* I/O updates based on a system timer */
+	if (sys_latency > 0) {
+		block = 0;
+		use_poll = 0;
+	}
 
 	setscheduler();
 
 	printf("Playback device is %s\n", pdevice);
 	printf("Capture device is %s\n", cdevice);
-	printf("Parameters are %iHz, %s, %i channels, %s mode\n", rate, snd_pcm_format_name(format), channels, block ? "blocking" : "non-blocking");
-	printf("Poll mode: %s\n", use_poll ? "yes" : "no");
-	printf("Loop limit is %lu frames, minimum latency = %i, maximum latency = %i\n", loop_limit, latency_min * 2, latency_max * 2);
+	printf("Parameters are %iHz, %s, %i channels, %s mode, use poll %s\n",
+			rate, snd_pcm_format_name(format),
+			channels, block ? "blocking" : "non-blocking",
+			use_poll ? "yes" : "no");
+	printf("Loop limit is %lu frames, minimum latency = %i, maximum latency = %i",
+			loop_limit, latency_min * 2, latency_max * 2);
+	if (sys_latency > 0)
+		printf(", I/O updates %ims", sys_latency);
+	printf("\n");
 
 	if ((err = snd_pcm_open(&phandle, pdevice, SND_PCM_STREAM_PLAYBACK, block ? 0 : SND_PCM_NONBLOCK)) < 0) {
 		printf("Playback open error: %s\n", snd_strerror(err));
@@ -613,6 +697,9 @@ int main(int argc, char *argv[])
 		y[1] = (float*) malloc(channels*sizeof(float));		
 		y[2] = (float*) malloc(channels*sizeof(float));		
 	}
+
+	cap_avail_max = 0;
+	pbk_fill_min = latency * 2;
 			  
 	while (1) {
 		frames_in = frames_out = 0;
@@ -623,7 +710,7 @@ int main(int argc, char *argv[])
 			printf("Streams link error: %s\n", snd_strerror(err));
 			exit(0);
 		}
-		if (snd_pcm_format_set_silence(format, buffer, latency*channels) < 0) {
+		if (snd_pcm_format_set_silence(format, buffer, latency * channels) < 0) {
 			fprintf(stderr, "silence error\n");
 			break;
 		}
@@ -640,6 +727,8 @@ int main(int argc, char *argv[])
 			printf("Go error: %s\n", snd_strerror(err));
 			exit(0);
 		}
+		if (realtime_check)
+			timestamp_now(&tstamp_start);
 		gettimestamp(phandle, &p_tstamp);
 		gettimestamp(chandle, &c_tstamp);
 #if 0
@@ -651,16 +740,54 @@ int main(int argc, char *argv[])
 
 		ok = 1;
 		in_max = 0;
+		first_avail = 1;
 		while (ok && frames_in < loop_limit) {
-			if (use_poll) {
+			cap_avail = latency;
+			if (sys_latency > 0) {
+				poll(NULL, 0, sys_latency);
+				cap_avail = get_avail(chandle);
+				if (cap_avail < 0) {
+					printf("Avail failed: %s\n", snd_strerror(cap_avail));
+					ok = 0;
+					break;
+				}
+				if (first_avail && realtime_check) {
+					long long diff = timestamp_diff_micro(&tstamp_start);
+					long long pos = frames_to_micro(cap_avail);
+					printf("POS FIRST CHECK: c=%zd (rt=%lldus)\n", cap_avail, pos - diff);
+					first_avail = 0;
+				}
+			} else if (use_poll) {
 				/* use poll to wait for next event */
 				snd_pcm_wait(chandle, 1000);
 			}
-			if ((r = readbuf(chandle, buffer, latency, &frames_in, &in_max)) < 0)
+			if (pos_dump || realtime_check) {
+				if (sys_latency <= 0)
+					cap_avail = get_avail(chandle);
+				pbk_fill = get_avail(phandle);
+				if (pbk_fill >= 0)
+					pbk_fill = playback_buffer_size - pbk_fill;
+				if (cap_avail > cap_avail_max)
+					cap_avail_max = cap_avail;
+				if (pbk_fill >= 0 && pbk_fill < pbk_fill_min)
+					pbk_fill_min = pbk_fill;
+				if (realtime_check) {
+					long long diff = timestamp_diff_micro(&tstamp_start);
+					long long cap_pos = frames_to_micro(frames_in + cap_avail);
+					long long pbk_pos = frames_to_micro(frames_out - pbk_fill);
+					printf("POS: p=%zd (min=%zd, rt=%lldus) c=%zd (max=%zd, rt=%lldus)\n",
+							pbk_fill, pbk_fill_min, pbk_pos - diff,
+							cap_avail, cap_avail_max, cap_pos - diff);
+				} else if (pos_dump) {
+					printf("POS: p=%zd (min=%zd), c=%zd (max=%zd)\n",
+							pbk_fill, pbk_fill_min, cap_avail, cap_avail_max);
+				}
+			}
+			if ((r = readbuf(chandle, buffer, cap_avail, &frames_in, &in_max)) < 0)
 				ok = 0;
 			else {
 				if (effect)
-					applyeffect(buffer,r);
+					applyeffect(buffer, r);
 			 	if (writebuf(phandle, buffer, r, &frames_out) < 0)
 					ok = 0;
 			}
@@ -677,6 +804,13 @@ int main(int argc, char *argv[])
 		if (p_tstamp.tv_sec == c_tstamp.tv_sec &&
 		    p_tstamp.tv_usec == c_tstamp.tv_usec)
 			printf("Hardware sync\n");
+		if (realtime_check) {
+			long long diff = timestamp_diff_micro(&tstamp_start);
+			long long mtime = frames_to_micro(frames_in);
+			printf("Elapsed real time: %lldus\n", diff);
+			printf("Elapsed device time: %lldus\n", mtime);
+			printf("Test time diff (device - real): %lldus\n", mtime - diff);
+		}
 		snd_pcm_drop(chandle);
 		snd_pcm_nonblock(phandle, 0);
 		snd_pcm_drain(phandle);
@@ -698,5 +832,10 @@ int main(int argc, char *argv[])
 	}
 	snd_pcm_close(phandle);
 	snd_pcm_close(chandle);
+	snd_output_close(output);
+	snd_config_update_free_global();
+	free(buffer);
+	free(pdevice);
+	free(cdevice);
 	return 0;
 }
