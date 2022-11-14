@@ -838,7 +838,7 @@ static int snd_pcm_hw_link(snd_pcm_t *pcm1, snd_pcm_t *pcm2)
 {
 	if (pcm2->type != SND_PCM_TYPE_HW) {
 		if (pcm2->fast_ops->link_slaves)
-			return pcm2->fast_ops->link_slaves(pcm2, pcm1);
+			return pcm2->fast_ops->link_slaves(pcm2->fast_op_arg, pcm1);
 		return -ENOSYS;
 	}
 	return hw_link(pcm1, pcm2);

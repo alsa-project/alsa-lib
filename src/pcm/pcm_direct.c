@@ -688,7 +688,7 @@ int snd_pcm_direct_check_xrun(snd_pcm_direct_t *direct, snd_pcm_t *pcm)
 		 * so don't increment but just update to actual counter
 		 */
 		direct->recoveries = direct->shmptr->s.recoveries;
-		pcm->fast_ops->drop(pcm);
+		pcm->fast_ops->drop(pcm->fast_op_arg);
 		/* trigger_tstamp update is missing in drop callbacks */
 		gettimestamp(&direct->trigger_tstamp, pcm->tstamp_type);
 		/* no timer clear:

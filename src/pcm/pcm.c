@@ -1705,7 +1705,7 @@ int snd_pcm_link(snd_pcm_t *pcm1, snd_pcm_t *pcm2)
 	assert(pcm1);
 	assert(pcm2);
 	if (pcm1->fast_ops->link)
-		err = pcm1->fast_ops->link(pcm1, pcm2);
+		err = pcm1->fast_ops->link(pcm1->fast_op_arg, pcm2);
 	else
 		err = -ENOSYS;
 	return err;
@@ -1722,7 +1722,7 @@ int snd_pcm_unlink(snd_pcm_t *pcm)
 
 	assert(pcm);
 	if (pcm->fast_ops->unlink)
-		err = pcm->fast_ops->unlink(pcm);
+		err = pcm->fast_ops->unlink(pcm->fast_op_arg);
 	else
 		err = -ENOSYS;
 	return err;
