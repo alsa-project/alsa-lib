@@ -556,7 +556,7 @@ int main(int argc, char *argv[])
 	snd_pcm_t *phandle, *chandle;
 	char *buffer;
 	int err, latency, morehelp;
-	int ok, first_avail;
+	int ok;
 	snd_timestamp_t p_tstamp, c_tstamp;
 	ssize_t r, cap_avail, cap_avail_max, pbk_fill, pbk_fill_min;
 	size_t frames_in, frames_out, in_max;
@@ -723,12 +723,14 @@ int main(int argc, char *argv[])
 			break;
 		}
 
+		if (realtime_check)
+			timestamp_now(&tstamp_start);
 		if ((err = snd_pcm_start(chandle)) < 0) {
 			printf("Go error: %s\n", snd_strerror(err));
 			exit(0);
 		}
 		if (realtime_check)
-			timestamp_now(&tstamp_start);
+			printf("[%lldus] Stream start\n", timestamp_diff_micro(&tstamp_start));
 		gettimestamp(phandle, &p_tstamp);
 		gettimestamp(chandle, &c_tstamp);
 #if 0
@@ -740,7 +742,6 @@ int main(int argc, char *argv[])
 
 		ok = 1;
 		in_max = 0;
-		first_avail = 1;
 		while (ok && frames_in < loop_limit) {
 			cap_avail = latency;
 			if (sys_latency > 0) {
@@ -750,12 +751,6 @@ int main(int argc, char *argv[])
 					printf("Avail failed: %s\n", snd_strerror(cap_avail));
 					ok = 0;
 					break;
-				}
-				if (first_avail && realtime_check) {
-					long long diff = timestamp_diff_micro(&tstamp_start);
-					long long pos = frames_to_micro(cap_avail);
-					printf("POS FIRST CHECK: c=%zd (rt=%lldus)\n", cap_avail, pos - diff);
-					first_avail = 0;
 				}
 			} else if (use_poll) {
 				/* use poll to wait for next event */
@@ -775,8 +770,8 @@ int main(int argc, char *argv[])
 					long long diff = timestamp_diff_micro(&tstamp_start);
 					long long cap_pos = frames_to_micro(frames_in + cap_avail);
 					long long pbk_pos = frames_to_micro(frames_out - pbk_fill);
-					printf("POS: p=%zd (min=%zd, rt=%lldus) c=%zd (max=%zd, rt=%lldus)\n",
-							pbk_fill, pbk_fill_min, pbk_pos - diff,
+					printf("[%lldus] POS: p=%zd (min=%zd, rt=%lldus) c=%zd (max=%zd, rt=%lldus)\n",
+							diff, pbk_fill, pbk_fill_min, pbk_pos - diff,
 							cap_avail, cap_avail_max, cap_pos - diff);
 				} else if (pos_dump) {
 					printf("POS: p=%zd (min=%zd), c=%zd (max=%zd)\n",
