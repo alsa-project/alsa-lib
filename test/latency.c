@@ -354,7 +354,7 @@ long readbuf(snd_pcm_t *handle, char *buf, long len, size_t *frames, size_t *max
 		}
 		// printf("read = %li\n", r);
 	} else {
-		int frame_bytes = (snd_pcm_format_width(format) / 8) * channels;
+		int frame_bytes = (snd_pcm_format_physical_width(format) / 8) * channels;
 		do {
 			r = snd_pcm_readi(handle, buf, len);
 			if (r > 0) {
@@ -374,7 +374,7 @@ long readbuf(snd_pcm_t *handle, char *buf, long len, size_t *frames, size_t *max
 long writebuf(snd_pcm_t *handle, char *buf, long len, size_t *frames)
 {
 	long r;
-	int frame_bytes = (snd_pcm_format_width(format) / 8) * channels;
+	int frame_bytes = (snd_pcm_format_physical_width(format) / 8) * channels;
 
 	while (len > 0) {
 		r = snd_pcm_writei(handle, buf, len);
@@ -579,7 +579,7 @@ int main(int argc, char *argv[])
 
 	loop_limit = loop_sec * rate;
 	latency = latency_min - 4;
-	buffer = malloc((latency_max * snd_pcm_format_width(format) / 8) * 2);
+	buffer = malloc((latency_max * snd_pcm_format_physical_width(format) / 8) * 2);
 
 	setscheduler();
 

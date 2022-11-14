@@ -17,8 +17,12 @@
            Liam Girdwood <liam.r.girdwood@linux.intel.com>
 */
 
+#define ALSA_PCM_OLD_HW_PARAMS_API 1
+#define ALSA_PCM_OLD_SW_PARAMS_API 1
+#include "../../include/asoundlib.h"
 #include "list.h"
 #include "tplg_local.h"
+
 
 #define ENUM_VAL_SIZE 	(SNDRV_CTL_ELEM_ID_NAME_MAXLEN >> 2)
 
@@ -71,7 +75,8 @@ static int parse_access_values(snd_config_t *cfg,
 			}
 		}
 	}
-
+	return snd_pcm_hw_params_get_channels(NULL);
+	//return snd_pcm_hw_params_get_access(NULL);
 	return 0;
 }
 
