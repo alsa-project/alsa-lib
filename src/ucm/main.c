@@ -998,13 +998,14 @@ static int add_auto_values(snd_use_case_mgr_t *uc_mgr)
 /**
  * \brief execute default commands
  * \param uc_mgr Use case manager
+ * \param force Force run
  * \return zero on success, otherwise a negative error code
  */
-static int set_defaults(snd_use_case_mgr_t *uc_mgr)
+static int set_defaults(snd_use_case_mgr_t *uc_mgr, bool force)
 {
 	int err;
 
-	if (uc_mgr->default_list_executed)
+	if (!force && uc_mgr->default_list_executed)
 		return 0;
 	err = execute_sequence(uc_mgr, NULL, &uc_mgr->default_list,
 			       &uc_mgr->value_list, NULL, NULL);
@@ -1351,7 +1352,7 @@ static int set_verb(snd_use_case_mgr_t *uc_mgr,
 	int err;
 
 	if (enable) {
-		err = set_defaults(uc_mgr);
+		err = set_defaults(uc_mgr, false);
 		if (err < 0)
 			return err;
 		seq = &verb->enable_list;
@@ -1432,6 +1433,22 @@ static int set_device(snd_use_case_mgr_t *uc_mgr,
 	} else if (!enable) {
 		list_del(&device->active_list);
 	}
+	return err;
+}
+
+/**
+ * \brief Do the full reset
+ * \param uc_mgr Use case manager
+ * \return zero on success, otherwise a negative error code
+ */
+static int do_reset(snd_use_case_mgr_t *uc_mgr)
+{
+	int err;
+
+	err = set_defaults(uc_mgr, true);
+	INIT_LIST_HEAD(&uc_mgr->active_modifiers);
+	INIT_LIST_HEAD(&uc_mgr->active_devices);
+	uc_mgr->active_verb = NULL;
 	return err;
 }
 
@@ -1569,6 +1586,8 @@ int snd_use_case_mgr_reload(snd_use_case_mgr_t *uc_mgr)
 
 	pthread_mutex_lock(&uc_mgr->mutex);
 
+	do_reset(uc_mgr);
+
 	uc_mgr_free_verb(uc_mgr);
 
 	uc_mgr->default_list_executed = 0;
@@ -1633,8 +1652,7 @@ static int dismantle_use_case(snd_use_case_mgr_t *uc_mgr)
 	}
 	uc_mgr->active_verb = NULL;
 
-	err = execute_sequence(uc_mgr, NULL, &uc_mgr->default_list,
-			       &uc_mgr->value_list, NULL, NULL);
+	err = set_defaults(uc_mgr, true);
 	
 	return err;
 }
@@ -1649,11 +1667,7 @@ int snd_use_case_mgr_reset(snd_use_case_mgr_t *uc_mgr)
 	int err;
 
 	pthread_mutex_lock(&uc_mgr->mutex);
-	err = execute_sequence(uc_mgr, NULL, &uc_mgr->default_list,
-			       &uc_mgr->value_list, NULL, NULL);
-	INIT_LIST_HEAD(&uc_mgr->active_modifiers);
-	INIT_LIST_HEAD(&uc_mgr->active_devices);
-	uc_mgr->active_verb = NULL;
+	err = do_reset(uc_mgr);
 	pthread_mutex_unlock(&uc_mgr->mutex);
 	return err;
 }
@@ -2512,7 +2526,7 @@ static int set_defaults_user(snd_use_case_mgr_t *uc_mgr,
 		uc_error("error: wrong value for _defaults (%s)", value);
 		return -EINVAL;
 	}
-	return set_defaults(uc_mgr);
+	return set_defaults(uc_mgr, false);
 }
 
 static int handle_transition_verb(snd_use_case_mgr_t *uc_mgr,
