@@ -196,7 +196,9 @@
 #define snd_seq_real_time	sndrv_seq_real_time
 #define snd_seq_timestamp	sndrv_seq_timestamp
 #define snd_seq_event_type_t	sndrv_seq_event_type_t
+#define snd_seq_event_data	sndrv_seq_event_data
 #define snd_seq_event		sndrv_seq_event
+#define snd_seq_ump_event	sndrv_seq_ump_event
 #define snd_seq_connect		sndrv_seq_connect
 #define snd_seq_ev_note		sndrv_seq_ev_note
 #define snd_seq_ev_ctrl		sndrv_seq_ev_ctrl

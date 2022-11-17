@@ -1204,6 +1204,11 @@ size_t snd_seq_get_output_buffer_size(snd_seq_t *seq)
 	return seq->obufsize;
 }
 
+static inline size_t get_packet_size(snd_seq_t *seq)
+{
+	return seq->packet_size ? seq->packet_size : sizeof(snd_seq_event_t);
+}
+
 /**
  * \brief Return the size of input buffer
  * \param seq sequencer handle
@@ -1219,7 +1224,7 @@ size_t snd_seq_get_input_buffer_size(snd_seq_t *seq)
 	assert(seq);
 	if (!seq->ibuf)
 		return 0;
-	return seq->ibufsize * sizeof(snd_seq_event_t);
+	return seq->ibufsize * get_packet_size(seq);
 }
 
 /**
@@ -1261,13 +1266,17 @@ int snd_seq_set_output_buffer_size(snd_seq_t *seq, size_t size)
  */
 int snd_seq_set_input_buffer_size(snd_seq_t *seq, size_t size)
 {
+	size_t packet_size;
+
 	assert(seq && seq->ibuf);
-	assert(size >= sizeof(snd_seq_event_t));
+	assert(size >= packet_size);
 	snd_seq_drop_input(seq);
-	size = (size + sizeof(snd_seq_event_t) - 1) / sizeof(snd_seq_event_t);
+	packet_size = get_packet_size(seq);
+	size = (size + packet_size - 1) / packet_size;
 	if (size != seq->ibufsize) {
-		snd_seq_event_t *newbuf;
-		newbuf = calloc(sizeof(snd_seq_event_t), size);
+		char *newbuf;
+		/* use ump event size for avoiding reallocation at switching */
+		newbuf = calloc(sizeof(snd_seq_ump_event_t), size);
 		if (newbuf == NULL)
 			return -ENOMEM;
 		free(seq->ibuf);
@@ -1727,6 +1736,47 @@ int snd_seq_client_info_get_event_lost(const snd_seq_client_info_t *info)
 }
 
 /**
+ * \brief Get the MIDI protocol version number of a client_info container
+ * \param info client_info container
+ * \return MIDI protocol version
+ *
+ * \sa snd_seq_get_client_info()
+ */
+int snd_seq_client_info_get_midi_version(const snd_seq_client_info_t *info)
+{
+	assert(info);
+	return info->midi_version;
+}
+
+/**
+ * \brief Get the UMP group filter status
+ * \param info client_info container
+ * \param group 0-based group index
+ * \return 0 if the group is filtered / disabled, 1 if it's processed
+ *
+ * \sa snd_seq_get_client_info()
+ */
+int snd_seq_client_info_get_ump_group_enabled(const snd_seq_client_info_t *info,
+					      int group)
+{
+	assert(info);
+	return !(info->group_filter & (1U << group));
+}
+
+/**
+ * \brief Get the automatic conversion mode for UMP
+ * \param info client_info container
+ * \return 1 if the conversion is enabled, 0 if not
+ *
+ * \sa snd_seq_get_client_info()
+ */
+int snd_seq_client_info_get_ump_conversion(const snd_seq_client_info_t *info)
+{
+	assert(info);
+	return info->midi_version;
+}
+
+/**
  * \brief Set the client id of a client_info container
  * \param info client_info container
  * \param client client id
@@ -1767,6 +1817,54 @@ void snd_seq_client_info_set_broadcast_filter(snd_seq_client_info_t *info, int v
 		info->filter |= SNDRV_SEQ_FILTER_BROADCAST;
 	else
 		info->filter &= ~SNDRV_SEQ_FILTER_BROADCAST;
+}
+
+/**
+ * \brief Set the MIDI protocol version of a client_info container
+ * \param info client_info container
+ * \param midi_version MIDI protocol version to set
+ *
+ * \sa snd_seq_get_client_info(), snd_seq_client_info_get_midi_version()
+ */
+void snd_seq_client_info_set_midi_version(snd_seq_client_info_t *info, int midi_version)
+{
+	assert(info);
+	info->midi_version = midi_version;
+}
+
+/**
+ * \brief Set the UMP group filter status
+ * \param info client_info container
+ * \param group 0-based group index
+ * \param enable 0 to filter/disable the group, non-zero to enable
+ *
+ * \sa snd_seq_set_client_info(), snd_seq_client_info_get_ump_group_enabled()
+ */
+void snd_seq_client_info_set_ump_group_enabled(snd_seq_client_info_t *info,
+					       int group, int enable)
+{
+	assert(info);
+	if (enable)
+		info->group_filter &= ~(1U << group);
+	else
+		info->group_filter |= (1U << group);
+}
+
+/**
+ * \brief Set the automatic conversion mode for UMP
+ * \param info client_info container
+ * \param enable 0 or 1 for disabling/enabling the conversion
+ *
+ * \sa snd_seq_set_client_info(), snd_seq_client_info_get_ump_conversion()
+ */
+void snd_seq_client_info_set_ump_conversion(snd_seq_client_info_t *info,
+					    int enable)
+{
+	assert(info);
+	if (enable)
+		info->filter &= ~SNDRV_SEQ_FILTER_NO_CONVERT;
+	else
+		info->filter |= SNDRV_SEQ_FILTER_NO_CONVERT;
 }
 
 /**
@@ -1887,6 +1985,65 @@ int snd_seq_query_next_client(snd_seq_t *seq, snd_seq_client_info_t *info)
 	return seq->ops->query_next_client(seq, info);
 }
 
+/**
+ * \brief Get UMP Endpoint information
+ * \param seq sequencer handle
+ * \param client client number to query
+ * \param info the pointer to store snd_ump_endpoint_info_t data
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_seq_get_ump_endpoint_info(snd_seq_t *seq, int client, void *info)
+{
+	assert(seq && info);
+	return seq->ops->get_ump_info(seq, client,
+				      SNDRV_SEQ_CLIENT_UMP_INFO_ENDPOINT,
+				      info);
+}
+
+/**
+ * \brief Get UMP Block information
+ * \param seq sequencer handle
+ * \param client sequencer client number to query
+ * \param blk UMP block number (0-based) to query
+ * \param info the pointer to store snd_ump_block_info_t data
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_seq_get_ump_block_info(snd_seq_t *seq, int client, int blk, void *info)
+{
+	assert(seq && info);
+	return seq->ops->get_ump_info(seq, client,
+				      SNDRV_SEQ_CLIENT_UMP_INFO_BLOCK + blk,
+				      info);
+}
+
+/**
+ * \brief Set UMP Endpoint information to the current client
+ * \param seq sequencer handle
+ * \param info the pointer to send snd_ump_endpoint_info_t data
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_seq_set_ump_endpoint_info(snd_seq_t *seq, const void *info)
+{
+	assert(seq && info);
+	return seq->ops->set_ump_info(seq,
+				      SNDRV_SEQ_CLIENT_UMP_INFO_ENDPOINT,
+				      info);
+}
+
+/**
+ * \brief Set UMP Block information to the current client
+ * \param seq sequencer handle
+ * \param blk UMP block number (0-based) to send
+ * \param info the pointer to send snd_ump_block_info_t data
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_seq_set_ump_block_info(snd_seq_t *seq, int blk, const void *info)
+{
+	assert(seq && info);
+	return seq->ops->set_ump_info(seq,
+				      SNDRV_SEQ_CLIENT_UMP_INFO_BLOCK + blk,
+				      info);
+}
 
 /*----------------------------------------------------------------*/
 
@@ -2135,6 +2292,32 @@ int snd_seq_port_info_get_timestamp_queue(const snd_seq_port_info_t *info)
 }
 
 /**
+ * \brief Get the direction of the port
+ * \param info port_info container
+ * \return the direction of the port
+ *
+ * \sa snd_seq_get_port_info(), snd_seq_port_info_set_direction()
+ */
+int snd_seq_port_info_get_direction(const snd_seq_port_info_t *info)
+{
+	assert(info);
+	return info->direction;
+}
+
+/**
+ * \brief Get the UMP Group assigned to the port
+ * \param info port_info container
+ * \return 0 for no conversion, or the (1-based) UMP Group number assigned to the port
+ *
+ * \sa snd_seq_get_port_info(), snd_seq_port_info_set_ump_group()
+ */
+int snd_seq_port_info_get_ump_group(const snd_seq_port_info_t *info)
+{
+	assert(info);
+	return info->ump_group;
+}
+
+/**
  * \brief Set the client id of a port_info container
  * \param info port_info container
  * \param client client id
@@ -2312,6 +2495,31 @@ void snd_seq_port_info_set_timestamp_queue(snd_seq_port_info_t *info, int queue)
 	info->time_queue = queue;
 }
 
+/**
+ * \brief Set the direction of the port
+ * \param info port_info container
+ * \param direction the port direction
+ *
+ * \sa snd_seq_get_port_info(), snd_seq_port_info_get_direction()
+ */
+void snd_seq_port_info_set_direction(snd_seq_port_info_t *info, int direction)
+{
+	assert(info);
+	info->direction = direction;
+}
+
+/**
+ * \brief Set the UMP Group assigned to the port
+ * \param info port_info container
+ * \param ump_group 0 for no conversion, or the (1-based) UMP Group number
+ *
+ * \sa snd_seq_get_port_info(), snd_seq_port_info_get_ump_gruop()
+ */
+void snd_seq_port_info_set_ump_group(snd_seq_port_info_t *info, int ump_group)
+{
+	assert(info);
+	info->ump_group = ump_group;
+}
 
 /**
  * \brief create a sequencer port on the current client
@@ -3874,7 +4082,9 @@ ssize_t snd_seq_event_length(snd_seq_event_t *ev)
 {
 	ssize_t len = sizeof(snd_seq_event_t);
 	assert(ev);
-	if (snd_seq_ev_is_variable(ev))
+	if (snd_seq_ev_is_ump(ev))
+		len = sizeof(snd_seq_ump_event_t);
+	else if (snd_seq_ev_is_variable(ev))
 		len += ev->data.ext.len;
 	return len;
 }
@@ -3925,7 +4135,10 @@ int snd_seq_event_output(snd_seq_t *seq, snd_seq_event_t *ev)
  *
  * This function doesn't drain buffer unlike snd_seq_event_output().
  *
- * \sa snd_seq_event_output()
+ * \note
+ * For a UMP event, use snd_seq_ump_event_output_buffer() instead.
+ *
+ * \sa snd_seq_event_output(), snd_seq_ump_event_output_buffer()
  */
 int snd_seq_event_output_buffer(snd_seq_t *seq, snd_seq_event_t *ev)
 {
@@ -3938,12 +4151,15 @@ int snd_seq_event_output_buffer(snd_seq_t *seq, snd_seq_event_t *ev)
 		return -EINVAL;
 	if ((seq->obufsize - seq->obufused) < (size_t) len)
 		return -EAGAIN;
-	memcpy(seq->obuf + seq->obufused, ev, sizeof(snd_seq_event_t));
-	seq->obufused += sizeof(snd_seq_event_t);
-	if (snd_seq_ev_is_variable(ev)) {
-		memcpy(seq->obuf + seq->obufused, ev->data.ext.ptr, ev->data.ext.len);
-		seq->obufused += ev->data.ext.len;
+	if (snd_seq_ev_is_ump(ev)) {
+		memcpy(seq->obuf + seq->obufused, ev, sizeof(snd_seq_ump_event_t));
+	} else {
+		memcpy(seq->obuf + seq->obufused, ev, sizeof(snd_seq_event_t));
+		if (snd_seq_ev_is_variable(ev))
+			memcpy(seq->obuf + seq->obufused + sizeof(snd_seq_event_t),
+			       ev->data.ext.ptr, ev->data.ext.len);
 	}
+	seq->obufused += len;
 	return seq->obufused;
 }
 
@@ -3991,7 +4207,7 @@ int snd_seq_event_output_direct(snd_seq_t *seq, snd_seq_event_t *ev)
 	len = snd_seq_event_length(ev);
 	if (len < 0)
 		return len;
-	else if (len == sizeof(*ev)) {
+	if (snd_seq_ev_is_ump(ev) || !snd_seq_ev_is_variable(ev)) {
 		buf = ev;
 	} else {
 		if (alloc_tmpbuf(seq, (size_t)len) < 0)
@@ -4049,6 +4265,36 @@ int snd_seq_drain_output(snd_seq_t *seq)
 	return 0;
 }
 
+static int extract_output(snd_seq_t *seq, snd_seq_event_t **ev_res, int ump_allowed)
+{
+	size_t len, olen;
+	assert(seq);
+	if (ev_res)
+		*ev_res = NULL;
+ repeat:
+	if ((olen = seq->obufused) < sizeof(snd_seq_event_t))
+		return -ENOENT;
+	len = snd_seq_event_length((snd_seq_event_t *)seq->obuf);
+	if (olen < len)
+		return -ENOENT;
+	/* skip invalid UMP events */
+	if (snd_seq_ev_is_ump((snd_seq_event_t *)seq->obuf) && !ump_allowed) {
+		seq->obufused -= len;
+		memmove(seq->obuf, seq->obuf + len, seq->obufused);
+		goto repeat;
+	}
+	if (ev_res) {
+		/* extract the event */
+		if (alloc_tmpbuf(seq, len) < 0)
+			return -ENOMEM;
+		memcpy(seq->tmpbuf, seq->obuf, len);
+		*ev_res = (snd_seq_event_t *)seq->tmpbuf;
+	}
+	seq->obufused = olen - len;
+	memmove(seq->obuf, seq->obuf + len, seq->obufused);
+	return 0;
+}
+
 /**
  * \brief extract the first event in output buffer
  * \param seq sequencer handle
@@ -4062,25 +4308,7 @@ int snd_seq_drain_output(snd_seq_t *seq)
  */
 int snd_seq_extract_output(snd_seq_t *seq, snd_seq_event_t **ev_res)
 {
-	size_t len, olen;
-	snd_seq_event_t ev;
-	assert(seq);
-	if (ev_res)
-		*ev_res = NULL;
-	if ((olen = seq->obufused) < sizeof(snd_seq_event_t))
-		return -ENOENT;
-	memcpy(&ev, seq->obuf, sizeof(snd_seq_event_t));
-	len = snd_seq_event_length(&ev);
-	if (ev_res) {
-		/* extract the event */
-		if (alloc_tmpbuf(seq, len) < 0)
-			return -ENOMEM;
-		memcpy(seq->tmpbuf, seq->obuf, len);
-		*ev_res = seq->tmpbuf;
-	}
-	seq->obufused = olen - len;
-	memmove(seq->obuf, seq->obuf + len, seq->obufused);
-	return 0;
+	return extract_output(seq, ev_res, 0);
 }
 
 /*----------------------------------------------------------------*/
@@ -4094,32 +4322,35 @@ int snd_seq_extract_output(snd_seq_t *seq, snd_seq_event_t **ev_res)
  */
 static ssize_t snd_seq_event_read_buffer(snd_seq_t *seq)
 {
+	size_t packet_size = get_packet_size(seq);
 	ssize_t len;
-	len = (seq->ops->read)(seq, seq->ibuf, seq->ibufsize * sizeof(snd_seq_event_t));
+
+	len = (seq->ops->read)(seq, seq->ibuf, seq->ibufsize * packet_size);
 	if (len < 0)
 		return len;
-	seq->ibuflen = len / sizeof(snd_seq_event_t);
+	seq->ibuflen = len / packet_size;
 	seq->ibufptr = 0;
 	return seq->ibuflen;
 }
 
 static int snd_seq_event_retrieve_buffer(snd_seq_t *seq, snd_seq_event_t **retp)
 {
+	size_t packet_size = get_packet_size(seq);
 	size_t ncells;
 	snd_seq_event_t *ev;
 
-	*retp = ev = &seq->ibuf[seq->ibufptr];
+	*retp = ev = (snd_seq_event_t *)(seq->ibuf + seq->ibufptr * packet_size);
 	seq->ibufptr++;
 	seq->ibuflen--;
 	if (! snd_seq_ev_is_variable(ev))
 		return 1;
-	ncells = (ev->data.ext.len + sizeof(snd_seq_event_t) - 1) / sizeof(snd_seq_event_t);
+	ncells = (ev->data.ext.len + packet_size - 1) / packet_size;
 	if (seq->ibuflen < ncells) {
 		seq->ibuflen = 0; /* clear buffer */
 		*retp = NULL;
 		return -EINVAL;
 	}
-	ev->data.ext.ptr = ev + 1;
+	ev->data.ext.ptr = (char *)ev + packet_size;
 	seq->ibuflen -= ncells;
 	seq->ibufptr += ncells;
 	return 1;
@@ -4208,6 +4439,111 @@ int snd_seq_event_input_pending(snd_seq_t *seq, int fetch_sequencer)
 		return snd_seq_event_input_feed(seq, 0);
 	}
 	return seq->ibuflen;
+}
+
+/*----------------------------------------------------------------*/
+
+/*
+ * I/O for UMP packets
+ */
+
+/**
+ * \brief output a UMP event
+ * \param seq sequencer handle
+ * \param ev UMP event to be output
+ * \return the number of remaining events or a negative error code
+ *
+ * Just like snd_seq_event_output(), it puts an event onto the buffer,
+ * draining the buffer automatically when needed, but the event is
+ * snd_seq_ump_event_t type instead snd_seq_event_t.
+ *
+ * Calling this function is allowed only when the client is set to
+ * \c SND_SEQ_CLIENT_UMP_MIDI_1_0 or \c SND_SEQ_CLIENT_UMP_MIDI_2_0.
+ *
+ * The flushing and clearing of the buffer is done via the same functions,
+ * snd_seq_event_drain_output() and snd_seq_drop_output().
+ *
+ * \sa snd_seq_event_output()
+ */
+int snd_seq_ump_event_output(snd_seq_t *seq, snd_seq_ump_event_t *ev)
+{
+	if (!seq->midi_version)
+		return -EBADFD;
+	return snd_seq_event_output(seq, (snd_seq_event_t *)ev);
+}
+
+/**
+ * \brief output an event onto the lib buffer without draining buffer
+ * \param seq sequencer handle
+ * \param ev UMP event to be output
+ * \return the byte size of remaining events. \c -EAGAIN if the buffer becomes full.
+ *
+ * This is a UMP event version of snd_seq_event_output_buffer().
+ *
+ * \sa snd_seq_event_output_buffer(), snd_seq_ump_event_output()
+ */
+int snd_seq_ump_event_output_buffer(snd_seq_t *seq, snd_seq_ump_event_t *ev)
+{
+	if (!seq->midi_version)
+		return -EBADFD;
+	return snd_seq_event_output_buffer(seq, (snd_seq_event_t *)ev);
+}
+
+/**
+ * \brief extract the first UMP event in output buffer
+ * \param seq sequencer handle
+ * \param ev_res UMP event pointer to be extracted
+ * \return 0 on success otherwise a negative error code
+ *
+ * This is a UMP event version of snd_seq_extract_output().
+ *
+ * \sa snd_seq_extract_output(), snd_seq_ump_event_output()
+ */
+int snd_seq_ump_extract_output(snd_seq_t *seq, snd_seq_ump_event_t **ev_res)
+{
+	if (!seq->midi_version)
+		return -EBADFD;
+	return extract_output(seq, (snd_seq_event_t **)ev_res, 1);
+}
+
+/**
+ * \brief output a UMP event directly to the sequencer NOT through output buffer
+ * \param seq sequencer handle
+ * \param ev UMP event to be output
+ * \return the byte size sent to sequencer or a negative error code
+ *
+ * This is a UMP event version of snd_seq_event_output_direct().
+ *
+ * \sa snd_seq_event_output_direct()
+ */
+int snd_seq_ump_event_output_direct(snd_seq_t *seq, snd_seq_ump_event_t *ev)
+{
+	if (!seq->midi_version)
+		return -EBADFD;
+	return snd_seq_event_output_direct(seq, (snd_seq_event_t *)ev);
+}
+
+/**
+ * \brief retrieve a UMP event from sequencer
+ * \param seq sequencer handle
+ * \param ev UMP event pointer to be stored
+ *
+ * Like snd_seq_event_input(), this reads out the input event, but in
+ * snd_seq_ump_event_t type instead of snd_seq_event_t type.
+ *
+ * Calling this function is allowed only when the client is set to
+ * \c SND_SEQ_CLIENT_UMP_MIDI_1_0 or \c SND_SEQ_CLIENT_UMP_MIDI_2_0.
+ *
+ * For other input operations, the same function like
+ * snd_seq_event_input_pending() or snd_seq_drop_input() can be still used.
+ *
+ * \sa snd_seq_event_input()
+ */
+int snd_seq_ump_event_input(snd_seq_t *seq, snd_seq_ump_event_t **ev)
+{
+	if (!seq->midi_version)
+		return -EBADFD;
+	return snd_seq_event_input(seq, (snd_seq_event_t **)ev);
 }
 
 /*----------------------------------------------------------------*/

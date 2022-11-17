@@ -284,6 +284,28 @@ extern "C" {
 	 (ev)->data.queue.queue = (q),\
 	 (ev)->data.queue.param.time.tick = (ttime))
 
+/**
+ * \brief set the event UMP flag
+ * \param ev event record
+ */
+static inline void snd_seq_ev_set_ump(snd_seq_ump_event_t *ev)
+{
+	ev->flags |= SND_SEQ_EVENT_UMP;
+	ev->type = 0; /* unused for UMP */
+}
+
+/**
+ * \brief set the event UMP flag and fill UMP raw bytes
+ * \param ev event record
+ * \param data UMP packet data
+ * \param bytes UMP packet size in bytes
+ */
+static inline void snd_seq_ev_set_ump_data(snd_seq_ump_event_t *ev, void *data, size_t bytes)
+{
+	snd_seq_ev_set_ump(ev);
+	memcpy(ev->ump, data, bytes);
+}
+
 /* set and send a queue control event */
 int snd_seq_control_queue(snd_seq_t *seq, int q, int type, int value, snd_seq_event_t *ev);
 
@@ -343,6 +365,8 @@ int snd_seq_disconnect_to(snd_seq_t *seq, int my_port, int dest_client, int dest
  */
 int snd_seq_set_client_name(snd_seq_t *seq, const char *name);
 int snd_seq_set_client_event_filter(snd_seq_t *seq, int event_type);
+int snd_seq_set_client_midi_version(snd_seq_t *seq, int midi_version);
+int snd_seq_set_client_ump_conversion(snd_seq_t *seq, int enable);
 int snd_seq_set_client_pool_output(snd_seq_t *seq, size_t size);
 int snd_seq_set_client_pool_output_room(snd_seq_t *seq, size_t size);
 int snd_seq_set_client_pool_input(snd_seq_t *seq, size_t size);

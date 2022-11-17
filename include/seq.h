@@ -130,6 +130,13 @@ typedef enum snd_seq_client_type {
 	SND_SEQ_KERNEL_CLIENT   = 2	/**< kernel client */
 } snd_seq_client_type_t;
                         
+/** client MIDI version */
+enum {
+	SND_SEQ_CLIENT_LEGACY_MIDI = 0,		/**< Legacy client */
+	SND_SEQ_CLIENT_UMP_MIDI_1_0 = 1,	/**< UMP MIDI 1.0 */
+	SND_SEQ_CLIENT_UMP_MIDI_2_0 = 2		/**< UMP MIDI 2.0 */
+};
+
 size_t snd_seq_client_info_sizeof(void);
 /** allocate a #snd_seq_client_info_t container on stack */
 #define snd_seq_client_info_alloca(ptr) \
@@ -149,11 +156,19 @@ const unsigned char *snd_seq_client_info_get_event_filter(const snd_seq_client_i
 int snd_seq_client_info_get_num_ports(const snd_seq_client_info_t *info);
 int snd_seq_client_info_get_event_lost(const snd_seq_client_info_t *info);
 
+int snd_seq_client_info_get_midi_version(const snd_seq_client_info_t *info);
+int snd_seq_client_info_get_ump_group_enabled(const snd_seq_client_info_t *info,
+					      int group);
+int snd_seq_client_info_get_ump_conversion(const snd_seq_client_info_t *info);
 void snd_seq_client_info_set_client(snd_seq_client_info_t *info, int client);
 void snd_seq_client_info_set_name(snd_seq_client_info_t *info, const char *name);
 void snd_seq_client_info_set_broadcast_filter(snd_seq_client_info_t *info, int val);
 void snd_seq_client_info_set_error_bounce(snd_seq_client_info_t *info, int val);
 void snd_seq_client_info_set_event_filter(snd_seq_client_info_t *info, unsigned char *filter);
+void snd_seq_client_info_set_midi_version(snd_seq_client_info_t *info, int midi_version);
+void snd_seq_client_info_set_ump_group_enabled(snd_seq_client_info_t *info,
+					       int group, int enable);
+void snd_seq_client_info_set_ump_conversion(snd_seq_client_info_t *info, int enable);
 
 void snd_seq_client_info_event_filter_clear(snd_seq_client_info_t *info);
 void snd_seq_client_info_event_filter_add(snd_seq_client_info_t *info, int event_type);
@@ -164,6 +179,11 @@ int snd_seq_get_client_info(snd_seq_t *handle, snd_seq_client_info_t *info);
 int snd_seq_get_any_client_info(snd_seq_t *handle, int client, snd_seq_client_info_t *info);
 int snd_seq_set_client_info(snd_seq_t *handle, snd_seq_client_info_t *info);
 int snd_seq_query_next_client(snd_seq_t *handle, snd_seq_client_info_t *info);
+
+int snd_seq_get_ump_endpoint_info(snd_seq_t *seq, int client, void *info);
+int snd_seq_get_ump_block_info(snd_seq_t *seq, int client, int blk, void *info);
+int snd_seq_set_ump_endpoint_info(snd_seq_t *seq, const void *info);
+int snd_seq_set_ump_block_info(snd_seq_t *seq, int blk, const void *info);
 
 /*
  */
@@ -222,6 +242,14 @@ typedef struct _snd_seq_port_info snd_seq_port_info_t;
 #define SND_SEQ_PORT_CAP_SUBS_READ	(1<<5)	/**< allow read subscription */
 #define SND_SEQ_PORT_CAP_SUBS_WRITE	(1<<6)	/**< allow write subscription */
 #define SND_SEQ_PORT_CAP_NO_EXPORT	(1<<7)	/**< routing not allowed */
+#define SND_SEQ_PORT_CAP_INACTIVE	(1<<8)	/**< inactive port */
+#define SND_SEQ_PORT_CAP_UMP_ENDPOINT	(1<<9)	/**< UMP Endpoint port */
+
+/** port direction */
+#define SND_SEQ_PORT_DIR_UNKNOWN	0	/**< Unknown */
+#define SND_SEQ_PORT_DIR_INPUT		1	/**< Input only */
+#define SND_SEQ_PORT_DIR_OUTPUT		2	/**< Output only */
+#define SND_SEQ_PORT_DIR_BIDIRECTION	3	/**< Input/output bidirectional */
 
 /* port type */
 /** Messages sent from/to this port have device-specific semantics. */
@@ -238,6 +266,8 @@ typedef struct _snd_seq_port_info snd_seq_port_info_t;
 #define SND_SEQ_PORT_TYPE_MIDI_MT32	(1<<5)
 /** This port is compatible with the General MIDI 2 specification. */
 #define SND_SEQ_PORT_TYPE_MIDI_GM2	(1<<6)
+/** This port is a UMP port. */
+#define SND_SEQ_PORT_TYPE_MIDI_UMP	(1<<7)
 /** This port understands SND_SEQ_EVENT_SAMPLE_xxx messages
     (these are not MIDI messages). */
 #define SND_SEQ_PORT_TYPE_SYNTH		(1<<10)
@@ -283,6 +313,8 @@ int snd_seq_port_info_get_port_specified(const snd_seq_port_info_t *info);
 int snd_seq_port_info_get_timestamping(const snd_seq_port_info_t *info);
 int snd_seq_port_info_get_timestamp_real(const snd_seq_port_info_t *info);
 int snd_seq_port_info_get_timestamp_queue(const snd_seq_port_info_t *info);
+int snd_seq_port_info_get_direction(const snd_seq_port_info_t *info);
+int snd_seq_port_info_get_ump_group(const snd_seq_port_info_t *info);
 
 void snd_seq_port_info_set_client(snd_seq_port_info_t *info, int client);
 void snd_seq_port_info_set_port(snd_seq_port_info_t *info, int port);
@@ -297,6 +329,8 @@ void snd_seq_port_info_set_port_specified(snd_seq_port_info_t *info, int val);
 void snd_seq_port_info_set_timestamping(snd_seq_port_info_t *info, int enable);
 void snd_seq_port_info_set_timestamp_real(snd_seq_port_info_t *info, int realtime);
 void snd_seq_port_info_set_timestamp_queue(snd_seq_port_info_t *info, int queue);
+void snd_seq_port_info_set_direction(snd_seq_port_info_t *info, int direction);
+void snd_seq_port_info_set_ump_gruop(snd_seq_port_info_t *info, int ump_group);
 
 int snd_seq_create_port(snd_seq_t *handle, snd_seq_port_info_t *info);
 int snd_seq_delete_port(snd_seq_t *handle, int port);
@@ -572,6 +606,12 @@ void snd_seq_remove_events_set_tag(snd_seq_remove_events_t *info, int tag);
 
 int snd_seq_remove_events(snd_seq_t *handle, snd_seq_remove_events_t *info);
 
+int snd_seq_ump_event_output(snd_seq_t *seq, snd_seq_ump_event_t *ev);
+int snd_seq_ump_event_output_buffer(snd_seq_t *seq, snd_seq_ump_event_t *ev);
+int snd_seq_ump_extract_output(snd_seq_t *seq, snd_seq_ump_event_t **ev_res);
+int snd_seq_ump_event_output_direct(snd_seq_t *seq, snd_seq_ump_event_t *ev);
+int snd_seq_ump_event_input(snd_seq_t *seq, snd_seq_ump_event_t **ev);
+
 /** \} */
 
 /**
@@ -728,6 +768,10 @@ extern const unsigned int snd_seq_event_types[];
 /** direct dispatched events */
 #define snd_seq_ev_is_direct(ev) \
 	((ev)->queue == SND_SEQ_QUEUE_DIRECT)
+
+/** UMP events */
+#define snd_seq_ev_is_ump(ev) \
+	((ev)->flags & SND_SEQ_EVENT_UMP)
 
 /** \} */
 
