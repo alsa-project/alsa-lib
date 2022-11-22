@@ -490,7 +490,13 @@ static char *rval_env(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED, const char *i
 {
 	char *e;
 
-	e = getenv(id);
+	if (*id == '-') {
+		e = getenv(id + 1);
+		if (e == NULL)
+			e = "";
+	} else {
+		e = getenv(id);
+	}
 	if (e)
 		return strdup(e);
 	return NULL;
