@@ -678,7 +678,7 @@ int main(int argc, char *argv[])
 			loop_limit, latency_min * 2, latency_max * 2);
 	if (sys_latency > 0)
 		printf(", I/O updates %ims", sys_latency);
-	else if (!block)
+	else if (!block && !use_poll)
 		printf(", I/O usleep %ius", usleep_val);
 	printf("\n");
 
@@ -764,7 +764,7 @@ int main(int argc, char *argv[])
 			} else if (use_poll) {
 				/* use poll to wait for next event */
 				snd_pcm_wait(chandle, 1000);
-			} else if (usleep_val > 0) {
+			} else if (!block && usleep_val > 0) {
 				usleep(usleep_val);
 			}
 			if (pos_dump || realtime_check) {
