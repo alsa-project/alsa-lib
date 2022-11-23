@@ -52,6 +52,7 @@ int latency_max = 2048;		/* in frames / 2 */
 int loop_sec = 30;		/* seconds */
 int block = 0;			/* block mode */
 int use_poll = 0;
+int usleep_val = 0;
 int resample = 1;
 int sys_latency = 0;		/* data I/O: use system timings instead driver wakeups */
 int pos_dump = 0;		/* dump positions */
@@ -509,6 +510,8 @@ void help(void)
 "-s,--seconds   duration of test in seconds\n"
 "-b,--block     block mode\n"
 "-p,--poll      use poll (wait for event - reduces CPU usage)\n"
+"-y,--usleep    sleep for the specified amount of microseconds between\n"
+"               stream updates (default 0 - off)\n"
 "-e,--effect    apply an effect (bandpass filter sweep)\n"
 "-x,--posdump   dump buffer positions\n"
 "-X,--realtime  do a realtime check (buffering)\n"
@@ -548,6 +551,7 @@ int main(int argc, char *argv[])
 		{"seconds", 1, NULL, 's'},
 		{"block", 0, NULL, 'b'},
 		{"poll", 0, NULL, 'p'},
+		{"usleep", 1, NULL, 'y'},
 		{"effect", 0, NULL, 'e'},
 		{"posdump", 0, NULL, 'x'},
 		{"realtime", 0, NULL, 'X'},
@@ -565,7 +569,7 @@ int main(int argc, char *argv[])
 	morehelp = 0;
 	while (1) {
 		int c;
-		if ((c = getopt_long(argc, argv, "hP:C:m:M:U:F:f:c:r:B:E:s:bpenxX", long_option, NULL)) < 0)
+		if ((c = getopt_long(argc, argv, "hP:C:m:M:U:F:f:c:r:B:E:s:y:bpenxX", long_option, NULL)) < 0)
 			break;
 		switch (c) {
 		case 'h':
@@ -624,6 +628,9 @@ int main(int argc, char *argv[])
 		case 'p':
 			use_poll = 1;
 			break;
+		case 'y':
+			usleep_val = atoi(optarg);
+			break;
 		case 'e':
 			effect = 1;
 			break;
@@ -671,6 +678,8 @@ int main(int argc, char *argv[])
 			loop_limit, latency_min * 2, latency_max * 2);
 	if (sys_latency > 0)
 		printf(", I/O updates %ims", sys_latency);
+	else if (!block)
+		printf(", I/O usleep %ius", usleep_val);
 	printf("\n");
 
 	if ((err = snd_pcm_open(&phandle, pdevice, SND_PCM_STREAM_PLAYBACK, block ? 0 : SND_PCM_NONBLOCK)) < 0) {
@@ -755,6 +764,8 @@ int main(int argc, char *argv[])
 			} else if (use_poll) {
 				/* use poll to wait for next event */
 				snd_pcm_wait(chandle, 1000);
+			} else if (usleep_val > 0) {
+				usleep(usleep_val);
 			}
 			if (pos_dump || realtime_check) {
 				if (sys_latency <= 0)
