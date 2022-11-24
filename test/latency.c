@@ -40,6 +40,7 @@
 
 typedef struct timespec timestamp_t;
 
+char *sched_policy = "rr";
 char *pdevice = "hw:0,0";
 char *cdevice = "hw:0,0";
 snd_pcm_format_t format = SND_PCM_FORMAT_S16_LE;
@@ -354,18 +355,24 @@ void gettimestamp(snd_pcm_t *handle, snd_timestamp_t *timestamp)
 void setscheduler(void)
 {
 	struct sched_param sched_param;
+	int policy = SCHED_RR;
+	const char *spolicy = "Round Robin";
 
+	if (strcasecmp(sched_policy, "fifo") == 0) {
+		policy = SCHED_FIFO;
+		spolicy = "FIFO";
+	}
 	if (sched_getparam(0, &sched_param) < 0) {
 		printf("Scheduler getparam failed...\n");
 		return;
 	}
-	sched_param.sched_priority = sched_get_priority_max(SCHED_RR);
-	if (!sched_setscheduler(0, SCHED_RR, &sched_param)) {
-		printf("Scheduler set to Round Robin with priority %i...\n", sched_param.sched_priority);
+	sched_param.sched_priority = sched_get_priority_max(policy);
+	if (!sched_setscheduler(0, policy, &sched_param)) {
+		printf("Scheduler set to %s with priority %i...\n", spolicy, sched_param.sched_priority);
 		fflush(stdout);
 		return;
 	}
-	printf("!!!Scheduler set to Round Robin with priority %i FAILED!!!\n", sched_param.sched_priority);
+	printf("!!!Scheduler set to %s with priority %i FAILED!!!\n", spolicy, sched_param.sched_priority);
 }
 
 long timediff(snd_timestamp_t t1, snd_timestamp_t t2)
@@ -515,6 +522,7 @@ void help(void)
 "-e,--effect    apply an effect (bandpass filter sweep)\n"
 "-x,--posdump   dump buffer positions\n"
 "-X,--realtime  do a realtime check (buffering)\n"
+"-O,--policy    set scheduler policy (RR or FIFO)\n"
 );
         printf("Recognized sample formats are:");
         for (k = 0; k < SND_PCM_FORMAT_LAST; ++k) {
@@ -555,6 +563,7 @@ int main(int argc, char *argv[])
 		{"effect", 0, NULL, 'e'},
 		{"posdump", 0, NULL, 'x'},
 		{"realtime", 0, NULL, 'X'},
+		{"policy", 1, NULL, 'O'},
 		{NULL, 0, NULL, 0},
 	};
 	snd_pcm_t *phandle, *chandle;
@@ -569,7 +578,7 @@ int main(int argc, char *argv[])
 	morehelp = 0;
 	while (1) {
 		int c;
-		if ((c = getopt_long(argc, argv, "hP:C:m:M:U:F:f:c:r:B:E:s:y:bpenxX", long_option, NULL)) < 0)
+		if ((c = getopt_long(argc, argv, "hP:C:m:M:U:F:f:c:r:B:E:s:y:O:bpenxX", long_option, NULL)) < 0)
 			break;
 		switch (c) {
 		case 'h':
@@ -642,6 +651,9 @@ int main(int argc, char *argv[])
 			break;
 		case 'X':
 			realtime_check = 1;
+			break;
+		case 'O':
+			sched_policy = optarg;
 			break;
 		}
 	}
