@@ -361,6 +361,9 @@ void setscheduler(void)
 	if (strcasecmp(sched_policy, "fifo") == 0) {
 		policy = SCHED_FIFO;
 		spolicy = "FIFO";
+	} else if (strcasecmp(sched_policy, "other") == 0) {
+		policy = SCHED_OTHER;
+		spolicy = "OTHER";
 	}
 	if (sched_getparam(0, &sched_param) < 0) {
 		printf("Scheduler getparam failed...\n");
@@ -522,7 +525,7 @@ void help(void)
 "-e,--effect    apply an effect (bandpass filter sweep)\n"
 "-x,--posdump   dump buffer positions\n"
 "-X,--realtime  do a realtime check (buffering)\n"
-"-O,--policy    set scheduler policy (RR or FIFO)\n"
+"-O,--policy    set scheduler policy (RR, FIFO or OTHER)\n"
 );
         printf("Recognized sample formats are:");
         for (k = 0; k < SND_PCM_FORMAT_LAST; ++k) {
