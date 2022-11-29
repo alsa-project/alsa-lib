@@ -34,7 +34,7 @@ endif
 endif
 
 if BUILD_RAWMIDI
-alsainclude_HEADERS += rawmidi.h ump.h
+alsainclude_HEADERS += rawmidi.h ump.h ump_msg.h
 endif
 
 if BUILD_HWDEP

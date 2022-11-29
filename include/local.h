@@ -69,9 +69,11 @@
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 #define SND_LITTLE_ENDIAN
 #define SNDRV_LITTLE_ENDIAN
+#define SNDRV_LITTLE_ENDIAN_BITFIELD
 #elif __BYTE_ORDER == __BIG_ENDIAN
 #define SND_BIG_ENDIAN
 #define SNDRV_BIG_ENDIAN
+#define SNDRV_BIG_ENDIAN_BITFIELD
 #else
 #error "Unsupported endian..."
 #endif
