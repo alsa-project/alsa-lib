@@ -500,6 +500,14 @@ enum {
 	SND_UMP_MSG_RESET		= 0xff,
 };
 
+/** MIDI 2.0 SysEx / Data Status; same values for both 7-bit and 8-bit SysEx */
+enum {
+	SND_UMP_SYSEX_STATUS_SINGLE	= 0,
+	SND_UMP_SYSEX_STATUS_START	= 1,
+	SND_UMP_SYSEX_STATUS_CONTINUE	= 2,
+	SND_UMP_SYSEX_STATUS_END	= 3,
+};
+
 /**
  * \brief get UMP status (4bit) from 32bit UMP message header
  */
@@ -563,6 +571,25 @@ static inline uint8_t snd_ump_msg_group(const uint32_t *ump)
 {
 	return snd_ump_msg_hdr_group(*ump);
 }
+
+/**
+ * \brief get UMP sysex message status
+ */
+static inline uint8_t snd_ump_sysex_msg_status(const uint32_t *ump)
+{
+	return (*ump >> 20) & 0xf;
+}
+
+/**
+ * \brief get UMP sysex message length
+ */
+static inline uint8_t snd_ump_sysex_msg_length(const uint32_t *ump)
+{
+	return (*ump >> 16) & 0xf;
+}
+
+int snd_ump_msg_sysex_expand(const uint32_t *ump, uint8_t *buf, size_t maxlen,
+			     size_t *filled);
 
 #ifdef __cplusplus
 }

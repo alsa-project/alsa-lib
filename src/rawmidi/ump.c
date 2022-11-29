@@ -614,3 +614,89 @@ int snd_ump_block_info(snd_ump_t *ump, snd_ump_block_info_t *info)
 {
 	return _snd_rawmidi_ump_block_info(ump->rawmidi, info);
 }
+
+/*
+ * UMP sysex helpers
+ */
+static int expand_sysex_data(const uint32_t *data, uint8_t *buf,
+			     size_t maxlen, unsigned char bytes, int offset)
+{
+	int size = 0;
+
+	for (; bytes; bytes--, size++) {
+		if (!maxlen)
+			break;
+		buf[size] = (*data >> offset) & 0x7f;
+		if (!offset) {
+			offset = 24;
+			data++;
+		} else {
+			offset -= 8;
+		}
+	}
+
+	return size;
+}
+
+static int expand_sysex7(const uint32_t *ump, uint8_t *buf, size_t maxlen,
+			 size_t *filled)
+{
+	unsigned char status;
+	unsigned char bytes;
+
+	*filled = 0;
+	if (!maxlen)
+		return 0;
+
+	status = snd_ump_sysex_msg_status(ump);
+	bytes = snd_ump_sysex_msg_length(ump);
+	if (bytes > 6)
+		return 0; // invalid - skip
+
+	*filled = expand_sysex_data(ump, buf, maxlen, bytes, 8);
+	return (status == SND_UMP_SYSEX_STATUS_SINGLE ||
+		status == SND_UMP_SYSEX_STATUS_END);
+}
+
+static int expand_sysex8(const uint32_t *ump, uint8_t *buf, size_t maxlen,
+			  size_t *filled)
+{
+	unsigned char status;
+	unsigned char bytes;
+
+	*filled = 0;
+	if (!maxlen)
+		return 0;
+
+	status = snd_ump_sysex_msg_status(ump);
+	if (status > SND_UMP_SYSEX_STATUS_END)
+		return 0; // unsupported, skip
+	bytes = snd_ump_sysex_msg_length(ump);
+	if (!bytes || bytes > 14)
+		return 0; // skip
+
+	*filled = expand_sysex_data(ump, buf, maxlen, bytes - 1, 0);
+	return (status == SND_UMP_SYSEX_STATUS_SINGLE ||
+		status == SND_UMP_SYSEX_STATUS_END);
+}
+
+/**
+ * \brief fill sysex byte from a UMP packet
+ * \param ump UMP packet pointer
+ * \param buf buffer point to fill sysex bytes
+ * \param maxlen max buffer size in bytes
+ * \param filled the size of filled sysex bytes on the buffer
+ * \return 1 if the sysex finished, otherwise 0
+ */
+int snd_ump_msg_sysex_expand(const uint32_t *ump, uint8_t *buf, size_t maxlen,
+			     size_t *filled)
+{
+	switch (snd_ump_msg_type(ump)) {
+	case SND_UMP_MSG_TYPE_DATA:
+		return expand_sysex7(ump, buf, maxlen, filled);
+	case SND_UMP_MSG_TYPE_EXTENDED_DATA:
+		return expand_sysex8(ump, buf, maxlen, filled);
+	default:
+		return -EINVAL;
+	}
+}
