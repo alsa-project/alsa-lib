@@ -35,6 +35,8 @@ typedef struct {
 	ssize_t (*write)(snd_rawmidi_t *rawmidi, const void *buffer, size_t size);
 	ssize_t (*read)(snd_rawmidi_t *rawmidi, void *buffer, size_t size);
 	ssize_t (*tread)(snd_rawmidi_t *rawmidi, struct timespec *tstamp, void *buffer, size_t size);
+	int (*ump_endpoint_info)(snd_rawmidi_t *rmidi, void *buf);
+	int (*ump_block_info)(snd_rawmidi_t *rmidi, void *buf);
 } snd_rawmidi_ops_t;
 
 struct _snd_rawmidi {
@@ -62,3 +64,6 @@ int snd_rawmidi_virtual_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 			     int merge, int mode);
 
 #define snd_rawmidi_conf_generic_id(id)	_snd_conf_generic_id(id)
+
+int _snd_rawmidi_ump_endpoint_info(snd_rawmidi_t *rmidi, void *info);
+int _snd_rawmidi_ump_block_info(snd_rawmidi_t *rmidi, void *info);

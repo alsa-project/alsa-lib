@@ -272,6 +272,28 @@ static ssize_t snd_rawmidi_hw_tread(snd_rawmidi_t *rmidi, struct timespec *tstam
 	return ret + result;
 }
 
+static int snd_rawmidi_hw_ump_endpoint_info(snd_rawmidi_t *rmidi, void *buf)
+{
+	snd_rawmidi_hw_t *hw = rmidi->private_data;
+
+	if (rmidi->version < SNDRV_PROTOCOL_VERSION(2, 0, 3))
+		return -ENXIO;
+	if (ioctl(hw->fd, SNDRV_UMP_IOCTL_ENDPOINT_INFO, buf) < 0)
+		return -errno;
+	return 0;
+}
+
+static int snd_rawmidi_hw_ump_block_info(snd_rawmidi_t *rmidi, void *buf)
+{
+	snd_rawmidi_hw_t *hw = rmidi->private_data;
+
+	if (rmidi->version < SNDRV_PROTOCOL_VERSION(2, 0, 3))
+		return -ENXIO;
+	if (ioctl(hw->fd, SNDRV_UMP_IOCTL_BLOCK_INFO, buf) < 0)
+		return -errno;
+	return 0;
+}
+
 static const snd_rawmidi_ops_t snd_rawmidi_hw_ops = {
 	.close = snd_rawmidi_hw_close,
 	.nonblock = snd_rawmidi_hw_nonblock,
@@ -282,7 +304,9 @@ static const snd_rawmidi_ops_t snd_rawmidi_hw_ops = {
 	.drain = snd_rawmidi_hw_drain,
 	.write = snd_rawmidi_hw_write,
 	.read = snd_rawmidi_hw_read,
-	.tread = snd_rawmidi_hw_tread
+	.tread = snd_rawmidi_hw_tread,
+	.ump_endpoint_info = snd_rawmidi_hw_ump_endpoint_info,
+	.ump_block_info = snd_rawmidi_hw_ump_block_info,
 };
 
 

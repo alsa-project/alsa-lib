@@ -1120,3 +1120,22 @@ ssize_t snd_rawmidi_tread(snd_rawmidi_t *rawmidi, struct timespec *tstamp, void 
 		return -ENOTSUP;
 	return (rawmidi->ops->tread)(rawmidi, tstamp, buffer, size);
 }
+
+#ifndef DOXYGEN
+/*
+ * internal API functions for obtaining UMP info from rawmidi instance
+ */
+int _snd_rawmidi_ump_endpoint_info(snd_rawmidi_t *rmidi, void *info)
+{
+	if (!rmidi->ops->ump_endpoint_info)
+		return -ENXIO;
+	return rmidi->ops->ump_endpoint_info(rmidi, info);
+}
+
+int _snd_rawmidi_ump_block_info(snd_rawmidi_t *rmidi, void *info)
+{
+	if (!rmidi->ops->ump_block_info)
+		return -ENXIO;
+	return rmidi->ops->ump_block_info(rmidi, info);
+}
+#endif /* DOXYGEN */
