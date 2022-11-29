@@ -148,3 +148,9 @@ ALSA_1.2.9 {
     @SYMBOL_PREFIX@snd_pcm_hw_params_set_drain_silence;
     @SYMBOL_PREFIX@snd_pcm_hw_params_get_drain_silence;
 } ALSA_1.2.6;
+
+ALSA_1.2.10 {
+  global:
+
+    @SYMBOL_PREFIX@snd_ump_*;
+} ALSA_1.2.9;

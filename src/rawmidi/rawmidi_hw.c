@@ -35,6 +35,7 @@ const char *_snd_module_rawmidi_hw = "";
 #endif
 
 #define SNDRV_FILE_RAWMIDI		ALSA_DEVICE_DIRECTORY "midiC%iD%i"
+#define SNDRV_FILE_UMP_RAWMIDI		ALSA_DEVICE_DIRECTORY "umpC%iD%i"
 #define SNDRV_RAWMIDI_VERSION_MAX	SNDRV_PROTOCOL_VERSION(2, 0, 0)
 
 #ifndef DOC_HIDDEN
@@ -321,7 +322,11 @@ int snd_rawmidi_hw_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 	snd_rawmidi_t *rmidi;
 	snd_rawmidi_hw_t *hw = NULL;
 	snd_rawmidi_info_t info;
+	int is_ump;
 	int fmode;
+
+	is_ump = !!(mode & _SND_RAWMIDI_OPEN_UMP);
+	mode &= ~_SND_RAWMIDI_OPEN_UMP;
 
 	if (inputp)
 		*inputp = NULL;
@@ -332,7 +337,10 @@ int snd_rawmidi_hw_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 	
 	if ((ret = snd_ctl_hw_open(&ctl, NULL, card, 0)) < 0)
 		return ret;
-	sprintf(filename, SNDRV_FILE_RAWMIDI, card, device);
+	if (is_ump)
+		sprintf(filename, SNDRV_FILE_UMP_RAWMIDI, card, device);
+	else
+		sprintf(filename, SNDRV_FILE_RAWMIDI, card, device);
 
       __again:
       	if (attempt++ > 3) {

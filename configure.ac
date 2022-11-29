@@ -795,6 +795,7 @@ cat >> include/asoundlib.h <<EOF
 EOF
 test "$build_pcm" = "yes" && echo "#include <alsa/pcm.h>" >> include/asoundlib.h
 test "$build_rawmidi" = "yes" && echo "#include <alsa/rawmidi.h>" >> include/asoundlib.h
+test "$build_rawmidi" = "yes" && echo "#include <alsa/ump.h>" >> include/asoundlib.h
 test "$build_pcm" = "yes" && echo "#include <alsa/timer.h>" >> include/asoundlib.h
 test "$build_hwdep" = "yes" && echo "#include <alsa/hwdep.h>" >> include/asoundlib.h
 echo "#include <alsa/control.h>" >> include/asoundlib.h

@@ -93,6 +93,9 @@ typedef enum _snd_rawmidi_read_mode {
 	SND_RAWMIDI_READ_TSTAMP = 1,
 } snd_rawmidi_read_mode_t;
 
+/** rawmidi info bit flags */
+#define SND_RAWMIDI_INFO_UMP			0x00000008	/* rawmidi is UMP */
+
 int snd_rawmidi_open(snd_rawmidi_t **in_rmidi, snd_rawmidi_t **out_rmidi,
 		     const char *name, int mode);
 int snd_rawmidi_open_lconf(snd_rawmidi_t **in_rmidi, snd_rawmidi_t **out_rmidi,

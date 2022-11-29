@@ -67,3 +67,5 @@ int snd_rawmidi_virtual_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 
 int _snd_rawmidi_ump_endpoint_info(snd_rawmidi_t *rmidi, void *info);
 int _snd_rawmidi_ump_block_info(snd_rawmidi_t *rmidi, void *info);
+
+#define _SND_RAWMIDI_OPEN_UMP	(1U << 16)	/* internal open mode bit */
