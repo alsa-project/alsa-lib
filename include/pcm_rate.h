@@ -31,6 +31,8 @@
 #ifndef __ALSA_PCM_RATE_H
 #define __ALSA_PCM_RATE_H
 
+#include "pcm.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif

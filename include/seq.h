@@ -29,6 +29,12 @@
 #ifndef __ALSA_SEQ_H
 #define __ALSA_SEQ_H
 
+#include <stddef.h>
+#include <unistd.h>
+#include "conf.h"
+#include "seq_event.h"
+#include "timer.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif

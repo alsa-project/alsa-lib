@@ -31,6 +31,8 @@
 #ifndef __ALSA_PCM_IOPLUG_H
 #define __ALSA_PCM_IOPLUG_H
 
+#include "pcm.h"
+
 /**
  * \defgroup PCM_IOPlug External I/O plugin SDK
  * \ingroup Plugin_SDK

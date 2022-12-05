@@ -28,6 +28,9 @@
 #ifndef __ALSA_RAWMIDI_H
 #define __ALSA_RAWMIDI_H
 
+#include "conf.h"
+#include "global.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif

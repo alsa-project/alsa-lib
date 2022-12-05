@@ -21,6 +21,7 @@
 #ifndef __ALSA_TOPOLOGY_H
 #define __ALSA_TOPOLOGY_H
 
+#include <stddef.h>
 #include <stdint.h>
 
 #ifdef __cplusplus

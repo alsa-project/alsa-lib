@@ -28,6 +28,9 @@
 #ifndef __ALSA_SEQ_MIDI_EVENT_H
 #define __ALSA_SEQ_MIDI_EVENT_H
 
+#include <stddef.h>
+#include "seq_event.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif

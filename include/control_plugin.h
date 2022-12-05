@@ -31,6 +31,8 @@
 #ifndef __ALSA_CONTROL_PLUGIN_H
 #define __ALSA_CONTROL_PLUGIN_H
 
+#include "control.h"
+
 /**
  * \defgroup Control_Plugins Primitive Control Plugins
  * \ingroup Control

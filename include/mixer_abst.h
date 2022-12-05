@@ -26,6 +26,8 @@
 #ifndef __ALSA_MIXER_ABST_H
 #define __ALSA_MIXER_ABST_H
 
+#include "mixer.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
