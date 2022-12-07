@@ -572,16 +572,17 @@ static int execute_sysw(const char *sysw)
 	wlen = write(fd, value, len);
 	myerrno = errno;
 	close(fd);
-	free(s);
 
 	if (ignore_error)
-		return 0;
+		goto __end;
 
 	if (wlen != (ssize_t)len) {
 		uc_error("unable to write '%s' to '%s': %s", value, path, strerror(myerrno));
 		return -EINVAL;
 	}
 
+__end:
+	free(s);
 	return 0;
 }
 
