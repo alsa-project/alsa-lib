@@ -814,11 +814,12 @@ static int get_char_skip_comments(input_t *input)
 				closedir(dirp);
 
 				err = add_include_path(input->current, str);
-				free(str);
 				if (err < 0) {
 					SNDERR("Cannot add search dir %s", str);
+					free(str);
 					return err;
 				}
+				free(str);
 				continue;
 			}
 
