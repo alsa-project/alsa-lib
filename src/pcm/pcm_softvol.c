@@ -1190,7 +1190,7 @@ int _snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 			continue;
 		}
 		if (strcmp(id, "min_dB") == 0) {
-			err = snd_config_get_real(n, &min_dB);
+			err = snd_config_get_ireal(n, &min_dB);
 			if (err < 0) {
 				SNDERR("Invalid min_dB value");
 				return err;
@@ -1198,7 +1198,7 @@ int _snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 			continue;
 		}
 		if (strcmp(id, "max_dB") == 0) {
-			err = snd_config_get_real(n, &max_dB);
+			err = snd_config_get_ireal(n, &max_dB);
 			if (err < 0) {
 				SNDERR("Invalid max_dB value");
 				return err;

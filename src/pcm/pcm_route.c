@@ -1182,15 +1182,10 @@ static int _snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_ent
 				return -EINVAL;
 			}
 
-			err = snd_config_get_real(jnode, &value);
+			err = snd_config_get_ireal(jnode, &value);
 			if (err < 0) {
-				long v;
-				err = snd_config_get_integer(jnode, &v);
-				if (err < 0) {
-					SNDERR("Invalid type for %s", id);
-					return -EINVAL;
-				}
-				value = v;
+				SNDERR("Invalid type for %s", id);
+				return -EINVAL;
 			}
 
 			for (k = 0; (int) k < ss; k++) {
