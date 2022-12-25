@@ -1268,6 +1268,20 @@ int snd_ctl_rawmidi_prefer_subdevice(snd_ctl_t *ctl, int subdev)
 }
 
 /**
+ * \brief Get next UMP device number
+ * \param ctl CTL handle
+ * \param device current device on entry and next device on return
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_ctl_ump_next_device(snd_ctl_t *ctl, int *device)
+{
+	assert(ctl && device);
+	if (ctl->ops->ump_next_device)
+		return ctl->ops->ump_next_device(ctl, device);
+	return -ENXIO;
+}
+
+/**
  * \brief Set Power State to given SND_CTL_POWER_* value and do the power management
  * \param ctl CTL handle
  * \param state Desired Power State

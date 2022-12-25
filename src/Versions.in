@@ -153,4 +153,5 @@ ALSA_1.2.10 {
   global:
 
     @SYMBOL_PREFIX@snd_ump_*;
+    @SYMBOL_PREFIX@snd_ctl_ump_next_device;
 } ALSA_1.2.9;

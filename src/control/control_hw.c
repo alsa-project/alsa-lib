@@ -325,6 +325,14 @@ static int snd_ctl_hw_rawmidi_prefer_subdevice(snd_ctl_t *handle, int subdev)
 	return 0;
 }
 
+static int snd_ctl_hw_ump_next_device(snd_ctl_t *handle, int *device)
+{
+	snd_ctl_hw_t *hw = handle->private_data;
+	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_UMP_NEXT_DEVICE, device) < 0)
+		return -errno;
+	return 0;
+}
+
 static int snd_ctl_hw_set_power_state(snd_ctl_t *handle, unsigned int state)
 {
 	snd_ctl_hw_t *hw = handle->private_data;
@@ -379,6 +387,7 @@ static const snd_ctl_ops_t snd_ctl_hw_ops = {
 	.rawmidi_next_device = snd_ctl_hw_rawmidi_next_device,
 	.rawmidi_info = snd_ctl_hw_rawmidi_info,
 	.rawmidi_prefer_subdevice = snd_ctl_hw_rawmidi_prefer_subdevice,
+	.ump_next_device = snd_ctl_hw_ump_next_device,
 	.set_power_state = snd_ctl_hw_set_power_state,
 	.get_power_state = snd_ctl_hw_get_power_state,
 	.read = snd_ctl_hw_read,
