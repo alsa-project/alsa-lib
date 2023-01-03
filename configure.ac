@@ -255,9 +255,8 @@ AC_ARG_WITH(libdl,
   [ have_libdl="$withval" ], [ have_libdl="yes" ])
 HAVE_LIBDL=
 if test "$have_libdl" = "yes"; then
-  AC_CHECK_LIB([dl], [dlsym], [HAVE_LIBDL="yes"])
+  AC_SEARCH_LIBS([dlsym], [dl], [HAVE_LIBDL="yes"])
   if test "$HAVE_LIBDL" = "yes" ; then
-    ALSA_DEPLIBS="$ALSA_DEPLIBS -ldl"
     AC_DEFINE([HAVE_LIBDL], 1, [Have libdl])
   fi
 else
