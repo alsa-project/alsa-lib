@@ -578,6 +578,7 @@ static int execute_sysw(const char *sysw)
 
 	if (wlen != (ssize_t)len) {
 		uc_error("unable to write '%s' to '%s': %s", value, path, strerror(myerrno));
+		free(s);
 		return -EINVAL;
 	}
 
