@@ -2415,12 +2415,73 @@ int snd_use_case_get(snd_use_case_mgr_t *uc_mgr,
 	return err;
 }
 
+/**
+ * \brief check device status and existance
+ * \param uc_mgr Use case manager
+ * \param str device identifier
+ * \param value Value pointer
+ * \return Zero if success, otherwise a negative error code
+ */
+static long check_device(snd_use_case_mgr_t *uc_mgr,
+		      const char *str,
+		      long *value)
+{
+	struct use_case_device *dev;
+	int err;
+
+	if (!str) {
+		return -EINVAL;
+	}
+	err = device_status(uc_mgr, str);
+	if (err > 0) {
+		*value = err;
+		err = 0;
+	} else if (err < 0) {
+		return err;
+	}
+	dev = find_device(uc_mgr, uc_mgr->active_verb, str, 0);
+	if (!dev) {
+		return -ENOENT;
+	}
+	return 0;
+}
+
+/**
+ * \brief check modifier status and existance
+ * \param uc_mgr Use case manager
+ * \param str modifier identifier
+ * \param value Value pointer
+ * \return Zero if success, otherwise a negative error code
+ */
+static long check_modifier(snd_use_case_mgr_t *uc_mgr,
+		      const char *str,
+		      long *value)
+{
+	struct use_case_modifier *mod;
+	long err;
+
+	if (!str) {
+		return -EINVAL;
+	}
+	err = modifier_status(uc_mgr, str);
+	if (err > 0) {
+		*value = err;
+		return 0;
+	} else if (err < 0) {
+		return err;
+	}
+	mod = find_modifier(uc_mgr, uc_mgr->active_verb, str, 0);
+	if (!mod) {
+		return -ENOENT;
+	}
+	return 0;
+}
 
 /**
  * \brief Get current - integer
  * \param uc_mgr Use case manager
- * \param identifier 
- * \return Value if success, otherwise a negative error code 
+ * \param identifier
+ * \return Value if success, otherwise a negative error code
  */
 int snd_use_case_geti(snd_use_case_mgr_t *uc_mgr,
 		      const char *identifier,
@@ -2444,24 +2505,14 @@ int snd_use_case_geti(snd_use_case_mgr_t *uc_mgr,
 			str = NULL;
 		}
 		if (check_identifier(identifier, "_devstatus")) {
-			if (!str) {
-				err = -EINVAL;
+			err = check_device(uc_mgr, str, value);
+			if (err < 0) {
 				goto __end;
-			}
-			err = device_status(uc_mgr, str);
-			if (err >= 0) {
-				*value = err;
-				err = 0;
 			}
 		} else if (check_identifier(identifier, "_modstatus")) {
-			if (!str) {
-				err = -EINVAL;
+			err = check_modifier(uc_mgr, str, value);
+			if (err < 0) {
 				goto __end;
-			}
-			err = modifier_status(uc_mgr, str);
-			if (err >= 0) {
-				*value = err;
-				err = 0;
 			}
 #if 0
 		/*
