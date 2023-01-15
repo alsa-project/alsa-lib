@@ -2425,6 +2425,7 @@ int snd_use_case_get(snd_use_case_mgr_t *uc_mgr,
 		if (val >= 0) { \
 			if ((ifind)((uc_mgr), (uc_mgr)->active_verb, (str), 0)) { \
 				*(value) = val; \
+				val = 0; \
 			} else { \
 				val = -ENOENT; \
 			} \
