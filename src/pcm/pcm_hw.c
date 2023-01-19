@@ -356,7 +356,7 @@ static int snd_pcm_hw_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	if (hw->rates.min > 0) {
 		err = _snd_pcm_hw_param_set_minmax(params, SND_PCM_HW_PARAM_RATE,
 						   hw->rates.min, 0, hw->rates.max + 1, -1);
-
+		if (err < 0)
 			return err;
 	}
 
