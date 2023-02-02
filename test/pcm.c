@@ -12,6 +12,10 @@
 #include <sys/time.h>
 #include <math.h>
 
+#ifndef ESTRPIPE
+#define ESTRPIPE ESPIPE
+#endif
+
 static char *device = "plughw:0,0";			/* playback device */
 static snd_pcm_format_t format = SND_PCM_FORMAT_S16;	/* sample format */
 static unsigned int rate = 44100;			/* stream rate */

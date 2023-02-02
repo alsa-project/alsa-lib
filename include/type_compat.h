@@ -26,7 +26,7 @@
 #define EBADFD EBADF
 #endif
 #ifndef ESTRPIPE
-#define ESTRPIPE EPIPE
+#define ESTRPIPE ESPIPE
 #endif
 
 #ifndef __u16
