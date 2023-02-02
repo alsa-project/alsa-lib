@@ -38,6 +38,15 @@
 #include <sys/time.h>
 #include <math.h>
 
+#ifndef CLOCK_MONOTONIC_RAW
+#define CLOCK_MONOTONIC_RAW CLOCK_MONOTONIC
+#endif
+
+#if defined(__OpenBSD__)
+#define sched_getparam(pid, parm) (-1)
+#define sched_setscheduler(pid, policy, parm) (-1)
+#endif
+
 typedef struct timespec timestamp_t;
 
 char *sched_policy = "rr";
@@ -839,9 +848,9 @@ int main(int argc, char *argv[])
 		if (ok) {
 #if 1
 			printf("Playback time = %li.%i, Record time = %li.%i, diff = %li\n",
-			       p_tstamp.tv_sec,
+			       (long)p_tstamp.tv_sec,
 			       (int)p_tstamp.tv_usec,
-			       c_tstamp.tv_sec,
+			       (long)c_tstamp.tv_sec,
 			       (int)c_tstamp.tv_usec,
 			       timediff(p_tstamp, c_tstamp));
 #endif
