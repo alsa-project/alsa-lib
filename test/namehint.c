@@ -4,7 +4,8 @@
 int main(int argc, char *argv[])
 {
 	const char *iface = "pcm";
-	char **hints, **n;
+	void **hints;
+	char **n;
 	int err;
 
 	if (argc > 1)
@@ -12,7 +13,7 @@ int main(int argc, char *argv[])
 	err = snd_device_name_hint(-1, iface, &hints);
 	if (err < 0)
 		errx(1, "snd_device_name_hint error: %s", snd_strerror(err));
-	n = hints;
+	n = (char **)hints;
 	while (*n != NULL) {
 		printf("%s\n", *n);
 		n++;
