@@ -71,7 +71,7 @@
 #endif
 
 #include <stdio.h>
-#include <values.h>
+#include <limits.h>
 
 #include <string.h>
 /*void exit(), free();*/
@@ -148,7 +148,7 @@ static void msginit ();
 static int msgleng ();
 static void msgadd ();
 static void biggermsg ();
-static int eputc (unsigned char c);
+static int eputc ();
 
 double mf_ticks2sec (unsigned long ticks, int division, unsigned long tempo);
 int mf_write_meta_event ();
@@ -328,7 +328,7 @@ readtrack ()			/* read a track chunk */
 
   if (Mf_interactive)
     {
-      Mf_toberead = MAXINT;
+      Mf_toberead = INT_MAX;
     }
   else
     {
