@@ -37,7 +37,7 @@ static char mode_suffix[] = {
 	'a', 's', 'h', 't', 'd', 'r'
 };
 
-static const char *devname = "default";
+static const char *pcmdev = "default";
 static int stream = SND_PCM_STREAM_PLAYBACK;
 static int num_threads = 1;
 static int periodsize = 16 * 1024;
@@ -127,7 +127,7 @@ static int parse_options(int argc, char **argv)
 	while ((c = getopt(argc, argv, "D:r:f:p:b:s:t:m:vq")) >= 0) {
 		switch (c) {
 		case 'D':
-			devname = optarg;
+			pcmdev = optarg;
 			break;
 		case 'r':
 			rate = atoi(optarg);
@@ -213,9 +213,9 @@ int main(int argc, char **argv)
 	if (parse_options(argc, argv))
 		return 1;
 
-	err = snd_pcm_open(&pcm, devname, stream, 0);
+	err = snd_pcm_open(&pcm, pcmdev, stream, 0);
 	if (err < 0) {
-		fprintf(stderr, "cannot open pcm %s\n", devname);
+		fprintf(stderr, "cannot open pcm %s\n", pcmdev);
 		return 1;
 	}
 
