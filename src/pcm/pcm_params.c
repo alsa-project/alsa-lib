@@ -2335,6 +2335,9 @@ static int snd_pcm_sw_params_default(snd_pcm_t *pcm, snd_pcm_sw_params_t *params
 	params->silence_threshold = 0;
 	params->silence_size = 0;
 	params->boundary = pcm->buffer_size;
+	/* this should not happen (bad child?) */
+	if (params->boundary == 0)
+		return -EINVAL;
 	while (params->boundary * 2 <= LONG_MAX - pcm->buffer_size)
 		params->boundary *= 2;
 	return 0;
@@ -2431,7 +2434,9 @@ int _snd_pcm_hw_params_internal(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	
 	/* Default sw params */
 	memset(&sw, 0, sizeof(sw));
-	snd_pcm_sw_params_default(pcm, &sw);
+	err = snd_pcm_sw_params_default(pcm, &sw);
+	if (err < 0)
+		return err;
 	err = snd_pcm_sw_params(pcm, &sw);
 	if (err < 0)
 		return err;
