@@ -423,6 +423,46 @@ unsigned int snd_ump_endpoint_info_get_version(const snd_ump_endpoint_info_t *in
 }
 
 /**
+ * \brief get UMP manufacturer ID
+ * \param info pointer to a snd_ump_endpoint_info_t structure
+ * \return UMP manufacturer ID
+ */
+unsigned int snd_ump_endpoint_info_get_manufacturer_id(const snd_ump_endpoint_info_t *info)
+{
+	return info->manufacturer_id;
+}
+
+/**
+ * \brief get UMP family ID
+ * \param info pointer to a snd_ump_endpoint_info_t structure
+ * \return UMP family ID
+ */
+unsigned int snd_ump_endpoint_info_get_family_id(const snd_ump_endpoint_info_t *info)
+{
+	return info->family_id;
+}
+
+/**
+ * \brief get UMP model ID
+ * \param info pointer to a snd_ump_endpoint_info_t structure
+ * \return UMP model ID
+ */
+unsigned int snd_ump_endpoint_info_get_model_id(const snd_ump_endpoint_info_t *info)
+{
+	return info->model_id;
+}
+
+/**
+ * \brief get UMP software revision
+ * \param info pointer to a snd_ump_endpoint_info_t structure
+ * \return UMP software revision
+ */
+const unsigned char *snd_ump_endpoint_info_get_sw_revision(const snd_ump_endpoint_info_t *info)
+{
+	return info->sw_revision;
+}
+
+/**
  * \brief get UMP endpoint name string
  * \param info pointer to a snd_ump_endpoint_info_t structure
  * \return UMP endpoint name string
@@ -590,6 +630,36 @@ unsigned int snd_ump_block_info_get_first_group(const snd_ump_block_info_t *info
 unsigned int snd_ump_block_info_get_num_groups(const snd_ump_block_info_t *info)
 {
 	return info->num_groups;
+}
+
+/**
+ * \brief get MIDI-CI version number
+ * \param info pointer to a snd_ump_block_info_t structure
+ * \return MIDI-CI version number
+ */
+unsigned int snd_ump_block_info_get_midi_ci_version(const snd_ump_block_info_t *info)
+{
+	return info->midi_ci_version;
+}
+
+/**
+ * \brief get number of supported SysEx8 streams
+ * \param info pointer to a snd_ump_block_info_t structure
+ * \return number of supported SysEx8 streams
+ */
+unsigned int snd_ump_block_info_get_sysex8_streams(const snd_ump_block_info_t *info)
+{
+	return info->sysex8_streams;
+}
+
+/**
+ * \brief get UI hint of the given UMP block
+ * \param info pointer to a snd_ump_block_info_t structure
+ * \return the hint bits
+ */
+unsigned int snd_ump_block_info_get_ui_hint(const snd_ump_block_info_t *info)
+{
+	return info->ui_hint;
 }
 
 /**

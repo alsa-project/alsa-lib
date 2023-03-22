@@ -453,11 +453,14 @@ typedef union _snd_ump_msg_midi2 {
  * UMP message type
  */
 enum {
+	SND_UMP_MSG_TYPE_UTILITY		= 0x00,	/* Utility messages */
 	SND_UMP_MSG_TYPE_SYSTEM			= 0x01,	/* System messages */
 	SND_UMP_MSG_TYPE_MIDI1_CHANNEL_VOICE	= 0x02,	/* MIDI 1.0 messages */
 	SND_UMP_MSG_TYPE_DATA			= 0x03,	/* 7bit SysEx messages */
 	SND_UMP_MSG_TYPE_MIDI2_CHANNEL_VOICE	= 0x04,	/* MIDI 2.0 messages */
 	SND_UMP_MSG_TYPE_EXTENDED_DATA		= 0x05,	/* 8bit data message */
+	SND_UMP_MSG_TYPE_FLEX_DATA		= 0x0d,	/* Flexible data messages */
+	SND_UMP_MSG_TYPE_STREAM			= 0x0f,	/* Stream messages */
 };
 
 /**
@@ -508,6 +511,62 @@ enum {
 	SND_UMP_SYSEX_STATUS_END	= 3,
 };
 
+/** UMP Utility Type Status (type 0x0) **/
+enum {
+	SND_UMP_UTILITY_MSG_STATUS_NOOP		= 0x00,
+	SND_UMP_UTILITY_MSG_STATUS_JR_CLOCK	= 0x01,
+	SND_UMP_UTILITY_MSG_STATUS_JR_TSTAMP	= 0x02,
+	SND_UMP_UTILITY_MSG_STATUS_DCTPQ	= 0x03,
+	SND_UMP_UTILITY_MSG_STATUS_DC		= 0x04,
+};
+
+/** UMP Stream Message Status (type 0xf) */
+enum {
+	SND_UMP_STREAM_MSG_STATUS_EP_DISCOVERY	= 0x00,
+	SND_UMP_STREAM_MSG_STATUS_EP_INFO	= 0x01,
+	SND_UMP_STREAM_MSG_STATUS_DEVICE_INFO	= 0x02,
+	SND_UMP_STREAM_MSG_STATUS_EP_NAME	= 0x03,
+	SND_UMP_STREAM_MSG_STATUS_PRODUCT_ID	= 0x04,
+	SND_UMP_STREAM_MSG_STATUS_STREAM_CFG_REQUEST = 0x05,
+	SND_UMP_STREAM_MSG_STATUS_STREAM_CFG	= 0x06,
+	SND_UMP_STREAM_MSG_STATUS_FB_DISCOVERY	= 0x10,
+	SND_UMP_STREAM_MSG_STATUS_FB_INFO	= 0x11,
+	SND_UMP_STREAM_MSG_STATUS_FB_NAME	= 0x12,
+	SND_UMP_STREAM_MSG_STATUS_START_CLIP	= 0x20,
+	SND_UMP_STREAM_MSG_STATUS_END_CLIP	= 0x21,
+};
+
+/** UMP Endpoint Discovery filter bitmap */
+enum {
+	SND_UMP_STREAM_MSG_REQUEST_EP_INFO	= (1U << 0),
+	SND_UMP_STREAM_MSG_REQUEST_DEVICE_INFO	= (1U << 1),
+	SND_UMP_STREAM_MSG_REQUEST_EP_NAME	= (1U << 2),
+	SND_UMP_STREAM_MSG_REQUEST_PRODUCT_ID	= (1U << 3),
+	SND_UMP_STREAM_MSG_REQUEST_STREAM_CFG	= (1U << 4),
+};
+
+/** UMP Function Block Discovery filter bitmap */
+enum {
+	SND_UMP_STREAM_MSG_REQUEST_FB_INFO	= (1U << 0),
+	SND_UMP_STREAM_MSG_REQUEST_FB_NAME	= (1U << 1),
+};
+
+/** UMP Endpoint Info capability bits (used for protocol request/notify, too) */
+enum {
+	SND_UMP_STREAM_MSG_EP_INFO_CAP_TXJR	= (1U << 0), /* Sending JRTS */
+	SND_UMP_STREAM_MSG_EP_INFO_CAP_RXJR	= (1U << 1), /* Receiving JRTS */
+	SND_UMP_STREAM_MSG_EP_INFO_CAP_MIDI1	= (1U << 8), /* MIDI 1.0 */
+	SND_UMP_STREAM_MSG_EP_INFO_CAP_MIDI2	= (1U << 9), /* MIDI 2.0 */
+};
+
+/** UMP Endpoint / Function Block name string format bits */
+enum {
+	SND_UMP_STREAM_MSG_FORMAT_SINGLE	= 0,
+	SND_UMP_STREAM_MSG_FORMAT_START		= 1,
+	SND_UMP_STREAM_MSG_FORMAT_CONTINUE	= 2,
+	SND_UMP_STREAM_MSG_FORMAT_END		= 3,
+};
+
 /**
  * \brief get UMP status (4bit) from 32bit UMP message header
  */
@@ -530,6 +589,14 @@ static inline uint8_t snd_ump_msg_hdr_channel(uint32_t ump)
 static inline uint8_t snd_ump_msg_hdr_type(uint32_t ump)
 {
 	return (ump >> 28);
+}
+
+/**
+ * \brief check if the given UMP type is a groupless message
+ */
+static inline int snd_ump_msg_type_is_groupless(uint8_t type)
+{
+	return type == SND_UMP_MSG_TYPE_UTILITY || type == SND_UMP_MSG_TYPE_STREAM;
 }
 
 /**

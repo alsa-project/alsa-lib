@@ -53,6 +53,9 @@ enum _snd_ump_direction {
 	SND_UMP_DIR_BIDIRECTION	=	0x03,
 };
 
+/** UMP EP holds only static blocks */
+#define SND_UMP_EP_INFO_STATIC_BLOCKS		0x01
+
 /** Bitmask for UMP EP MIDI protocols */
 #define SND_UMP_EP_INFO_PROTO_MIDI_MASK		0x0300
 /** Bit flag for MIDI 1.0 protocol */
@@ -82,6 +85,10 @@ unsigned int snd_ump_endpoint_info_get_protocol_caps(const snd_ump_endpoint_info
 unsigned int snd_ump_endpoint_info_get_protocol(const snd_ump_endpoint_info_t *info);
 unsigned int snd_ump_endpoint_info_get_num_blocks(const snd_ump_endpoint_info_t *info);
 unsigned int snd_ump_endpoint_info_get_version(const snd_ump_endpoint_info_t *info);
+unsigned int snd_ump_endpoint_info_get_manufacturer_id(const snd_ump_endpoint_info_t *info);
+unsigned int snd_ump_endpoint_info_get_family_id(const snd_ump_endpoint_info_t *info);
+unsigned int snd_ump_endpoint_info_get_model_id(const snd_ump_endpoint_info_t *info);
+const unsigned char *snd_ump_endpoint_info_get_sw_revision(const snd_ump_endpoint_info_t *info);
 const char *snd_ump_endpoint_info_get_name(const snd_ump_endpoint_info_t *info);
 const char *snd_ump_endpoint_info_get_product_id(const snd_ump_endpoint_info_t *info);
 int snd_ump_endpoint_info(snd_ump_t *ump, snd_ump_endpoint_info_t *info);
@@ -90,6 +97,18 @@ int snd_ump_endpoint_info(snd_ump_t *ump, snd_ump_endpoint_info_t *info);
 #define SND_UMP_BLOCK_IS_MIDI1		(1U << 0)
 /** Bit flag for 31.25Kbps B/W MIDI1 port in UMP Block info flags */
 #define SND_UMP_BLOCK_IS_LOWSPEED	(1U << 1)
+
+/** UMP block user-interface hint */
+enum _snd_ump_block_ui_hint {
+	/** Unknown or undeclared */
+	SND_UMP_BLOCK_UI_HINT_UNKNOWN	=	0x00,
+	/** Primarily a receiver or a destination for MIDI messages */
+	SND_UMP_BLOCK_UI_HINT_RECEIVER =	0x01,
+	/** Primarily a sender or a source of MIDI messages */
+	SND_UMP_BLOCK_UI_HINT_SENDER =		0x02,
+	/** Both a sender and receiver of MIDI messages */
+	SND_UMP_BLOCK_UI_HINT_BOTH =		0x03,
+};
 
 size_t snd_ump_block_info_sizeof(void);
 /** \hideinitializer
@@ -109,6 +128,9 @@ unsigned int snd_ump_block_info_get_flags(const snd_ump_block_info_t *info);
 unsigned int snd_ump_block_info_get_direction(const snd_ump_block_info_t *info);
 unsigned int snd_ump_block_info_get_first_group(const snd_ump_block_info_t *info);
 unsigned int snd_ump_block_info_get_num_groups(const snd_ump_block_info_t *info);
+unsigned int snd_ump_block_info_get_midi_ci_version(const snd_ump_block_info_t *info);
+unsigned int snd_ump_block_info_get_sysex8_streams(const snd_ump_block_info_t *info);
+unsigned int snd_ump_block_info_get_ui_hint(const snd_ump_block_info_t *info);
 const char *snd_ump_block_info_get_name(const snd_ump_block_info_t *info);
 int snd_ump_block_info(snd_ump_t *ump, snd_ump_block_info_t *info);
 
