@@ -1763,6 +1763,21 @@ int snd_seq_client_info_get_ump_group_enabled(const snd_seq_client_info_t *info,
 	return !(info->group_filter & (1U << group));
 }
 
+#define UMP_GROUPLESS_FILTER	(1U << 0)
+
+/**
+ * \brief Get the UMP groupless message handling status
+ * \param info client_info container
+ * \return 1 if UMP groupless messages is processed, 0 if filtered/disabled
+ *
+ * \sa snd_seq_get_client_info()
+ */
+int snd_seq_client_info_get_ump_groupless_enabled(const snd_seq_client_info_t *info)
+{
+	assert(info);
+	return !(info->group_filter & UMP_GROUPLESS_FILTER);
+}
+
 /**
  * \brief Get the automatic conversion mode for UMP
  * \param info client_info container
@@ -1848,6 +1863,23 @@ void snd_seq_client_info_set_ump_group_enabled(snd_seq_client_info_t *info,
 		info->group_filter &= ~(1U << group);
 	else
 		info->group_filter |= (1U << group);
+}
+
+/**
+ * \brief Enable/disable the UMP groupless message handling
+ * \param info client_info container
+ * \param enable enable the UMP groupless messages
+ *
+ * \sa snd_seq_set_client_info(), snd_seq_client_info_get_ump_groupless_enabled()
+ */
+void snd_seq_client_info_set_ump_groupless_enabled(snd_seq_client_info_t *info,
+						   int enable)
+{
+	assert(info);
+	if (enable)
+		info->group_filter &= ~UMP_GROUPLESS_FILTER;
+	else
+		info->group_filter |= UMP_GROUPLESS_FILTER;
 }
 
 /**

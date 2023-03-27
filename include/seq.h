@@ -159,6 +159,7 @@ int snd_seq_client_info_get_event_lost(const snd_seq_client_info_t *info);
 int snd_seq_client_info_get_midi_version(const snd_seq_client_info_t *info);
 int snd_seq_client_info_get_ump_group_enabled(const snd_seq_client_info_t *info,
 					      int group);
+int snd_seq_client_info_get_ump_groupless_enabled(const snd_seq_client_info_t *info);
 int snd_seq_client_info_get_ump_conversion(const snd_seq_client_info_t *info);
 void snd_seq_client_info_set_client(snd_seq_client_info_t *info, int client);
 void snd_seq_client_info_set_name(snd_seq_client_info_t *info, const char *name);
@@ -168,6 +169,8 @@ void snd_seq_client_info_set_event_filter(snd_seq_client_info_t *info, unsigned 
 void snd_seq_client_info_set_midi_version(snd_seq_client_info_t *info, int midi_version);
 void snd_seq_client_info_set_ump_group_enabled(snd_seq_client_info_t *info,
 					       int group, int enable);
+void snd_seq_client_info_set_ump_groupless_enabled(snd_seq_client_info_t *info,
+						   int enable);
 void snd_seq_client_info_set_ump_conversion(snd_seq_client_info_t *info, int enable);
 
 void snd_seq_client_info_event_filter_clear(snd_seq_client_info_t *info);
