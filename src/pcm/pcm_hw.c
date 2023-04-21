@@ -98,6 +98,8 @@ typedef struct {
 	bool mmap_control_fallbacked;
 	struct snd_pcm_sync_ptr *sync_ptr;
 
+	bool prepare_reset_sw_params;
+
 	int period_event;
 	snd_timer_t *period_timer;
 	struct pollfd period_timer_pfd;
@@ -534,6 +536,7 @@ static int snd_pcm_hw_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 		SYSMSG("SNDRV_PCM_IOCTL_SW_PARAMS failed (%i)", err);
 		goto out;
 	}
+	hw->prepare_reset_sw_params = false;
 	if ((snd_pcm_tstamp_type_t) params->tstamp_type != pcm->tstamp_type) {
 		if (hw->version < SNDRV_PROTOCOL_VERSION(2, 0, 12)) {
 			int on = (snd_pcm_tstamp_type_t) params->tstamp_type ==
@@ -660,7 +663,18 @@ static int snd_pcm_hw_hwsync(snd_pcm_t *pcm)
 static int snd_pcm_hw_prepare(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
+	snd_pcm_sw_params_t sw_params;
 	int fd = hw->fd, err;
+
+	if (hw->prepare_reset_sw_params) {
+		snd_pcm_sw_params_current_no_lock(pcm, &sw_params);
+		if (ioctl(hw->fd, SNDRV_PCM_IOCTL_SW_PARAMS, sw_params) < 0) {
+			err = -errno;
+			SYSMSG("SNDRV_PCM_IOCTL_SW_PARAMS failed (%i)", err);
+			return err;
+		}
+		hw->prepare_reset_sw_params = false;
+	}
 	if (ioctl(fd, SNDRV_PCM_IOCTL_PREPARE) < 0) {
 		err = -errno;
 		SYSMSG("SNDRV_PCM_IOCTL_PREPARE failed (%i)", err);
@@ -718,7 +732,40 @@ static int snd_pcm_hw_drop(snd_pcm_t *pcm)
 static int snd_pcm_hw_drain(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
+	snd_pcm_sw_params_t sw_params;
+	snd_pcm_uframes_t silence_size;
 	int err;
+
+	if (pcm->stream != SND_PCM_STREAM_PLAYBACK)
+		goto __skip_silence;
+	/* compute end silence size, align to period size + extra time */
+	snd_pcm_sw_params_current_no_lock(pcm, &sw_params);
+	if ((pcm->boundary % pcm->period_size) == 0) {
+		silence_size = pcm->period_size - (*pcm->appl.ptr % pcm->period_size);
+		if (silence_size == pcm->period_size)
+			silence_size = 0;
+	} else {
+		/* it not not easy to compute the period crossing point
+		 * in this case because the period is not aligned to the boundary
+		 * - use the full range (one period) in this case
+		 */
+		silence_size = pcm->period_size;
+	}
+	silence_size += pcm->rate / 10;	/* 1/10th of second */
+	if (sw_params.silence_size < silence_size) {
+		/* fill the silence soon as possible (in the bellow ioctl
+		 * or the next period wake up)
+		 */
+		sw_params.silence_threshold = pcm->buffer_size;
+		sw_params.silence_size = silence_size;
+		if (ioctl(hw->fd, SNDRV_PCM_IOCTL_SW_PARAMS, &sw_params) < 0) {
+			err = -errno;
+			SYSMSG("SNDRV_PCM_IOCTL_SW_PARAMS failed (%i)", err);
+			return err;
+		}
+		hw->prepare_reset_sw_params = true;
+	}
+__skip_silence:
 	if (ioctl(hw->fd, SNDRV_PCM_IOCTL_DRAIN) < 0) {
 		err = -errno;
 		SYSMSG("SNDRV_PCM_IOCTL_DRAIN failed (%i)", err);

@@ -6167,6 +6167,25 @@ int snd_pcm_hw_params_get_min_align(const snd_pcm_hw_params_t *params, snd_pcm_u
 	return 0;
 }
 
+#ifndef DOXYGEN
+void snd_pcm_sw_params_current_no_lock(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
+{
+	params->proto = SNDRV_PCM_VERSION;
+	params->tstamp_mode = pcm->tstamp_mode;
+	params->tstamp_type = pcm->tstamp_type;
+	params->period_step = pcm->period_step;
+	params->sleep_min = 0;
+	params->avail_min = pcm->avail_min;
+	sw_set_period_event(params, pcm->period_event);
+	params->xfer_align = 1;
+	params->start_threshold = pcm->start_threshold;
+	params->stop_threshold = pcm->stop_threshold;
+	params->silence_threshold = pcm->silence_threshold;
+	params->silence_size = pcm->silence_size;
+	params->boundary = pcm->boundary;
+}
+#endif
+
 /**
  * \brief Return current software configuration for a PCM
  * \param pcm PCM handle
@@ -6183,19 +6202,7 @@ int snd_pcm_sw_params_current(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 		return -EIO;
 	}
 	__snd_pcm_lock(pcm); /* forced lock due to pcm field changes */
-	params->proto = SNDRV_PCM_VERSION;
-	params->tstamp_mode = pcm->tstamp_mode;
-	params->tstamp_type = pcm->tstamp_type;
-	params->period_step = pcm->period_step;
-	params->sleep_min = 0;
-	params->avail_min = pcm->avail_min;
-	sw_set_period_event(params, pcm->period_event);
-	params->xfer_align = 1;
-	params->start_threshold = pcm->start_threshold;
-	params->stop_threshold = pcm->stop_threshold;
-	params->silence_threshold = pcm->silence_threshold;
-	params->silence_size = pcm->silence_size;
-	params->boundary = pcm->boundary;
+	snd_pcm_sw_params_current_no_lock(pcm, params);
 	__snd_pcm_unlock(pcm);
 	return 0;
 }
