@@ -99,6 +99,7 @@ typedef struct {
 	struct snd_pcm_sync_ptr *sync_ptr;
 
 	bool prepare_reset_sw_params;
+	bool perfect_drain;
 
 	int period_event;
 	snd_timer_t *period_timer;
@@ -398,6 +399,7 @@ static int snd_pcm_hw_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	params->info &= ~0xf0000000;
 	if (pcm->tstamp_type != SND_PCM_TSTAMP_TYPE_GETTIMEOFDAY)
 		params->info |= SND_PCM_INFO_MONOTONIC;
+	hw->perfect_drain = !!(params->info & SND_PCM_INFO_PERFECT_DRAIN);
 	return query_status_data(hw);
 }
 
@@ -739,7 +741,7 @@ static int snd_pcm_hw_drain(snd_pcm_t *pcm)
 
 	if (pcm->stream != SND_PCM_STREAM_PLAYBACK)
 		goto __skip_silence;
-	if (hw->drain_silence == 0)
+	if (hw->drain_silence == 0 || hw->perfect_drain)
 		goto __skip_silence;
 	snd_pcm_sw_params_current_no_lock(pcm, &sw_params);
 	if (hw->drain_silence > 0) {

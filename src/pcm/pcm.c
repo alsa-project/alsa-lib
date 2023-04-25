@@ -3708,6 +3708,29 @@ int snd_pcm_hw_params_can_disable_period_wakeup(const snd_pcm_hw_params_t *param
 }
 
 /**
+ * \brief Check if hardware is capable of perfect drain
+ * \param params Configuration space
+ * \retval 0 Hardware doesn't do perfect drain
+ * \retval 1 Hardware does perfect drain
+ *
+ * This function should only be called when the configuration space
+ * contains a single configuration. Call #snd_pcm_hw_params to choose
+ * a single configuration from the configuration space.
+ *
+ * Perfect drain means that the hardware does not use samples
+ * beyond the stream application pointer.
+ */
+int snd_pcm_hw_params_is_perfect_drain(const snd_pcm_hw_params_t *params)
+{
+	assert(params);
+	if (CHECK_SANITY(params->info == ~0U)) {
+		SNDMSG("invalid PCM info field");
+		return 0; /* FIXME: should be a negative error? */
+	}
+	return !!(params->info & SNDRV_PCM_INFO_PERFECT_DRAIN);
+}
+
+/**
  * \brief Check if hardware supports audio wallclock timestamps
  * \param params Configuration space
  * \retval 0 Hardware doesn't support audio wallclock timestamps

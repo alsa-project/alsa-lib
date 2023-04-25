@@ -79,6 +79,8 @@
 #define SND_PCM_INFO_DOUBLE SNDRV_PCM_INFO_DOUBLE
 /** device transfers samples in batch */
 #define SND_PCM_INFO_BATCH SNDRV_PCM_INFO_BATCH
+/** device does perfect drain (silencing not required) */
+#define SND_PCM_INFO_PERFECT_DRAIN SNDRV_PCM_INFO_PERFECT_DRAIN
 /** device accepts interleaved samples */
 #define SND_PCM_INFO_INTERLEAVED SNDRV_PCM_INFO_INTERLEAVED
 /** device accepts non-interleaved samples */
