@@ -111,6 +111,7 @@ typedef struct {
 		int max;
 	} rates;
 	int channels;
+	int drain_silence;
 	/* for chmap */
 	unsigned int chmap_caps;
 	snd_pcm_chmap_query_t **chmap_override;
@@ -738,8 +739,16 @@ static int snd_pcm_hw_drain(snd_pcm_t *pcm)
 
 	if (pcm->stream != SND_PCM_STREAM_PLAYBACK)
 		goto __skip_silence;
-	/* compute end silence size, align to period size + extra time */
+	if (hw->drain_silence == 0)
+		goto __skip_silence;
 	snd_pcm_sw_params_current_no_lock(pcm, &sw_params);
+	if (hw->drain_silence > 0) {
+		silence_size = (pcm->rate * hw->drain_silence) / 1000;
+		if (silence_size > pcm->buffer_size)
+			silence_size = pcm->buffer_size;
+		goto __manual_silence;
+	}
+	/* compute end silence size, align to period size + extra time */
 	if ((pcm->boundary % pcm->period_size) == 0) {
 		silence_size = pcm->period_size - (*pcm->appl.ptr % pcm->period_size);
 		if (silence_size == pcm->period_size)
@@ -752,6 +761,7 @@ static int snd_pcm_hw_drain(snd_pcm_t *pcm)
 		silence_size = pcm->period_size;
 	}
 	silence_size += pcm->rate / 10;	/* 1/10th of second */
+__manual_silence:
 	if (sw_params.silence_size < silence_size) {
 		/* fill the silence soon as possible (in the bellow ioctl
 		 * or the next period wake up)
@@ -1818,6 +1828,7 @@ pcm.name {
 	[rate INT]		# Restrict only to the given rate
 	  or [rate [INT INT]]	# Restrict only to the given rate range (min max)
 	[chmap MAP]		# Override channel maps; MAP is a string array
+	[drain_silence INT]	# Add silence in drain (-1 = auto /default/, 0 = off, > 0 milliseconds)
 }
 \endcode
 
@@ -1850,7 +1861,7 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 	long card = -1, device = 0, subdevice = -1;
 	const char *str;
 	int err, sync_ptr_ioctl = 0;
-	int min_rate = 0, max_rate = 0, channels = 0;
+	int min_rate = 0, max_rate = 0, channels = 0, drain_silence = -1;
 	snd_pcm_format_t format = SND_PCM_FORMAT_UNKNOWN;
 	snd_config_t *n;
 	int nonblock = 1; /* non-block per default */
@@ -1991,6 +2002,16 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 			}
 			continue;
 		}
+		if (strcmp(id, "drain_silence") == 0) {
+			long val;
+			err = snd_config_get_integer(n, &val);
+			if (err < 0) {
+				SNDERR("Invalid type for %s", id);
+				goto fail;
+			}
+			drain_silence = val;
+			continue;
+		}
 		SNDERR("Unknown field %s", id);
 		err = -EINVAL;
 		goto fail;
@@ -2033,6 +2054,7 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 	}
 	if (chmap)
 		hw->chmap_override = chmap;
+	hw->drain_silence = drain_silence;
 
 	return 0;
 
