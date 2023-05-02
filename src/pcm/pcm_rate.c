@@ -1146,7 +1146,7 @@ static int snd_pcm_rate_drain(snd_pcm_t *pcm)
 			snd_pcm_uframes_t psize, spsize;
 			int err;
 
-			err = __snd_pcm_wait_in_lock(rate->gen.slave, -1);
+			err = __snd_pcm_wait_in_lock(rate->gen.slave, SND_PCM_WAIT_DRAIN);
 			if (err < 0)
 				break;
 			if (size > pcm->period_size) {

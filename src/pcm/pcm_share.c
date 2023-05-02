@@ -1194,7 +1194,7 @@ static int snd_pcm_share_drain(snd_pcm_t *pcm)
 			_snd_pcm_share_update(pcm);
 			Pthread_mutex_unlock(&slave->mutex);
 			if (!(pcm->mode & SND_PCM_NONBLOCK))
-				snd_pcm_wait(pcm, -1);
+				snd_pcm_wait(pcm, SND_PCM_WAIT_DRAIN);
 			return 0;
 		default:
 			assert(0);

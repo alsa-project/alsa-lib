@@ -495,7 +495,7 @@ static int snd_pcm_shm_drain(snd_pcm_t *pcm)
 	if (err < 0)
 		return err;
 	if (!(pcm->mode & SND_PCM_NONBLOCK))
-		snd_pcm_wait(pcm, -1);
+		snd_pcm_wait(pcm, SND_PCM_WAIT_DRAIN);
 	return err;
 }
 

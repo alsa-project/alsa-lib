@@ -498,6 +498,13 @@ typedef union _snd_pcm_sync_id {
 	unsigned int id32[4];
 } snd_pcm_sync_id_t;
 
+/** Infinite wait for snd_pcm_wait() */
+#define SND_PCM_WAIT_INFINITE		(-1)
+/** Wait for next i/o in snd_pcm_wait() */
+#define SND_PCM_WAIT_IO			(-10001)
+/** Wait for drain in snd_pcm_wait() */
+#define SND_PCM_WAIT_DRAIN		(-10002)
+
 /** #SND_PCM_TYPE_METER scope handle */
 typedef struct _snd_pcm_scope snd_pcm_scope_t;
 

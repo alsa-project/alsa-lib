@@ -2834,7 +2834,8 @@ int snd_pcm_open_named_slave(snd_pcm_t **pcmp, const char *name,
  * \brief Wait for a PCM to become ready
  * \param pcm PCM handle
  * \param timeout maximum time in milliseconds to wait,
- *        a negative value means infinity
+ *        a -1 value means infinity (SND_PCM_WAIT_INFINITE),
+ *	       see also SND_PCM_WAIT_IO and SND_PCM_WAIT_DRAIN
  * \return a positive value on success otherwise a negative error code
  *         (-EPIPE for the xrun and -ESTRPIPE for the suspended status,
  *          others for general errors) 
@@ -2869,6 +2870,37 @@ int __snd_pcm_wait_in_lock(snd_pcm_t *pcm, int timeout)
 	return snd_pcm_wait_nocheck(pcm, timeout);
 }
 
+static int __snd_pcm_wait_io_timeout(snd_pcm_t *pcm)
+{
+	int timeout;
+
+	/* period size is the time boundary */
+	timeout = (pcm->period_size * 1000ULL) / pcm->rate;
+	/* should not happen */
+	if (timeout < 0)
+		timeout = 0;
+	/* add extra time of 200 milliseconds */
+	timeout += 200;
+	return timeout;
+}
+
+static int __snd_pcm_wait_drain_timeout(snd_pcm_t *pcm)
+{
+	int timeout;
+
+	/* for capture, there's no reason to wait, just one iteration */
+	if (snd_pcm_stream(pcm) == SND_PCM_STREAM_CAPTURE)
+		return 0;
+	/* result is in milliseconds */
+	timeout = (snd_pcm_mmap_playback_delay(pcm) * 1000LL) / pcm->rate;
+	/* should not happen */
+	if (timeout < 0)
+		timeout = 0;
+	/* add extra time of 200 milliseconds */
+	timeout += 200;
+	return timeout;
+}
+
 /* 
  * like snd_pcm_wait() but doesn't check mmap_avail before calling poll()
  *
@@ -2895,6 +2927,12 @@ int snd_pcm_wait_nocheck(snd_pcm_t *pcm, int timeout)
 		SNDMSG("invalid poll descriptors %d\n", err);
 		return -EIO;
 	}
+	if (timeout == SND_PCM_WAIT_IO)
+		timeout = __snd_pcm_wait_io_timeout(pcm);
+	else if (timeout == SND_PCM_WAIT_DRAIN)
+		timeout = __snd_pcm_wait_drain_timeout(pcm);
+	else if (timeout < -1)
+		SNDMSG("invalid snd_pcm_wait timeout argument %d\n", timeout);
 	do {
 		__snd_pcm_unlock(pcm->fast_op_arg);
 		err_poll = poll(pfd, npfds, timeout);
@@ -7525,7 +7563,7 @@ snd_pcm_sframes_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_
 				goto _end;
 			}
 
-			err = __snd_pcm_wait_in_lock(pcm, -1);
+			err = __snd_pcm_wait_in_lock(pcm, SND_PCM_WAIT_IO);
 			if (err < 0)
 				break;
 			goto _again;
@@ -7594,7 +7632,7 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 					goto _end;
 				}
 
-				err = snd_pcm_wait_nocheck(pcm, -1);
+				err = snd_pcm_wait_nocheck(pcm, SND_PCM_WAIT_IO);
 				if (err < 0)
 					break;
 				goto _again;
