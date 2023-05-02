@@ -399,7 +399,8 @@ static int snd_pcm_hw_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	params->info &= ~0xf0000000;
 	if (pcm->tstamp_type != SND_PCM_TSTAMP_TYPE_GETTIMEOFDAY)
 		params->info |= SND_PCM_INFO_MONOTONIC;
-	hw->perfect_drain = !!(params->info & SND_PCM_INFO_PERFECT_DRAIN);
+	hw->perfect_drain = !!(params->info & SND_PCM_INFO_PERFECT_DRAIN) ||
+			    !!(params->flags & SND_PCM_HW_PARAMS_NO_DRAIN_SILENCE);
 	return query_status_data(hw);
 }
 

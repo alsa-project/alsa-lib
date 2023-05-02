@@ -4959,6 +4959,43 @@ int snd_pcm_hw_params_get_period_wakeup(snd_pcm_t *pcm, snd_pcm_hw_params_t *par
 }
 
 /**
+ * \brief Restrict a configuration space to fill the end of playback stream with silence when drain() is invoked
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val 0 = disabled, 1 = enabled (default) fill the end of the playback stream with silence when drain() is invoked
+ * \return Zero on success, otherwise a negative error code.
+ *
+ * When disabled, the application should handle the end of stream gracefully
+ * (fill the silent samples to align to the period size plus some extra
+ * samples for hardware / driver without perfect drain). Note that the rewind
+ * may be used for this purpose or the sw_params silencing mechanism.
+ */
+int snd_pcm_hw_params_set_drain_silence(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val)
+{
+	assert(pcm && params);
+	if (val)
+		params->flags &= ~SND_PCM_HW_PARAMS_NO_DRAIN_SILENCE;
+	else
+		params->flags |= SND_PCM_HW_PARAMS_NO_DRAIN_SILENCE;
+	params->rmask = ~0;
+	return snd_pcm_hw_refine(pcm, params);
+}
+
+/**
+ * \brief Extract drain with the filling of silence samples from a configuration space
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val 0 = disabled, 1 = enabled
+ * \return 0 otherwise a negative error code
+ */
+int snd_pcm_hw_params_get_drain_silence(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val)
+{
+	assert(pcm && params && val);
+	*val = params->flags & SND_PCM_HW_PARAMS_NO_DRAIN_SILENCE ? 0 : 1;
+	return 0;
+}
+
+/**
  * \brief Extract period time from a configuration space
  * \param params Configuration space
  * \param val Returned approximate period duration in us
