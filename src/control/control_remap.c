@@ -1148,7 +1148,7 @@ static int parse_map(snd_ctl_remap_t *priv, snd_config_t *conf)
  *          changed in future.
  */
 int snd_ctl_remap_open(snd_ctl_t **handlep, const char *name, snd_config_t *remap,
-		       snd_config_t *map, snd_ctl_t *child, int mode ATTRIBUTE_UNUSED)
+		       snd_config_t *map, snd_ctl_t *child, int mode)
 {
 	snd_ctl_remap_t *priv;
 	snd_ctl_t *ctl;
@@ -1195,7 +1195,7 @@ int snd_ctl_remap_open(snd_ctl_t **handlep, const char *name, snd_config_t *rema
 	priv->numid_remap_active = priv->map_items > 0;
 
 	priv->child = child;
-	err = snd_ctl_new(&ctl, SND_CTL_TYPE_REMAP, name);
+	err = snd_ctl_new(&ctl, SND_CTL_TYPE_REMAP, name, mode);
 	if (err < 0) {
 		result = err;
 		goto _err;

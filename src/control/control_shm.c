@@ -502,7 +502,7 @@ int snd_ctl_shm_open(snd_ctl_t **handlep, const char *name, const char *sockname
 	shm->socket = sock;
 	shm->ctrl = ctrl;
 
-	err = snd_ctl_new(&ctl, SND_CTL_TYPE_SHM, name);
+	err = snd_ctl_new(&ctl, SND_CTL_TYPE_SHM, name, mode);
 	if (err < 0) {
 		result = err;
 		goto _err;

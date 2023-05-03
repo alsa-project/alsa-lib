@@ -265,13 +265,14 @@ int snd_ctl_nonblock(snd_ctl_t *ctl, int nonblock)
 }
 
 #ifndef DOC_HIDDEN
-int snd_ctl_new(snd_ctl_t **ctlp, snd_ctl_type_t type, const char *name)
+int snd_ctl_new(snd_ctl_t **ctlp, snd_ctl_type_t type, const char *name, int mode)
 {
 	snd_ctl_t *ctl;
 	ctl = calloc(1, sizeof(*ctl));
 	if (!ctl)
 		return -ENOMEM;
 	ctl->type = type;
+	ctl->mode = mode;
 	if (name)
 		ctl->name = strdup(name);
 	INIT_LIST_HEAD(&ctl->async_handlers);

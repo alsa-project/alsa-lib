@@ -716,7 +716,7 @@ int snd_ctl_ext_create(snd_ctl_ext_t *ext, const char *name, int mode)
 		return -ENXIO;
 	}
 
-	err = snd_ctl_new(&ctl, SND_CTL_TYPE_EXT, name);
+	err = snd_ctl_new(&ctl, SND_CTL_TYPE_EXT, name, mode);
 	if (err < 0)
 		return err;
 

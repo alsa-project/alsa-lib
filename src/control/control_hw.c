@@ -444,7 +444,7 @@ int snd_ctl_hw_open(snd_ctl_t **handle, const char *name, int card, int mode)
 	hw->fd = fd;
 	hw->protocol = ver;
 
-	err = snd_ctl_new(&ctl, SND_CTL_TYPE_HW, name);
+	err = snd_ctl_new(&ctl, SND_CTL_TYPE_HW, name, mode);
 	if (err < 0) {
 		close(fd);
 		free(hw);

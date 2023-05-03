@@ -62,6 +62,7 @@ struct _snd_ctl {
 	snd_ctl_type_t type;
 	const snd_ctl_ops_t *ops;
 	void *private_data;
+	int mode;
 	int nonblock;
 	int poll_fd;
 	struct list_head async_handlers;
@@ -93,7 +94,7 @@ struct _snd_hctl {
 /* make local functions really local */
 #define snd_ctl_new	snd1_ctl_new
 
-int snd_ctl_new(snd_ctl_t **ctlp, snd_ctl_type_t type, const char *name);
+int snd_ctl_new(snd_ctl_t **ctlp, snd_ctl_type_t type, const char *name, int mode);
 int _snd_ctl_poll_descriptor(snd_ctl_t *ctl);
 #define _snd_ctl_async_descriptor _snd_ctl_poll_descriptor
 int snd_ctl_hw_open(snd_ctl_t **handle, const char *name, int card, int mode);

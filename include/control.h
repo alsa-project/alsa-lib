@@ -356,6 +356,9 @@ typedef enum _snd_ctl_type {
 /** Read only (flag for open mode) \hideinitializer */
 #define SND_CTL_READONLY		0x0004
 
+/** Return EINTR instead blocking (flag for open mode) \hideinitializer */
+#define SND_CTL_EINTR			0x0080
+
 /** CTL handle */
 typedef struct _snd_ctl snd_ctl_t;
 
