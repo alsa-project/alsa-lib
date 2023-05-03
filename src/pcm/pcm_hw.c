@@ -747,8 +747,6 @@ static int snd_pcm_hw_drain(snd_pcm_t *pcm)
 	snd_pcm_sw_params_current_no_lock(pcm, &sw_params);
 	if (hw->drain_silence > 0) {
 		silence_size = (pcm->rate * hw->drain_silence) / 1000;
-		if (silence_size > pcm->buffer_size)
-			silence_size = pcm->buffer_size;
 		goto __manual_silence;
 	}
 	/* compute end silence size, align to period size + extra time */
@@ -770,6 +768,8 @@ __manual_silence:
 		 * or the next period wake up)
 		 */
 		sw_params.silence_threshold = pcm->buffer_size;
+		if (silence_size > pcm->buffer_size)
+			silence_size = pcm->buffer_size;
 		sw_params.silence_size = silence_size;
 		if (ioctl(hw->fd, SNDRV_PCM_IOCTL_SW_PARAMS, &sw_params) < 0) {
 			err = -errno;
