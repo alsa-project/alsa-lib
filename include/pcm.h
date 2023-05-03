@@ -393,6 +393,8 @@ typedef long snd_pcm_sframes_t;
 #define SND_PCM_NONBLOCK		0x00000001
 /** Async notification (flag for open mode) \hideinitializer */
 #define SND_PCM_ASYNC			0x00000002
+/** Return EINTR instead blocking (wait operation) */
+#define SND_PCM_EINTR			0x00000080
 /** In an abort state (internal, not allowed for open) */
 #define SND_PCM_ABORT			0x00008000
 /** Disable automatic (but not forced!) rate resamplinig */

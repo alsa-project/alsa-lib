@@ -2938,7 +2938,7 @@ int snd_pcm_wait_nocheck(snd_pcm_t *pcm, int timeout)
 		err_poll = poll(pfd, npfds, timeout);
 		__snd_pcm_lock(pcm->fast_op_arg);
 		if (err_poll < 0) {
-		        if (errno == EINTR && !PCMINABORT(pcm))
+			if (errno == EINTR && !PCMINABORT(pcm) && !(pcm->mode & SND_PCM_EINTR))
 		                continue;
 			return -errno;
                 }
