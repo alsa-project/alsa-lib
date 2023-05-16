@@ -742,6 +742,9 @@ static int snd_pcm_hw_drain(snd_pcm_t *pcm)
 
 	if (pcm->stream != SND_PCM_STREAM_PLAYBACK)
 		goto __skip_silence;
+	/* stream probably in SETUP, prevent divide by zero */
+	if (pcm->period_size == 0)
+		goto __skip_silence;
 	if (hw->drain_silence == 0 || hw->perfect_drain)
 		goto __skip_silence;
 	snd_pcm_sw_params_current_no_lock(pcm, &sw_params);
