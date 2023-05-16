@@ -373,6 +373,9 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
  *   - CaptureMasterType
  *      - type of the master volume control
  *      - Valid values: "soft" (software attenuation)
+ *   - CaptureMicInfoFile
+ *      - json file with the microphone array placement and type description
+ *        (e.g. output from nhlt-dmic-info)
  *   - EDIDFile
  *      - Path to EDID file for HDMI devices
  *   - JackCTL
