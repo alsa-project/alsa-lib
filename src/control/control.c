@@ -1282,6 +1282,30 @@ int snd_ctl_ump_next_device(snd_ctl_t *ctl, int *device)
 }
 
 /**
+ * \brief Get UMP Endpoint info about a UMP RawMidi device
+ * \param ctl CTL handle
+ * \param info UMP Endpoint info pointer
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_ctl_ump_endpoint_info(snd_ctl_t *ctl, snd_ump_endpoint_info_t *info)
+{
+	assert(ctl && info);
+	return ctl->ops->ump_endpoint_info(ctl, info);
+}
+
+/**
+ * \brief Get UMP Block info about a UMP RawMidi device
+ * \param ctl CTL handle
+ * \param info UMP Block info pointer
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_ctl_ump_block_info(snd_ctl_t *ctl, snd_ump_block_info_t *info)
+{
+	assert(ctl && info);
+	return ctl->ops->ump_block_info(ctl, info);
+}
+
+/**
  * \brief Set Power State to given SND_CTL_POWER_* value and do the power management
  * \param ctl CTL handle
  * \param state Desired Power State

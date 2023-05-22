@@ -180,6 +180,7 @@
 #include "pcm.h"
 #include "pcm_plugin.h"
 #include "rawmidi.h"
+#include "ump.h"
 #include "timer.h"
 #include "hwdep.h"
 #include "control.h"

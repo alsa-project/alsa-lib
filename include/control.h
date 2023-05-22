@@ -418,6 +418,8 @@ int snd_ctl_rawmidi_next_device(snd_ctl_t *ctl, int * device);
 int snd_ctl_rawmidi_info(snd_ctl_t *ctl, snd_rawmidi_info_t * info);
 int snd_ctl_rawmidi_prefer_subdevice(snd_ctl_t *ctl, int subdev);
 int snd_ctl_ump_next_device(snd_ctl_t *ctl, int *device);
+int snd_ctl_ump_endpoint_info(snd_ctl_t *ctl, snd_ump_endpoint_info_t *info);
+int snd_ctl_ump_block_info(snd_ctl_t *ctl, snd_ump_block_info_t *info);
 #endif
 int snd_ctl_set_power_state(snd_ctl_t *ctl, unsigned int state);
 int snd_ctl_get_power_state(snd_ctl_t *ctl, unsigned int *state);

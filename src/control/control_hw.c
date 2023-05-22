@@ -333,6 +333,24 @@ static int snd_ctl_hw_ump_next_device(snd_ctl_t *handle, int *device)
 	return 0;
 }
 
+static int snd_ctl_hw_ump_endpoint_info(snd_ctl_t *handle,
+					snd_ump_endpoint_info_t *info)
+{
+	snd_ctl_hw_t *hw = handle->private_data;
+	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_UMP_ENDPOINT_INFO, info) < 0)
+		return -errno;
+	return 0;
+}
+
+static int snd_ctl_hw_ump_block_info(snd_ctl_t *handle,
+				     snd_ump_block_info_t *info)
+{
+	snd_ctl_hw_t *hw = handle->private_data;
+	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_UMP_BLOCK_INFO, info) < 0)
+		return -errno;
+	return 0;
+}
+
 static int snd_ctl_hw_set_power_state(snd_ctl_t *handle, unsigned int state)
 {
 	snd_ctl_hw_t *hw = handle->private_data;
@@ -388,6 +406,8 @@ static const snd_ctl_ops_t snd_ctl_hw_ops = {
 	.rawmidi_info = snd_ctl_hw_rawmidi_info,
 	.rawmidi_prefer_subdevice = snd_ctl_hw_rawmidi_prefer_subdevice,
 	.ump_next_device = snd_ctl_hw_ump_next_device,
+	.ump_endpoint_info = snd_ctl_hw_ump_endpoint_info,
+	.ump_block_info = snd_ctl_hw_ump_block_info,
 	.set_power_state = snd_ctl_hw_set_power_state,
 	.get_power_state = snd_ctl_hw_get_power_state,
 	.read = snd_ctl_hw_read,
