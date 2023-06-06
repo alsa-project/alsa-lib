@@ -712,7 +712,7 @@ int snd_ctl_ext_create(snd_ctl_ext_t *ext, const char *name, int mode)
 
 	if (ext->version < SNDRV_PROTOCOL_VERSION(1, 0, 0) ||
 	    ext->version > SND_CTL_EXT_VERSION) {
-		SNDERR("ctl_ext: Plugin version mismatch\n");
+		SNDERR("ctl_ext: Plugin version mismatch");
 		return -ENXIO;
 	}
 

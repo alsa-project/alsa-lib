@@ -1479,7 +1479,7 @@ int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
 
 		provider_legacy = false;
 		if (strcmp(id, "bclk_master") == 0) {
-			SNDERR("deprecated option %s, please use 'bclk'\n", id);
+			SNDERR("deprecated option %s, please use 'bclk'", id);
 			provider_legacy = true;
 		}
 
@@ -1531,7 +1531,7 @@ int tplg_parse_hw_config(snd_tplg_t *tplg, snd_config_t *cfg,
 
 		provider_legacy = false;
 		if (strcmp(id, "fsync_master") == 0) {
-			SNDERR("deprecated option %s, please use 'fsync'\n", id);
+			SNDERR("deprecated option %s, please use 'fsync'", id);
 			provider_legacy = true;
 		}
 

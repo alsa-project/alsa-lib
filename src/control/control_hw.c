@@ -348,7 +348,7 @@ static int snd_ctl_hw_read(snd_ctl_t *handle, snd_ctl_event_t *event)
 	if (res <= 0)
 		return -errno;
 	if (CHECK_SANITY(res != sizeof(*event))) {
-		SNDMSG("snd_ctl_hw_read: read size error (req:%d, got:%d)\n",
+		SNDMSG("snd_ctl_hw_read: read size error (req:%d, got:%d)",
 		       sizeof(*event), res);
 		return -EINVAL;
 	}

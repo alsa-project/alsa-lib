@@ -1741,7 +1741,7 @@ int snd_pcm_direct_parse_bindings(snd_pcm_direct_t *dmix,
 			continue;
 		err = safe_strtol(id, &cchannel);
 		if (err < 0 || cchannel < 0) {
-			SNDERR("invalid client channel in binding: %s\n", id);
+			SNDERR("invalid client channel in binding: %s", id);
 			return -EINVAL;
 		}
 		if ((unsigned)cchannel >= count)
@@ -1766,7 +1766,7 @@ int snd_pcm_direct_parse_bindings(snd_pcm_direct_t *dmix,
 			continue;
 		safe_strtol(id, &cchannel);
 		if (snd_config_get_integer(n, &schannel) < 0) {
-			SNDERR("unable to get slave channel (should be integer type) in binding: %s\n", id);
+			SNDERR("unable to get slave channel (should be integer type) in binding: %s", id);
 			free(bindings);
 			return -EINVAL;
 		}
@@ -1870,11 +1870,11 @@ static int _snd_pcm_direct_get_slave_ipc_offset(snd_config_t *root,
 		if (strcmp(id, "type") == 0) {
 			err = snd_config_get_string(n, &str);
 			if (err < 0) {
-				SNDERR("Invalid value for PCM type definition\n");
+				SNDERR("Invalid value for PCM type definition");
 				return -EINVAL;
 			}
 			if (strcmp(str, "hw")) {
-				SNDERR("Invalid type '%s' for slave PCM\n", str);
+				SNDERR("Invalid type '%s' for slave PCM", str);
 				return -EINVAL;
 			}
 			continue;

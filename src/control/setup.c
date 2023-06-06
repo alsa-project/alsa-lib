@@ -311,7 +311,7 @@ static int snd_config_get_ctl_elem_value(snd_config_t *conf,
 			unsigned int idx = 0;
 			if (len % 2 != 0 || len > count * 2) {
 			_bad_content:
-				SNDERR("bad value content\n");
+				SNDERR("bad value content");
 				return -EINVAL;
 			}
 			while (*buf) {

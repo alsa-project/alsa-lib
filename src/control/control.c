@@ -1321,7 +1321,7 @@ int snd_ctl_wait(snd_ctl_t *ctl, int timeout)
 
 	npfds = snd_ctl_poll_descriptors_count(ctl);
 	if (npfds <= 0 || npfds >= 16) {
-		SNDERR("Invalid poll_fds %d\n", npfds);
+		SNDERR("Invalid poll_fds %d", npfds);
 		return -EIO;
 	}
 	pfd = alloca(sizeof(*pfd) * npfds);
@@ -1329,7 +1329,7 @@ int snd_ctl_wait(snd_ctl_t *ctl, int timeout)
 	if (err < 0)
 		return err;
 	if (err != npfds) {
-		SNDMSG("invalid poll descriptors %d\n", err);
+		SNDMSG("invalid poll descriptors %d", err);
 		return -EIO;
 	}
 	for (;;) {

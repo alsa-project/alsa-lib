@@ -547,7 +547,7 @@ static int snd_pcm_hw_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 				SND_PCM_TSTAMP_TYPE_MONOTONIC;
 			if (ioctl(fd, SNDRV_PCM_IOCTL_TSTAMP, &on) < 0) {
 				err = -errno;
-				SNDMSG("TSTAMP failed\n");
+				SNDMSG("TSTAMP failed");
 				goto out;
 			}
 		}
@@ -1156,7 +1156,7 @@ static int snd_pcm_hw_close(snd_pcm_t *pcm)
 	int err = 0;
 	if (close(hw->fd)) {
 		err = -errno;
-		SYSMSG("close failed (%i)\n", err);
+		SYSMSG("close failed (%i)", err);
 	}
 
 	unmap_status_and_control_data(hw);
@@ -1279,7 +1279,7 @@ snd_pcm_query_chmaps_from_hw(int card, int dev, int subdev,
 
 	ret = snd_ctl_hw_open(&ctl, NULL, card, 0);
 	if (ret < 0) {
-		SYSMSG("Cannot open the associated CTL\n");
+		SYSMSG("Cannot open the associated CTL");
 		return NULL;
 	}
 
@@ -1287,7 +1287,7 @@ snd_pcm_query_chmaps_from_hw(int card, int dev, int subdev,
 	ret = snd_ctl_elem_tlv_read(ctl, &id, tlv, sizeof(tlv));
 	snd_ctl_close(ctl);
 	if (ret < 0) {
-		SYSMSG("Cannot read Channel Map TLV\n");
+		SYSMSG("Cannot read Channel Map TLV");
 		return NULL;
 	}
 
@@ -1301,7 +1301,7 @@ snd_pcm_query_chmaps_from_hw(int card, int dev, int subdev,
 	type = tlv[SNDRV_CTL_TLVO_TYPE];
 	if (type != SND_CTL_TLVT_CONTAINER) {
 		if (!is_chmap_type(type)) {
-			SYSMSG("Invalid TLV type %d\n", type);
+			SYSMSG("Invalid TLV type %d", type);
 			return NULL;
 		}
 		start = tlv;
@@ -1314,7 +1314,7 @@ snd_pcm_query_chmaps_from_hw(int card, int dev, int subdev,
 		nums = 0;
 		for (p = start; size > 0; ) {
 			if (!is_chmap_type(p[0])) {
-				SYSMSG("Invalid TLV type %d\n", p[0]);
+				SYSMSG("Invalid TLV type %d", p[0]);
 				return NULL;
 			}
 			nums++;
@@ -1405,7 +1405,7 @@ static snd_pcm_chmap_t *snd_pcm_hw_get_chmap(snd_pcm_t *pcm)
 	case SNDRV_PCM_STATE_SUSPENDED:
 		break;
 	default:
-		SYSMSG("Invalid PCM state for chmap_get: %s\n",
+		SYSMSG("Invalid PCM state for chmap_get: %s",
 		       snd_pcm_state_name(FAST_PCM_STATE(hw)));
 		return NULL;
 	}
@@ -1416,7 +1416,7 @@ static snd_pcm_chmap_t *snd_pcm_hw_get_chmap(snd_pcm_t *pcm)
 	ret = snd_ctl_hw_open(&ctl, NULL, hw->card, 0);
 	if (ret < 0) {
 		free(map);
-		SYSMSG("Cannot open the associated CTL\n");
+		SYSMSG("Cannot open the associated CTL");
 		chmap_caps_set_error(hw, CHMAP_CTL_GET);
 		return NULL;
 	}
@@ -1426,7 +1426,7 @@ static snd_pcm_chmap_t *snd_pcm_hw_get_chmap(snd_pcm_t *pcm)
 	snd_ctl_close(ctl);
 	if (ret < 0) {
 		free(map);
-		SYSMSG("Cannot read Channel Map ctl\n");
+		SYSMSG("Cannot read Channel Map ctl");
 		chmap_caps_set_error(hw, CHMAP_CTL_GET);
 		return NULL;
 	}
@@ -1452,17 +1452,17 @@ static int snd_pcm_hw_set_chmap(snd_pcm_t *pcm, const snd_pcm_chmap_t *map)
 		return -ENXIO;
 
 	if (map->channels > 128) {
-		SYSMSG("Invalid number of channels %d\n", map->channels);
+		SYSMSG("Invalid number of channels %d", map->channels);
 		return -EINVAL;
 	}
 	if (FAST_PCM_STATE(hw) != SNDRV_PCM_STATE_PREPARED) {
-		SYSMSG("Invalid PCM state for chmap_set: %s\n",
+		SYSMSG("Invalid PCM state for chmap_set: %s",
 		       snd_pcm_state_name(FAST_PCM_STATE(hw)));
 		return -EBADFD;
 	}
 	ret = snd_ctl_hw_open(&ctl, NULL, hw->card, 0);
 	if (ret < 0) {
-		SYSMSG("Cannot open the associated CTL\n");
+		SYSMSG("Cannot open the associated CTL");
 		chmap_caps_set_error(hw, CHMAP_CTL_SET);
 		return ret;
 	}
@@ -1480,7 +1480,7 @@ static int snd_pcm_hw_set_chmap(snd_pcm_t *pcm, const snd_pcm_chmap_t *map)
 		ret = -ENXIO;
 	}
 	if (ret < 0)
-		SYSMSG("Cannot write Channel Map ctl\n");
+		SYSMSG("Cannot write Channel Map ctl");
 	return ret;
 }
 
@@ -1644,7 +1644,7 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name, int fd,
 		unsigned int user_ver = SNDRV_PCM_VERSION;
 		if (ioctl(fd, SNDRV_PCM_IOCTL_USER_PVERSION, &user_ver) < 0) {
 			ret = -errno;
-			SNDMSG("USER_PVERSION failed\n");
+			SNDMSG("USER_PVERSION failed");
 			return ret;
 		}
 	}
@@ -1656,7 +1656,7 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name, int fd,
 			int on = SNDRV_PCM_TSTAMP_TYPE_MONOTONIC;
 			if (ioctl(fd, SNDRV_PCM_IOCTL_TTSTAMP, &on) < 0) {
 				ret = -errno;
-				SNDMSG("TTSTAMP failed\n");
+				SNDMSG("TTSTAMP failed");
 				return ret;
 			}
 			tstamp_type = SND_PCM_TSTAMP_TYPE_MONOTONIC;
@@ -1667,7 +1667,7 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name, int fd,
 		int on = 1;
 		if (ioctl(fd, SNDRV_PCM_IOCTL_TSTAMP, &on) < 0) {
 			ret = -errno;
-			SNDMSG("TSTAMP failed\n");
+			SNDMSG("TSTAMP failed");
 			return ret;
 		}
 	}

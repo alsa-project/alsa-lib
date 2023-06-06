@@ -1303,7 +1303,7 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 		++slaves_count;
 	}
 	if (master_slave < 0 || master_slave >= (long)slaves_count) {
-		SNDERR("Master slave is out of range (0-%u)\n", slaves_count-1);
+		SNDERR("Master slave is out of range (0-%u)", slaves_count-1);
 		return -EINVAL;
 	}
 	snd_config_for_each(i, inext, bindings) {

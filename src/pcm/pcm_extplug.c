@@ -690,7 +690,7 @@ int snd_pcm_extplug_create(snd_pcm_extplug_t *extplug, const char *name,
 	/* We support 1.0.0 to current */
 	if (extplug->version < 0x010000 ||
 	    extplug->version > SND_PCM_EXTPLUG_VERSION) {
-		SNDERR("extplug: Plugin version mismatch: 0x%x\n",
+		SNDERR("extplug: Plugin version mismatch: 0x%x",
 		       extplug->version);
 		return -ENXIO;
 	}

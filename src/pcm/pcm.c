@@ -2916,7 +2916,7 @@ int snd_pcm_wait_nocheck(snd_pcm_t *pcm, int timeout)
 	
 	npfds = __snd_pcm_poll_descriptors_count(pcm);
 	if (npfds <= 0 || npfds >= 16) {
-		SNDERR("Invalid poll_fds %d\n", npfds);
+		SNDERR("Invalid poll_fds %d", npfds);
 		return -EIO;
 	}
 	pfd = alloca(sizeof(*pfd) * npfds);
@@ -2924,7 +2924,7 @@ int snd_pcm_wait_nocheck(snd_pcm_t *pcm, int timeout)
 	if (err < 0)
 		return err;
 	if (err != npfds) {
-		SNDMSG("invalid poll descriptors %d\n", err);
+		SNDMSG("invalid poll descriptors %d", err);
 		return -EIO;
 	}
 	if (timeout == SND_PCM_WAIT_IO)
@@ -2932,7 +2932,7 @@ int snd_pcm_wait_nocheck(snd_pcm_t *pcm, int timeout)
 	else if (timeout == SND_PCM_WAIT_DRAIN)
 		timeout = __snd_pcm_wait_drain_timeout(pcm);
 	else if (timeout < -1)
-		SNDMSG("invalid snd_pcm_wait timeout argument %d\n", timeout);
+		SNDMSG("invalid snd_pcm_wait timeout argument %d", timeout);
 	do {
 		__snd_pcm_unlock(pcm->fast_op_arg);
 		err_poll = poll(pfd, npfds, timeout);
@@ -6399,7 +6399,7 @@ int snd_pcm_sw_params_set_start_mode(snd_pcm_t *pcm, snd_pcm_sw_params_t *params
 		params->start_threshold = pcm->boundary;
 		break;
 	default:
-		SNDMSG("invalid start mode value %d\n", val);
+		SNDMSG("invalid start mode value %d", val);
 		return -EINVAL;
 	}
 	return 0;
@@ -6447,7 +6447,7 @@ int snd_pcm_sw_params_set_xrun_mode(snd_pcm_t *pcm, snd_pcm_sw_params_t *params,
 		params->stop_threshold = pcm->boundary;
 		break;
 	default:
-		SNDMSG("invalid xrun mode value %d\n", val);
+		SNDMSG("invalid xrun mode value %d", val);
 		return -EINVAL;
 	}
 	return 0;
