@@ -743,6 +743,9 @@ if test ! -L "$srcdir"/include/alsa ; then
   ln -sf . "$srcdir"/include/alsa
 fi
 
+dnl enable large file support
+CFLAGS="${CFLAGS} -D_FILE_OFFSET_BITS=64"
+
 AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile doc/doxygen.cfg \
 	  include/Makefile include/sound/Makefile include/sound/uapi/Makefile \
 	  src/Versions src/Makefile \
