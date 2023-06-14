@@ -672,7 +672,7 @@ static int snd_pcm_hw_prepare(snd_pcm_t *pcm)
 
 	if (hw->prepare_reset_sw_params) {
 		snd_pcm_sw_params_current_no_lock(pcm, &sw_params);
-		if (ioctl(hw->fd, SNDRV_PCM_IOCTL_SW_PARAMS, sw_params) < 0) {
+		if (ioctl(hw->fd, SNDRV_PCM_IOCTL_SW_PARAMS, &sw_params) < 0) {
 			err = -errno;
 			SYSMSG("SNDRV_PCM_IOCTL_SW_PARAMS failed (%i)", err);
 			return err;
