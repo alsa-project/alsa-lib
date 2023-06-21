@@ -404,6 +404,10 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
  *        to e.g. automatically mute speakers when headphones are plugged in,
  *        but that's application policy configuration that doesn't belong
  *        to UCM configuration files.
+ *   - LatencyOffsetMs
+ *        The extra latency of the device, in milliseconds.
+ *        This field is meant as a workaround for drivers that do not report
+ *        an accurate latency, but with a constant offset.
  *   - MinBufferLevel
  *	- This is used on platform where reported buffer level is not accurate.
  *	  E.g. "512", which holds 512 samples in device buffer. Note: this will
