@@ -1,4 +1,4 @@
-SUBDIRS=. lsb
+SUBDIRS=. features lsb
 
 check_PROGRAMS=control pcm pcm_min latency seq \
 	       playmidi1 timer rawmidi midiloop \
