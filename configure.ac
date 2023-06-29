@@ -46,6 +46,7 @@ dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
 AC_C_INLINE
 AC_HEADER_TIME
+AC_CHECK_ATTRIBUTE_SYMVER
 
 dnl Checks for library functions.
 AC_PROG_GCC_TRADITIONAL
