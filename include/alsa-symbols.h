@@ -29,7 +29,7 @@
 #define INTERNAL_CONCAT2_2(Pre, Post) Pre##Post
 #define INTERNAL(Name) INTERNAL_CONCAT2_2(__, Name)
 
-#if __GNUC__ > 10
+#if HAVE_ATTRIBUTE_SYMVER && __GNUC__ > 10
 #define symbol_version(real, name, version) \
 	extern __typeof (real) real __attribute__((symver (#name "@" #version)))
 #define default_symbol_version(real, name, version) \
