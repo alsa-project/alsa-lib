@@ -94,7 +94,7 @@ static char *replace_string(char **dst, const char *value)
 /*
  * Parse string
  */
-int parse_string(snd_config_t *n, char **res)
+static int parse_string(snd_config_t *n, char **res)
 {
 	int err;
 
@@ -110,7 +110,7 @@ int parse_string(snd_config_t *n, char **res)
 /*
  * Parse string and substitute
  */
-int parse_string_substitute(snd_use_case_mgr_t *uc_mgr,
+static int parse_string_substitute(snd_use_case_mgr_t *uc_mgr,
 			    snd_config_t *n, char **res)
 {
 	const char *str;
@@ -129,7 +129,7 @@ int parse_string_substitute(snd_use_case_mgr_t *uc_mgr,
 /*
  * Parse string and substitute
  */
-int parse_string_substitute3(snd_use_case_mgr_t *uc_mgr,
+static int parse_string_substitute3(snd_use_case_mgr_t *uc_mgr,
 			     snd_config_t *n, char **res)
 {
 	if (uc_mgr->conf_format < 3)
@@ -140,7 +140,7 @@ int parse_string_substitute3(snd_use_case_mgr_t *uc_mgr,
 /*
  * Parse integer with substitution
  */
-int parse_integer_substitute(snd_use_case_mgr_t *uc_mgr,
+static int parse_integer_substitute(snd_use_case_mgr_t *uc_mgr,
 			     snd_config_t *n, long *res)
 {
 	char *s1, *s2;
@@ -160,7 +160,7 @@ int parse_integer_substitute(snd_use_case_mgr_t *uc_mgr,
 /*
  * Parse integer with substitution
  */
-int parse_integer_substitute3(snd_use_case_mgr_t *uc_mgr,
+static int parse_integer_substitute3(snd_use_case_mgr_t *uc_mgr,
 			      snd_config_t *n, long *res)
 {
 	char *s1, *s2;
@@ -184,7 +184,7 @@ int parse_integer_substitute3(snd_use_case_mgr_t *uc_mgr,
 /*
  * Parse safe ID
  */
-int parse_is_name_safe(const char *name)
+static int parse_is_name_safe(const char *name)
 {
 	if (strchr(name, '.')) {
 		uc_error("char '.' not allowed in '%s'", name);
@@ -193,7 +193,7 @@ int parse_is_name_safe(const char *name)
 	return 1;
 }
 
-int get_string3(snd_use_case_mgr_t *uc_mgr, const char *s1, char **s)
+static int get_string3(snd_use_case_mgr_t *uc_mgr, const char *s1, char **s)
 {
 	if (uc_mgr->conf_format < 3) {
 		*s = strdup(s1);
@@ -204,7 +204,7 @@ int get_string3(snd_use_case_mgr_t *uc_mgr, const char *s1, char **s)
 	return uc_mgr_get_substituted_value(uc_mgr, s, s1);
 }
 
-int parse_get_safe_name(snd_use_case_mgr_t *uc_mgr, snd_config_t *n,
+static int parse_get_safe_name(snd_use_case_mgr_t *uc_mgr, snd_config_t *n,
 			const char *alt, char **name)
 {
 	const char *id;
