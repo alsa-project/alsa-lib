@@ -333,7 +333,7 @@ void snd_seq_port_info_set_timestamping(snd_seq_port_info_t *info, int enable);
 void snd_seq_port_info_set_timestamp_real(snd_seq_port_info_t *info, int realtime);
 void snd_seq_port_info_set_timestamp_queue(snd_seq_port_info_t *info, int queue);
 void snd_seq_port_info_set_direction(snd_seq_port_info_t *info, int direction);
-void snd_seq_port_info_set_ump_gruop(snd_seq_port_info_t *info, int ump_group);
+void snd_seq_port_info_set_ump_group(snd_seq_port_info_t *info, int ump_group);
 
 int snd_seq_create_port(snd_seq_t *handle, snd_seq_port_info_t *info);
 int snd_seq_delete_port(snd_seq_t *handle, int port);

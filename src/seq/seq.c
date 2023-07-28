@@ -2545,7 +2545,7 @@ void snd_seq_port_info_set_direction(snd_seq_port_info_t *info, int direction)
  * \param info port_info container
  * \param ump_group 0 for no conversion, or the (1-based) UMP Group number
  *
- * \sa snd_seq_get_port_info(), snd_seq_port_info_get_ump_gruop()
+ * \sa snd_seq_get_port_info(), snd_seq_port_info_get_ump_group()
  */
 void snd_seq_port_info_set_ump_group(snd_seq_port_info_t *info, int ump_group)
 {
