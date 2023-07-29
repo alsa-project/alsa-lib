@@ -40,11 +40,12 @@
 const char *_snd_module_control_hw = "";
 #endif
 
+#ifndef DOC_HIDDEN
+
 #ifndef F_SETSIG
 #define F_SETSIG 10
 #endif
 
-#ifndef DOC_HIDDEN
 #define SNDRV_FILE_CONTROL	ALSA_DEVICE_DIRECTORY "controlC%i"
 #define SNDRV_CTL_VERSION_MAX	SNDRV_PROTOCOL_VERSION(2, 0, 4)
 
