@@ -254,8 +254,6 @@ extern "C" {
  * And data of these sections will be merged in the same order as they are
  * in the list, as the element's private data for kernel.
  *
- * </pre>
- *
  *  <h6>Vendor Tokens</h6>
  * A vendor token list is defined as a new section. Each token element is
  * a pair of string ID and integer value. And both the ID and value are

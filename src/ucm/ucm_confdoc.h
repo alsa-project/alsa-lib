@@ -397,18 +397,18 @@ ${CardDriver}        | ALSA card driver (see snd_ctl_card_info_get_driver())
 ${CardName}          | ALSA card name (see snd_ctl_card_info_get_name())
 ${CardLongName}      | ALSA card long name (see snd_ctl_card_info_get_longname())
 ${CardComponents}    | ALSA card components (see snd_ctl_card_info_get_components())
-${env:<str>}         | Environment variable <str>
-${sys:<str>}         | Contents of sysfs file <str>
-${var:<str>}         | UCM parser variable (set using a _Define_ block)
-${eval:<str>}        | Evaluate expression like *($var+2)/3* [**Syntax 5**]
-${find-card:<str>}   | Find a card - see _Find card substitution_ section
-${find-device:<str>} | Find a device - see _Find device substitution_ section
+${env:\<str\>}         | Environment variable \<str\>
+${sys:\<str\>}         | Contents of sysfs file \<str\>
+${var:\<str\>}         | UCM parser variable (set using a _Define_ block)
+${eval:\<str\>}        | Evaluate expression like *($var+2)/3* [**Syntax 5**]
+${find-card:\<str\>}   | Find a card - see _Find card substitution_ section
+${find-device:\<str\>} | Find a device - see _Find device substitution_ section
 
 #### Special whole string substitution
 
 Substituted string   | Value
 ---------------------|---------------------
-${evali:<str>}       | Evaluate expression like *($var+2)/3* [**Syntax 6**]; target node will be integer; substituted only in the LibraryConfig subtree
+${evali:\<str\>}       | Evaluate expression like *($var+2)/3* [**Syntax 6**]; target node will be integer; substituted only in the LibraryConfig subtree
 
 #### Find card substitution
 
