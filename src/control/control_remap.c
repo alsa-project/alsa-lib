@@ -33,6 +33,7 @@
 #include <string.h>
 #include "control_local.h"
 
+#ifndef DOC_HIDDEN
 #if 0
 #define REMAP_DEBUG 1
 #define debug(format, args...) fprintf(stderr, format, ##args)
@@ -48,6 +49,7 @@
 #endif
 
 #define EREMAPNOTFOUND (888899)
+#endif /* DOC_HIDDEN */
 
 #ifndef PIC
 /* entry for static linking */
@@ -379,10 +381,12 @@ static int snd_ctl_remap_elem_list(snd_ctl_t *ctl, snd_ctl_elem_list_t *list)
 	return 0;
 }
 
+#ifndef DOC_HIDDEN
 #define ACCESS_BITS(bits) \
 	(bits & (SNDRV_CTL_ELEM_ACCESS_READWRITE|\
 		 SNDRV_CTL_ELEM_ACCESS_VOLATILE|\
 		 SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE))
+#endif /* DOC_HIDDEN */
 
 static int remap_map_elem_info(snd_ctl_remap_t *priv, snd_ctl_elem_info_t *info)
 {
@@ -1141,6 +1145,7 @@ static int parse_map(snd_ctl_remap_t *priv, snd_config_t *conf)
  * \param name Name of control device
  * \param remap Remap configuration
  * \param map Map configuration
+ * \param child child configuration root
  * \param mode Control handle mode
  * \retval zero on success otherwise a negative error code
  * \warning Using of this function might be dangerous in the sense
@@ -1326,4 +1331,6 @@ int _snd_ctl_remap_open(snd_ctl_t **handlep, char *name, snd_config_t *root, snd
 		snd_ctl_close(cctl);
 	return err;
 }
+#ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(_snd_ctl_remap_open, SND_CONTROL_DLSYM_VERSION);
+#endif

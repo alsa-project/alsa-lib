@@ -428,6 +428,7 @@ int snd_ctl_elem_info(snd_ctl_t *ctl, snd_ctl_elem_info_t *info)
 	return ctl->ops->element_info(ctl, info);
 }
 
+#ifndef DOC_HIDDEN
 #if 0 /* deprecated */
 static bool validate_element_member_dimension(snd_ctl_elem_info_t *info)
 {
@@ -502,6 +503,8 @@ int __snd_ctl_add_elem_set(snd_ctl_t *ctl, snd_ctl_elem_info_t *info,
 
 	return ctl->ops->element_add(ctl, info);
 }
+
+#endif /* DOC_HIDDEN */
 
 /**
  * \brief Create and add some user-defined control elements of integer type.
