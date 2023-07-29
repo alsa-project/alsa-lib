@@ -622,7 +622,7 @@ The rest fields are filled by #snd_ctl_ext_create().  The handle field
 is the resultant PCM handle.  The others are the current status of the
 PCM.
 
-\section ctl_ext_impl Callback Functions of External Control Plugins
+\section ctl_ext_impl_cb Callback Functions of External Control Plugins
 
 The callback functions in #snd_ctl_ext_callback_t define the real
 behavior of the driver.  There are many callbacks but many of them are optional. 
