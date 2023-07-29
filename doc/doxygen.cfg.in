@@ -110,7 +110,7 @@ EXCLUDE		 = @top_srcdir@/src/control/control_local.h \
 RECURSIVE	 = YES
 FILE_PATTERNS    = *.c *.h
 EXAMPLE_PATH     = @top_srcdir@/test
-IMAGE_PATH	 = pictures
+IMAGE_PATH	 = @top_srcdir@/doc/pictures
 QUIET            = YES
 
 EXTRACT_ALL	 = NO
