@@ -650,8 +650,8 @@ parameter linked #snd_pcm_extplug_set_param_link() can be used for the
 corresponding parameter. For example if the extplug does not support channel nor
 format conversion the supported client parameters can be limited with
 snd_pcm_extplug_set_param_*() and afterwards
-#snd_pcm_extplug_set_param_link(ext, SND_PCM_EXTPLUG_HW_FORMAT, 1) and
-#snd_pcm_extplug_set_param_link(ext, SND_PCM_EXTPLUG_HW_CHANNELS, 1) should be
+snd_pcm_extplug_set_param_link(ext, SND_PCM_EXTPLUG_HW_FORMAT, 1) and
+snd_pcm_extplug_set_param_link(ext, SND_PCM_EXTPLUG_HW_CHANNELS, 1) should be
 called to keep the client and slave parameters the same.
 */
 

@@ -219,7 +219,7 @@ extern "C" {
  *
  * <pre>
  * SectionData."data element name" {
- *	index "1"	#Index number
+ *	index "1"	# Index number
  *	tuples [
  *		"id of the 1st vendor tuples section"
  *		"id of the 2nd vendor tuples section"
@@ -637,7 +637,7 @@ extern "C" {
  *		...
  *	]
  *
- *	default_hw_conf_id "1"		#default HW config ID for init
+ *	default_hw_conf_id "1"		# default HW config ID for init
  *
  *	# Optional boolean flags
  *	symmetric_rates			"true"
