@@ -674,6 +674,7 @@ const char *snd_ump_block_info_get_name(const snd_ump_block_info_t *info)
 
 /**
  * \brief get UMP block information
+ * \param ump UMP handle
  * \param info pointer to a snd_ump_block_info_t structure
  * \return 0 on success otherwise a negative error code
  *
