@@ -315,7 +315,7 @@ size_t snd_ump_endpoint_info_sizeof(void)
 
 /**
  * \brief allocate the snd_ump_endpoint_info_t structure
- * \param ptr returned pointer
+ * \param info returned pointer
  * \return 0 on success otherwise a negative error code if fails
  *
  * Allocates a new snd_rawmidi_status_t structure using the standard
@@ -331,7 +331,7 @@ int snd_ump_endpoint_info_malloc(snd_ump_endpoint_info_t **info)
 
 /**
  * \brief frees the snd_ump_endpoint_info_t structure
- * \param status pointer to the snd_ump_endpoint_info_t structure to free
+ * \param info pointer to the snd_ump_endpoint_info_t structure to free
  *
  * Frees the given snd_ump_endpoint_info_t structure using the standard
  * free C library function.
@@ -504,7 +504,7 @@ size_t snd_ump_block_info_sizeof(void)
 
 /**
  * \brief allocate the snd_ump_block_info_t structure
- * \param ptr returned pointer
+ * \param info returned pointer
  * \return 0 on success otherwise a negative error code if fails
  *
  * Allocates a new snd_ump_block_info_t structure using the standard
@@ -520,7 +520,7 @@ int snd_ump_block_info_malloc(snd_ump_block_info_t **info)
 
 /**
  * \brief frees the snd_ump_block_info_t structure
- * \param status pointer to the snd_ump_block_info_t structure to free
+ * \param info pointer to the snd_ump_block_info_t structure to free
  *
  * Frees the given snd_ump_block_info_t structure using the standard
  * free C library function.

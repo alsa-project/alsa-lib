@@ -2234,7 +2234,7 @@ const char *snd_pcm_tstamp_mode_name(const snd_pcm_tstamp_t mode)
 
 /**
  * \brief get name of PCM tstamp type setting
- * \param mode PCM tstamp type
+ * \param type PCM tstamp type
  * \return ascii name of PCM tstamp type setting
  */
 const char *snd_pcm_tstamp_type_name(snd_pcm_tstamp_type_t type)
@@ -3439,10 +3439,10 @@ int snd_pcm_areas_copy(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_
 
 /**
  * \brief Copy one or more areas
- * \param dst_areas destination areas specification (one for each channel)
+ * \param dst_channels destination areas specification (one for each channel)
  * \param dst_offset offset in frames inside destination area
  * \param dst_size size in frames of the destination buffer
- * \param src_areas source areas specification (one for each channel)
+ * \param src_channels source areas specification (one for each channel)
  * \param src_offset offset in frames inside source area
  * \param dst_size size in frames of the source buffer
  * \param channels channels count
@@ -7022,7 +7022,7 @@ void snd_pcm_status_get_driver_htstamp(const snd_pcm_status_t *obj, snd_htimesta
 /**
  * \brief Get audio_tstamp_report from a PCM status container
  * \param obj pointer to #snd_pcm_status_t
- * \param ptr Pointer to returned report (valid fields are accuracy and type)
+ * \param audio_tstamp_report Pointer to returned report (valid fields are accuracy and type)
  */
 void snd_pcm_status_get_audio_htstamp_report(const snd_pcm_status_t *obj,
 					     snd_pcm_audio_tstamp_report_t *audio_tstamp_report)
@@ -7036,7 +7036,7 @@ void snd_pcm_status_get_audio_htstamp_report(const snd_pcm_status_t *obj,
 /**
  * \brief set audio_tstamp_config from a PCM status container
  * \param obj pointer to #snd_pcm_status_t
- * \param ptr Pointer to config (valid fields are type and report_analog_delay)
+ * \param audio_tstamp_config Pointer to config (valid fields are type and report_analog_delay)
  */
 void snd_pcm_status_set_audio_htstamp_config(snd_pcm_status_t *obj,
 					     snd_pcm_audio_tstamp_config_t *audio_tstamp_config)
