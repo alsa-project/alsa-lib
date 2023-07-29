@@ -47,7 +47,7 @@ typedef struct _snd_mixer_elem snd_mixer_elem_t;
 
 /** 
  * \brief Mixer callback function
- * \param mixer Mixer handle
+ * \param ctl Mixer handle
  * \param mask event mask
  * \param elem related mixer element (if any)
  * \return 0 on success otherwise a negative error code

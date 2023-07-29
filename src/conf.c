@@ -2055,7 +2055,7 @@ int snd_config_load(snd_config_t *config, snd_input_t *in)
 
 /**
  * \brief Loads a configuration tree from a string.
- * \param[out] The function puts the handle to the configuration
+ * \param[out] config The function puts the handle to the configuration
  *	       node loaded from the file(s) at the address specified
  *             by \a config.
  * \param[in] s String with the ASCII configuration
@@ -2260,9 +2260,9 @@ static int _snd_config_array_merge(snd_config_t *dst, snd_config_t *src, int ind
 
 /**
  * \brief In-place merge of two config handles
- * \param dst[out] Config handle for the merged contents
- * \param src[in] Config handle to merge into dst (may be NULL)
- * \param override[in] Override flag
+ * \param[out] dst Config handle for the merged contents
+ * \param[in] src Config handle to merge into dst (may be NULL)
+ * \param[in] override Override flag
  * \return Zero if successful, otherwise a negative error code.
  *
  * This function merges all fields from the source compound to the destination compound.

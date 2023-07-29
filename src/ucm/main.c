@@ -2791,7 +2791,7 @@ int snd_use_case_set(snd_use_case_mgr_t *uc_mgr,
 
 /**
  * \brief Parse control element identifier
- * \param elem_id Element identifier
+ * \param dst Element identifier
  * \param ucm_id Use case identifier
  * \param value String value to be parsed
  * \return Zero if success, otherwise a negative error code
