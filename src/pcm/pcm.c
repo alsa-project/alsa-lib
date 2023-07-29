@@ -3444,7 +3444,7 @@ int snd_pcm_areas_copy(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_
  * \param dst_size size in frames of the destination buffer
  * \param src_channels source areas specification (one for each channel)
  * \param src_offset offset in frames inside source area
- * \param dst_size size in frames of the source buffer
+ * \param src_size size in frames of the source buffer
  * \param channels channels count
  * \param frames frames to copy
  * \param format PCM sample format
@@ -7022,7 +7022,7 @@ void snd_pcm_status_get_driver_htstamp(const snd_pcm_status_t *obj, snd_htimesta
 /**
  * \brief Get audio_tstamp_report from a PCM status container
  * \param obj pointer to #snd_pcm_status_t
- * \param audio_tstamp_report Pointer to returned report (valid fields are accuracy and type)
+ * \param audio_tstamp_report Pointer to returned report
  */
 void snd_pcm_status_get_audio_htstamp_report(const snd_pcm_status_t *obj,
 					     snd_pcm_audio_tstamp_report_t *audio_tstamp_report)
@@ -7036,7 +7036,7 @@ void snd_pcm_status_get_audio_htstamp_report(const snd_pcm_status_t *obj,
 /**
  * \brief set audio_tstamp_config from a PCM status container
  * \param obj pointer to #snd_pcm_status_t
- * \param audio_tstamp_config Pointer to config (valid fields are type and report_analog_delay)
+ * \param audio_tstamp_config Pointer to config (valid fields are type_requested and report_delay)
  */
 void snd_pcm_status_set_audio_htstamp_config(snd_pcm_status_t *obj,
 					     snd_pcm_audio_tstamp_config_t *audio_tstamp_config)

@@ -766,7 +766,9 @@ static int strtochannel(const char *id, snd_pcm_chmap_t *chmap,
 	}
 }
 
+#ifndef DOC_HIDDEN
 #define MAX_CHMAP_CHANNELS 256
+#endif
 
 static int determine_chmap(snd_config_t *tt, snd_pcm_chmap_t **tt_chmap)
 {

@@ -34,9 +34,11 @@
 #include "pcm_local.h"
 #include "pcm_plugin.h"
 
+#ifndef DOC_HIDDEN
 #define atomic_read(ptr)    __atomic_load_n(ptr, __ATOMIC_SEQ_CST )
 #define atomic_add(ptr, n)  __atomic_add_fetch(ptr, n, __ATOMIC_SEQ_CST)
 #define atomic_dec(ptr)     __atomic_sub_fetch(ptr, 1, __ATOMIC_SEQ_CST)
+#endif
 
 #ifndef PIC
 /* entry for static linking */
