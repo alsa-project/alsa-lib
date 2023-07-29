@@ -215,6 +215,8 @@ extern "C" {
 #define CEA861_AUDIO_INFOFRAME_DB5_DM_INH_PROHIBITED (1<<7) /**< stereo downmis prohibited */
 #define CEA861_AUDIO_INFOFRAME_DB5_LSV		(0xf<<3) /**< mask - level-shift values */
 
+/** \} */
+
 /**
  * \defgroup MIDI_Interface Constants for MIDI v1.0
  * Constants for MIDI v1.0.
@@ -223,6 +225,8 @@ extern "C" {
 
 #define MIDI_CHANNELS			16	/**< Number of channels per port/cable. */
 #define MIDI_GM_DRUM_CHANNEL		(10-1)	/**< Channel number for GM drums. */
+
+/** \} */
 
 /**
  * \defgroup MIDI_Commands MIDI Commands
@@ -332,8 +336,6 @@ extern "C" {
 #define MIDI_CTL_OMNI_ON		0x7d	/**< Omni on */
 #define MIDI_CTL_MONO1			0x7e	/**< Mono1 */
 #define MIDI_CTL_MONO2			0x7f	/**< Mono2 */
-
-/** \} */
 
 /** \} */
 

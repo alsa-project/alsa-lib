@@ -1167,7 +1167,7 @@ int snd_tplg_save(snd_tplg_t *tplg, char **dst, int flags);
  */
 int snd_tplg_decode(snd_tplg_t *tplg, void *bin, size_t size, int dflags);
 
-/* \} */
+/** \} */
 
 #ifdef __cplusplus
 }
