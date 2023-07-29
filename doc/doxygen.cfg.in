@@ -42,6 +42,7 @@ INPUT            = @top_srcdir@/doc/index.doxygen \
 		   @top_srcdir@/src/userfile.c \
 		   @top_srcdir@/src/control/cards.c \
 		   @top_srcdir@/src/control/control.c \
+		   @top_srcdir@/src/control/control_ext.c \
 		   @top_srcdir@/src/control/control_plugin.c \
 		   @top_srcdir@/src/control/control_hw.c \
 		   @top_srcdir@/src/control/control_remap.c \
