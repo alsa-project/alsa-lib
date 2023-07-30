@@ -1763,7 +1763,9 @@ int snd_seq_client_info_get_ump_group_enabled(const snd_seq_client_info_t *info,
 	return !(info->group_filter & (1U << group));
 }
 
+#ifndef DOC_HIDDEN
 #define UMP_GROUPLESS_FILTER	(1U << 0)
+#endif /* DOC_HIDDEN */
 
 /**
  * \brief Get the UMP groupless message handling status
