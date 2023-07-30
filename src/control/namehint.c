@@ -1,5 +1,6 @@
 /**
  * \file control/namehint.c
+ * \ingroup Configuration
  * \brief Give device name hints
  * \author Jaroslav Kysela <perex@perex.cz>
  * \date 2006
