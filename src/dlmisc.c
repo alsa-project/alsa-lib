@@ -170,8 +170,10 @@ EXPORT_SYMBOL void *INTERNAL(snd_dlopen_old)(const char *name, int mode)
 }
 #endif
 
+#ifndef DOC_HIDDEN
 use_symbol_version(__snd_dlopen_old, snd_dlopen, ALSA_0.9);
 use_default_symbol_version(__snd_dlopen, snd_dlopen, ALSA_1.1.6);
+#endif /* DOC_HIDDEN */
 
 /**
  * \brief Closes a dynamic library - ALSA wrapper for \c dlclose.
