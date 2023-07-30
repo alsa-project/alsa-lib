@@ -781,9 +781,11 @@ EOF
 fi
 cat >> include/asoundlib.h <<EOF
 
+#ifndef DOC_HIDDEN
 #ifndef __GNUC__
 #define __inline__ inline
 #endif
+#endif /* DOC_HIDDEN */
 
 #include <alsa/asoundef.h>
 #include <alsa/version.h>
