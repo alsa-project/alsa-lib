@@ -128,9 +128,11 @@ int snd_async_handler_get_fd(snd_async_handler_t *handler);
 int snd_async_handler_get_signo(snd_async_handler_t *handler);
 void *snd_async_handler_get_callback_private(snd_async_handler_t *handler);
 
+#ifdef HAVE_SYS_SHM_H
 struct snd_shm_area *snd_shm_area_create(int shmid, void *ptr);
 struct snd_shm_area *snd_shm_area_share(struct snd_shm_area *area);
 int snd_shm_area_destroy(struct snd_shm_area *area);
+#endif
 
 int snd_user_file(const char *file, char **result);
 

@@ -18,6 +18,16 @@
  *
  */
 
+/**
+ * \file shmarea.c
+ * \ingroup Global
+ * \brief shared memory helpers
+ * \author Jaroslav Kysela <perex@perex.cz>
+ * \date 2001
+ *
+ * Shared memory helpers
+ */
+
 #include "config.h"
 
 /* These funcs are only used by pcm_mmap when sys/shm.h is available. */
@@ -102,6 +112,7 @@ int snd_shm_area_destroy(struct snd_shm_area *area)
 	return 0;
 }
 
+#ifndef DOC_HIDDEN
 void snd_shm_area_destructor(void) __attribute__ ((destructor));
 
 void snd_shm_area_destructor(void)
@@ -114,5 +125,6 @@ void snd_shm_area_destructor(void)
 		shmdt(area->ptr);
 	}
 }
+#endif /* DOC_HIDDEN */
 
 #endif

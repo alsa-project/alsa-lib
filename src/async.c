@@ -29,7 +29,9 @@
 #include <signal.h>
 
 static struct sigaction previous_action;
+#ifndef DOC_HIDDEN
 #define MAX_SIG_FUNCTION_CODE 10 /* i.e. SIG_DFL SIG_IGN SIG_HOLD et al */
+#endif /* DOC_HIDDEN */
 
 #ifdef SND_ASYNC_RT_SIGNAL
 /** async signal number */
