@@ -1365,10 +1365,12 @@ int tplg_save_cc(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 	return err;
 }
 
+#ifndef DOC_HIDDEN
 struct audio_hw_format {
 	unsigned int type;
 	const char *name;
 };
+#endif /* DOC_HIDDEN */
 
 static struct audio_hw_format audio_hw_formats[] = {
 	{

@@ -20,12 +20,14 @@
 #include "list.h"
 #include "tplg_local.h"
 
+#ifndef DOC_HIDDEN
 #define ENUM_VAL_SIZE 	(SNDRV_CTL_ELEM_ID_NAME_MAXLEN >> 2)
 
 struct ctl_access_elem {
 	const char *name;
 	unsigned int value;
 };
+#endif /* DOC_HIDDEN */
 
 /* CTL access strings and codes */
 /* place the multi-bit values on top - like read_write - for save */

@@ -482,10 +482,12 @@ struct tplg_elem* tplg_elem_new_common(snd_tplg_t *tplg,
 	return elem;
 }
 
+#ifndef DOC_HIDDEN
 struct tplg_alloc {
 	struct list_head list;
 	void *data[0];
 };
+#endif /* DOC_HIDDEN */
 
 void *tplg_calloc(struct list_head *heap, size_t size)
 {

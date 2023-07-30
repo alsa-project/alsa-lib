@@ -840,7 +840,7 @@ struct snd_tplg_tlv_dbscale_template {
 	int mute;			/*!< is min dB value mute ? */
 };
 
-/** \struct snd_tplg_channel_template
+/** \struct snd_tplg_channel_elem
  * \brief Template type for single channel mapping.
  */
 struct snd_tplg_channel_elem {
@@ -1021,26 +1021,26 @@ struct snd_tplg_pcm_template {
  * hardware config, i.e. hardware audio formats.
  */
 struct snd_tplg_hw_config_template {
-	int id;                         /* unique ID - - used to match */
-	unsigned int fmt;               /* SND_SOC_DAI_FORMAT_ format value */
-	unsigned char clock_gated;      /* SND_SOC_TPLG_DAI_CLK_GATE_ value */
-	unsigned char  invert_bclk;     /* 1 for inverted BCLK, 0 for normal */
-	unsigned char  invert_fsync;    /* 1 for inverted frame clock, 0 for normal */
-	unsigned char  bclk_provider;   /* SND_SOC_TPLG_BCLK_ value */
-	unsigned char  fsync_provider;  /* SND_SOC_TPLG_FSYNC_ value */
-	unsigned char  mclk_direction;  /* SND_SOC_TPLG_MCLK_ value */
-	unsigned short reserved;        /* for 32bit alignment */
-	unsigned int mclk_rate;	        /* MCLK or SYSCLK freqency in Hz */
-	unsigned int bclk_rate;	        /* BCLK freqency in Hz */
-	unsigned int fsync_rate;        /* frame clock in Hz */
-	unsigned int tdm_slots;         /* number of TDM slots in use */
-	unsigned int tdm_slot_width;    /* width in bits for each slot */
-	unsigned int tx_slots;          /* bit mask for active Tx slots */
-	unsigned int rx_slots;          /* bit mask for active Rx slots */
-	unsigned int tx_channels;       /* number of Tx channels */
-	unsigned int *tx_chanmap;       /* array of slot number */
-	unsigned int rx_channels;       /* number of Rx channels */
-	unsigned int *rx_chanmap;       /* array of slot number */
+	int id;                         /*!< unique ID - - used to match */
+	unsigned int fmt;               /*!< SND_SOC_DAI_FORMAT_ format value */
+	unsigned char clock_gated;      /*!< SND_SOC_TPLG_DAI_CLK_GATE_ value */
+	unsigned char  invert_bclk;     /*!< 1 for inverted BCLK, 0 for normal */
+	unsigned char  invert_fsync;    /*!< 1 for inverted frame clock, 0 for normal */
+	unsigned char  bclk_provider;   /*!< SND_SOC_TPLG_BCLK_ value */
+	unsigned char  fsync_provider;  /*!< SND_SOC_TPLG_FSYNC_ value */
+	unsigned char  mclk_direction;  /*!< SND_SOC_TPLG_MCLK_ value */
+	unsigned short reserved;        /*!< for 32bit alignment */
+	unsigned int mclk_rate;	        /*!< MCLK or SYSCLK freqency in Hz */
+	unsigned int bclk_rate;	        /*!< BCLK freqency in Hz */
+	unsigned int fsync_rate;        /*!< frame clock in Hz */
+	unsigned int tdm_slots;         /*!< number of TDM slots in use */
+	unsigned int tdm_slot_width;    /*!< width in bits for each slot */
+	unsigned int tx_slots;          /*!< bit mask for active Tx slots */
+	unsigned int rx_slots;          /*!< bit mask for active Rx slots */
+	unsigned int tx_channels;       /*!< number of Tx channels */
+	unsigned int *tx_chanmap;       /*!< array of slot number */
+	unsigned int rx_channels;       /*!< number of Rx channels */
+	unsigned int *rx_chanmap;       /*!< array of slot number */
 };
 
 /** \struct snd_tplg_dai_template
@@ -1071,15 +1071,15 @@ struct snd_tplg_link_template {
 	struct snd_tplg_stream_template *stream;       /*!< supported configs */
 
 	struct snd_tplg_hw_config_template *hw_config; /*!< supported HW configs */
-	int num_hw_configs;		/* number of hw configs */
-	int default_hw_config_id;       /* default hw config ID for init */
+	int num_hw_configs;		/*!< number of hw configs */
+	int default_hw_config_id;       /*!< default hw config ID for init */
 
-	unsigned int flag_mask;         /* bitmask of flags to configure */
-	unsigned int flags;             /* SND_SOC_TPLG_LNK_FLGBIT_* flag value */
+	unsigned int flag_mask;         /*!< bitmask of flags to configure */
+	unsigned int flags;             /*!< SND_SOC_TPLG_LNK_FLGBIT_* flag value */
 	struct snd_soc_tplg_private *priv; /*!< private data */
 };
 
-/** \struct snd_tplg_obj_template
+/** \struct snd_tplg_obj_template_t
  * \brief Generic Template Object
  */
 typedef struct snd_tplg_obj_template {
@@ -1152,7 +1152,13 @@ int snd_tplg_set_version(snd_tplg_t *tplg, unsigned int version);
  * \brief Save the topology to the text configuration string.
  * \param tplg Topology instance.
  * \param dst A pointer to string with result (malloc).
+ * \param flags save mode
  * \return Zero on success, otherwise a negative error code
+ *
+ * Valid flags are
+ *    - SND_TPLG_SAVE_SORT
+ *    - SND_TPLG_SAVE_GROUPS
+ *    - SND_TPLG_SAVE_NOCHECK
  */
 int snd_tplg_save(snd_tplg_t *tplg, char **dst, int flags);
 
@@ -1161,6 +1167,7 @@ int snd_tplg_save(snd_tplg_t *tplg, char **dst, int flags);
  * \param tplg Topology instance.
  * \param bin Binary topology input buffer.
  * \param size Binary topology input buffer size.
+ * \param dflags - not used, must be set to 0.
  * \return Zero on success, otherwise a negative error code
  */
 int snd_tplg_decode(snd_tplg_t *tplg, void *bin, size_t size, int dflags);
