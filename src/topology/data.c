@@ -712,11 +712,13 @@ static int build_tuples(snd_tplg_t *tplg, struct tplg_elem *elem)
 	return 0;
 }
 
+#ifndef DOC_HIDDEN
 struct tuple_type {
 	unsigned int type;
 	const char *name;
 	unsigned int size;
 };
+#endif /* DOC_HIDDEN */
 
 static struct tuple_type tuple_types[] = {
 	{
