@@ -1505,12 +1505,6 @@ skip:
 	return end + 3;
 }
 
-/**
- * \brief Init sound card use case manager.
- * \param uc_mgr Returned use case manager pointer
- * \param card_name name of card to open
- * \return zero on success, otherwise a negative error code
- */
 int snd_use_case_mgr_open(snd_use_case_mgr_t **uc_mgr,
 			  const char *card_name)
 {
@@ -1577,11 +1571,6 @@ _err:
 	return err;
 }
 
-/**
- * \brief Reload and reparse all use case files.
- * \param uc_mgr Use case manager
- * \return zero on success, otherwise a negative error code
- */
 int snd_use_case_mgr_reload(snd_use_case_mgr_t *uc_mgr)
 {
 	int err;
@@ -1606,11 +1595,6 @@ int snd_use_case_mgr_reload(snd_use_case_mgr_t *uc_mgr)
 	return err;
 }
 
-/**
- * \brief Close use case manager.
- * \param uc_mgr Use case manager
- * \return zero on success, otherwise a negative error code
- */
 int snd_use_case_mgr_close(snd_use_case_mgr_t *uc_mgr)
 {
 	uc_mgr_card_close(uc_mgr);
@@ -1659,11 +1643,6 @@ static int dismantle_use_case(snd_use_case_mgr_t *uc_mgr)
 	return err;
 }
 
-/**
- * \brief Reset sound card controls to default values.
- * \param uc_mgr Use case manager
- * \return zero on success, otherwise a negative error code
- */
 int snd_use_case_mgr_reset(snd_use_case_mgr_t *uc_mgr)
 {
 	int err;
@@ -2095,13 +2074,6 @@ static int get_enabled_modifier_list(snd_use_case_mgr_t *uc_mgr,
 			name);
 }
 
-/**
- * \brief Obtain a list of entries
- * \param uc_mgr Use case manager (may be NULL - card list)
- * \param identifier (may be NULL - card list)
- * \param list Returned allocated list
- * \return Number of list entries if success, otherwise a negative error code
- */
 int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
 			  const char *identifier,
 			  const char **list[])
@@ -2312,16 +2284,6 @@ static int get_alibpref(snd_use_case_mgr_t *uc_mgr, char **str)
 	return 0;
 }
 
-/**
- * \brief Get current - string
- * \param uc_mgr Use case manager
- * \param identifier 
- * \param value Value pointer
- * \return Zero if success, otherwise a negative error code
- *
- * Note: String is dynamically allocated, use free() to
- * deallocate this string.
- */      
 int snd_use_case_get(snd_use_case_mgr_t *uc_mgr,
 		     const char *identifier,
 		     const char **value)
@@ -2434,12 +2396,6 @@ int snd_use_case_get(snd_use_case_mgr_t *uc_mgr,
 	; val; /* return value */ \
 })
 
-/**
- * \brief Get current - integer
- * \param uc_mgr Use case manager
- * \param identifier
- * \return Value if success, otherwise a negative error code
- */
 int snd_use_case_geti(snd_use_case_mgr_t *uc_mgr,
 		      const char *identifier,
 		      long *value)
@@ -2732,13 +2688,6 @@ static int switch_modifier(snd_use_case_mgr_t *uc_mgr,
 	return err;
 }
 
-/**
- * \brief Set new
- * \param uc_mgr Use case manager
- * \param identifier
- * \param value Value
- * \return Zero if success, otherwise a negative error code
- */
 int snd_use_case_set(snd_use_case_mgr_t *uc_mgr,
 		     const char *identifier,
 		     const char *value)
