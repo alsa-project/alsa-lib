@@ -33,7 +33,7 @@ extern "C" {
 #endif
 
 /**
- *  \defgroup Config Configuration Interface
+ *  \defgroup Configuration Configuration Interface
  *  The configuration functions and types allow you to read, enumerate,
  *  modify and write the contents of ALSA configuration files.
  *  \{
@@ -109,6 +109,16 @@ int snd_config_search_definition(snd_config_t *config,
 				 const char *base, const char *key,
 				 snd_config_t **result);
 
+/**
+ * \brief custom expansion callback
+ * \param[out] dst The function puts the handle to the new configuration
+ *                 node at the address specified by \a dst.
+ * \param[in] s string the string to be expanded
+ * \param[in] private_data Handle to the \c private_data node.
+ * \return A non-negative value if successful, otherwise a negative error code.
+ *
+ * Use a function of this type to define a custom expansion 
+ */
 typedef int (*snd_config_expand_fcn_t)(snd_config_t **dst, const char *s, void *private_data);
 
 int snd_config_expand_custom(snd_config_t *config, snd_config_t *root,

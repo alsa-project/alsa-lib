@@ -645,7 +645,7 @@ static int string_from_integer(char **dst, long v)
 }
 #endif
 
-int _snd_func_private_data(snd_config_t **dst, snd_config_t *src,
+static int _snd_func_private_data(snd_config_t **dst, snd_config_t *src,
 			   snd_config_t **private_data, const char *id)
 {
 	int err;

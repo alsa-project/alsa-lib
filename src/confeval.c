@@ -38,7 +38,9 @@
 #include <ctype.h>
 #include <limits.h>
 
+#ifndef DOC_HIDDEN
 typedef long long value_type_t;
+#endif /* DOC_HIDDEN */
 
 static const char *_find_end_of_expression(const char *s, char begin, char end)
 {
@@ -119,6 +121,7 @@ static int _to_integer(value_type_t *val, snd_config_t *c)
 	return err;
 }
 
+#ifndef DOC_HIDDEN
 int _snd_eval_string(snd_config_t **dst, const char *s,
 		     snd_config_expand_fcn_t fcn, void *private_data)
 {
@@ -244,6 +247,7 @@ int _snd_eval_string(snd_config_t **dst, const char *s,
 	else
 		return snd_config_imake_integer(dst, NULL, left);
 }
+#endif /* DOC_HIDDEN */
 
 /**
  * \brief Evaluate an math expression in the string
@@ -251,7 +255,7 @@ int _snd_eval_string(snd_config_t **dst, const char *s,
  *                 node at the address specified by \a dst.
  * \param[in] s A string to evaluate
  * \param[in] fcn A function to get the variable contents
- * \param[in] private_value A private value for the variable contents function
+ * \param[in] private_data A private value for the variable contents function
  * \return 0 if successful, otherwise a negative error code.
  */
 int snd_config_evaluate_string(snd_config_t **dst, const char *s,
