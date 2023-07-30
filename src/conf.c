@@ -527,7 +527,7 @@ static inline void snd_config_unlock(void) { }
 #endif
 
 /*
- * Add a diretory to the paths to search included files.
+ * Add a directory to the paths to search included files.
  * param fd -  File object that owns these paths to search files included by it.
  * param dir - Path of the directory to add. Allocated externally and need to
 *              be freed manually later.
@@ -584,6 +584,8 @@ static void free_include_paths(struct filedesc *fd)
 	}
 }
 
+#endif /* DOC_HIDDEN */
+
 /**
  * \brief Returns the default top-level config directory
  * \return The top-level config directory path string
@@ -604,6 +606,8 @@ const char *snd_config_topdir(void)
 	}
 	return topdir;
 }
+
+#ifndef DOC_HIDDEN
 
 static char *_snd_config_path(const char *name)
 {
@@ -1700,7 +1704,7 @@ static int _snd_config_save_children(snd_config_t *config, snd_output_t *out,
 	}
 	return 0;
 }
-#endif
+#endif /* DOC_HIDDEN */
 
 
 /**
@@ -2873,6 +2877,26 @@ int snd_config_imake_string(snd_config_t **config, const char *id, const char *v
 	return 0;
 }
 
+/**
+ * \brief Creates a string configuration node with the given initial value.
+ * \param[out] config The function puts the handle to the new node at
+ *                    the address specified by \a config.
+ * \param[in] id The id of the new node.
+ * \param[in] value The initial value of the new node.  May be \c NULL.
+ * \return Zero if successful, otherwise a negative error code.
+ *
+ * This function creates a new node of type #SND_CONFIG_TYPE_STRING. The node
+ * contains with a copy of the string \c value, replacing any character other
+ * than alphanumeric, space, or '-' with the character '_'.
+ *
+ * \par Errors:
+ * <dl>
+ * <dt>-ENOMEM<dd>Out of memory.
+ * </dl>
+ *
+ * \par Conforming to:
+ * LSB 3.2
+ */
 int snd_config_imake_safe_string(snd_config_t **config, const char *id, const char *value)
 {
 	int err;
@@ -3894,7 +3918,6 @@ int snd_config_search_alias_hooks(snd_config_t *config,
 #define ALSA_CONFIG_PATH_VAR "ALSA_CONFIG_PATH"
 
 /**
- * \ingroup Config
  * \brief Configuration top-level node (the global configuration).
  *
  * This variable contains a handle to the top-level configuration node,
@@ -4295,7 +4318,7 @@ SND_DLSYM_BUILD_VERSION(snd_config_hook_load, SND_CONFIG_DLSYM_VERSION_HOOK);
 int snd_determine_driver(int card, char **driver);
 #endif
 
-snd_config_t *_snd_config_hook_private_data(int card, const char *driver)
+static snd_config_t *_snd_config_hook_private_data(int card, const char *driver)
 {
 	snd_config_t *private_data, *v;
 	int err;
@@ -5810,6 +5833,7 @@ static void _snd_config_end(void)
 }
 #endif
 
+#ifndef DOC_HIDDEN
 size_t page_size(void)
 {
 	long s = sysconf(_SC_PAGE_SIZE);
@@ -5845,3 +5869,4 @@ size_t page_ptr(size_t object_offset, size_t object_size, size_t *offset, size_t
 	*offset = object_offset;
 	return r;
 }
+#endif /* DOC_HIDDEN */

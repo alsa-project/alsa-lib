@@ -36,6 +36,7 @@ INPUT            = @top_srcdir@/doc/index.doxygen \
 		   @top_srcdir@/src/input.c \
 		   @top_srcdir@/src/output.c \
 		   @top_srcdir@/src/conf.c \
+		   @top_srcdir@/src/confeval.c \
 		   @top_srcdir@/src/confmisc.c \
 		   @top_srcdir@/src/names.c \
 		   @top_srcdir@/src/shmarea.c \
