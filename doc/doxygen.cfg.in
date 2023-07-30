@@ -50,6 +50,7 @@ INPUT            = @top_srcdir@/doc/index.doxygen \
 		   @top_srcdir@/src/control/control_shm.c \
 		   @top_srcdir@/src/control/ctlparse.c \
 		   @top_srcdir@/src/control/hcontrol.c \
+		   @top_srcdir@/src/control/namehint.c \
 		   @top_srcdir@/src/control/setup.c \
 		   @top_srcdir@/src/control/tlv.c \
 		   @top_srcdir@/src/mixer \
