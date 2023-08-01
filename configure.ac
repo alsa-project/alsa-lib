@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_PREREQ(2.59)
-AC_INIT(alsa-lib, 1.2.9)
+AC_PREREQ([2.71])
+AC_INIT([alsa-lib],[1.2.9])
 
 AC_CONFIG_SRCDIR([src/control/control.c])
 AC_CONFIG_MACRO_DIR([m4])
@@ -39,13 +39,34 @@ AM_PROG_LIBTOOL
 CC_NOUNDEFINED
 
 dnl Checks for header files.
-AC_HEADER_STDC
+m4_warn([obsolete],
+[The preprocessor macro `STDC_HEADERS' is obsolete.
+  Except in unusual embedded environments, you can safely include all
+  ISO C90 headers unconditionally.])dnl
+# Autoupdate added the next two lines to ensure that your configure
+# script's behavior did not change.  They are probably safe to remove.
+AC_CHECK_INCLUDES_DEFAULT
+AC_PROG_EGREP
+
 AC_CONFIG_HEADERS(include/config.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
 AC_C_INLINE
-AC_HEADER_TIME
+m4_warn([obsolete],
+[Update your code to rely only on HAVE_SYS_TIME_H,
+then remove this warning and the obsolete code below it.
+All current systems provide time.h; it need not be checked for.
+Not all systems provide sys/time.h, but those that do, all allow
+you to include it and time.h simultaneously.])dnl
+AC_CHECK_HEADERS_ONCE([sys/time.h])
+# Obsolete code to be removed.
+if test $ac_cv_header_sys_time_h = yes; then
+  AC_DEFINE([TIME_WITH_SYS_TIME],[1],[Define to 1 if you can safely include both <sys/time.h>
+	     and <time.h>.  This macro is obsolete.])
+fi
+# End of obsolete code.
+
 
 dnl Checks for library functions.
 AC_PROG_GCC_TRADITIONAL
@@ -237,10 +258,7 @@ fi
 
 dnl Check for scandir64
 AC_MSG_CHECKING(for LFS calls)
-AC_TRY_LINK([#include <dirent.h>],
-    [struct dirent64 a; ],
-    [have_lfs=yes],
-    [have_lfs=no])
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <dirent.h>]], [[struct dirent64 a; ]])],[have_lfs=yes],[have_lfs=no])
 if test "$have_lfs" = "yes"; then
   AC_MSG_RESULT(yes)
   AC_DEFINE([HAVE_LFS], 1, [Have LFS])
@@ -344,7 +362,7 @@ AC_ARG_ENABLE(resmgr,
 AC_MSG_RESULT($resmgr)
 if test "$resmgr" = "yes"; then
   AC_CHECK_LIB(resmgr, rsm_open_device,,
-    AC_ERROR([Cannot find libresmgr]))
+    AC_MSG_ERROR(Cannot find libresmgr))
   AC_DEFINE(SUPPORT_RESMGR, "1", [Support resmgr with alsa-lib])
 fi
 
@@ -519,22 +537,16 @@ dnl check atomics for pcm_meter
 AC_MSG_CHECKING([whether GCC supports builtin atomic intrinsics])
 if test -z "$gcc_have_atomics"; then
   gcc_have_atomics=no
-  AC_TRY_LINK([],
-    [int i;
+  AC_LINK_IFELSE([AC_LANG_PROGRAM([[]], [[int i;
      __atomic_load_n(&i, __ATOMIC_SEQ_CST);
      __atomic_add_fetch(&i, 0, __ATOMIC_SEQ_CST);
-    ],
-    [gcc_have_atomics=yes],
-    [gcc_have_atomics=no])
+    ]])],[gcc_have_atomics=yes],[gcc_have_atomics=no])
 fi
 AC_MSG_RESULT($gcc_have_atomics)
 
 dnl check mmx register for pcm_dmix_i386
 
-AC_TRY_LINK([],
-    [__asm__ volatile ("" : : : "mm0");],
-    [AC_DEFINE([HAVE_MMX], "1", [MMX technology is enabled])],
-    [])
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[]], [[__asm__ volatile ("" : : : "mm0");]])],[AC_DEFINE([HAVE_MMX], "1", [MMX technology is enabled])],[])
 
 PCM_PLUGIN_LIST="copy linear route mulaw alaw adpcm rate plug multi shm file null empty share meter hooks lfloat ladspa dmix dshare dsnoop asym iec958 softvol extplug ioplug mmap_emul"
 
@@ -715,9 +727,9 @@ AC_ARG_WITH(max-cards,
 AC_MSG_RESULT([$max_cards])
 
 if test "$max_cards" -lt 1; then
-   AC_ERROR([Invalid max cards $max_cards])
+   AC_MSG_ERROR(Invalid max cards $max_cards)
 elif test "$max_cards" -gt 256; then
-   AC_ERROR([Invalid max cards $max_cards])
+   AC_MSG_ERROR(Invalid max cards $max_cards)
 fi
 AC_DEFINE_UNQUOTED(SND_MAX_CARDS, $max_cards, [Max number of cards])
 
@@ -743,7 +755,7 @@ if test ! -L "$srcdir"/include/alsa ; then
   ln -sf . "$srcdir"/include/alsa
 fi
 
-AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile doc/doxygen.cfg \
+AC_CONFIG_FILES([Makefile doc/Makefile doc/pictures/Makefile doc/doxygen.cfg \
 	  include/Makefile include/sound/Makefile include/sound/uapi/Makefile \
 	  src/Versions src/Makefile \
           src/control/Makefile src/mixer/Makefile \
@@ -758,7 +770,8 @@ AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile doc/doxygen.cfg \
 	  modules/Makefile modules/mixer/Makefile modules/mixer/simple/Makefile \
 	  alsalisp/Makefile aserver/Makefile \
 	  test/Makefile test/lsb/Makefile \
-	  utils/Makefile utils/alsa-lib.spec utils/alsa.pc utils/alsa-topology.pc)
+	  utils/Makefile utils/alsa-lib.spec utils/alsa.pc utils/alsa-topology.pc])
+AC_OUTPUT
 
 dnl Create asoundlib.h dynamically according to configure options
 echo "Creating asoundlib.h..."
