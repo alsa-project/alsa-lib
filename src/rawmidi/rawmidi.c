@@ -132,7 +132,7 @@ The timestamping is available only on input streams.
 The full featured examples with cross-links:
 
 \par Simple input/output test program
-\ref example_test_rawmidi "example code"
+\link example_test_rawmidi example code \endlink
 \par
 This example shows open and read/write rawmidi operations.
 
@@ -141,6 +141,7 @@ This example shows open and read/write rawmidi operations.
 /**
  * \example ../test/rawmidi.c
  * \anchor example_test_rawmidi
+ * Shows open and read/write rawmidi operations.
  */
  
 #include <stdio.h>

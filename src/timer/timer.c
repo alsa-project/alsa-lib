@@ -56,7 +56,7 @@ Events are read via snd_timer_read() function.
 The full featured examples with cross-links:
 
 \par Simple timer test program
-\ref example_test_timer "example code"
+\link example_test_timer example code \endlink
 \par
 This example shows opening a timer device and reading of timer events.
 
