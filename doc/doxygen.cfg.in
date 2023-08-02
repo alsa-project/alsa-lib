@@ -112,6 +112,7 @@ EXCLUDE		 = @top_srcdir@/src/control/control_local.h \
 		   @top_srcdir@/src/topology/tplg_local.h
 RECURSIVE	 = YES
 FILE_PATTERNS    = *.c *.h
+INCLUDE_PATH     = @top_builddir@/include
 EXAMPLE_PATH     = @top_srcdir@/test
 IMAGE_PATH	 = @top_srcdir@/doc/pictures
 QUIET            = YES
