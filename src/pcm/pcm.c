@@ -223,7 +223,7 @@ There are two methods to transfer samples in application. The first method
 is the standard read / write one. The second method, uses the direct audio
 buffer to communicate with the device while ALSA library manages this space
 itself. You can find examples of all communication schemes for playback
-in \ref example_test_pcm "Sine-wave generator example". To complete the
+in \link example_test_pcm Sine-wave generator example \endlink. To complete the
 list, we should note that #snd_pcm_wait() function contains
 embedded poll waiting implementation.
 
@@ -632,30 +632,39 @@ The null device is null plugin. This device has not any arguments.
 The full featured examples with cross-links can be found in Examples section
 (see top of page):
 
-\anchor example_test_pcm
 \par Sine-wave generator
 \par
-alsa-lib/test/pcm.c example shows various transfer methods for the playback direction.
+\link example_test_pcm alsa-lib/test/pcm.c \endlink
+example shows various transfer methods for the playback direction.
 
 \par Minimalistic PCM playback code
 \par
-alsa-lib/test/pcm_min.c example shows the minimal code to produce a sound.
+\link example_test_minimal alsa-lib/test/pcm_min.c \endlink
+example shows the minimal code to produce a sound.
 
 \par Latency measuring tool
 \par
-alsa-lib/test/latency.c example shows the measuring of minimal latency between capture and
+\link example_test_latency alsa-lib/test/latency.c \endlink
+example shows the measuring of minimal latency between capture and
 playback devices.
 
 */
 
 /**
 \example ../../test/pcm.c
+\anchor example_test_pcm
+Shows various transfer methods for the playback direction.
 */
 /**
 \example ../../test/pcm_min.c
+\anchor example_test_minimal
+Shows the minimal code to produce a sound.
 */
 /**
 \example ../../test/latency.c
+\anchor example_test_latency
+Shows the measuring of minimal latency between capture and
+playback devices.
 */
 
 #include <stdio.h>
@@ -7431,7 +7440,7 @@ int __snd_pcm_mmap_begin(snd_pcm_t *pcm, const snd_pcm_channel_area_t **areas,
  _skip:
 \endcode
  *
- * Look to the \ref example_test_pcm "Sine-wave generator" example
+ * Look to the \link example_test_pcm Sine-wave generator \endlink example
  * for more details about the generate_sine function.
  *
  * The function is thread-safe when built with the proper option.
