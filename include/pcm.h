@@ -286,7 +286,13 @@ typedef enum _snd_pcm_subformat {
 	SND_PCM_SUBFORMAT_UNKNOWN = -1,
 	/** Standard */
 	SND_PCM_SUBFORMAT_STD = 0,
-	SND_PCM_SUBFORMAT_LAST = SND_PCM_SUBFORMAT_STD
+	/** Maximum bits based on PCM format */
+	SND_PCM_SUBFORMAT_MSBITS_MAX = 1,
+	/** 20 most significant bits */
+	SND_PCM_SUBFORMAT_MSBITS_20 = 2,
+	/** 24 most significant bits */
+	SND_PCM_SUBFORMAT_MSBITS_24 = 3,
+	SND_PCM_SUBFORMAT_LAST = SND_PCM_SUBFORMAT_MSBITS_24
 } snd_pcm_subformat_t;
 
 /** PCM state */

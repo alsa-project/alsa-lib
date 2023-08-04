@@ -2070,10 +2070,16 @@ static const char *const snd_pcm_type_names[] = {
 
 static const char *const snd_pcm_subformat_names[] = {
 	SUBFORMAT(STD), 
+	SUBFORMAT(MSBITS_MAX),
+	SUBFORMAT(MSBITS_20),
+	SUBFORMAT(MSBITS_24),
 };
 
 static const char *const snd_pcm_subformat_descriptions[] = {
 	SUBFORMATD(STD, "Standard"), 
+	SUBFORMATD(MSBITS_MAX, "Maximum based on PCM format"),
+	SUBFORMATD(MSBITS_20, "20 most significant bits"),
+	SUBFORMATD(MSBITS_24, "24 most significant bits"),
 };
 
 static const char *const snd_pcm_start_mode_names[] = {
