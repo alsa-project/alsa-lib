@@ -2198,6 +2198,30 @@ const char *snd_pcm_subformat_description(const snd_pcm_subformat_t subformat)
 }
 
 /**
+ * \brief get PCM sample subformat from name
+ * \param name PCM sample subformat name (case insensitive)
+ * \return PCM sample subformat
+ */
+snd_pcm_subformat_t snd_pcm_subformat_value(const char* name)
+{
+	snd_pcm_subformat_t subformat;
+
+	for (subformat = 0; subformat <= SND_PCM_SUBFORMAT_LAST; subformat++) {
+		if (snd_pcm_subformat_names[subformat] &&
+		    !strcasecmp(name, snd_pcm_subformat_names[subformat]))
+			return subformat;
+	}
+
+	for (subformat = 0; subformat <= SND_PCM_SUBFORMAT_LAST; subformat++) {
+		if (snd_pcm_subformat_descriptions[subformat] &&
+		    !strcasecmp(name, snd_pcm_subformat_descriptions[subformat]))
+			return subformat;
+	}
+
+	return SND_PCM_SUBFORMAT_UNKNOWN;
+}
+
+/**
  * \brief (DEPRECATED) get name of PCM start mode setting
  * \param mode PCM start mode
  * \return ascii name of PCM start mode setting

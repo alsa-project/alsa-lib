@@ -282,6 +282,8 @@ typedef enum _snd_pcm_format {
 
 /** PCM sample subformat */
 typedef enum _snd_pcm_subformat {
+	/** Unknown */
+	SND_PCM_SUBFORMAT_UNKNOWN = -1,
 	/** Standard */
 	SND_PCM_SUBFORMAT_STD = 0,
 	SND_PCM_SUBFORMAT_LAST = SND_PCM_SUBFORMAT_STD
@@ -1092,6 +1094,7 @@ const char *snd_pcm_format_name(const snd_pcm_format_t format);
 const char *snd_pcm_format_description(const snd_pcm_format_t format);
 const char *snd_pcm_subformat_name(const snd_pcm_subformat_t subformat);
 const char *snd_pcm_subformat_description(const snd_pcm_subformat_t subformat);
+snd_pcm_subformat_t snd_pcm_subformat_value(const char* name);
 snd_pcm_format_t snd_pcm_format_value(const char* name);
 const char *snd_pcm_tstamp_mode_name(const snd_pcm_tstamp_t mode);
 const char *snd_pcm_state_name(const snd_pcm_state_t state);
