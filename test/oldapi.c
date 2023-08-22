@@ -31,7 +31,7 @@
 #include "../include/asoundlib.h"
 #include <sys/time.h>
 
-typedef void (myfcn)(void *);
+typedef int (myfcn)(const snd_pcm_hw_params_t *);
 
 int main(int argc ATTRIBUTE_UNUSED, char *argv[] ATTRIBUTE_UNUSED)
 {
