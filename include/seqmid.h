@@ -300,10 +300,13 @@ static inline void snd_seq_ev_set_ump(snd_seq_ump_event_t *ev)
  * \param data UMP packet data
  * \param bytes UMP packet size in bytes
  */
-static inline void snd_seq_ev_set_ump_data(snd_seq_ump_event_t *ev, void *data, size_t bytes)
+static inline int snd_seq_ev_set_ump_data(snd_seq_ump_event_t *ev, void *data, size_t bytes)
 {
+	if (bytes > 16)
+		return -EINVAL;
 	snd_seq_ev_set_ump(ev);
 	memcpy(ev->ump, data, bytes);
+	return 0;
 }
 
 /* set and send a queue control event */
