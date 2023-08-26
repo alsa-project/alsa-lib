@@ -119,7 +119,6 @@ static int snd_seq_hw_get_client_info(snd_seq_t *seq, snd_seq_client_info_t * in
 		info->card = -1;
 		info->pid = -1;
 	}
-	update_midi_version(seq, info);
 	return 0;
 }
 
