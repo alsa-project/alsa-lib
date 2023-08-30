@@ -26,12 +26,11 @@
  *
  */
   
-#include "bswap.h"
-#include <math.h>
 #include "pcm_local.h"
 #include "pcm_plugin.h"
-
 #include "plugin_ops.h"
+#include "bswap.h"
+#include <math.h>
 
 #ifndef PIC
 /* entry for static linking */

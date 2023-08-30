@@ -25,11 +25,11 @@
  *
  */
 
+#include "control_local.h"
 #include <unistd.h>
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
-#include "control_local.h"
 
 /* Function to convert from percentage to volume. val = percentage */
 

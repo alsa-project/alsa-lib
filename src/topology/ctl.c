@@ -17,7 +17,6 @@
            Liam Girdwood <liam.r.girdwood@linux.intel.com>
 */
 
-#include "list.h"
 #include "tplg_local.h"
 
 #define ENUM_VAL_SIZE 	(SNDRV_CTL_ELEM_ID_NAME_MAXLEN >> 2)

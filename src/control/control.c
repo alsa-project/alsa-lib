@@ -185,6 +185,7 @@ in-kernel implementations utilize this feature for I/O operations. This is
 against the original design.
 */
 
+#include "control_local.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -196,7 +197,6 @@ against the original design.
 #include <poll.h>
 #include <stdbool.h>
 #include <limits.h>
-#include "control_local.h"
 
 /**
  * \brief get identifier of CTL handle

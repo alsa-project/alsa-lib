@@ -82,9 +82,9 @@ pcm.rate44100Hz {
 
 */
   
-#include <limits.h>
 #include "pcm_local.h"
 #include "pcm_plugin.h"
+#include <limits.h>
 
 #ifndef DOC_HIDDEN
 

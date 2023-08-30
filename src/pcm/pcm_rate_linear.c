@@ -20,13 +20,12 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include <inttypes.h>
-#include "bswap.h"
 #include "pcm_local.h"
 #include "pcm_plugin.h"
 #include "pcm_rate.h"
-
 #include "plugin_ops.h"
+#include "bswap.h"
+#include <inttypes.h>
 
 
 /* LINEAR_DIV needs to be large enough to handle resampling from 768000 -> 8000 */

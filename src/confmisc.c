@@ -74,12 +74,12 @@
 */
 
 
+#include "local.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 #include <limits.h>
-#include "local.h"
 
 /**
  * \brief Gets the boolean value from the given ASCII string.

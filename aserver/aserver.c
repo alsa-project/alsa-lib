@@ -18,6 +18,8 @@
  *
  */
 
+#include "aserver.h"
+
 #include <sys/shm.h>
 #include <sys/socket.h>
 #include <poll.h>
@@ -33,7 +35,6 @@
 #include <limits.h>
 #include <signal.h>
 
-#include "aserver.h"
 
 char *command;
 

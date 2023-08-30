@@ -21,6 +21,12 @@
  *
  */
 
+#define alisp_seq_iterator alisp_object
+
+#include "local.h"
+#include "alisp.h"
+#include "alisp_local.h"
+
 #include <assert.h>
 
 #include <limits.h>
@@ -31,11 +37,6 @@
 #include <math.h>
 #include <err.h>
 
-#define alisp_seq_iterator alisp_object
-
-#include "local.h"
-#include "alisp.h"
-#include "alisp_local.h"
 
 struct alisp_object alsa_lisp_nil;
 struct alisp_object alsa_lisp_t;

@@ -28,13 +28,13 @@
  *
  */
 
+#include "hwdep_local.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include "hwdep_local.h"
 
 static int snd_hwdep_open_conf(snd_hwdep_t **hwdep,
 			       const char *name, snd_config_t *hwdep_root,

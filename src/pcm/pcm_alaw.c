@@ -26,8 +26,8 @@
  *
  */
   
-#include "bswap.h"
 #include "pcm_local.h"
+#include "bswap.h"
 #include "pcm_plugin.h"
 
 #include "plugin_ops.h"

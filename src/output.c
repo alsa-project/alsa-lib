@@ -27,11 +27,11 @@
  *
  */
 
+#include "local.h"
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "local.h"
 
 #ifndef DOC_HIDDEN
 typedef struct _snd_output_ops {

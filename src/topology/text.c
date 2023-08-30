@@ -18,7 +18,6 @@
 
 */
 
-#include "list.h"
 #include "tplg_local.h"
 
 #define TEXT_SIZE_MAX \

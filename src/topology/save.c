@@ -15,7 +15,6 @@
   Authors: Jaroslav Kysela <perex@perex.cz>
 */
 
-#include "list.h"
 #include "tplg_local.h"
 
 #define SAVE_ALLOC_SHIFT	(13)	/* 8192 bytes */

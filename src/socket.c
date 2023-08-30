@@ -25,6 +25,7 @@
  *
  */
   
+#include "local.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
@@ -37,7 +38,6 @@
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <netdb.h>
-#include "local.h"
 
 #ifndef DOC_HIDDEN
 int snd_send_fd(int sock, void *data, size_t len, int fd)

@@ -19,10 +19,10 @@
  *
  */
 
+#include "local.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
-#include "local.h"
 
 typedef struct {
 	int (*close)(snd_hwdep_t *hwdep);

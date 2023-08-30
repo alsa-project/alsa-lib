@@ -15,7 +15,6 @@
   Authors: Jaroslav Kysela <perex@perex.cz>
 */
 
-#include "list.h"
 #include "tplg_local.h"
 
 /* verbose output detailing each object size and file position */

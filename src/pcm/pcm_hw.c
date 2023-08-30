@@ -27,6 +27,9 @@
  *
  */
   
+#include "pcm_local.h"
+#include "../control/control_local.h"
+#include "../timer/timer_local.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
@@ -37,9 +40,6 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
-#include "pcm_local.h"
-#include "../control/control_local.h"
-#include "../timer/timer_local.h"
 
 //#define DEBUG_RW		/* use to debug readi/writei/readn/writen */
 //#define DEBUG_MMAP		/* debug mmap_commit */

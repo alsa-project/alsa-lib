@@ -17,7 +17,6 @@
            Liam Girdwood <liam.r.girdwood@linux.intel.com>
 */
 
-#include "list.h"
 #include "tplg_local.h"
 
 /* write a block, track the position */

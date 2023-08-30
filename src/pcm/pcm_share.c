@@ -26,6 +26,7 @@
  *
  */
   
+#include "pcm_local.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
@@ -36,7 +37,6 @@
 #include <sys/socket.h>
 #include <poll.h>
 #include <pthread.h>
-#include "pcm_local.h"
 
 #ifndef PIC
 /* entry for static linking */

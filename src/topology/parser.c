@@ -17,9 +17,8 @@
            Liam Girdwood <liam.r.girdwood@linux.intel.com>
 */
 
-#include <sys/stat.h>
-#include "list.h"
 #include "tplg_local.h"
+#include <sys/stat.h>
 
 /*
  * Get integer value

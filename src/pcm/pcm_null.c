@@ -26,10 +26,10 @@
  *
  */
   
-#include "bswap.h"
-#include <limits.h>
 #include "pcm_local.h"
 #include "pcm_plugin.h"
+#include "bswap.h"
+#include <limits.h>
 
 #ifndef PIC
 /* entry for static linking */

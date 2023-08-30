@@ -2,6 +2,8 @@
  *  This small demo sends a simple sinusoidal wave to your speakers.
  */
 
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

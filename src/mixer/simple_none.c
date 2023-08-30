@@ -29,6 +29,8 @@
  *
  */
 
+#include "local.h"
+#include "mixer_simple.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -38,9 +40,6 @@
 #include <assert.h>
 #include <math.h>
 #include <limits.h>
-#include "local.h"
-#include "config.h"
-#include "mixer_simple.h"
 
 #ifndef DOC_HIDDEN
 

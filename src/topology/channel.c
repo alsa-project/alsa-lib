@@ -17,7 +17,6 @@
            Liam Girdwood <liam.r.girdwood@linux.intel.com>
 */
 
-#include "list.h"
 #include "tplg_local.h"
 
 /* mapping of channel text names to types */

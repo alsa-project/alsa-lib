@@ -7,6 +7,7 @@
  * Licensed under the terms of the GNU General Public License, version 2.
  */
 
+#include "config.h"
 #include "../include/asoundlib.h"
 #include <sound/tlv.h>
 #include <stdbool.h>

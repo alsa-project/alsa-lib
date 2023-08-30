@@ -658,6 +658,7 @@ playback devices.
 \example ../../test/latency.c
 */
 
+#include "pcm_local.h"
 #include <stdio.h>
 #include <string.h>
 #if HAVE_MALLOC_H
@@ -669,7 +670,6 @@ playback devices.
 #include <poll.h>
 #include <sys/mman.h>
 #include <limits.h>
-#include "pcm_local.h"
 
 #ifndef DOC_HIDDEN
 /* return specific error codes for known bad PCM states */

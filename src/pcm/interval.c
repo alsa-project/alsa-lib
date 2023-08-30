@@ -22,9 +22,9 @@
 #define SND_INTERVAL_C
 #define SND_INTERVAL_INLINE
 
+#include "pcm_local.h"
 #include <sys/types.h>
 #include <limits.h>
-#include "pcm_local.h"
 
 static inline void div64_32(uint64_t *n, uint32_t d, uint32_t *rem)
 {

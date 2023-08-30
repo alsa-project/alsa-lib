@@ -17,7 +17,6 @@
            Liam Girdwood <liam.r.girdwood@linux.intel.com>
 */
 
-#include "list.h"
 #include "tplg_local.h"
 
 struct tplg_table tplg_table[] = {

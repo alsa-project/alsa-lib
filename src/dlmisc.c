@@ -27,8 +27,8 @@
  *
  */
 
-#include "list.h"
 #include "local.h"
+#include "list.h"
 #ifdef HAVE_LIBPTHREAD
 #include <pthread.h>
 #endif

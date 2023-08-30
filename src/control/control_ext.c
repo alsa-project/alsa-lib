@@ -27,12 +27,12 @@
  *
  */
 
+#include "control_local.h"
+#include "control_external.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include "control_local.h"
-#include "control_external.h"
 
 #ifndef PIC
 /* entry for static linking */

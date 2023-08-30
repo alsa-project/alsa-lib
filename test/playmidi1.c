@@ -34,6 +34,8 @@
  *
  */
 
+#include "config.h"
+
 #include <stdio.h>
 #include <ctype.h>
 #include <fcntl.h>

@@ -29,6 +29,8 @@
  *
  */
 
+#include "mixer_local.h"
+#include "mixer_simple.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -36,9 +38,6 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <math.h>
-#include "config.h"
-#include "mixer_local.h"
-#include "mixer_simple.h"
 
 /**
  * \brief Register mixer simple element class

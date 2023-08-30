@@ -15,7 +15,6 @@
   Authors: Jaroslav Kysela <perex@perex.cz>
 */
 
-#include "list.h"
 #include "tplg_local.h"
 
 int tplg_decode_template(snd_tplg_t *tplg,

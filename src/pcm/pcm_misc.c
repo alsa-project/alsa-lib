@@ -19,12 +19,12 @@
  *
  */
   
+#include "pcm_local.h"
+#include "bswap.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include "bswap.h"
-#include "pcm_local.h"
 
 
 /**

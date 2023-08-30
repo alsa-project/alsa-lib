@@ -10,11 +10,12 @@
  *  Lesser General Public License for more details.
  */
 
+#include "local.h"
+
 #include <limits.h>
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "local.h"
 #include "list.h"
 #include "bswap.h"
 #include "topology.h"

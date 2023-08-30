@@ -28,11 +28,11 @@
  *
  */
 
+#include "local.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
-#include "local.h"
 
 /**
  * Array of error codes in US ASCII.

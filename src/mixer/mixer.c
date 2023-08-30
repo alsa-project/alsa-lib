@@ -39,13 +39,13 @@ This is an abstraction layer over the hcontrol layer.
 
 */
 
+#include "mixer_local.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include "mixer_local.h"
 
 #ifndef DOC_HIDDEN
 typedef struct _snd_mixer_slave {

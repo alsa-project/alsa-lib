@@ -25,13 +25,13 @@
  *
  */
 
+#include "control_local.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdarg.h>
 #include <unistd.h>
 #include <string.h>
-#include "control_local.h"
 
 #if 0
 #define REMAP_DEBUG 1

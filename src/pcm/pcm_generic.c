@@ -26,10 +26,10 @@
  *
  */
 
-#include <sys/ioctl.h>
-#include <limits.h>
 #include "pcm_local.h"
 #include "pcm_generic.h"
+#include <sys/ioctl.h>
+#include <limits.h>
 
 #ifndef DOC_HIDDEN
 

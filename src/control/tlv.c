@@ -26,6 +26,7 @@
  *
  */
 
+#include "control_local.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -33,7 +34,6 @@
 #ifndef HAVE_SOFT_FLOAT
 #include <math.h>
 #endif
-#include "control_local.h"
 
 #ifndef DOC_HIDDEN
 /* convert to index of integer array */

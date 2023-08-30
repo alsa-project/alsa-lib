@@ -25,6 +25,7 @@
  *
  */
 
+#include "control_local.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -32,7 +33,6 @@
 #include <ctype.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include "control_local.h"
 
 #ifndef DOC_HIDDEN
 #define SND_FILE_CONTROL	ALSA_DEVICE_DIRECTORY "controlC%i"

@@ -18,9 +18,9 @@
  *
  */
   
-#include <netdb.h>
 #include "../src/pcm/pcm_local.h"
 #include "../src/control/control_local.h"
+#include <netdb.h>
 
 int snd_receive_fd(int sock, void *data, size_t len, int *fd);
 

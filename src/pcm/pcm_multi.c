@@ -26,13 +26,13 @@
  *
  */
   
+#include "pcm_local.h"
+#include "pcm_generic.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <math.h>
-#include "pcm_local.h"
-#include "pcm_generic.h"
 
 #ifndef PIC
 /* entry for static linking */

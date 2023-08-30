@@ -26,11 +26,10 @@
  *
  */
   
-#include "bswap.h"
 #include "pcm_local.h"
 #include "pcm_plugin.h"
-
 #include "plugin_ops.h"
+#include "bswap.h"
 
 #ifndef DOC_HIDDEN
 

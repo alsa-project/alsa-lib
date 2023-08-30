@@ -22,6 +22,7 @@
 #define SND_MASK_C
 #define SND_MASK_INLINE
 
+#include "config.h"
 #include <sys/types.h>
 #include <limits.h>
 #include "pcm_local.h"

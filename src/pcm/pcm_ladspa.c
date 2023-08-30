@@ -32,12 +32,11 @@
  *   http://www.medianet.ag
  */
   
-#include "config.h"
+#include "pcm_local.h"
+#include "pcm_plugin.h"
 #include <dirent.h>
 #include <locale.h>
 #include <math.h>
-#include "pcm_local.h"
-#include "pcm_plugin.h"
 
 #include "ladspa.h"
 
