@@ -482,7 +482,6 @@ int snd_mixer_elem_remove(snd_mixer_elem_t *elem)
 /**
  * \brief Free a mixer element
  * \param elem Mixer element
- * \return 0 on success otherwise a negative error code
  *
  * For use by mixer element class specific code.
  */
