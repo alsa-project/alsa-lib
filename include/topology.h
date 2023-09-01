@@ -417,7 +417,7 @@ extern "C" {
  *		Values [
  *			"value1"
  *			"value2"
-			"value3"
+ *			"value3"
  *		]
  * }
  * </pre>
@@ -502,7 +502,7 @@ extern "C" {
  *	no_pm "true"			# No PM control bit.
  *	reg "20"			# PM bit register offset
  *	shift "0"			# PM bit register shift
- *	invert "1			# PM bit is inverted
+ *	invert "1"			# PM bit is inverted
  *	subseq "8"			# subsequence number
  *
  *	event_type "1"			# DAPM widget event type
