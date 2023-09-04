@@ -32,6 +32,10 @@ if [ $# -ne 0 ]; then
       lto="-flto -flto-partition=none"
       echo "Forced lto build..."
       shift ;;
+    static)
+      static=yes
+      echo "Selected static build..."
+      shift ;;
     *)
       endloop=yes
       ;;
@@ -74,6 +78,12 @@ fi
 if [ "$python2" = "yes" ]; then
   args="$args --enable-python2"
 fi
+
+if [ "$static" = "yes" ]; then
+  #args="$args --enable-shared=no --enable-static=yes"
+  args="$args --disable-shared"
+fi
+
 
 touch ltconfig
 libtoolize --force --copy --automake
