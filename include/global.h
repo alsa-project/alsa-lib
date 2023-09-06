@@ -51,6 +51,11 @@ const char *snd_asoundlib_version(void);
 #define ATTRIBUTE_UNUSED __attribute__ ((__unused__))
 #endif
 
+#ifndef __STRING
+/** \brief Return 'x' argument as string */
+#define __STRING(x)     #x
+#endif
+
 #ifdef PIC /* dynamic build */
 
 /** \hideinitializer \brief Helper macro for #SND_DLSYM_BUILD_VERSION. */
@@ -70,11 +75,6 @@ struct snd_dlsym_link {
 };
 
 extern struct snd_dlsym_link *snd_dlsym_start;
-
-#ifndef __STRING
-/** \brief Return 'x' argument as string */
-#define __STRING(x)     #x
-#endif
 
 /** \hideinitializer \brief Helper macro for #SND_DLSYM_BUILD_VERSION. */
 #define __SND_DLSYM_VERSION(prefix, name, version) _ ## prefix ## name ## version
