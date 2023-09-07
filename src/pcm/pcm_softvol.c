@@ -113,7 +113,7 @@ static inline int MULTI_DIV_32x16(int a, unsigned short b)
 	y.i = 0;
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 	x.i = (unsigned short)v.s[0];
-	x.i *= b;
+	x.i *= (unsigned int)b;
 	y.s[0] = x.s[1];
 	y.i += (int)v.s[1] * b;
 #else
