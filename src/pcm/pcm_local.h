@@ -20,6 +20,9 @@
  *
  */
 
+#ifndef __PCM_LOCAL_H
+#define __PCM_LOCAL_H
+
 #include "config.h"
 
 #include <stdio.h>
@@ -1223,3 +1226,5 @@ static inline void snd_pcm_unlock(snd_pcm_t *pcm)
 #define snd_pcm_lock(pcm)		do {} while (0)
 #define snd_pcm_unlock(pcm)		do {} while (0)
 #endif /* THREAD_SAFE_API */
+
+#endif /* __PCM_LOCAL_H */

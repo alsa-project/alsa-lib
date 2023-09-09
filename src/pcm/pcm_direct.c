@@ -19,6 +19,7 @@
  *
  */
   
+#include "pcm_local.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
