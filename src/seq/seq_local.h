@@ -23,10 +23,10 @@
 #ifndef __SEQ_LOCAL_H
 #define __SEQ_LOCAL_H
 
+#include "local.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
-#include "local.h"
 
 #define SND_SEQ_OBUF_SIZE	(16*1024)	/* default size */
 #define SND_SEQ_IBUF_SIZE	500		/* in event_size aligned */

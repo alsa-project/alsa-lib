@@ -20,9 +20,9 @@
  *
  */
 
+#include "seq_local.h"
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include "seq_local.h"
 
 #ifndef PIC
 /* entry for static linking */

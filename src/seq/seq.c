@@ -777,8 +777,8 @@ void event_filter(snd_seq_t *seq, snd_seq_event_t *ev)
 
 */
 
-#include <poll.h>
 #include "seq_local.h"
+#include <poll.h>
 
 /****************************************************************************
  *                                                                          *

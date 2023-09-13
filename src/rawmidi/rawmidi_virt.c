@@ -19,13 +19,11 @@
  *
  */
 
-#include <stdio.h>
-#include <stdlib.h>
+#include "rawmidi_local.h"
 #include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include "rawmidi_local.h"
 #include "seq.h"
 #include "seq_midi_event.h"
 

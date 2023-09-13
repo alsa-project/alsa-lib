@@ -4,10 +4,6 @@
  * \brief Universal MIDI Protocol (UMP) Interface
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <limits.h>
-#include "local.h"
 #include "rawmidi_local.h"
 #include "ump_local.h"
 

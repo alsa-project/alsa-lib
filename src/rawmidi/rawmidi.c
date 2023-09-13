@@ -144,12 +144,12 @@ This example shows open and read/write rawmidi operations.
  * Shows open and read/write rawmidi operations.
  */
  
+#include "rawmidi_local.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <unistd.h>
 #include <string.h>
-#include "rawmidi_local.h"
 
 /**
  * \brief setup the default parameters

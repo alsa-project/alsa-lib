@@ -20,14 +20,12 @@
  *
  */
 
-#include <stdio.h>
-#include <stdlib.h>
+#include "seq_local.h"
 #include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
 #include <ctype.h>
 #include <sys/ioctl.h>
-#include "seq_local.h"
 
 /**
  * \brief queue controls - start/stop/continue

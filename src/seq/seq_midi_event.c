@@ -28,10 +28,10 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#include "local.h"
 #if HAVE_MALLOC_H
 #include <malloc.h>
 #endif
-#include "local.h"
 
 #ifndef DOC_HIDDEN
 
