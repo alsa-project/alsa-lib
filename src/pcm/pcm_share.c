@@ -414,7 +414,12 @@ static void *snd_pcm_share_thread(void *data)
 			Pthread_mutex_lock(&slave->mutex);
 			if (pfd[0].revents & POLLIN) {
 				char buf[1];
-				read(pfd[0].fd, buf, 1);
+				err = read(pfd[0].fd, buf, 1);
+				if (err < 0) {
+					SYSERR("can't read from a pipe");
+					Pthread_mutex_unlock(&slave->mutex);
+					return NULL;
+				}
 			}
 		} else {
 			slave->polling = 0;
