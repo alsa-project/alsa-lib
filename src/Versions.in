@@ -158,13 +158,13 @@ ALSA_1.2.10 {
     @SYMBOL_PREFIX@snd_ctl_ump_block_info;
     @SYMBOL_PREFIX@snd_seq_ump_*;
     @SYMBOL_PREFIX@snd_seq_client_info_get_midi_version;
-    @SYMBOL_PREFIX@snd_seq_seq_client_info_get_ump_group_enabled;
+    @SYMBOL_PREFIX@snd_seq_client_info_get_ump_group_enabled;
     @SYMBOL_PREFIX@snd_seq_client_info_get_ump_groupless_enabled;
-    @SYMBOL_PREFIX@snd_seq_seq_client_get_ump_conversion;
+    @SYMBOL_PREFIX@snd_seq_client_info_get_ump_conversion;
     @SYMBOL_PREFIX@snd_seq_client_info_set_midi_version;
-    @SYMBOL_PREFIX@snd_seq_seq_client_info_set_ump_group_enabled;
+    @SYMBOL_PREFIX@snd_seq_client_info_set_ump_group_enabled;
     @SYMBOL_PREFIX@snd_seq_client_info_set_ump_groupless_enabled;
-    @SYMBOL_PREFIX@snd_seq_seq_client_set_ump_conversion;
+    @SYMBOL_PREFIX@snd_seq_client_info_set_ump_conversion;
     @SYMBOL_PREFIX@snd_seq_get_ump_endpoint_info;
     @SYMBOL_PREFIX@snd_seq_get_ump_block_info;
     @SYMBOL_PREFIX@snd_seq_set_ump_endpoint_info;
