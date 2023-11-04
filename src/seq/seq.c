@@ -1269,9 +1269,9 @@ int snd_seq_set_input_buffer_size(snd_seq_t *seq, size_t size)
 	size_t packet_size;
 
 	assert(seq && seq->ibuf);
+	packet_size = get_packet_size(seq);
 	assert(size >= packet_size);
 	snd_seq_drop_input(seq);
-	packet_size = get_packet_size(seq);
 	size = (size + packet_size - 1) / packet_size;
 	if (size != seq->ibufsize) {
 		char *newbuf;
