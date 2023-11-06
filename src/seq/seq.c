@@ -4161,6 +4161,13 @@ int snd_seq_event_output(snd_seq_t *seq, snd_seq_event_t *ev)
 	return result;
 }
 
+/* workaround for broken legacy apps that set UMP event bit unexpectedly */
+static void clear_ump_for_legacy_apps(snd_seq_t *seq, snd_seq_event_t *ev)
+{
+	if (!seq->midi_version && snd_seq_ev_is_ump(ev))
+		ev->flags &= ~SNDRV_SEQ_EVENT_UMP;
+}
+
 /**
  * \brief output an event onto the lib buffer without draining buffer
  * \param seq sequencer handle
@@ -4178,6 +4185,7 @@ int snd_seq_event_output_buffer(snd_seq_t *seq, snd_seq_event_t *ev)
 {
 	int len;
 	assert(seq && ev);
+	clear_ump_for_legacy_apps(seq, ev);
 	len = snd_seq_event_length(ev);
 	if (len < 0)
 		return -EINVAL;
@@ -4238,6 +4246,7 @@ int snd_seq_event_output_direct(snd_seq_t *seq, snd_seq_event_t *ev)
 	ssize_t len;
 	void *buf;
 
+	clear_ump_for_legacy_apps(seq, ev);
 	len = snd_seq_event_length(ev);
 	if (len < 0)
 		return len;
@@ -4374,6 +4383,7 @@ static int snd_seq_event_retrieve_buffer(snd_seq_t *seq, snd_seq_event_t **retp)
 	snd_seq_event_t *ev;
 
 	*retp = ev = (snd_seq_event_t *)(seq->ibuf + seq->ibufptr * packet_size);
+	clear_ump_for_legacy_apps(seq, ev);
 	seq->ibufptr++;
 	seq->ibuflen--;
 	if (! snd_seq_ev_is_variable(ev))
