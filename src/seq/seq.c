@@ -4308,36 +4308,6 @@ int snd_seq_drain_output(snd_seq_t *seq)
 	return 0;
 }
 
-static int extract_output(snd_seq_t *seq, snd_seq_event_t **ev_res, int ump_allowed)
-{
-	size_t len, olen;
-	assert(seq);
-	if (ev_res)
-		*ev_res = NULL;
- repeat:
-	if ((olen = seq->obufused) < sizeof(snd_seq_event_t))
-		return -ENOENT;
-	len = snd_seq_event_length((snd_seq_event_t *)seq->obuf);
-	if (olen < len)
-		return -ENOENT;
-	/* skip invalid UMP events */
-	if (snd_seq_ev_is_ump((snd_seq_event_t *)seq->obuf) && !ump_allowed) {
-		seq->obufused -= len;
-		memmove(seq->obuf, seq->obuf + len, seq->obufused);
-		goto repeat;
-	}
-	if (ev_res) {
-		/* extract the event */
-		if (alloc_tmpbuf(seq, len) < 0)
-			return -ENOMEM;
-		memcpy(seq->tmpbuf, seq->obuf, len);
-		*ev_res = (snd_seq_event_t *)seq->tmpbuf;
-	}
-	seq->obufused = olen - len;
-	memmove(seq->obuf, seq->obuf + len, seq->obufused);
-	return 0;
-}
-
 /**
  * \brief extract the first event in output buffer
  * \param seq sequencer handle
@@ -4351,7 +4321,25 @@ static int extract_output(snd_seq_t *seq, snd_seq_event_t **ev_res, int ump_allo
  */
 int snd_seq_extract_output(snd_seq_t *seq, snd_seq_event_t **ev_res)
 {
-	return extract_output(seq, ev_res, 0);
+	size_t len, olen;
+	assert(seq);
+	if (ev_res)
+		*ev_res = NULL;
+	if ((olen = seq->obufused) < sizeof(snd_seq_event_t))
+		return -ENOENT;
+	len = snd_seq_event_length((snd_seq_event_t *)seq->obuf);
+	if (olen < len)
+		return -ENOENT;
+	if (ev_res) {
+		/* extract the event */
+		if (alloc_tmpbuf(seq, len) < 0)
+			return -ENOMEM;
+		memcpy(seq->tmpbuf, seq->obuf, len);
+		*ev_res = (snd_seq_event_t *)seq->tmpbuf;
+	}
+	seq->obufused = olen - len;
+	memmove(seq->obuf, seq->obuf + len, seq->obufused);
+	return 0;
 }
 
 /*----------------------------------------------------------------*/
@@ -4547,7 +4535,7 @@ int snd_seq_ump_extract_output(snd_seq_t *seq, snd_seq_ump_event_t **ev_res)
 {
 	if (!seq->midi_version)
 		return -EBADFD;
-	return extract_output(seq, (snd_seq_event_t **)ev_res, 1);
+	return snd_seq_extract_output(seq, (snd_seq_event_t **)ev_res);
 }
 
 /**
