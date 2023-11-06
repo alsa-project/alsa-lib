@@ -32,7 +32,6 @@ const char *_snd_module_seq_hw = "";
 #ifndef DOC_HIDDEN
 #define SNDRV_FILE_SEQ		ALSA_DEVICE_DIRECTORY "seq"
 #define SNDRV_FILE_ALOADSEQ	ALOAD_DEVICE_DIRECTORY "aloadSEQ"
-#define SNDRV_SEQ_VERSION_MAX	SNDRV_PROTOCOL_VERSION(1, 0, 2)
 
 typedef struct {
 	int fd;
@@ -535,7 +534,7 @@ int snd_seq_hw_open(snd_seq_t **handle, const char *name, int streams, int mode)
 		close(fd);
 		return ret;
 	}
-	if (SNDRV_PROTOCOL_INCOMPATIBLE(ver, SNDRV_SEQ_VERSION_MAX)) {
+	if (SNDRV_PROTOCOL_INCOMPATIBLE(ver, SNDRV_SEQ_VERSION)) {
 		close(fd);
 		return -SND_ERROR_INCOMPATIBLE_VERSION;
 	}
