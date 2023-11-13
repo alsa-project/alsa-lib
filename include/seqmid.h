@@ -45,8 +45,21 @@ extern "C" {
  * 
  * This macro clears the given event record pointer to the default status.
  */
-#define snd_seq_ev_clear(ev) \
-	memset(ev, 0, sizeof(snd_seq_event_t))
+static inline void snd_seq_ev_clear(snd_seq_event_t *ev)
+{
+	memset(ev, 0, sizeof(*ev));
+}
+
+/**
+ * \brief initialize event record for UMP
+ * \param ev event record pointer
+ *
+ * This macro clears the given UMP event record pointer to the default status.
+ */
+static inline void snd_seq_ump_ev_clear(snd_seq_ump_event_t *ev)
+{
+	memset(ev, 0, sizeof(*ev));
+}
 
 /**
  * \brief set the tag for given event
