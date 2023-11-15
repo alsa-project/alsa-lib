@@ -738,7 +738,7 @@ static int snd_client_open(client_t *client)
 		ans.result = -EINVAL;
 		goto _answer;
 	}
-	name = alloca(req.namelen);
+	name = alloca(req.namelen + 1);
 	err = read(client->ctrl_fd, name, req.namelen);
 	if (err < 0) {
 		SYSERROR("read failed");
@@ -775,6 +775,10 @@ static int snd_client_open(client_t *client)
 	name[req.namelen] = '\0';
 
 	client->transport_type = req.transport_type;
+	if (sizeof(client->name) < (size_t)(req.namelen + 1)) {
+		ans.result = -ENOMEM;
+		goto _answer;
+	}
 	strcpy(client->name, name);
 	client->stream = req.stream;
 	client->mode = req.mode;
