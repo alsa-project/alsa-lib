@@ -1172,7 +1172,10 @@ static int _snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_ent
 			snd_config_t *jnode = snd_config_iterator_entry(j);
 			double value;
 			int ss;
-			long *scha = alloca(tt_ssize * sizeof(long));
+			long *scha = malloc(tt_ssize * sizeof(long));
+			if (!scha) {
+				return -ENOMEM;
+			}
 			const char *id;
 			if (snd_config_get_id(jnode, &id) < 0)
 				continue;
@@ -1200,6 +1203,8 @@ static int _snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_ent
 				if (schannel > sused)
 					sused = schannel;
 			}
+
+			free(scha);
 		}
 		if (cchannel > cused)
 			cused = cchannel;
