@@ -1808,6 +1808,11 @@ static int __snd_pcm_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds,
  * corresponding FD_SET arrays and demangle events using
  * \link ::snd_pcm_poll_descriptors_revents() \endlink .
  *
+ * It is guaranteed that for the given PCM handle, the output poll
+ * descriptor structs (and their count) will never change, thus it is
+ * valid to call the function once and reuse its output for the
+ * lifetime of the PCM device.
+ *
  * The function is thread-safe when built with the proper option.
  */
 int snd_pcm_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int space)
@@ -1842,6 +1847,13 @@ static int __snd_pcm_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds,
  *
  * Note: Even if multiple poll descriptors are used (i.e. pfds > 1),
  * this function returns only a single event.
+ *
+ * The passed in count of poll descriptors must be equal to
+ * \link ::snd_pcm_poll_descriptors_count() \endlink and the passed in array
+ * must match the array returned by \link ::snd_pcm_poll_descriptors() \endlink
+ * (in its full length and original order) with the revent fields updated
+ * according to the poll() result. This function will not modify the file
+ * descriptor or event field of any element of the given poll descriptor array.
  *
  * The function is thread-safe when built with the proper option.
  */
