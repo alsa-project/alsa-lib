@@ -894,6 +894,7 @@ int snd_pcm_info(snd_pcm_t *pcm, snd_pcm_info_t *info)
  * \param pcm PCM handle
  * \param params Configuration space definition container
  * \return 0 on success otherwise a negative error code
+ * \retval -EBADFD no hardware configuration is set
  */
 int snd_pcm_hw_params_current(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
@@ -960,6 +961,8 @@ int snd_pcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 /** \brief Remove PCM hardware configuration and free associated resources
  * \param pcm PCM handle
  * \return 0 on success otherwise a negative error code
+ *
+ * The function will also report success if no configuration is set.
  */
 int snd_pcm_hw_free(snd_pcm_t *pcm)
 {
@@ -3929,6 +3932,11 @@ int snd_pcm_hw_params_get_fifo_size(const snd_pcm_hw_params_t *params)
  *
  * The configuration space will be filled with all possible ranges
  * for the PCM device.
+ *
+ * Note that the configuration space may be constrained by the
+ * currently installed configuration on the PCM device. To remove
+ * any constrains, free the configuration with #snd_pcm_hw_free
+ * first.
  */
 int snd_pcm_hw_params_any(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
