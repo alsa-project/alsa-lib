@@ -148,7 +148,7 @@ static snd_ctl_numid_t *remap_numid_child_new(snd_ctl_remap_t *priv, unsigned in
 
 	if (numid_child == 0)
 		return NULL;
-	if (remap_find_numid_app(priv, numid_child)) {
+	if (priv->numid_remap_active && remap_find_numid_app(priv, numid_child)) {
 		while (remap_find_numid_app(priv, priv->numid_app_last))
 			priv->numid_app_last++;
 		numid_app = priv->numid_app_last;
@@ -222,6 +222,7 @@ static snd_ctl_map_t *remap_find_map_numid(snd_ctl_remap_t *priv, unsigned int n
 	}
 	return NULL;
 }
+
 static snd_ctl_map_t *remap_find_map_id(snd_ctl_remap_t *priv, snd_ctl_elem_id_t *id)
 {
 	size_t count;
