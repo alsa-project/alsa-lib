@@ -749,7 +749,7 @@ fi
 
 AC_CONFIG_FILES(Makefile doc/Makefile doc/pictures/Makefile doc/doxygen.cfg \
 		include/Makefile include/sound/Makefile include/sound/uapi/Makefile \
-		src/Versions src/Makefile \
+		src/Versions.in src/Makefile \
 		src/control/Makefile src/mixer/Makefile \
 		src/pcm/Makefile src/pcm/scopes/Makefile \
 		src/rawmidi/Makefile src/timer/Makefile \
