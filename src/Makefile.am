@@ -1,10 +1,11 @@
-EXTRA_DIST=Versions
 COMPATNUM=@LIBTOOL_VERSION_INFO@
 
 if VERSIONED_SYMBOLS
 VSYMS = -Wl,--version-script=Versions
+BUILT_SOURCES = $(top_builddir)/src/Versions
 else
 VSYMS =
+BUILT_SOURCES =
 endif
 
 if SYMBOLIC_FUNCTIONS
@@ -12,6 +13,8 @@ SYMFUNCS = -Wl,-Bsymbolic-functions
 else
 SYMFUNCS =
 endif
+
+VERSION_CPPFLAGS =
 
 lib_LTLIBRARIES = libasound.la
 libasound_la_SOURCES = conf.c confeval.c confmisc.c input.c output.c async.c error.c dlmisc.c socket.c shmarea.c userfile.c names.c
@@ -43,6 +46,9 @@ SUBDIRS += ucm
 libasound_la_LIBADD += ucm/libucm.la
 endif
 if BUILD_ALISP
+if VERSIONED_SYMBOLS
+VERSION_CPPFLAGS += -DHAVE_ALISP_SYMS
+endif
 SUBDIRS += alisp
 libasound_la_LIBADD += alisp/libalisp.la
 endif
@@ -50,6 +56,9 @@ SUBDIRS += conf
 libasound_la_LIBADD += @ALSA_DEPLIBS@
 
 libasound_la_LDFLAGS = -version-info $(COMPATNUM) $(VSYMS) $(SYMFUNCS) $(LDFLAGS_NOUNDEFINED)
+
+$(top_builddir)/src/Versions: $(top_builddir)/src/Versions.in
+	$(COMPILE) -E $(VERSION_CPPFLAGS) -x assembler-with-cpp -o $@ $<
 
 control/libcontrol.la:
 	$(MAKE) -C control libcontrol.la
