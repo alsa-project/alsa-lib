@@ -1812,9 +1812,10 @@ static int __snd_pcm_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds,
  * \link ::snd_pcm_poll_descriptors_revents() \endlink .
  *
  * It is guaranteed that for the given PCM handle, the output poll
- * descriptor structs (and their count) will never change, thus it is
- * valid to call the function once and reuse its output for the
- * lifetime of the PCM device.
+ * descriptor structs (and their count) will not change after
+ * hardware and software parameters setup. Thus it is valid to call
+ * the function once when all parameters are set and reuse its output
+ * for the lifetime of the stream parameters.
  *
  * The function is thread-safe when built with the proper option.
  */
