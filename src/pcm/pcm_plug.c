@@ -1065,6 +1065,18 @@ static int snd_pcm_plug_hw_free(snd_pcm_t *pcm)
 	return err;
 }
 
+static int snd_pcm_plug_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
+{
+	snd_pcm_plug_t *plug = pcm->private_data;
+	snd_pcm_t *slave = plug->gen.slave;
+	int err = snd_pcm_sw_params(slave, params);
+	if (err >= 0) {
+		pcm->fast_ops = slave->fast_ops;
+		pcm->fast_op_arg = slave->fast_op_arg;
+	}
+	return err;
+}
+
 static void snd_pcm_plug_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_pcm_plug_t *plug = pcm->private_data;
@@ -1078,7 +1090,7 @@ static const snd_pcm_ops_t snd_pcm_plug_ops = {
 	.hw_refine = snd_pcm_plug_hw_refine,
 	.hw_params = snd_pcm_plug_hw_params,
 	.hw_free = snd_pcm_plug_hw_free,
-	.sw_params = snd_pcm_generic_sw_params,
+	.sw_params = snd_pcm_plug_sw_params,
 	.channel_info = snd_pcm_generic_channel_info,
 	.dump = snd_pcm_plug_dump,
 	.nonblock = snd_pcm_generic_nonblock,
