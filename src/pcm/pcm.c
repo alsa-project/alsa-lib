@@ -378,7 +378,7 @@ be started automatically from the device. For capture, if the application wants
 to read count of samples equal or greater then the stream will be started.
 If you want to use explicit start (#snd_pcm_start), you can
 set this value greater than ring buffer size (in samples), but use the
-constant MAXINT is not a bad idea.
+constant LONG_MAX or the boundary value is not a bad idea.
 
 \par Stop threshold
 
@@ -7721,7 +7721,8 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 			/* some plugins might automatically start the stream */
 			state = __snd_pcm_state(pcm);
 			if (state == SND_PCM_STATE_PREPARED &&
-			    hw_avail >= (snd_pcm_sframes_t) pcm->start_threshold) {
+			    hw_avail >= 0 &&
+			    (snd_pcm_uframes_t) hw_avail >= pcm->start_threshold) {
 				err = __snd_pcm_start(pcm);
 				if (err < 0)
 					goto _end;
