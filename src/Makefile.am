@@ -26,6 +26,9 @@ SUBDIRS += mixer
 libasound_la_LIBADD += mixer/libmixer.la
 endif
 if BUILD_PCM
+if VERSIONED_SYMBOLS
+VERSION_CPPFLAGS += -DHAVE_PCM_SYMS -DHAVE_TIMER_SYMS
+endif
 SUBDIRS += pcm timer
 libasound_la_LIBADD += pcm/libpcm.la timer/libtimer.la
 endif

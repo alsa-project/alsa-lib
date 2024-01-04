@@ -16,6 +16,7 @@ ALSA_0.9 {
 };
 
 ALSA_0.9.0rc4 {
+#ifdef HAVE_PCM_SYMS
   global:
 
     @SYMBOL_PREFIX@snd_pcm_hw_params_get_access;
@@ -42,6 +43,7 @@ ALSA_0.9.0rc4 {
     @SYMBOL_PREFIX@snd_pcm_hw_params_get_rate_max;
     @SYMBOL_PREFIX@snd_pcm_hw_params_set_rate_near;
     @SYMBOL_PREFIX@snd_pcm_hw_params_set_rate_first;
+
     @SYMBOL_PREFIX@snd_pcm_hw_params_set_rate_last;
 
     @SYMBOL_PREFIX@snd_pcm_hw_params_get_period_time;
@@ -85,22 +87,29 @@ ALSA_0.9.0rc4 {
     @SYMBOL_PREFIX@snd_pcm_hw_params_set_tick_time_near;
     @SYMBOL_PREFIX@snd_pcm_hw_params_set_tick_time_first;
     @SYMBOL_PREFIX@snd_pcm_hw_params_set_tick_time_last;
+#endif
 
 } ALSA_0.9;
 
 ALSA_0.9.0rc8 {
+#ifdef HAVE_PCM_SYMS
   global:
 
     @SYMBOL_PREFIX@snd_pcm_forward;
     @SYMBOL_PREFIX@snd_pcm_status_get_trigger_htstamp;
     @SYMBOL_PREFIX@snd_pcm_status_get_htstamp;
+#endif
 
 } ALSA_0.9.0rc4;
 
 ALSA_0.9.0 {
+#if defined HAVE_PCM_SYMS || defined HAVE_TIMER_SYMS
   global:
 
+#if defined HAVE_PCM_SYMS
     @SYMBOL_PREFIX@snd_pcm_type_name;
+#endif
+#ifdef HAVE_TIMER_SYMS
     @SYMBOL_PREFIX@snd_timer_query_info;
     @SYMBOL_PREFIX@snd_timer_query_params;
     @SYMBOL_PREFIX@snd_timer_query_status;
@@ -108,6 +117,8 @@ ALSA_0.9.0 {
     @SYMBOL_PREFIX@snd_timer_params_get_exclusive;
     @SYMBOL_PREFIX@snd_timer_params_set_filter;
     @SYMBOL_PREFIX@snd_timer_params_get_filter;
+#endif
+#endif
 } ALSA_0.9.0rc8;
 
 ALSA_0.9.3 {
@@ -146,11 +157,13 @@ ALSA_1.2.6 {
 } ALSA_1.1.6;
 
 ALSA_1.2.9 {
+#ifdef HAVE_PCM_SYMS
   global:
 
     @SYMBOL_PREFIX@snd_pcm_hw_params_is_perfect_drain;
     @SYMBOL_PREFIX@snd_pcm_hw_params_set_drain_silence;
     @SYMBOL_PREFIX@snd_pcm_hw_params_get_drain_silence;
+#endif
 } ALSA_1.2.6;
 
 ALSA_1.2.10 {
