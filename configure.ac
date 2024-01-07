@@ -747,22 +747,24 @@ if test ! -L "$srcdir"/include/alsa ; then
   ln -sf . "$srcdir"/include/alsa
 fi
 
-AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile doc/doxygen.cfg \
-	  include/Makefile include/sound/Makefile include/sound/uapi/Makefile \
-	  src/Versions src/Makefile \
-          src/control/Makefile src/mixer/Makefile \
-	  src/pcm/Makefile src/pcm/scopes/Makefile \
-	  src/rawmidi/Makefile src/timer/Makefile \
-          src/hwdep/Makefile src/seq/Makefile src/ucm/Makefile \
-          src/alisp/Makefile src/topology/Makefile \
-	  src/conf/Makefile \
-	  src/conf/cards/Makefile \
-	  src/conf/ctl/Makefile \
-	  src/conf/pcm/Makefile \
-	  modules/Makefile modules/mixer/Makefile modules/mixer/simple/Makefile \
-	  alsalisp/Makefile aserver/Makefile \
-	  test/Makefile test/lsb/Makefile \
-	  utils/Makefile utils/alsa-lib.spec utils/alsa.pc utils/alsa-topology.pc)
+AC_CONFIG_FILES(Makefile doc/Makefile doc/pictures/Makefile doc/doxygen.cfg \
+		include/Makefile include/sound/Makefile include/sound/uapi/Makefile \
+		src/Versions src/Makefile \
+		src/control/Makefile src/mixer/Makefile \
+		src/pcm/Makefile src/pcm/scopes/Makefile \
+		src/rawmidi/Makefile src/timer/Makefile \
+		src/hwdep/Makefile src/seq/Makefile src/ucm/Makefile \
+		src/alisp/Makefile src/topology/Makefile \
+		src/conf/Makefile \
+		src/conf/cards/Makefile \
+		src/conf/ctl/Makefile \
+		src/conf/pcm/Makefile \
+		modules/Makefile modules/mixer/Makefile modules/mixer/simple/Makefile \
+		alsalisp/Makefile aserver/Makefile \
+		test/Makefile test/lsb/Makefile \
+		utils/Makefile utils/alsa-lib.spec utils/alsa.pc utils/alsa-topology.pc)
+
+AC_OUTPUT()
 
 dnl Create asoundlib.h dynamically according to configure options
 echo "Creating asoundlib.h..."
