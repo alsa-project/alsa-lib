@@ -67,3 +67,4 @@ test/seq
 test/timer
 test/lsb/config
 test/lsb/midi_event
+test/features/pcm

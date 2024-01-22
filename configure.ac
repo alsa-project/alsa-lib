@@ -761,7 +761,7 @@ AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile doc/doxygen.cfg \
 	  src/conf/pcm/Makefile \
 	  modules/Makefile modules/mixer/Makefile modules/mixer/simple/Makefile \
 	  alsalisp/Makefile aserver/Makefile \
-	  test/Makefile test/lsb/Makefile \
+	  test/Makefile test/lsb/Makefile test/features/Makefile \
 	  utils/Makefile utils/alsa-lib.spec utils/alsa.pc utils/alsa-topology.pc)
 
 dnl Create asoundlib.h dynamically according to configure options
