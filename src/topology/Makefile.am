@@ -1,7 +1,7 @@
 COMPATNUM=@LIBTOOL_VERSION_INFO@
 
 if VERSIONED_SYMBOLS
-VSYMS = -Wl,--version-script=../Versions
+VSYMS = -Wl,--version-script=Versions
 else
 VSYMS =
 endif
