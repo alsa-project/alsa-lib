@@ -43,6 +43,7 @@ m4/ltsugar.m4
 m4/ltversion.m4
 m4/lt~obsolete.m4
 src/Versions
+src/Versions.in
 src/conf/topology/sklrt286/data/pvt_data
 src/control/ctl_symbols_list.c
 src/pcm/pcm_symbols_list.c
