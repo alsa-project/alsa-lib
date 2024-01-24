@@ -1151,6 +1151,11 @@ static int _snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_ent
 	snd_config_iterator_t i, inext;
 	unsigned int k;
 	int err;
+
+	long *scha = alloca(tt_ssize * sizeof(long));
+	if (scha == NULL)
+		return -ENOMEM;
+
 	for (k = 0; k < tt_csize * tt_ssize; ++k)
 		ttable[k] = 0.0;
 	snd_config_for_each(i, inext, tt) {
@@ -1172,7 +1177,6 @@ static int _snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_ent
 			snd_config_t *jnode = snd_config_iterator_entry(j);
 			double value;
 			int ss;
-			long *scha = alloca(tt_ssize * sizeof(long));
 			const char *id;
 			if (snd_config_get_id(jnode, &id) < 0)
 				continue;
