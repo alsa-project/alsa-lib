@@ -6895,6 +6895,10 @@ int snd_pcm_sw_params_get_silence_threshold(const snd_pcm_sw_params_t *params, s
  * underrun is nearer than silence threshold (see 
  * #snd_pcm_sw_params_set_silence_threshold)
  *
+ * When drain silence (see #snd_pcm_hw_params_get_drain_silence) is disabled,
+ * this will also apply for draining, i.e. silence is written also when the
+ * drain end is nearer than the silence threshold.
+ *
  * The special case is when silence size value is equal or greater than
  * boundary. The unused portion of the ring buffer (initial written samples
  * are untouched) is filled with silence at start. Later, only just processed
