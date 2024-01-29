@@ -1,4 +1,4 @@
-ALSA_1.2.1 {
+ALSA_0.9 {
   global:
     snd_*;
 
