@@ -260,11 +260,11 @@ int setparams(snd_pcm_t *phandle, snd_pcm_t *chandle, int *bufsize)
 		return -1;
       __set_it:
 	if ((err = setparams_bufsize(phandle, p_params, pt_params, *bufsize, "playback")) < 0) {
-		printf("Unable to set sw parameters for playback stream: %s\n", snd_strerror(err));
+		printf("Unable to set hw parameters for playback stream: %s\n", snd_strerror(err));
 		exit(0);
 	}
 	if ((err = setparams_bufsize(chandle, c_params, ct_params, *bufsize, "capture")) < 0) {
-		printf("Unable to set sw parameters for playback stream: %s\n", snd_strerror(err));
+		printf("Unable to set hw parameters for capture stream: %s\n", snd_strerror(err));
 		exit(0);
 	}
 
