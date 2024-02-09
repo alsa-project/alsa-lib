@@ -642,6 +642,9 @@ fi
 if test "$build_pcm_alaw" = "yes"; then
   AC_DEFINE([BUILD_PCM_PLUGIN_ALAW], "1", [Build PCM alaw plugin])
 fi
+if test "$build_pcm_iec958" = "yes"; then
+  AC_DEFINE([BUILD_PCM_PLUGIN_IEC958], "1", [Build PCM iec958 plugin])
+fi
 if test "$build_pcm_mmap_emul" = "yes"; then
   AC_DEFINE([BUILD_PCM_PLUGIN_MMAP_EMUL], "1", [Build PCM mmap-emul plugin])
 fi

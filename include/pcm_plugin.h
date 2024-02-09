@@ -134,6 +134,19 @@ int _snd_pcm_adpcm_open(snd_pcm_t **pcmp, const char *name,
 			snd_pcm_stream_t stream, int mode);
 
 /*
+ *  IEC958 subframe conversion plugin
+ */
+int snd_pcm_iec958_open(snd_pcm_t **pcmp, const char *name,
+			snd_pcm_format_t sformat, snd_pcm_t *slave,
+			int close_slave,
+			const unsigned char *status_bits,
+			const unsigned char *preamble_vals,
+			int hdmi_mode);
+int _snd_pcm_iec958_open(snd_pcm_t **pcmp, const char *name,
+			 snd_config_t *root, snd_config_t *conf,
+			 snd_pcm_stream_t stream, int mode);
+
+/*
  *  Route plugin for linear formats
  */
 int snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_entry_t *ttable,
