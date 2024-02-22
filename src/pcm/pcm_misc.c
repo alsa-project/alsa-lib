@@ -203,9 +203,9 @@ int snd_pcm_format_cpu_endian(snd_pcm_format_t format)
 }
 
 /**
- * \brief Return nominal bits per a PCM sample
+ * \brief Return the bit-width of the format
  * \param format Sample format
- * \return bits per sample, a negative error code if not applicable
+ * \return the bit-width of the format, or a negative error code if not applicable
  */
 int snd_pcm_format_width(snd_pcm_format_t format)
 {
@@ -270,9 +270,9 @@ int snd_pcm_format_width(snd_pcm_format_t format)
 }
 
 /**
- * \brief Return bits needed to store a PCM sample
+ * \brief Return the physical bit-width of the format (bits needed to store a PCM sample)
  * \param format Sample format
- * \return bits per sample, a negative error code if not applicable
+ * \return the physical bit-width of the format, or a negative error code if not applicable
  */
 int snd_pcm_format_physical_width(snd_pcm_format_t format)
 {
