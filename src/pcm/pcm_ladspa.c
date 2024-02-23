@@ -1158,7 +1158,7 @@ static int snd_pcm_ladspa_check_dir(snd_pcm_ladspa_plugin_t * const plugin,
 	
 	dir = opendir(path);
 	if (!dir)
-		return -ENOENT;
+		return 0;
 		
 	while (1) {
 		dirent = readdir64(dir);
