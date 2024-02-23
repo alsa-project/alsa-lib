@@ -215,7 +215,8 @@ range, thus you may get the significant bits for linear samples via
 #snd_pcm_hw_params_get_sbits() function. The example: ICE1712
 chips support 32-bit sample processing, but low byte is ignored (playback)
 or zero (capture). The function snd_pcm_hw_params_get_sbits()
-returns 24 in this case.
+returns 24 in this case. The significant bits are related to the usable
+sample bits (width) not the physical sample space.
 
 \section alsa_transfers ALSA transfers
 
@@ -3904,6 +3905,10 @@ int snd_pcm_hw_params_get_rate_numden(const snd_pcm_hw_params_t *params,
  * \brief Get sample resolution info from a configuration space
  * \param params Configuration space
  * \return signification bits in sample otherwise a negative error code if the info is not available
+ *
+ * Significant bits are related to usable sample bits (width) not the
+ * physical sample bits (width). For non-linear formats, this value may have
+ * a special meaning which may be defined in future.
  *
  * This function should only be called when the configuration space
  * contains a single configuration. Call #snd_pcm_hw_params to choose

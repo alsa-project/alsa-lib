@@ -2075,6 +2075,7 @@ int snd_pcm_hw_refine_soft(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t 
 {
 	unsigned int k;
 	snd_interval_t *i;
+	snd_mask_t *m;
 	unsigned int rstamps[RULES];
 	unsigned int vstamps[SND_PCM_HW_PARAM_LAST_INTERVAL + 1];
 	unsigned int stamp = 2;
@@ -2159,6 +2160,11 @@ int snd_pcm_hw_refine_soft(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t 
 		i = hw_param_interval(params, SND_PCM_HW_PARAM_SAMPLE_BITS);
 		if (snd_interval_single(i))
 			params->msbits = snd_interval_value(i);
+		m = hw_param_mask_c(params, SNDRV_PCM_HW_PARAM_FORMAT);
+		if (snd_mask_single(m)) {
+			snd_pcm_format_t format = snd_mask_min(m);
+			params->msbits = snd_pcm_format_width(format);
+		}
 	}
 
 	if (!params->rate_den) {

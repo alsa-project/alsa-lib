@@ -379,12 +379,28 @@ static int snd_pcm_hw_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	return 0;
 }
 
-static inline int hw_params_call(snd_pcm_hw_t *pcm_hw, snd_pcm_hw_params_t *params)
+#define hw_param_mask(params,var) \
+	&((params)->masks[(var) - SND_PCM_HW_PARAM_FIRST_MASK])
+
+static int hw_params_call(snd_pcm_hw_t *pcm_hw, snd_pcm_hw_params_t *params)
 {
+	int err;
+
 	/* check for new hw_params structure; it's available from 2.0.2 version of PCM API */
 	if (SNDRV_PROTOCOL_VERSION(2, 0, 2) <= pcm_hw->version)
-		return ioctl(pcm_hw->fd, SNDRV_PCM_IOCTL_HW_PARAMS, params);
-	return use_old_hw_params_ioctl(pcm_hw->fd, SND_PCM_IOCTL_HW_PARAMS_OLD, params);
+		err = ioctl(pcm_hw->fd, SNDRV_PCM_IOCTL_HW_PARAMS, params);
+	else
+		err = use_old_hw_params_ioctl(pcm_hw->fd, SND_PCM_IOCTL_HW_PARAMS_OLD, params);
+	if (err >= 0 && pcm_hw->version < SNDRV_PROTOCOL_VERSION(2, 0, 17) && params->msbits > 0) {
+		snd_mask_t *m = hw_param_mask(params, SNDRV_PCM_HW_PARAM_FORMAT);
+		if (snd_mask_single(m)) {
+			snd_pcm_format_t format = snd_mask_min(m);
+			int width = snd_pcm_format_width(format);
+			if (width > 0 && params->msbits > (unsigned int)width)
+				params->msbits = width;
+		}
+	}
+	return err;
 }
 
 static int snd_pcm_hw_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
