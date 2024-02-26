@@ -3904,11 +3904,16 @@ int snd_pcm_hw_params_get_rate_numden(const snd_pcm_hw_params_t *params,
 /**
  * \brief Get sample resolution info from a configuration space
  * \param params Configuration space
- * \return signification bits in sample otherwise a negative error code if the info is not available
+ * \return sample resolution (in bits) otherwise a negative error code if the info is not available
  *
- * Significant bits are related to usable sample bits (width) not the
- * physical sample bits (width). For non-linear formats, this value may have
- * a special meaning which may be defined in future.
+ * For linear formats, this function returns sample resolution -
+ * used bits starting from the first usable significant bit defined by
+ * the format (e.g. bit 31 for S32_LE format or bit 23 for S24_LE format -
+ * starting from bit zero). Application may use full sample bit range defined
+ * by the format, but additional bits (outside this sample resolution) are
+ * stripped (not processed).
+ *
+ * For non-linear formats, this value may have a special meaning which may be defined in future.
  *
  * This function should only be called when the configuration space
  * contains a single configuration. Call #snd_pcm_hw_params to choose
