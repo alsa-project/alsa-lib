@@ -13,7 +13,7 @@ jobs:
         dnf -y upgrade
         dnf -y install @development-tools libtool bzip2
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
     - name: Safe git directory
@@ -75,7 +75,7 @@ jobs:
       image: ubuntu:latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Prepare environment
       run: |
         export DEBIAN_FRONTEND=noninteractive
