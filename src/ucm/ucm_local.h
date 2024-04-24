@@ -40,7 +40,7 @@
 #include <pthread.h>
 #include "use-case.h"
 
-#define SYNTAX_VERSION_MAX	6
+#define SYNTAX_VERSION_MAX	7
 
 #define MAX_CARD_SHORT_NAME	32
 #define MAX_CARD_LONG_NAME	80

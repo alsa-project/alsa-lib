@@ -293,9 +293,13 @@ static int if_eval_path(snd_use_case_mgr_t *uc_mgr, snd_config_t *eval)
 		return -EINVAL;
 	}
 
-	err = uc_mgr_get_substituted_value(uc_mgr, &s, mode);
-	if (err < 0)
-		return err;
+	if (uc_mgr->conf_format < 7) {
+		s = (char *)mode;
+	} else {
+		err = uc_mgr_get_substituted_value(uc_mgr, &s, mode);
+		if (err < 0)
+			return err;
+	}
 	if (strncasecmp(s, "exist", 5) == 0) {
 		amode = F_OK;
 	} else if (strcasecmp(s, "read") == 0) {
@@ -309,17 +313,23 @@ static int if_eval_path(snd_use_case_mgr_t *uc_mgr, snd_config_t *eval)
 		free(s);
 		return -EINVAL;
 	}
-	free(s);
+	if (s != mode)
+		free(s);
 
-	err = uc_mgr_get_substituted_value(uc_mgr, &s, path);
-	if (err < 0)
-		return err;
+	if (uc_mgr->conf_format < 7) {
+		s = (char *)path;
+	} else {
+		err = uc_mgr_get_substituted_value(uc_mgr, &s, path);
+		if (err < 0)
+			return err;
+	}
 #ifdef HAVE_EACCESS
 	err = eaccess(s, amode);
 #else
 	err = access(s, amode);
 #endif
-	free(s);
+	if (s != path)
+		free(s);
 	return err ? 0 : 1;
 }
 

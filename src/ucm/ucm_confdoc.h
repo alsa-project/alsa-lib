@@ -63,7 +63,7 @@ use case verbs for that sound card. i.e.:
 # Example master file for blah sound card
 # By Joe Blogs <joe@bloggs.org>
 
-Syntax 6
+Syntax 7
 
 # Use Case name for user interface
 Comment "Nice Abstracted Soundcard"
@@ -489,7 +489,8 @@ DefineMacro.macro1 {
 The arguments in the macro are refered as the variables with the double
 underscore name prefix (like *__variable*). The configuration block in
 the DefineMacro subtree is always evaluated (including arguments and variables)
-at the time of the instantiation.
+at the time of the instantiation. Argument string substitutions
+(for multiple macro call levels) were added in *Syntax* version *7*.
 
 The macros can be instantiated (expanded) using:
 
@@ -562,6 +563,15 @@ Field                | Description
 ---------------------|-----------------------
 String               | string
 Regex                | regex expression (extended posix, ignore case)
+
+#### Path is present (Type Path)
+
+Field                | Description
+---------------------|-----------------------
+Path                 | path (filename)
+Mode                 | exist,read,write,exec
+
+Note: Substitution for Path and Mode fields were added in *Syntax* version *7*.
 
 #### ALSA control element exists (Type ControlExists)
 
