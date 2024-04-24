@@ -446,13 +446,17 @@ static int evaluate_macro1(snd_use_case_mgr_t *uc_mgr,
 		err = snd_config_get_id(n, &id);
 		if (err < 0)
 			goto __err_path;
+		snprintf(name, sizeof(name), "__%s", id);
+		if (uc_mgr_get_variable(uc_mgr, name)) {
+			uc_error("Macro argument '%s' is already defined", name);
+			goto __err_path;
+		}
 		err = snd_config_get_ascii(n, &var);
 		if (err < 0)
 			goto __err_path;
 		err = uc_mgr_get_substituted_value(uc_mgr, &var2, var);
 		free(var);
 		if (err >= 0) {
-			snprintf(name, sizeof(name), "__%s", id);
 			err = uc_mgr_set_variable(uc_mgr, name, var2);
 			free(var2);
 		}
