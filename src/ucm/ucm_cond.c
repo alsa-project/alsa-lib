@@ -315,9 +315,9 @@ static int if_eval_path(snd_use_case_mgr_t *uc_mgr, snd_config_t *eval)
 	if (err < 0)
 		return err;
 #ifdef HAVE_EACCESS
-	err = eaccess(path, amode);
+	err = eaccess(s, amode);
 #else
-	err = access(path, amode);
+	err = access(s, amode);
 #endif
 	free(s);
 	return err ? 0 : 1;
