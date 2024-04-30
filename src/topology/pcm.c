@@ -27,6 +27,7 @@ static const char *const snd_pcm_rate_names[] = {
 	RATE(11025),
 	RATE(16000),
 	RATE(22050),
+	RATE(24000),
 	RATE(32000),
 	RATE(44100),
 	RATE(48000),
