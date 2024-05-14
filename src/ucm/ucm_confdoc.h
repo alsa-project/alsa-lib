@@ -376,7 +376,9 @@ Evaluation order   | Configuration block | Evaluation restart
 ------------------:|---------------------|--------------------
 1                  | Define              | No
 2                  | Include             | Yes
-3                  | If                  | Yes
+3                  | Variant             | Yes
+4                  | Macro               | Yes
+5                  | If                  | Yes
 
 
 ### Substitutions
