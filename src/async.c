@@ -149,12 +149,31 @@ int snd_async_add_handler(snd_async_handler_t **handler, int fd,
  */
 int snd_async_del_handler(snd_async_handler_t *handler)
 {
-	int err = 0;
-	int was_empty = list_empty(&snd_async_handlers);
+	int err = 0, err2 = 0;
+	int was_empty;
 	assert(handler);
+	if (handler->type != SND_ASYNC_HANDLER_GENERIC) {
+		if (!list_empty(&handler->hlist))
+			list_del(&handler->hlist);
+		if (!list_empty(&handler->hlist))
+			goto _glist;
+		switch (handler->type) {
+#ifdef BUILD_PCM
+		case SND_ASYNC_HANDLER_PCM:
+			err2 = snd_pcm_async(handler->u.pcm, -1, 1);
+			break;
+#endif
+		case SND_ASYNC_HANDLER_CTL:
+			err2 = snd_ctl_async(handler->u.ctl, -1, 1);
+			break;
+		default:
+			assert(0);
+		}
+	}
+ _glist:
+	was_empty = list_empty(&snd_async_handlers);
 	list_del(&handler->glist);
-	if (!was_empty
-	 && list_empty(&snd_async_handlers)) {
+	if (!was_empty && list_empty(&snd_async_handlers)) {
 		err = sigaction(snd_async_signo, &previous_action, NULL);
 		if (err < 0) {
 			SYSERR("sigaction");
@@ -162,27 +181,8 @@ int snd_async_del_handler(snd_async_handler_t *handler)
 		}
 		memset(&previous_action, 0, sizeof(previous_action));
 	}
-	if (handler->type == SND_ASYNC_HANDLER_GENERIC)
-		goto _end;
-	if (!list_empty(&handler->hlist))
-		list_del(&handler->hlist);
-	if (!list_empty(&handler->hlist))
-		goto _end;
-	switch (handler->type) {
-#ifdef BUILD_PCM
-	case SND_ASYNC_HANDLER_PCM:
-		err = snd_pcm_async(handler->u.pcm, -1, 1);
-		break;
-#endif
-	case SND_ASYNC_HANDLER_CTL:
-		err = snd_ctl_async(handler->u.ctl, -1, 1);
-		break;
-	default:
-		assert(0);
-	}
- _end:
 	free(handler);
-	return err;
+	return err ? err : err2;
 }
 
 /**
