@@ -139,7 +139,7 @@ extern "C" {
 #define SND_USE_CASE_DEV_BLUETOOTH	"Bluetooth"	/**< Bluetooth Device */
 #define SND_USE_CASE_DEV_EARPIECE	"Earpiece"	/**< Earpiece Device */
 #define SND_USE_CASE_DEV_SPDIF		"SPDIF"		/**< SPDIF Device */
-#define SND_USE_CASE_DEV_HDMI		"HDMI"		/**< HDMI Device */
+#define SND_USE_CASE_DEV_HDMI		"HDMI"		/**< HDMI / DisplayPort Device */
 #define SND_USE_CASE_DEV_USB		"USB"		/**< USB Device (multifunctional) */
 #define SND_USE_CASE_DEV_DIRECT		"Direct"	/**< Direct Device (no channel remapping), (e.g. ProAudio usage) */
 /* add new devices to end of list */
