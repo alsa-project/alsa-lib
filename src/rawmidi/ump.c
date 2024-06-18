@@ -338,6 +338,17 @@ void snd_ump_endpoint_info_free(snd_ump_endpoint_info_t *info)
 }
 
 /**
+ * \brief clears the snd_ump_endpoint_info_t structure
+ * \param info pointer to the snd_ump_endpoint_info_t structure to clear
+ *
+ * Zero-clear the snd_ump_endpoint_info_t object.
+ */
+void snd_ump_endpoint_info_clear(snd_ump_endpoint_info_t *info)
+{
+	memset(info, 0, sizeof(*info));
+}
+
+/**
  * \brief copy one snd_ump_endpoint_info_t structure to another
  * \param dst destination snd_ump_endpoint_info_t structure
  * \param src source snd_ump_endpoint_info_t structure
@@ -479,6 +490,149 @@ const char *snd_ump_endpoint_info_get_product_id(const snd_ump_endpoint_info_t *
 }
 
 /**
+ * \brief set card number of UMP endpoint
+ * \param info pointer to a snd_ump_endpoint_info_t structure
+ * \param card the card number of the given UMP endpoint
+ */
+void snd_ump_endpoint_info_set_card(snd_ump_endpoint_info_t *info,
+				    unsigned int card)
+{
+	info->card = card;
+}
+
+/**
+ * \brief set device number of UMP endpoint
+ * \param info pointer to a snd_ump_endpoint_info_t structure
+ * \param device the device number of the given UMP endpoint
+ */
+void snd_ump_endpoint_info_set_device(snd_ump_endpoint_info_t *info,
+				      unsigned int device)
+{
+	info->device = device;
+}
+
+/**
+ * \brief set info flags of UMP endpoint
+ * \param info pointer to a snd_ump_endpoint_info_t structure
+ * \param flags UMP endpoint flag bits
+ */
+void snd_ump_endpoint_info_set_flags(snd_ump_endpoint_info_t *info,
+				     unsigned int flags)
+{
+	info->flags = flags;
+}
+
+/**
+ * \brief set protocol capability bits of UMP endpoint
+ * \param info pointer to a snd_ump_endpoint_info_t structure
+ * \param caps UMP endpoint protocol capability bits
+ */
+void snd_ump_endpoint_info_set_protocol_caps(snd_ump_endpoint_info_t *info,
+					     unsigned int caps)
+{
+	info->protocol_caps = caps;
+}
+
+/**
+ * \brief set the current protocol of UMP endpoint
+ * \param info pointer to a snd_ump_endpoint_info_t structure
+ * \param caps the UMP endpoint protocol bits
+ */
+void snd_ump_endpoint_info_set_protocol(snd_ump_endpoint_info_t *info,
+					unsigned int protocol)
+{
+	info->protocol = protocol;
+}
+
+/**
+ * \brief set the number of UMP blocks of UMP endpoint
+ * \param info pointer to a snd_ump_endpoint_info_t structure
+ * \param blocks the number of UMP blocks
+ */
+void snd_ump_endpoint_info_set_num_blocks(snd_ump_endpoint_info_t *info,
+					  unsigned int blocks)
+{
+	info->num_blocks = blocks;
+}
+
+/**
+ * \brief set the UMP version number of UMP endpoint
+ * \param info pointer to a snd_ump_endpoint_info_t structure
+ * \param version the UMP version number
+ */
+void snd_ump_endpoint_info_set_version(snd_ump_endpoint_info_t *info,
+				       unsigned int version)
+{
+	info->version = version;
+}
+
+/**
+ * \brief set the UMP manufacturer ID of UMP endpoint
+ * \param info pointer to a snd_ump_endpoint_info_t structure
+ * \param id UMP manufacturer ID
+ */
+void snd_ump_endpoint_info_set_manufacturer_id(snd_ump_endpoint_info_t *info,
+					       unsigned int id)
+{
+	info->manufacturer_id = id;
+}
+
+/**
+ * \brief set the UMP family ID of UMP endpoint
+ * \param info pointer to a snd_ump_endpoint_info_t structure
+ * \param id UMP family ID
+ */
+void snd_ump_endpoint_info_set_family_id(snd_ump_endpoint_info_t *info,
+					 unsigned int id)
+{
+	info->family_id = id;
+}
+
+/**
+ * \brief set the UMP model ID of UMP endpoint
+ * \param info pointer to a snd_ump_endpoint_info_t structure
+ * \param id UMP model ID
+ */
+void snd_ump_endpoint_info_set_model_id(snd_ump_endpoint_info_t *info,
+					unsigned int id)
+{
+	info->model_id = id;
+}
+
+/**
+ * \brief set the UMP software revision of UMP endpoint
+ * \param info pointer to a snd_ump_endpoint_info_t structure
+ * \param id UMP software revision in 4 bytes array
+ */
+void snd_ump_endpoint_info_set_sw_revision(snd_ump_endpoint_info_t *info,
+					   const unsigned char *id)
+{
+	memcpy(info->sw_revision, id, sizeof(info->sw_revision));
+}
+
+/**
+ * \brief set the name of UMP endpoint
+ * \param info pointer to a snd_ump_endpoint_info_t structure
+ * \param name UMP endpoint name string
+ */
+void snd_ump_endpoint_info_set_name(snd_ump_endpoint_info_t *info,
+				    const char *name)
+{
+	snd_strlcpy((char *)info->name, name, sizeof(info->name));
+}
+
+/**
+ * \brief set the product ID string of UMP endpoint
+ * \param info pointer to a snd_ump_endpoint_info_t structure
+ * \param id UMP endpoint product ID string
+ */
+void snd_ump_endpoint_info_set_product_id(snd_ump_endpoint_info_t *info,
+					  const char *id)
+{
+	snd_strlcpy((char *)info->product_id, id, sizeof(info->product_id));
+}
+
+/**
  * \brief get endpoint information about UMP handle
  * \param ump UMP handle
  * \param info pointer to a snd_ump_endpoint_info_t structure to be filled
@@ -527,6 +681,17 @@ void snd_ump_block_info_free(snd_ump_block_info_t *info)
 }
 
 /**
+ * \brief clears the snd_ump_block_info_t structure
+ * \param info pointer to the snd_ump_block_info_t structure to clear
+ *
+ * Zero-clear the snd_ump_block_info_t object.
+ */
+void snd_ump_block_info_clear(snd_ump_block_info_t *info)
+{
+	memset(info, 0, sizeof(*info));
+}
+
+/**
  * \brief copy one snd_ump_block_info_t structure to another
  * \param dst destination snd_ump_block_info_t structure
  * \param src source snd_ump_block_info_t structure
@@ -565,17 +730,6 @@ int snd_ump_block_info_get_device(const snd_ump_block_info_t *info)
 unsigned int snd_ump_block_info_get_block_id(const snd_ump_block_info_t *info)
 {
 	return info->block_id;
-}
-
-/**
- * \brief set UMP block ID for query
- * \param info pointer to a snd_ump_block_info_t structure
- * \param id the ID number for query
- */
-void snd_ump_block_info_set_block_id(snd_ump_block_info_t *info,
-				     unsigned int id)
-{
-	info->block_id = id;
 }
 
 /**
@@ -666,6 +820,134 @@ unsigned int snd_ump_block_info_get_ui_hint(const snd_ump_block_info_t *info)
 const char *snd_ump_block_info_get_name(const snd_ump_block_info_t *info)
 {
 	return (const char *)info->name;
+}
+
+/**
+ * \brief set card number to snd_ump_block_info_t structure
+ * \param info pointer to a snd_ump_block_info_t structure
+ * \param card the card number
+ */
+void snd_ump_block_info_set_card(snd_ump_block_info_t *info, unsigned int card)
+{
+	info->card = card;
+}
+
+/**
+ * \brief set device number to snd_ump_block_info_t structure
+ * \param info pointer to a snd_ump_block_info_t structure
+ * \param device the device number
+ */
+void snd_ump_block_info_set_device(snd_ump_block_info_t *info, unsigned int device)
+{
+	info->device = device;
+}
+
+/**
+ * \brief set UMP block ID to snd_ump_block_info_t structure
+ * \param info pointer to a snd_ump_block_info_t structure
+ * \param id the ID number
+ *
+ * This function is mostly used for setting the block ID to query.
+ */
+void snd_ump_block_info_set_block_id(snd_ump_block_info_t *info,
+				     unsigned int id)
+{
+	info->block_id = id;
+}
+
+/**
+ * \brief set activeness to snd_ump_block_info_t structure
+ * \param info pointer to a snd_ump_block_info_t structure
+ * \param active 1 if the block is active or 0 if inactive
+ */
+void snd_ump_block_info_set_active(snd_ump_block_info_t *info, unsigned int active)
+{
+	info->active = !!active;
+}
+
+/**
+ * \brief set UMP block information flags to snd_ump_block_info_t structure
+ * \param info pointer to a snd_ump_block_info_t structure
+ * \param flags flag bits for the given UMP block
+ */
+void snd_ump_block_info_set_flags(snd_ump_block_info_t *info, unsigned int flags)
+{
+	info->flags = flags;
+}
+
+/**
+ * \brief set UMP block direction to snd_ump_block_info_t structure
+ * \param info pointer to a snd_ump_block_info_t structure
+ * \param direction direction of UMP block (input,output,bidirectional)
+ */
+void snd_ump_block_info_set_direction(snd_ump_block_info_t *info, unsigned int direction)
+{
+	info->direction = direction;
+}
+
+/**
+ * \brief set first UMP group to snd_ump_block_info_t structure
+ * \param info pointer to a snd_ump_block_info_t structure
+ * \param first_group the first UMP group ID belonging to the block
+ */
+void snd_ump_block_info_set_first_group(snd_ump_block_info_t *info,
+					unsigned int first_group)
+{
+	info->first_group = first_group;
+}
+
+/**
+ * \brief set number of UMP groups to snd_ump_block_info_t structure
+ * \param info pointer to a snd_ump_block_info_t structure
+ * \param num_groups the number of UMP groups belonging to the block
+ */
+void snd_ump_block_info_set_num_groups(snd_ump_block_info_t *info,
+				       unsigned int num_groups)
+{
+	info->num_groups = num_groups;
+}
+
+/**
+ * \brief set MIDI-CI version number to snd_ump_block_info_t structure
+ * \param info pointer to a snd_ump_block_info_t structure
+ * \param version MIDI-CI version number
+ */
+void snd_ump_block_info_set_midi_ci_version(snd_ump_block_info_t *info,
+					    unsigned int version)
+{
+	info->midi_ci_version = version;
+}
+
+/**
+ * \brief set number of supported SysEx8 streams to snd_ump_block_info_t structure
+ * \param info pointer to a snd_ump_block_info_t structure
+ * \param streams number of supported SysEx8 streams
+ */
+void snd_ump_block_info_set_sysex8_streams(snd_ump_block_info_t *info,
+					   unsigned int streams)
+{
+	info->sysex8_streams = streams;
+}
+
+/**
+ * \brief set UI Hint to snd_ump_block_info_t structure
+ * \param info pointer to a snd_ump_block_info_t structure
+ * \param hint the hint bits
+ */
+void snd_ump_block_info_set_ui_hint(snd_ump_block_info_t *info, unsigned int hint)
+{
+	info->ui_hint = hint;
+}
+
+/**
+ * \brief set the name string to snd_ump_block_info_t structure
+ * \param info pointer to a snd_ump_block_info_t structure
+ * \param name the name string of UMP block
+ */
+void snd_ump_block_info_set_name(snd_ump_block_info_t *info,
+				 const char *name)
+{
+	snd_strlcpy((char *)info->name, name, sizeof(info->name));
 }
 
 /**
