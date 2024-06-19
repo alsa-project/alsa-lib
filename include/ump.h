@@ -69,6 +69,9 @@ enum _snd_ump_direction {
 /** Bit flag for JRTS in Receive */
 #define SND_UMP_EP_INFO_PROTO_JRTS_RX		0x0002
 
+/** Default version passed to UMP Endpoint info */
+#define SND_UMP_EP_INFO_DEFAULT_VERSION		0x0101
+
 size_t snd_ump_endpoint_info_sizeof(void);
 /** \hideinitializer
  * \brief allocate an invalid #snd_ump_endpoint_info_t using standard alloca
@@ -124,6 +127,9 @@ enum _snd_ump_block_ui_hint {
 	/** Both a sender and receiver of MIDI messages */
 	SND_UMP_BLOCK_UI_HINT_BOTH =		0x03,
 };
+
+/** Default MIDI CI version passed to UMP Block info */
+#define SND_UMP_BLOCK_INFO_DEFAULT_MIDI_CI_VERSION	0x01
 
 size_t snd_ump_block_info_sizeof(void);
 /** \hideinitializer

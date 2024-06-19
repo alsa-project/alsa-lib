@@ -1042,7 +1042,8 @@ int _snd_seq_open_lconf(snd_seq_t **seqp, const char *name,
  */
 int snd_seq_close(snd_seq_t *seq)
 {
-	int err;
+	int i, err;
+
 	assert(seq);
 	err = seq->ops->close(seq);
 	if (seq->dl_handle)
@@ -1051,6 +1052,9 @@ int snd_seq_close(snd_seq_t *seq)
 	free(seq->ibuf);
 	free(seq->tmpbuf);
 	free(seq->name);
+	free(seq->ump_ep);
+	for (i = 0; i < 16; i++)
+		free(seq->ump_blks[i]);
 	free(seq);
 	return err;
 }

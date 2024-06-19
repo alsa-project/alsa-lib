@@ -520,6 +520,13 @@ int snd_seq_reset_pool_input(snd_seq_t *seq);
 	((ev)->type = SND_SEQ_EVENT_SYSEX,\
 	 snd_seq_ev_set_variable(ev, datalen, dataptr))
 
+/* Helper API functions for UMP endpoint and block creations */
+int snd_seq_create_ump_endpoint(snd_seq_t *seq,
+				const snd_ump_endpoint_info_t *info,
+				unsigned int num_groups);
+int snd_seq_create_ump_block(snd_seq_t *seq, int blkid,
+			     const snd_ump_block_info_t *info);
+
 /** \} */
 
 #ifdef __cplusplus

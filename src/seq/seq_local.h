@@ -94,6 +94,10 @@ struct _snd_seq {
 	size_t tmpbufsize;		/* size of errbuf */
 	size_t packet_size;		/* input packet alignment size */
 	int midi_version;	/* current protocol version */
+
+	unsigned int num_ump_groups;		/* number of UMP groups */
+	snd_ump_endpoint_info_t *ump_ep;	/* optional UMP info */
+	snd_ump_block_info_t *ump_blks[16];	/* optional UMP block info */
 };
 
 int snd_seq_hw_open(snd_seq_t **handle, const char *name, int streams, int mode);
