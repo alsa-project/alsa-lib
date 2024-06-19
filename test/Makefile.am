@@ -1,6 +1,6 @@
 SUBDIRS=. lsb
 
-check_PROGRAMS=control pcm pcm_min latency seq \
+check_PROGRAMS=control pcm pcm_min latency seq seq-ump-example \
 	       playmidi1 timer rawmidi midiloop \
 	       oldapi queue_timer namehint client_event_filter \
 	       chmap audio_time user-ctl-element-set pcm-multi-thread
@@ -12,6 +12,7 @@ pcm_min_LDADD=../src/libasound.la
 latency_LDADD=../src/libasound.la
 latency_LDFLAGS= -lm
 seq_LDADD=../src/libasound.la
+seq_ump_example_LDADD=../src/libasound.la
 playmidi1_LDADD=../src/libasound.la
 timer_LDADD=../src/libasound.la
 rawmidi_LDADD=../src/libasound.la
