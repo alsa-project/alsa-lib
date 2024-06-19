@@ -65,6 +65,7 @@ test/playmidi1
 test/queue_timer
 test/rawmidi
 test/seq
+test/seq-ump-example
 test/timer
 test/lsb/config
 test/lsb/midi_event
