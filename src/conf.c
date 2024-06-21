@@ -1729,7 +1729,7 @@ static int _snd_config_save_children(snd_config_t *config, snd_output_t *out,
  */
 int snd_config_substitute(snd_config_t *dst, snd_config_t *src)
 {
-	assert(dst && src);
+	assert(dst && src && src != dst);
 	if (dst->type == SND_CONFIG_TYPE_COMPOUND) {
 		int err = snd_config_delete_compound_members(dst);
 		if (err < 0)
@@ -1748,6 +1748,8 @@ int snd_config_substitute(snd_config_t *dst, snd_config_t *src)
 	free(dst->id);
 	if (dst->type == SND_CONFIG_TYPE_STRING)
 		free(dst->u.string);
+	if (src->parent)	/* like snd_config_remove */
+		list_del(&src->list);
 	dst->id = src->id;
 	dst->type = src->type;
 	dst->u = src->u;
@@ -2310,7 +2312,6 @@ int snd_config_merge(snd_config_t *dst, snd_config_t *src, int override)
 				if (override ||
 				    sn->type != SND_CONFIG_TYPE_COMPOUND ||
 				    dn->type != SND_CONFIG_TYPE_COMPOUND) {
-					snd_config_remove(sn);
 					err = snd_config_substitute(dn, sn);
 					if (err < 0)
 						return err;
