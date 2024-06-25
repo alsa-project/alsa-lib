@@ -536,7 +536,7 @@ void snd_ump_endpoint_info_set_protocol_caps(snd_ump_endpoint_info_t *info,
 /**
  * \brief set the current protocol of UMP endpoint
  * \param info pointer to a snd_ump_endpoint_info_t structure
- * \param caps the UMP endpoint protocol bits
+ * \param protocol the UMP endpoint protocol bits
  */
 void snd_ump_endpoint_info_set_protocol(snd_ump_endpoint_info_t *info,
 					unsigned int protocol)
