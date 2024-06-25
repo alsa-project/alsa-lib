@@ -775,6 +775,67 @@ void event_filter(snd_seq_t *seq, snd_seq_event_t *ev)
 }
 \endcode
 
+\section MIDI 2.0 and UMP
+
+\subsection Extension for UMP
+
+The recent extension of ALSA sequencer is the support for MIDI 2.0 and
+UMP (Universal MIDI Packet) handling.
+
+A sequencer client is opened as usual with #snd_seq_open().
+Then the application can switch to UMP mode via
+#snd_seq_set_client_midi_version() (or #snd_seq_client_info_set_midi_version()
+and #snd_seq_set_client_info() combo).
+For running in UMP MIDI 1.0 protocol, pass #SND_SEQ_CLIENT_UMP_MIDI_1_0,
+and for UMP MIDI 2.0 protocol, pass #SND_SEQ_CLIENT_UMP_MIDI_2_0, respectively.
+
+In either UMP mode, we use #snd_seq_ump_event_t for sequencer event records
+instead of #snd_seq_event_t due to the lack of the data payload size in the
+latter type.  #snd_seq_ump_event_t contains the array of 32bit int as its
+data payload for UMP, defined as a union of the existing data payload of
+#snd_seq_event_data_t.  Other than the extended data payload, all other fields
+are identical with #snd_seq_event_t.
+
+There are corresponding API helpers for #snd_seq_ump_event_t, such as
+#snd_seq_ump_event_input() and #snd_seq_ump_event_input().
+Most of macros such as #snd_seq_ev_set_dest() can be used for both
+#snd_seq_event_t and #snd_seq_ump_event_t types since they are C-macro
+without explicit type checks.
+
+When a standard MIDI event (such as note-on or channel control) is sent to a
+UMP sequencer client, it's automatically translated to a UMP packet embedded
+in #snd_seq_ump_event_t.  Ditto about sending from a UMP sequencer client to
+a legacy sequencer client; the UMP event is translated to an old-type event
+like #SND_SEQ_EVENT_NOTEON type automatically, too.
+The translation between UMP MIDI 1.0  and MIDI 2.0 is done in ALSA core
+as well.  That is, from the application POV, connections are pretty seamless,
+and applications can keep running just like before, no matter whether the
+target is UMP or not.
+
+For encoding and decoding a UMP packet data, there are structs and macros
+defined in sound/ump_msg.h.
+
+MIDI 2.0 devices provide extra information as UMP Endpoint and UMP Function
+Block information.  Those information can be obtained via
+#snd_seq_get_ump_endpoint_info() and #snd_seq_get_ump_block_info() from a
+sequencer client.
+
+\subsection Creation of UMP Virtual Endpoint and Function Blocks
+
+For making it easier to create a virtual MIDI 2.0 device in user-space,
+there are a couple of new API functions.  For creating a UMP Endpoint in an
+application, call snd_seq_create_ump_endpoint() with a properly filled
+#snd_ump_endpoint_info data.  Usually it should be called right after
+#snd_seq_open() call.  The call of #snd_seq_create_ump_endpoint() switches
+to the corresponding MIDI protocol, and you don't need to call
+#snd_seq_set_client_midi_version().  It will create a sequencer port
+corresponding to UMP Endpoint (named as "MIDI 2.0") and sequencer ports
+for the UMP Groups, too.
+
+For creating a UMP Function Block, call snd_seq_create_ump_block() with a
+properly filled #snd_ump_block_info data.  This will update the corresponding
+sequencer ports accordingly, too.
+
 */
 
 #include "seq_local.h"
