@@ -775,9 +775,9 @@ void event_filter(snd_seq_t *seq, snd_seq_event_t *ev)
 }
 \endcode
 
-\section MIDI 2.0 and UMP
+\section seq_midi2 MIDI 2.0 and UMP
 
-\subsection Extension for UMP
+\subsection seq_midi2_extension Extension for UMP
 
 The recent extension of ALSA sequencer is the support for MIDI 2.0 and
 UMP (Universal MIDI Packet) handling.
@@ -820,7 +820,7 @@ Block information.  Those information can be obtained via
 #snd_seq_get_ump_endpoint_info() and #snd_seq_get_ump_block_info() from a
 sequencer client.
 
-\subsection Creation of UMP Virtual Endpoint and Function Blocks
+\subsection seq_midi2_virtual_ump Creation of UMP Virtual Endpoint and Function Blocks
 
 For making it easier to create a virtual MIDI 2.0 device in user-space,
 there are a couple of new API functions.  For creating a UMP Endpoint in an
