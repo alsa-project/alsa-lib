@@ -60,11 +60,11 @@ typedef struct _snd_ump_msg_midi1_paf {
 	uint8_t group:4;	/**< UMP Group */
 	uint8_t status:4;	/**< Status */
 	uint8_t channel:4;	/**< Channel */
-	uint8_t note;		/** Note (7bit) */
-	uint8_t data;		/** Pressure (7bit) */
+	uint8_t note;		/**< Note (7bit) */
+	uint8_t data;		/**< Pressure (7bit) */
 #else
-	uint8_t data;		/** Pressure (7bit) */
-	uint8_t note;		/** Note (7bit) */
+	uint8_t data;		/**< Pressure (7bit) */
+	uint8_t note;		/**< Note (7bit) */
 	uint8_t channel:4;	/**< Channel */
 	uint8_t status:4;	/**< Status */
 	uint8_t group:4;	/**< UMP Group */
@@ -79,11 +79,11 @@ typedef struct _snd_ump_msg_midi1_cc {
 	uint8_t group:4;	/**< UMP Group */
 	uint8_t status:4;	/**< Status */
 	uint8_t channel:4;	/**< Channel */
-	uint8_t index;		/** Control index (7bit) */
-	uint8_t data;		/** Control data (7bit) */
+	uint8_t index;		/**< Control index (7bit) */
+	uint8_t data;		/**< Control data (7bit) */
 #else
-	uint8_t data;		/** Control data (7bit) */
-	uint8_t index;		/** Control index (7bit) */
+	uint8_t data;		/**< Control data (7bit) */
+	uint8_t index;		/**< Control index (7bit) */
 	uint8_t channel:4;	/**< Channel */
 	uint8_t status:4;	/**< Status */
 	uint8_t group:4;	/**< UMP Group */
@@ -167,16 +167,16 @@ typedef struct snd_ump_msg_system {
 
 /** MIDI 1.0 UMP CVM (32bit) */
 typedef union _snd_ump_msg_midi1 {
-	snd_ump_msg_midi1_note_t	note_on;
-	snd_ump_msg_midi1_note_t	note_off;
-	snd_ump_msg_midi1_paf_t		poly_pressure;
-	snd_ump_msg_midi1_cc_t		control_change;
-	snd_ump_msg_midi1_program_t	program_change;
-	snd_ump_msg_midi1_caf_t		channel_pressure;
-	snd_ump_msg_midi1_pitchbend_t	pitchbend;
-	snd_ump_msg_system_t		system;
-	snd_ump_msg_hdr_t		hdr;
-	uint32_t			raw;
+	snd_ump_msg_midi1_note_t	note_on;	/**< MIDI1 note-on message */
+	snd_ump_msg_midi1_note_t	note_off;	/**< MIDI1 note-off message */
+	snd_ump_msg_midi1_paf_t		poly_pressure;	/**< MIDI1 poly-pressure message */
+	snd_ump_msg_midi1_cc_t		control_change;	/**< MIDI1 control-change message */
+	snd_ump_msg_midi1_program_t	program_change;	/**< MIDI1 program-change message */
+	snd_ump_msg_midi1_caf_t		channel_pressure; /**< MIDI1 channel-pressure message */
+	snd_ump_msg_midi1_pitchbend_t	pitchbend;	/**< MIDI1 pitch-bend message */
+	snd_ump_msg_system_t		system;		/**< system message */
+	snd_ump_msg_hdr_t		hdr;		/**< UMP header */
+	uint32_t			raw;		/**< raw UMP packet */
 } snd_ump_msg_midi1_t;
 
 /** MIDI 2.0 Note-on/off attribute type */
@@ -187,7 +187,7 @@ enum {
 	SND_UMP_MIDI2_NOTE_ATTR_PITCH79		= 0x03,	/**< Pitch 7.9 */
 };
 
-/* MIDI 2.0 Note Off / Note On (64bit) */
+/** MIDI 2.0 Note Off / Note On (64bit) */
 typedef struct _snd_ump_msg_midi2_note {
 #ifdef SNDRV_BIG_ENDIAN_BITFIELD
 	uint8_t type:4;		/**< UMP packet type */
@@ -371,7 +371,7 @@ typedef struct _snd_ump_msg_midi2_caf {
 	uint8_t channel:4;	/**< Channel */
 	uint16_t reserved;	/**< Unused */
 
-	uint32_t data;		/** Data (32bit) */
+	uint32_t data;		/**< Data (32bit) */
 #else
 	uint16_t reserved;	/**< Unused */
 	uint8_t channel:4;	/**< Channel */
@@ -379,11 +379,11 @@ typedef struct _snd_ump_msg_midi2_caf {
 	uint8_t group:4;	/**< UMP Group */
 	uint8_t type:4;		/**< UMP packet type */
 
-	uint32_t data;		/** Data (32bit) */
+	uint32_t data;		/**< Data (32bit) */
 #endif
 } __attribute((packed)) snd_ump_msg_midi2_caf_t;
 
-/* MIDI 2.0 Pitch Bend (64bit) */
+/** MIDI 2.0 Pitch Bend (64bit) */
 typedef struct _snd_ump_msg_midi2_pitchbend {
 #ifdef SNDRV_BIG_ENDIAN_BITFIELD
 	uint8_t type:4;		/**< UMP packet type */
@@ -392,7 +392,7 @@ typedef struct _snd_ump_msg_midi2_pitchbend {
 	uint8_t channel:4;	/**< Channel */
 	uint16_t reserved;	/**< Unused */
 
-	uint32_t data;		/** Data (32bit) */
+	uint32_t data;		/**< Data (32bit) */
 #else
 	uint16_t reserved;	/**< Unused */
 	uint8_t channel:4;	/**< Channel */
@@ -400,11 +400,11 @@ typedef struct _snd_ump_msg_midi2_pitchbend {
 	uint8_t group:4;	/**< UMP Group */
 	uint8_t type:4;		/**< UMP packet type */
 
-	uint32_t data;		/** Data (32bit) */
+	uint32_t data;		/**< Data (32bit) */
 #endif
 } __attribute((packed)) snd_ump_msg_midi2_pitchbend_t;
 
-/* MIDI 2.0 Per-Note Pitch Bend (64bit) */
+/** MIDI 2.0 Per-Note Pitch Bend (64bit) */
 typedef struct _snd_ump_msg_midi2_per_note_pitchbend {
 #ifdef __BIG_ENDIAN_BITFIELD
 	uint8_t type:4;		/**< UMP packet type */
@@ -430,23 +430,23 @@ typedef struct _snd_ump_msg_midi2_per_note_pitchbend {
 
 /** MIDI2 UMP packet (64bit little-endian) */
 typedef union _snd_ump_msg_midi2 {
-	snd_ump_msg_midi2_note_t	note_on;
-	snd_ump_msg_midi2_note_t	note_off;
-	snd_ump_msg_midi2_paf_t		poly_pressure;
-	snd_ump_msg_midi2_per_note_cc_t	per_note_acc;
-	snd_ump_msg_midi2_per_note_cc_t	per_note_rcc;
-	snd_ump_msg_midi2_per_note_mgmt_t per_note_mgmt;
-	snd_ump_msg_midi2_cc_t		control_change;
-	snd_ump_msg_midi2_rpn_t		rpn;
-	snd_ump_msg_midi2_rpn_t		nrpn;
-	snd_ump_msg_midi2_rpn_t		relative_rpn;
-	snd_ump_msg_midi2_rpn_t		relative_nrpn;
-	snd_ump_msg_midi2_program_t	program_change;
-	snd_ump_msg_midi2_caf_t		channel_pressure;
-	snd_ump_msg_midi2_pitchbend_t	pitchbend;
-	snd_ump_msg_midi2_per_note_pitchbend_t per_note_pitchbend;
-	snd_ump_msg_hdr_t		hdr;
-	uint32_t			raw[2];
+	snd_ump_msg_midi2_note_t	note_on;	/**< MIDI2 note-on message */
+	snd_ump_msg_midi2_note_t	note_off;	/**< MIDI2 note-off message */
+	snd_ump_msg_midi2_paf_t		poly_pressure;	/**< MIDI2 poly-pressure message */
+	snd_ump_msg_midi2_per_note_cc_t	per_note_acc;	/**< MIDI2 per-note ACC message */
+	snd_ump_msg_midi2_per_note_cc_t	per_note_rcc;	/**< MIDI2 per-note RCC message */
+	snd_ump_msg_midi2_per_note_mgmt_t per_note_mgmt; /**< MIDI2 per-note management message */
+	snd_ump_msg_midi2_cc_t		control_change;	/**< MIDI2 control-change message */
+	snd_ump_msg_midi2_rpn_t		rpn;		/**< MIDI2 RPN message */
+	snd_ump_msg_midi2_rpn_t		nrpn;		/**< MIDI2 NRPN message */
+	snd_ump_msg_midi2_rpn_t		relative_rpn;	/**< MIDI2 relative-RPN message */
+	snd_ump_msg_midi2_rpn_t		relative_nrpn;	/**< MIDI2 relative-NRPN message */
+	snd_ump_msg_midi2_program_t	program_change;	/**< MIDI2 program-change message */
+	snd_ump_msg_midi2_caf_t		channel_pressure; /**< MIDI2 channel-pressure message */
+	snd_ump_msg_midi2_pitchbend_t	pitchbend;	/**< MIDI2 pitch-bend message */
+	snd_ump_msg_midi2_per_note_pitchbend_t per_note_pitchbend; /**< MIDI2 per-note pitch-bend message */
+	snd_ump_msg_hdr_t		hdr;		/**< UMP header */
+	uint32_t			raw[2];		/**< raw UMP packet */
 } snd_ump_msg_midi2_t;
 
 /**
