@@ -157,8 +157,8 @@ typedef struct snd_ump_msg_system {
 	uint8_t parm1;		/**< First parameter */
 	uint8_t parm2;		/**< Second parameter */
 #else
-	uint8_t parm1;		/**< First parameter */
 	uint8_t parm2;		/**< Second parameter */
+	uint8_t parm1;		/**< First parameter */
 	uint8_t status;		/**< Status */
 	uint8_t group:4;	/**< UMP Group */
 	uint8_t type:4;		/**< UMP packet type */
