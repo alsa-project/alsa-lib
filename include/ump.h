@@ -13,6 +13,12 @@
 extern "C" {
 #endif
 
+/**
+ *  \defgroup RawMidi RawMidi Interface
+ *  The RawMidi Interface. See \ref rawmidi page for more details.
+ *  \{
+ */
+
 /** UMP (Endpoint) RawMIDI device */
 typedef struct _snd_ump snd_ump_t;
 /** UMP Endpoint information container */
@@ -167,6 +173,8 @@ void snd_ump_block_info_set_midi_ci_version(snd_ump_block_info_t *info, unsigned
 void snd_ump_block_info_set_sysex8_streams(snd_ump_block_info_t *info, unsigned int streams);
 void snd_ump_block_info_set_ui_hint(snd_ump_block_info_t *info, unsigned int hint);
 void snd_ump_block_info_set_name(snd_ump_block_info_t *info, const char *name);
+
+/** \} */
 
 #ifdef __cplusplus
 }

@@ -7,6 +7,29 @@
 #include "rawmidi_local.h"
 #include "ump_local.h"
 
+/*! \page rawmidi RawMidi interface
+
+\section rawmidi_ump UMP RawMidi Interface
+
+MIDI 2.0 devices have a different type of interface, communicating with
+UMP (Universal MIDI Packet).  For those devices, ALSA-library provides
+API functions for accessing the raw UMP packet directly via the existing
+RawMidi interface.
+
+#snd_ump_open() is the API function for opening a UMP RawMidi interface.
+It works just like #snd_rawmidi_open() but for UMP devices.  Similarly,
+#snd_ump_close() is for closing, and there are other equivalent API functions
+corresponding to the RawMidi ones.
+
+The new stuff for UMP is UMP Endpoint and UMP Function Blocks.  The information
+from Endpoint and Function Blocks can be obtained via #snd_ump_endpoint_info()
+and #snd_ump_block_info() API functions.
+
+The objects #snd_ump_endpoint_info_t and #snd_ump_block_info_t are used for
+creating a virtual UMP Endpoint and Function Blocks via ALSA sequencer, too.
+
+*/
+
 static int get_rawmidi_flags(snd_ump_t *ump)
 {
 	snd_rawmidi_info_t info;

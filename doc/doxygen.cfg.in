@@ -17,6 +17,8 @@ INPUT            = @top_srcdir@/doc/index.doxygen \
 		   @top_srcdir@/include/control.h \
 		   @top_srcdir@/include/pcm.h \
 		   @top_srcdir@/include/rawmidi.h \
+		   @top_srcdir@/include/ump.h \
+		   @top_srcdir@/include/ump_msg.h \
 		   @top_srcdir@/include/timer.h \
 		   @top_srcdir@/include/hwdep.h \
 		   @top_srcdir@/include/seq.h \
