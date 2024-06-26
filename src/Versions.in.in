@@ -169,10 +169,13 @@ ALSA_1.2.9 {
 ALSA_1.2.10 {
   global:
 
+#ifdef HAVE_RAWMIDI_SYMS
     @SYMBOL_PREFIX@snd_ump_*;
+#endif
     @SYMBOL_PREFIX@snd_ctl_ump_next_device;
     @SYMBOL_PREFIX@snd_ctl_ump_endpoint_info;
     @SYMBOL_PREFIX@snd_ctl_ump_block_info;
+#ifdef HAVE_SEQ_SYMS
     @SYMBOL_PREFIX@snd_seq_ump_*;
     @SYMBOL_PREFIX@snd_seq_client_info_get_midi_version;
     @SYMBOL_PREFIX@snd_seq_client_info_get_ump_group_enabled;
@@ -192,15 +195,22 @@ ALSA_1.2.10 {
     @SYMBOL_PREFIX@snd_seq_port_info_set_ump_group;
     @SYMBOL_PREFIX@snd_seq_set_client_midi_version;
     @SYMBOL_PREFIX@snd_seq_set_client_ump_conversion;
+#endif
 } ALSA_1.2.9;
 
 ALSA_1.2.13 {
+#if defined(HAVE_SEQ_SYMS) || defined(HAVE_RAWMIDI_SYMS)
   global:
+#endif
 
+#ifdef HAVE_SEQ_SYMS
     @SYMBOL_PREFIX@snd_seq_create_ump_endpoint;
     @SYMBOL_PREFIX@snd_seq_create_ump_block;
+#endif
+#ifdef HAVE_RAWMIDI_SYMS
     @SYMBOL_PREFIX@snd_ump_endpoint_info_clear;
     @SYMBOL_PREFIX@snd_ump_endpoint_info_set_*;
     @SYMBOL_PREFIX@snd_ump_block_info_clear;
     @SYMBOL_PREFIX@snd_ump_block_info_set_*;
+#endif
 } ALSA_1.2.10;

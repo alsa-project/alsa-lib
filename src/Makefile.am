@@ -36,6 +36,7 @@ endif
 if BUILD_RAWMIDI
 SUBDIRS += rawmidi
 libasound_la_LIBADD += rawmidi/librawmidi.la
+VERSION_CPPFLAGS += -DHAVE_RAWMIDI_SYMS
 endif
 if BUILD_HWDEP
 SUBDIRS += hwdep
@@ -44,6 +45,7 @@ endif
 if BUILD_SEQ
 SUBDIRS += seq
 libasound_la_LIBADD += seq/libseq.la
+VERSION_CPPFLAGS += -DHAVE_SEQ_SYMS
 endif
 if BUILD_UCM
 SUBDIRS += ucm
