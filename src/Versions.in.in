@@ -206,6 +206,9 @@ ALSA_1.2.13 {
 #ifdef HAVE_SEQ_SYMS
     @SYMBOL_PREFIX@snd_seq_create_ump_endpoint;
     @SYMBOL_PREFIX@snd_seq_create_ump_block;
+    @SYMBOL_PREFIX@snd_seq_queue_tempo_get_tempo_base;
+    @SYMBOL_PREFIX@snd_seq_queue_tempo_set_tempo_base;
+    @SYMBOL_PREFIX@snd_seq_has_tempo_base;
 #endif
 #ifdef HAVE_RAWMIDI_SYMS
     @SYMBOL_PREFIX@snd_ump_endpoint_info_clear;

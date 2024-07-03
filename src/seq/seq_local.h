@@ -94,6 +94,7 @@ struct _snd_seq {
 	size_t tmpbufsize;		/* size of errbuf */
 	size_t packet_size;		/* input packet alignment size */
 	int midi_version;	/* current protocol version */
+	int has_queue_tempo_base;	/* support queue tempo-base? */
 
 	unsigned int num_ump_groups;		/* number of UMP groups */
 	snd_ump_endpoint_info_t *ump_ep;	/* optional UMP info */

@@ -490,6 +490,21 @@ the buffer is flushed by #snd_seq_drain_output() call.
 You can schedule the event in a certain queue so that the tempo
 change happens at the scheduled time, too.
 
+The tempo is set as default in microsecond unit as defined for
+Standard MIDI Format 1.  But since the value in MIDI2 Set Tempo message
+is based on 10-nanosecand unit, sequencer queue also allows to set up
+in 10-nanosecond unit.  For that, change the tempo-base value in
+#snd_seq_queue_tempo_t to 10 via #snd_seq_queue_tempo_set_tempo_base()
+along with the 10-nanobased tempo value.  The default tempo base is 1000,
+i.e. 1 microsecond.
+Currently the API supports only either 0, 10 or 1000 as the tempo-base
+(where 0 is treated as 1000).
+
+The older kernel might not support the different tempo-base, and setting a
+different value from 1000 would fail.  The application may heck the
+availability of tempo-base change via #snd_seq_has_tempo_base() function
+beforehand, and re-calculate in microsecond unit as fallback.
+
 \subsection seq_ev_start Starting and stopping a queue
 
 To start, stop, or continue a queue, you need to send a queue-control
@@ -3879,6 +3894,19 @@ unsigned int snd_seq_queue_tempo_get_skew_base(const snd_seq_queue_tempo_t *info
 }
 
 /**
+ * \brief Get the tempo base of a queue_status container
+ * \param info queue_status container
+ * \return tempo base time in nsec unit
+ *
+ * \sa snd_seq_get_queue_tempo()
+ */
+unsigned int snd_seq_queue_tempo_get_tempo_base(const snd_seq_queue_tempo_t *info)
+{
+	assert(info);
+	return info->tempo_base;
+}
+
+/**
  * \brief Set the tempo of a queue_status container
  * \param info queue_status container
  * \param tempo tempo value
@@ -3934,6 +3962,21 @@ void snd_seq_queue_tempo_set_skew_base(snd_seq_queue_tempo_t *info, unsigned int
 }
 
 /**
+ * \brief Set the tempo base of a queue_status container
+ * \param info queue_status container
+ * \param tempo_base tempo base time in nsec unit
+ *
+ * \sa snd_seq_get_queue_tempo()
+ */
+void snd_seq_queue_tempo_set_tempo_base(snd_seq_queue_tempo_t *info, unsigned int tempo_base)
+{
+	assert(info);
+	if (!tempo_base)
+		tempo_base = 1000;
+	info->tempo_base = tempo_base;
+}
+
+/**
  * \brief obtain the current tempo of the queue
  * \param seq sequencer handle
  * \param q queue id to be queried
@@ -3962,10 +4005,25 @@ int snd_seq_get_queue_tempo(snd_seq_t *seq, int q, snd_seq_queue_tempo_t * tempo
 int snd_seq_set_queue_tempo(snd_seq_t *seq, int q, snd_seq_queue_tempo_t * tempo)
 {
 	assert(seq && tempo);
+	if (!seq->has_queue_tempo_base &&
+	    tempo->tempo_base && tempo->tempo_base != 1000)
+		return -EINVAL;
 	tempo->queue = q;
 	return seq->ops->set_queue_tempo(seq, tempo);
 }
 
+/**
+ * \brief inquiry the support of tempo base change
+ * \param seq sequencer handle
+ * \return 1 if the client supports the tempo base change, 0 if not
+ *
+ * \sa snd_seq_get_queue_tempo()
+ */
+int snd_seq_has_queue_tempo_base(snd_seq_t *seq)
+{
+	assert(seq);
+	return seq->has_queue_tempo_base;
+}
 
 /*----------------------------------------------------------------*/
 

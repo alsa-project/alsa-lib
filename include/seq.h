@@ -506,13 +506,16 @@ unsigned int snd_seq_queue_tempo_get_tempo(const snd_seq_queue_tempo_t *info);
 int snd_seq_queue_tempo_get_ppq(const snd_seq_queue_tempo_t *info);
 unsigned int snd_seq_queue_tempo_get_skew(const snd_seq_queue_tempo_t *info);
 unsigned int snd_seq_queue_tempo_get_skew_base(const snd_seq_queue_tempo_t *info);
+unsigned int snd_seq_queue_tempo_get_tempo_base(const snd_seq_queue_tempo_t *info);
 void snd_seq_queue_tempo_set_tempo(snd_seq_queue_tempo_t *info, unsigned int tempo);
 void snd_seq_queue_tempo_set_ppq(snd_seq_queue_tempo_t *info, int ppq);
 void snd_seq_queue_tempo_set_skew(snd_seq_queue_tempo_t *info, unsigned int skew);
 void snd_seq_queue_tempo_set_skew_base(snd_seq_queue_tempo_t *info, unsigned int base);
+void snd_seq_queue_tempo_set_tempo_base(snd_seq_queue_tempo_t *info, unsigned int tempo_base);
 
 int snd_seq_get_queue_tempo(snd_seq_t *handle, int q, snd_seq_queue_tempo_t *tempo);
 int snd_seq_set_queue_tempo(snd_seq_t *handle, int q, snd_seq_queue_tempo_t *tempo);
+int snd_seq_has_queue_tempo_base(snd_seq_t *handle);
 
 /*
  */

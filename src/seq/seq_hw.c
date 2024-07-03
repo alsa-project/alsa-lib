@@ -275,12 +275,15 @@ static int snd_seq_hw_get_queue_tempo(snd_seq_t *seq, snd_seq_queue_tempo_t * te
 		/*SYSERR("SNDRV_SEQ_IOCTL_GET_QUEUE_TEMPO failed");*/
 		return -errno;
 	}
+	if (!seq->has_queue_tempo_base)
+		tempo->tempo_base = 1000;
 	return 0;
 }
 
 static int snd_seq_hw_set_queue_tempo(snd_seq_t *seq, snd_seq_queue_tempo_t * tempo)
 {
 	snd_seq_hw_t *hw = seq->private_data;
+
 	if (ioctl(hw->fd, SNDRV_SEQ_IOCTL_SET_QUEUE_TEMPO, tempo) < 0) {
 		/*SYSERR("SNDRV_SEQ_IOCTL_SET_QUEUE_TEMPO failed");*/
 		return -errno;
@@ -587,6 +590,8 @@ int snd_seq_hw_open(snd_seq_t **handle, const char *name, int streams, int mode)
 	seq->ops = &snd_seq_hw_ops;
 	seq->private_data = hw;
 	seq->packet_size = sizeof(snd_seq_event_t);
+	seq->has_queue_tempo_base = ver >= SNDRV_PROTOCOL_VERSION(1, 0, 4);
+
 	client = snd_seq_hw_client_id(seq);
 	if (client < 0) {
 		snd_seq_close(seq);
