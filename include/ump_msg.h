@@ -416,7 +416,6 @@ typedef struct _snd_ump_msg_midi2_per_note_pitchbend {
 
 	uint32_t data;		/**< Data (32bit) */
 #else
-	/* 0 */
 	uint8_t reserved;	/**< Unused */
 	uint8_t note;		/**< Note (7bit) */
 	uint8_t channel:4;	/**< Channel */
@@ -428,7 +427,7 @@ typedef struct _snd_ump_msg_midi2_per_note_pitchbend {
 #endif
 } __attribute((packed)) snd_ump_msg_midi2_per_note_pitchbend_t;
 
-/** MIDI2 UMP packet (64bit little-endian) */
+/** MIDI2 UMP packet (64bit) */
 typedef union _snd_ump_msg_midi2 {
 	snd_ump_msg_midi2_note_t	note_on;	/**< MIDI2 note-on message */
 	snd_ump_msg_midi2_note_t	note_off;	/**< MIDI2 note-off message */
