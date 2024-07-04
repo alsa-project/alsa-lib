@@ -449,6 +449,299 @@ typedef union _snd_ump_msg_midi2 {
 	uint32_t			raw[2];		/**< raw UMP packet */
 } snd_ump_msg_midi2_t;
 
+/** Stream Message (generic) (128bit) */
+typedef struct _snd_ump_msg_stream_gen {
+#ifdef SNDRV_BIG_ENDIAN_BITFIELD
+	uint16_t type:4;	/**< UMP packet type */
+	uint16_t format:2;	/**< Format */
+	uint16_t status:10;	/**< Status */
+	uint16_t data1;		/**< Data */
+	uint32_t data2;		/**< Data */
+	uint32_t data3;		/**< Data */
+	uint32_t data4;		/**< Data */
+#else
+	uint16_t data1;		/**< Data */
+	uint16_t status:10;	/**< Status */
+	uint16_t format:2;	/**< Format */
+	uint16_t type:4;	/**< UMP packet type */
+	uint32_t data2;		/**< Data */
+	uint32_t data3;		/**< Data */
+	uint32_t data4;		/**< Data */
+#endif
+} __attribute((packed)) snd_ump_msg_stream_gen_t;
+
+/** Stream Message (128bit) */
+typedef union _snd_ump_msg_stream {
+	snd_ump_msg_stream_gen_t	gen;	/**< Generic Stream message */
+	snd_ump_msg_hdr_t		hdr;		/**< UMP header */
+	uint32_t			raw[4];		/**< raw UMP packet */
+} snd_ump_msg_stream_t;
+
+/** Metadata / Text Message (128bit) */
+typedef struct _snd_ump_msg_flex_data_meta {
+#ifdef SNDRV_BIG_ENDIAN_BITFIELD
+	uint8_t type:4;		/**< UMP packet type */
+	uint8_t group:4;	/**< UMP Group */
+	uint8_t format:2;	/**< Format */
+	uint8_t addrs:2;	/**< Address */
+	uint8_t channel:4;	/**< Channel */
+	uint8_t status_bank;	/**< Status Bank */
+	uint8_t status;		/**< Status */
+	uint32_t data[3];	/**< Data (96 bits) */
+#else
+	uint8_t status;		/**< Status */
+	uint8_t status_bank;	/**< Status Bank */
+	uint8_t channel:4;	/**< Channel */
+	uint8_t addrs:2;	/**< Address */
+	uint8_t format:2;	/**< Format */
+	uint8_t group:4;	/**< UMP Group */
+	uint8_t type:4;		/**< UMP packet type */
+	uint32_t data[3];	/**< Data (96 bits) */
+#endif
+} __attribute((packed)) snd_ump_msg_flex_data_meta_t;
+
+/** Set Tempo Message (128bit) */
+typedef struct _snd_ump_msg_set_tempo {
+#ifdef SNDRV_BIG_ENDIAN_BITFIELD
+	uint8_t type:4;		/**< UMP packet type */
+	uint8_t group:4;	/**< UMP Group */
+	uint8_t format:2;	/**< Format */
+	uint8_t addrs:2;	/**< Address */
+	uint8_t channel:4;	/**< Channel */
+	uint8_t status_bank;	/**< Status Bank */
+	uint8_t status;		/**< Status */
+
+	uint32_t tempo;		/**< Number of 10nsec units per quarter note */
+
+	uint32_t reserved[2];	/**< Unused */
+#else
+	uint8_t status;		/**< Status */
+	uint8_t status_bank;	/**< Status Bank */
+	uint8_t channel:4;	/**< Channel */
+	uint8_t addrs:2;	/**< Address */
+	uint8_t format:2;	/**< Format */
+	uint8_t group:4;	/**< UMP Group */
+	uint8_t type:4;		/**< UMP packet type */
+
+	uint32_t tempo;		/**< Number of 10nsec units per quarter note */
+
+	uint32_t reserved[2];	/**< Unused */
+#endif
+} __attribute((packed)) snd_ump_msg_set_tempo_t;
+
+/** Set Time Signature Message (128bit) */
+typedef struct _snd_ump_msg_set_time_sig {
+#ifdef SNDRV_BIG_ENDIAN_BITFIELD
+	uint8_t type:4;		/**< UMP packet type */
+	uint8_t group:4;	/**< UMP Group */
+	uint8_t format:2;	/**< Format */
+	uint8_t addrs:2;	/**< Address */
+	uint8_t channel:4;	/**< Channel */
+	uint8_t status_bank;	/**< Status Bank */
+	uint8_t status;		/**< Status */
+
+	uint8_t numerator;	/**< Numerator */
+	uint8_t denominator;	/**< Denominator */
+	uint8_t num_notes;	/**< Number of 1/32 notes */
+	uint8_t reserved1;	/**< Unused */
+
+	uint32_t reserved[2];	/**< Unused */
+#else
+	uint8_t status;		/**< Status */
+	uint8_t status_bank;	/**< Status Bank */
+	uint8_t channel:4;	/**< Channel */
+	uint8_t addrs:2;	/**< Address */
+	uint8_t format:2;	/**< Format */
+	uint8_t group:4;	/**< UMP Group */
+	uint8_t type:4;		/**< UMP packet type */
+
+	uint8_t reserved1;	/**< Unused */
+	uint8_t num_notes;	/**< Number of 1/32 notes */
+	uint8_t denominator;	/**< Denominator */
+	uint8_t numerator;	/**< Numerator */
+
+	uint32_t reserved[2];	/**< Unused */
+#endif
+} __attribute((packed)) snd_ump_msg_set_time_sig_t;
+
+/** Set Metronome Message (128bit) */
+typedef struct _snd_ump_msg_set_metronome {
+#ifdef SNDRV_BIG_ENDIAN_BITFIELD
+	uint8_t type:4;		/**< UMP packet type */
+	uint8_t group:4;	/**< UMP Group */
+	uint8_t format:2;	/**< Format */
+	uint8_t addrs:2;	/**< Address */
+	uint8_t channel:4;	/**< Channel */
+	uint8_t status_bank;	/**< Status Bank */
+	uint8_t status;		/**< Status */
+
+	uint8_t clocks_primary;	/**< Num clocks per primary clock */
+	uint8_t bar_accent_1;	/**< Bar accent part 1 */
+	uint8_t bar_accent_2;	/**< Bar accent part 2 */
+	uint8_t bar_accent_3;	/**< Bar accent part 3 */
+
+	uint8_t subdivision_1;	/**< Num subdivision clicks 1 */
+	uint8_t subdivision_2;	/**< Num subdivision clicks 1 */
+	uint16_t reserved1;	/**< Unused */
+
+	uint32_t reserved2;	/**< Unused */
+#else
+	uint8_t status;		/**< Status */
+	uint8_t status_bank;	/**< Status Bank */
+	uint8_t channel:4;	/**< Channel */
+	uint8_t addrs:2;	/**< Address */
+	uint8_t format:2;	/**< Format */
+	uint8_t group:4;	/**< UMP Group */
+	uint8_t type:4;		/**< UMP packet type */
+
+	uint8_t bar_accent_3;	/**< Bar accent part 3 */
+	uint8_t bar_accent_2;	/**< Bar accent part 2 */
+	uint8_t bar_accent_1;	/**< Bar accent part 1 */
+	uint8_t clocks_primary;	/**< Num clocks per primary clock */
+
+	uint16_t reserved1;	/**< Unused */
+	uint8_t subdivision_2;	/**< Num subdivision clicks 1 */
+	uint8_t subdivision_1;	/**< Num subdivision clicks 1 */
+
+	uint32_t reserved2;	/**< Unused */
+#endif
+} __attribute((packed)) snd_ump_msg_set_metronome_t;
+
+/** Set Chord Name Message (128bit) */
+typedef struct _snd_ump_msg_set_chord_name {
+#ifdef SNDRV_BIG_ENDIAN_BITFIELD
+	uint8_t type:4;		/**< UMP packet type */
+	uint8_t group:4;	/**< UMP Group */
+	uint8_t format:2;	/**< Format */
+	uint8_t addrs:2;	/**< Address */
+	uint8_t channel:4;	/**< Channel */
+	uint8_t status_bank;	/**< Status Bank */
+	uint8_t status;		/**< Status */
+
+	uint8_t tonic_sharp:4;	/**< Tonic Sharps/Flats */
+	uint8_t chord_tonic:4;	/**< Chord Tonic Note */
+	uint8_t chord_type;	/**< Chord Type */
+	uint8_t alter1_type:4;	/**< Alteration 1 Type */
+	uint8_t alter1_degree:4; /**< Alteration 1 Degree */
+	uint8_t alter2_type:4;	/**< Alteration 2 Type */
+	uint8_t alter2_degree:4; /**< Alteration 2 Degree */
+
+	uint8_t alter3_type:4;	/**< Alteration 3 Type */
+	uint8_t alter3_degree:4; /**< Alteration 3 Degree */
+	uint8_t alter4_type:4;	/**< Alteration 4 Type */
+	uint8_t alter4_degree:4; /**< Alteration 4 Degree */
+	uint16_t reserved;	/**< Unused */
+
+	uint8_t bass_sharp:4;	/**< Bass Sharps/Flats */
+	uint8_t bass_note:4;	/**< Bass Note */
+	uint8_t bass_type;	/**< Bass Chord Type */
+	uint8_t bass_alter1_type:4; /**< Bass Alteration 1 Type */
+	uint8_t bass_alter1_degree:4; /**< Bass Alteration 1 Degree */
+	uint8_t bass_alter2_type:4; /**< Bass Alteration 2 Type */
+	uint8_t bass_alter2_degree:4; /**< Bass Alteration 2 Degree */
+#else
+	uint8_t status;		/**< Status */
+	uint8_t status_bank;	/**< Status Bank */
+	uint8_t channel:4;	/**< Channel */
+	uint8_t addrs:2;	/**< Address */
+	uint8_t format:2;	/**< Format */
+	uint8_t group:4;	/**< UMP Group */
+	uint8_t type:4;		/**< UMP packet type */
+
+	uint8_t alter2_degree:4; /**< Alteration 2 Degree */
+	uint8_t alter2_type:4;	/**< Alteration 2 Type */
+	uint8_t alter1_degree:4; /**< Alteration 1 Degree */
+	uint8_t alter1_type:4;	/**< Alteration 1 Type */
+	uint8_t chord_type;	/**< Chord Type */
+	uint8_t chord_tonic:4;	/**< Chord Tonic Note */
+	uint8_t tonic_sharp:4;	/**< Tonic Sharps/Flats */
+
+	uint16_t reserved;	/**< Unused */
+	uint8_t alter4_degree:4; /**< Alteration 4 Degree */
+	uint8_t alter4_type:4;	/**< Alteration 4 Type */
+	uint8_t alter3_degree:4; /**< Alteration 3 Degree */
+	uint8_t alter3_type:4;	/**< Alteration 3 Type */
+
+	uint8_t bass_alter2_degree:4; /**< Bass Alteration 2 Degree */
+	uint8_t bass_alter2_type:4; /**< Bass Alteration 2 Type */
+	uint8_t bass_alter1_degree:4; /**< Bass Alteration 1 Degree */
+	uint8_t bass_alter1_type:4; /**< Bass Alteration 1 Type */
+	uint8_t bass_type;	/**< Bass Chord Type */
+	uint8_t bass_note:4;	/**< Bass Note */
+	uint8_t bass_sharp:4;	/**< Bass Sharps/Flats */
+#endif
+} __attribute((packed)) snd_ump_msg_set_chord_name_t;
+
+/** Flex Data Message (128bit) */
+typedef union _snd_ump_msg_flex_data {
+	snd_ump_msg_flex_data_meta_t	meta;		/**< Metadata */
+	snd_ump_msg_flex_data_meta_t	text;		/**< Text data */
+	snd_ump_msg_set_tempo_t		set_tempo;	/**< Set Tempo */
+	snd_ump_msg_set_time_sig_t	set_time_sig;	/**< Set Time Signature */
+	snd_ump_msg_set_metronome_t	set_metronoe;	/**< Set Metronome */
+	snd_ump_msg_set_chord_name_t	set_chord_name;	/**< Set Chord Name */
+	snd_ump_msg_hdr_t		hdr;		/**< UMP header */
+	uint32_t			raw[4];		/**< raw UMP packet */
+} snd_ump_msg_flex_data_t;
+
+/** Jitter Reduction Clock / Timestamp Message (32bit) */
+typedef struct _snd_ump_msg_jr_clock {
+#ifdef SNDRV_BIG_ENDIAN_BITFIELD
+	uint8_t type:4;		/**< UMP packet type */
+	uint8_t group:4;	/**< UMP Group */
+	uint8_t status:4;	/**< Status */
+	uint8_t reserved:4;	/**< Unused */
+	uint16_t time;		/**< clock time / timestamp */
+#else
+	uint16_t time;		/**< clock time / timestamp */
+	uint8_t reserved:4;	/**< Unused */
+	uint8_t status:4;	/**< Status */
+	uint8_t group:4;	/**< UMP Group */
+	uint8_t type:4;		/**< UMP packet type */
+#endif
+} __attribute((packed)) snd_ump_msg_jr_clock_t;
+
+/** Delta Clockstamp Ticks Per Quarter Note (DCTPQ) (32bit) */
+typedef struct _snd_ump_msg_dctpq {
+#ifdef SNDRV_BIG_ENDIAN_BITFIELD
+	uint8_t type:4;		/**< UMP packet type */
+	uint8_t group:4;	/**< UMP Group */
+	uint8_t status:4;	/**< Status */
+	uint8_t reserved:4;	/**< Unused */
+	uint16_t ticks;		/**< number of ticks per quarter note */
+#else
+	uint16_t ticks;		/**< number of ticks per quarter note */
+	uint8_t reserved:4;	/**< Unused */
+	uint8_t status:4;	/**< Status */
+	uint8_t group:4;	/**< UMP Group */
+	uint8_t type:4;		/**< UMP packet type */
+#endif
+} __attribute((packed)) snd_ump_msg_dctpq_t;
+
+/** Delta Clockstamp (DC) (32bit) */
+typedef struct _snd_ump_msg_dc {
+#ifdef SNDRV_BIG_ENDIAN_BITFIELD
+	uint32_t type:4;		/**< UMP packet type */
+	uint32_t group:4;		/**< UMP Group */
+	uint32_t status:4;		/**< Status */
+	uint32_t ticks:20;		/**< number of ticks since last event */
+#else
+	uint32_t ticks:20;		/**< number of ticks since last event */
+	uint32_t status:4;		/**< Status */
+	uint32_t group:4;		/**< UMP Group */
+	uint32_t type:4;		/**< UMP packet type */
+#endif
+} __attribute((packed)) snd_ump_msg_dc_t;
+
+/** Utility Message (32bit) */
+typedef union _snd_ump_msg_utility {
+	snd_ump_msg_jr_clock_t	jr_clock;	/**< JR Clock messages */
+	snd_ump_msg_dctpq_t	dctpq;		/**< DCTPQ message */
+	snd_ump_msg_dc_t	dc;		/**< DC message */
+	snd_ump_msg_hdr_t	hdr;		/**< UMP header */
+	uint32_t		raw;		/**< raw UMP packet */
+} snd_ump_msg_utility_t;
+
 /**
  * UMP message type
  */
@@ -565,6 +858,60 @@ enum {
 	SND_UMP_STREAM_MSG_FORMAT_START		= 1,
 	SND_UMP_STREAM_MSG_FORMAT_CONTINUE	= 2,
 	SND_UMP_STREAM_MSG_FORMAT_END		= 3,
+};
+
+/** UMP Flex Data Format bits */
+enum {
+	SND_UMP_FLEX_DATA_MSG_FORMAT_SINGLE	= 0,
+	SND_UMP_FLEX_DATA_MSG_FORMAT_START	= 1,
+	SND_UMP_FLEX_DATA_MSG_FORMAT_CONTINUE	= 2,
+	SND_UMP_FLEX_DATA_MSG_FORMAT_END	= 3,
+};
+
+/** UMP Flex Data Address bits */
+enum {
+	SND_UMP_FLEX_DATA_MSG_ADDR_CHANNEL	= 0,
+	SND_UMP_FLEX_DATA_MSG_ADDR_GROUP	= 1,
+};
+
+/** UMP Flex Data Status Bank bits */
+enum {
+	SND_UMP_FLEX_DATA_MSG_BANK_SETUP	= 0,
+	SND_UMP_FLEX_DATA_MSG_BANK_METADATA	= 1,
+	SND_UMP_FLEX_DATA_MSG_BANK_PERF_TEXT	= 2,
+};
+
+/** UMP Flex Data Status bits for Setup (Status Bank = 0) */
+enum {
+	SND_UMP_FLEX_DATA_MSG_STATUS_SET_TEMPO		= 0x00,
+	SND_UMP_FLEX_DATA_MSG_STATUS_SET_TIME_SIGNATURE	= 0x01,
+	SND_UMP_FLEX_DATA_MSG_STATUS_SET_METRONOME	= 0x02,
+	SND_UMP_FLEX_DATA_MSG_STATUS_SET_KEY_SIGNATURE	= 0x05,
+	SND_UMP_FLEX_DATA_MSG_STATUS_SET_CHORD_NAME	= 0x06,
+};
+
+/** UMP Flex Data Status bits for Metadata (Status Bank = 1) */
+enum {
+	SND_UMP_FLEX_DATA_MSG_STATUS_PROJECT_NAME	= 0x01,
+	SND_UMP_FLEX_DATA_MSG_STATUS_SONG_NAME		= 0x02,
+	SND_UMP_FLEX_DATA_MSG_STATUS_MIDI_CLIP_NAME	= 0x03,
+	SND_UMP_FLEX_DATA_MSG_STATUS_COPYRIGHT_NOTICE	= 0x04,
+	SND_UMP_FLEX_DATA_MSG_STATUS_COMPOSER_NAME	= 0x05,
+	SND_UMP_FLEX_DATA_MSG_STATUS_LYRICIST_NAME	= 0x06,
+	SND_UMP_FLEX_DATA_MSG_STATUS_ARRANGER_NAME	= 0x07,
+	SND_UMP_FLEX_DATA_MSG_STATUS_PUBLISHER_NAME	= 0x08,
+	SND_UMP_FLEX_DATA_MSG_STATUS_PRIMARY_PERFORMER	= 0x09,
+	SND_UMP_FLEX_DATA_MSG_STATUS_ACCOMPANY_PERFORMAER = 0x0a,
+	SND_UMP_FLEX_DATA_MSG_STATUS_RECORDING_DATE	= 0x0b,
+	SND_UMP_FLEX_DATA_MSG_STATUS_RECORDING_LOCATION	= 0x0c,
+};
+
+/** UMP Flex Data Status bits for Performance Text Events (Status Bank = 2) */
+enum {
+	SND_UMP_FLEX_DATA_MSG_STATUS_LYRICS		= 0x01,
+	SND_UMP_FLEX_DATA_MSG_STATUS_LYRICS_LANGUAGE	= 0x02,
+	SND_UMP_FLEX_DATA_MSG_STATUS_RUBY		= 0x03,
+	SND_UMP_FLEX_DATA_MSG_STATUS_RUBY_LANGUAGE	= 0x04,
 };
 
 /**
