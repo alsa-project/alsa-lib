@@ -1003,6 +1003,7 @@ static inline uint8_t snd_ump_sysex_msg_length(const uint32_t *ump)
 
 int snd_ump_msg_sysex_expand(const uint32_t *ump, uint8_t *buf, size_t maxlen,
 			     size_t *filled);
+int snd_ump_packet_length(unsigned int type);
 
 #ifdef __cplusplus
 }

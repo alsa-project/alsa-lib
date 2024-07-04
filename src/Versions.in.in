@@ -212,5 +212,6 @@ ALSA_1.2.13 {
     @SYMBOL_PREFIX@snd_ump_endpoint_info_set_*;
     @SYMBOL_PREFIX@snd_ump_block_info_clear;
     @SYMBOL_PREFIX@snd_ump_block_info_set_*;
+    @SYMBOL_PREFIX@snd_ump_packet_length;
 #endif
 } ALSA_1.2.10;

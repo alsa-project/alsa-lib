@@ -1072,3 +1072,20 @@ int snd_ump_msg_sysex_expand(const uint32_t *ump, uint8_t *buf, size_t maxlen,
 		return -EINVAL;
 	}
 }
+
+/**
+ * \brief return the length of a UMP packet type
+ * \param type UMP packet type
+ * \return the length of the given UMP packet type in 32bit words (from 1 to 4),
+ *   or 0 for negative inputs.
+ */
+int snd_ump_packet_length(unsigned int type)
+{
+	static int packet_length[16] = {
+		1, 1, 1, 2, 2, 4, 1, 1, 2, 2, 2, 3, 3, 4, 4, 4
+	};
+
+	if (type > 16)
+		return 0;
+	return packet_length[type];
+}
