@@ -645,15 +645,15 @@ static void update_group_ports(snd_seq_t *seq, snd_ump_endpoint_info_t *ep)
 			    i >= bp->first_group + bp->num_groups)
 				continue;
 			switch (bp->direction) {
-			case SNDRV_UMP_DIR_INPUT:
-				caps |= SNDRV_SEQ_PORT_CAP_READ |
-					SNDRV_SEQ_PORT_CAP_SYNC_READ |
-					SNDRV_SEQ_PORT_CAP_SUBS_READ;
-				break;
-			case SNDRV_UMP_DIR_OUTPUT:
+			case SNDRV_UMP_DIR_INPUT: /* sink, receiver */
 				caps |= SNDRV_SEQ_PORT_CAP_WRITE |
 					SNDRV_SEQ_PORT_CAP_SYNC_WRITE |
 					SNDRV_SEQ_PORT_CAP_SUBS_WRITE;
+				break;
+			case SNDRV_UMP_DIR_OUTPUT: /* source, transmitter */
+				caps |= SNDRV_SEQ_PORT_CAP_READ |
+					SNDRV_SEQ_PORT_CAP_SYNC_READ |
+					SNDRV_SEQ_PORT_CAP_SUBS_READ;
 				break;
 			case SNDRV_UMP_DIR_BIDIRECTION:
 				caps |= SNDRV_SEQ_PORT_CAP_READ |

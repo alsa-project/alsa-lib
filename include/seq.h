@@ -250,8 +250,8 @@ typedef struct _snd_seq_port_info snd_seq_port_info_t;
 
 /** port direction */
 #define SND_SEQ_PORT_DIR_UNKNOWN	0	/**< Unknown */
-#define SND_SEQ_PORT_DIR_INPUT		1	/**< Input only */
-#define SND_SEQ_PORT_DIR_OUTPUT		2	/**< Output only */
+#define SND_SEQ_PORT_DIR_INPUT		1	/**< Input only; sink, receiver */
+#define SND_SEQ_PORT_DIR_OUTPUT		2	/**< Output only; source, transmitter */
 #define SND_SEQ_PORT_DIR_BIDIRECTION	3	/**< Input/output bidirectional */
 
 /* port type */
