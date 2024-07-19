@@ -677,7 +677,7 @@ typedef union _snd_ump_msg_flex_data {
 	snd_ump_msg_flex_data_meta_t	text;		/**< Text data */
 	snd_ump_msg_set_tempo_t		set_tempo;	/**< Set Tempo */
 	snd_ump_msg_set_time_sig_t	set_time_sig;	/**< Set Time Signature */
-	snd_ump_msg_set_metronome_t	set_metronoe;	/**< Set Metronome */
+	snd_ump_msg_set_metronome_t	set_metronome;	/**< Set Metronome */
 	snd_ump_msg_set_chord_name_t	set_chord_name;	/**< Set Chord Name */
 	snd_ump_msg_hdr_t		hdr;		/**< UMP header */
 	uint32_t			raw[4];		/**< raw UMP packet */
