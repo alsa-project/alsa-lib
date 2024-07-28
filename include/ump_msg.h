@@ -1001,6 +1001,18 @@ static inline uint8_t snd_ump_sysex_msg_length(const uint32_t *ump)
 	return (*ump >> 16) & 0xf;
 }
 
+/**
+ * \brief extract one byte from a UMP packet
+ */
+static inline uint8_t snd_ump_get_byte(const uint32_t *ump, unsigned int offset)
+{
+#ifdef SNDRV_BIG_ENDIAN
+	return ((const uint8_t *)ump)[offset];
+#else
+	return ((const uint8_t *)ump)[(offset & ~3) | (3 - (offset & 3))];
+#endif
+}
+
 int snd_ump_msg_sysex_expand(const uint32_t *ump, uint8_t *buf, size_t maxlen,
 			     size_t *filled);
 int snd_ump_packet_length(unsigned int type);
