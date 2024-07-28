@@ -683,6 +683,69 @@ typedef union _snd_ump_msg_flex_data {
 	uint32_t			raw[4];		/**< raw UMP packet */
 } snd_ump_msg_flex_data_t;
 
+/** Mixed Data Set Chunk Header Message (128bit) */
+typedef struct _snd_ump_msg_mixed_data_header {
+#ifdef __BIG_ENDIAN_BITFIELD
+	uint8_t type:4;		/**< UMP packet type */
+	uint8_t group:4;	/**< UMP Group */
+	uint8_t status:4;	/**< Status */
+	uint8_t mds_id:4;	/**< Mixed Data Set ID */
+	uint16_t bytes;		/**< Number of valid bytes in this chunk */
+
+	uint16_t chunks;	/**< Number of chunks in mixed data set */
+	uint16_t chunk;		/**< Number of this chunk */
+
+	uint16_t manufacturer;	/**< Manufacturer ID */
+	uint16_t device;	/**< Device ID */
+
+	uint16_t sub_id_1;	/**< Sub ID \# 1 */
+	uint16_t sub_id_2;	/**< Sub ID \# 2 */
+#else
+	uint16_t bytes;		/**< Number of valid bytes in this chunk */
+	uint8_t mds_id:4;	/**< Mixed Data Set ID */
+	uint8_t status:4;	/**< Status */
+	uint8_t group:4;	/**< UMP Group */
+	uint8_t type:4;		/**< UMP packet type */
+
+	uint16_t chunk;		/**< Number of this chunk */
+	uint16_t chunks;	/**< Number of chunks in mixed data set */
+
+	uint16_t device;	/**< Device ID */
+	uint16_t manufacturer;	/**< Manufacturer ID */
+
+	uint16_t sub_id_2;	/**< Sub ID \# 2 */
+	uint16_t sub_id_1;	/**< Sub ID \# 1 */
+#endif
+} snd_ump_msg_mixed_data_header_t;
+
+/** Mixed Data Set Chunk Payload Message (128bit) */
+typedef struct _snd_ump_msg_mixed_data_payload {
+#ifdef __BIG_ENDIAN_BITFIELD
+	uint8_t type:4;		/**< UMP packet type */
+	uint8_t group:4;	/**< UMP Group */
+	uint8_t status:4;	/**< Status */
+	uint8_t mds_id:4;	/**< Mixed Data Set ID */
+	uint16_t payload1;	/**< Payload */
+
+	uint32_t payloads[3];	/**< Payload */
+#else
+	uint16_t payload1;	/**< Payload */
+	uint8_t mds_id:4;	/**< Mixed Data Set ID */
+	uint8_t status:4;	/**< Status */
+	uint8_t group:4;	/**< UMP Group */
+	uint8_t type:4;		/**< UMP packet type */
+
+	uint32_t payloads[3];	/**< Payload */
+#endif
+} snd_ump_msg_mixed_data_payload_t;
+
+/** Mixed Data Set Chunk Message (128bit) */
+typedef union _snd_ump_msg_mixed_data {
+	snd_ump_msg_mixed_data_header_t	header;		/**< Header */
+	snd_ump_msg_mixed_data_payload_t payload;	/**< Payload */
+	uint32_t			raw[4];		/**< raw UMP packet */
+} snd_ump_msg_mixed_data_t;
+
 /** Jitter Reduction Clock / Timestamp Message (32bit) */
 typedef struct _snd_ump_msg_jr_clock {
 #ifdef SNDRV_BIG_ENDIAN_BITFIELD
@@ -801,6 +864,12 @@ enum {
 	SND_UMP_SYSEX_STATUS_START	= 1,
 	SND_UMP_SYSEX_STATUS_CONTINUE	= 2,
 	SND_UMP_SYSEX_STATUS_END	= 3,
+};
+
+/** MIDI 2.0 Mixed Data Set Status */
+enum {
+	SND_UMP_MIXED_DATA_SET_STATUS_HEADER	= 8,
+	SND_UMP_MIXED_DATA_SET_STATUS_PAYLOAD	= 9,
 };
 
 /** UMP Utility Type Status (type 0x0) **/
