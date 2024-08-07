@@ -502,7 +502,7 @@ Currently the API supports only either 0, 10 or 1000 as the tempo-base
 
 The older kernel might not support the different tempo-base, and setting a
 different value from 1000 would fail.  The application may heck the
-availability of tempo-base change via #snd_seq_has_tempo_base() function
+availability of tempo-base change via #snd_seq_has_queue_tempo_base() function
 beforehand, and re-calculate in microsecond unit as fallback.
 
 \subsection seq_ev_start Starting and stopping a queue
