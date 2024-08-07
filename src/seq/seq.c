@@ -2432,6 +2432,19 @@ int snd_seq_port_info_get_ump_group(const snd_seq_port_info_t *info)
 }
 
 /**
+ * \brief Get the status of the optional MIDI 1.0 port in MIDI 2.0 UMP Endpoint
+ * \param info port_info container
+ * \return 1 if it's an optional MIDI 1.0 port in MIDI 2.0 UMP Endpoint
+ *
+ * \sa snd_seq_get_port_info(), snd_seq_port_info_set_ump_is_midi1()
+ */
+int snd_seq_port_info_get_ump_is_midi1(const snd_seq_port_info_t *info)
+{
+	assert(info);
+	return !!(info->flags & SNDRV_SEQ_PORT_FLG_IS_MIDI1);
+}
+
+/**
  * \brief Set the client id of a port_info container
  * \param info port_info container
  * \param client client id
@@ -2633,6 +2646,22 @@ void snd_seq_port_info_set_ump_group(snd_seq_port_info_t *info, int ump_group)
 {
 	assert(info);
 	info->ump_group = ump_group;
+}
+
+/**
+ * \brief Set the optional MIDI 1.0 port in MIDI 2.0 UMP Endpoint
+ * \param info port_info container
+ * \param is_midi1 non-zero for MIDI 1.0 port in MIDI 2.0 EP
+ *
+ * \sa snd_seq_get_port_info(), snd_seq_port_info_get_ump_is_midi1()
+ */
+void snd_seq_port_info_set_ump_is_midi1(snd_seq_port_info_t *info, int is_midi1)
+{
+	assert(info);
+	if (is_midi1)
+		info->flags |= SNDRV_SEQ_PORT_FLG_IS_MIDI1;
+	else
+		info->flags &= ~SNDRV_SEQ_PORT_FLG_IS_MIDI1;
 }
 
 /**

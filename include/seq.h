@@ -318,6 +318,7 @@ int snd_seq_port_info_get_timestamp_real(const snd_seq_port_info_t *info);
 int snd_seq_port_info_get_timestamp_queue(const snd_seq_port_info_t *info);
 int snd_seq_port_info_get_direction(const snd_seq_port_info_t *info);
 int snd_seq_port_info_get_ump_group(const snd_seq_port_info_t *info);
+int snd_seq_port_info_get_ump_is_midi1(const snd_seq_port_info_t *info);
 
 void snd_seq_port_info_set_client(snd_seq_port_info_t *info, int client);
 void snd_seq_port_info_set_port(snd_seq_port_info_t *info, int port);
@@ -334,6 +335,7 @@ void snd_seq_port_info_set_timestamp_real(snd_seq_port_info_t *info, int realtim
 void snd_seq_port_info_set_timestamp_queue(snd_seq_port_info_t *info, int queue);
 void snd_seq_port_info_set_direction(snd_seq_port_info_t *info, int direction);
 void snd_seq_port_info_set_ump_group(snd_seq_port_info_t *info, int ump_group);
+void snd_seq_port_info_set_ump_is_midi1(snd_seq_port_info_t *info, int is_midi1);
 
 int snd_seq_create_port(snd_seq_t *handle, snd_seq_port_info_t *info);
 int snd_seq_delete_port(snd_seq_t *handle, int port);
