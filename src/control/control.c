@@ -1293,7 +1293,10 @@ int snd_ctl_ump_next_device(snd_ctl_t *ctl, int *device)
 int snd_ctl_ump_endpoint_info(snd_ctl_t *ctl, snd_ump_endpoint_info_t *info)
 {
 	assert(ctl && info);
-	return ctl->ops->ump_endpoint_info(ctl, info);
+	fprintf(stderr, "%s:%d\n", __func__, __LINE__);
+	if (ctl->ops->ump_endpoint_info)
+		return ctl->ops->ump_endpoint_info(ctl, info);
+	return -ENXIO;
 }
 
 /**
@@ -1305,7 +1308,9 @@ int snd_ctl_ump_endpoint_info(snd_ctl_t *ctl, snd_ump_endpoint_info_t *info)
 int snd_ctl_ump_block_info(snd_ctl_t *ctl, snd_ump_block_info_t *info)
 {
 	assert(ctl && info);
-	return ctl->ops->ump_block_info(ctl, info);
+	if (ctl->ops->ump_block_info)
+		return ctl->ops->ump_block_info(ctl, info);
+	return -ENXIO;
 }
 
 /**
