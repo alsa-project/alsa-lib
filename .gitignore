@@ -67,5 +67,6 @@ test/rawmidi
 test/seq
 test/seq-ump-example
 test/timer
+test/umpinfo
 test/lsb/config
 test/lsb/midi_event
