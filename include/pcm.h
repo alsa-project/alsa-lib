@@ -508,6 +508,9 @@ typedef union _snd_pcm_sync_id {
 	unsigned int id32[4];
 } snd_pcm_sync_id_t;
 
+/** synchronization ID size (see snd_pcm_hw_params_get_sync) */
+#define SND_PCM_HW_PARAMS_SYNC_SIZE	16
+
 /** Infinite wait for snd_pcm_wait() */
 #define SND_PCM_WAIT_INFINITE		(-1)
 /** Wait for next i/o in snd_pcm_wait() */
@@ -747,6 +750,7 @@ int snd_pcm_hw_params_get_rate_numden(const snd_pcm_hw_params_t *params,
 				      unsigned int *rate_den);
 int snd_pcm_hw_params_get_sbits(const snd_pcm_hw_params_t *params);
 int snd_pcm_hw_params_get_fifo_size(const snd_pcm_hw_params_t *params);
+const unsigned char * snd_pcm_hw_params_get_sync(const snd_pcm_hw_params_t *params);
 
 #if 0
 typedef struct _snd_pcm_hw_strategy snd_pcm_hw_strategy_t;

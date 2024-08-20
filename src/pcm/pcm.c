@@ -494,8 +494,8 @@ software parameter.
 There are two functions allowing link multiple streams together. In the
 case, the linking means that all operations are synchronized. Because the
 drivers cannot guarantee the synchronization (sample resolution) on hardware
-lacking this feature, the #snd_pcm_info_get_sync() function
-returns synchronization ID - #snd_pcm_sync_id_t, which is equal
+lacking this feature, the #snd_pcm_hw_params_get_sync() function
+returns 16-byte synchronization ID, which is equal
 for hardware synchronized streams. When the #snd_pcm_link()
 function is called, all operations managing the stream state for these two
 streams are joined. The opposite function is #snd_pcm_unlink().
@@ -3949,6 +3949,25 @@ int snd_pcm_hw_params_get_fifo_size(const snd_pcm_hw_params_t *params)
 }
 
 /**
+ * \brief Get hardware synchronization ID from a PCM info container
+ * \param params Configuration space
+ * \return 16-byte synchronization ID (use #SND_PCM_HW_PARAMS_SYNC_SIZE)
+ *
+ * This synchronization ID determines the similar clocks for the
+ * PCM stream between multiple devices (including different cards).
+ * "All zeros" means "not set". The contents of the ID can be used
+ * only for a comparison with the contents of another ID returned
+ * from this function. Applications should not do a comparison with
+ * hard-coded values, because the implementation generating such
+ * synchronization IDs may be changed in future.
+ */
+const unsigned char *snd_pcm_hw_params_get_sync(const snd_pcm_hw_params_t *params)
+{
+	assert(params);
+	return params->sync;
+}
+
+/**
  * \brief Fill params with a full configuration space for a PCM
  * \param pcm PCM handle
  * \param params Configuration space
@@ -7332,7 +7351,7 @@ unsigned int snd_pcm_info_get_subdevices_avail(const snd_pcm_info_t *obj)
 }
 
 /**
- * \brief Get hardware synchronization ID from a PCM info container
+ * \brief (DEPRECATED) Get hardware synchronization ID from a PCM info container
  * \param obj PCM info container
  * \return hardware synchronization ID
  */
@@ -7340,9 +7359,12 @@ snd_pcm_sync_id_t snd_pcm_info_get_sync(const snd_pcm_info_t *obj)
 {
 	snd_pcm_sync_id_t res;
 	assert(obj);
-	memcpy(&res, &obj->sync, sizeof(res));
+	bzero(&res, sizeof(res));
 	return res;
 }
+#ifndef DOC_HIDDEN
+link_warning(snd_pcm_info_get_sync, "Warning: snd_pcm_info_get_sync is deprecated, consider to use snd_pcm_hw_params_get_sync");
+#endif
 
 /**
  * \brief Set wanted device inside a PCM info container (see #snd_ctl_pcm_info)
