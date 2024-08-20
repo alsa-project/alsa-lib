@@ -199,8 +199,12 @@ ALSA_1.2.10 {
 } ALSA_1.2.9;
 
 ALSA_1.2.13 {
-#if defined(HAVE_SEQ_SYMS) || defined(HAVE_RAWMIDI_SYMS)
+#if defined(HAVE_PCM_SYMS) || defined(HAVE_SEQ_SYMS) || defined(HAVE_RAWMIDI_SYMS)
   global:
+#endif
+
+#ifdef HAVE_PCM_SYMS
+    @SYMBOL_PREFIX@snd_pcm_hw_params_get_sync;
 #endif
 
 #ifdef HAVE_SEQ_SYMS
