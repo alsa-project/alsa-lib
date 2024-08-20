@@ -606,6 +606,39 @@ typedef struct _snd_ump_msg_set_metronome {
 #endif
 } __attribute((packed)) snd_ump_msg_set_metronome_t;
 
+/** Set Key Signature Message (128bit) */
+typedef struct _snd_ump_msg_set_key_sig {
+#ifdef SNDRV_BIG_ENDIAN_BITFIELD
+	uint8_t type:4;		/**< UMP packet type */
+	uint8_t group:4;	/**< UMP Group */
+	uint8_t format:2;	/**< Format */
+	uint8_t addrs:2;	/**< Address */
+	uint8_t channel:4;	/**< Channel */
+	uint8_t status_bank;	/**< Status Bank */
+	uint8_t status;		/**< Status */
+
+	uint8_t sharps_flats:4;	/**< Sharps/Flats */
+	uint8_t tonic_note:4;	/**< Tonic Note 1 */
+	uint8_t reserved1[3];	/**< Unused */
+
+	uint32_t reserved2[2];	/**< Unused */
+#else
+	uint8_t status;		/**< Status */
+	uint8_t status_bank;	/**< Status Bank */
+	uint8_t channel:4;	/**< Channel */
+	uint8_t addrs:2;	/**< Address */
+	uint8_t format:2;	/**< Format */
+	uint8_t group:4;	/**< UMP Group */
+	uint8_t type:4;		/**< UMP packet type */
+
+	uint8_t reserved1[3];	/**< Unused */
+	uint8_t tonic_note:4;	/**< Tonic Note */
+	uint8_t sharps_flats:4;	/**< Sharps/Flats */
+
+	uint32_t reserved2[2];	/**< Unused */
+#endif
+} __attribute((packed)) snd_ump_msg_set_key_sig_t;
+
 /** Set Chord Name Message (128bit) */
 typedef struct _snd_ump_msg_set_chord_name {
 #ifdef SNDRV_BIG_ENDIAN_BITFIELD
@@ -678,6 +711,7 @@ typedef union _snd_ump_msg_flex_data {
 	snd_ump_msg_set_tempo_t		set_tempo;	/**< Set Tempo */
 	snd_ump_msg_set_time_sig_t	set_time_sig;	/**< Set Time Signature */
 	snd_ump_msg_set_metronome_t	set_metronome;	/**< Set Metronome */
+	snd_ump_msg_set_key_sig_t	set_key_sig;	/**< Set Key Signature */
 	snd_ump_msg_set_chord_name_t	set_chord_name;	/**< Set Chord Name */
 	snd_ump_msg_hdr_t		hdr;		/**< UMP header */
 	uint32_t			raw[4];		/**< raw UMP packet */
