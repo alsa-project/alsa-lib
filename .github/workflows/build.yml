@@ -64,7 +64,7 @@ jobs:
         cd alsa-lib-$(cat version)
         make install
     - name: Archive package
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
         name: alsa-lib-test-package
         path: artifacts/
