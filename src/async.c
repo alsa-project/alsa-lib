@@ -153,9 +153,22 @@ int snd_async_del_handler(snd_async_handler_t *handler)
 	int was_empty;
 	assert(handler);
 	if (handler->type != SND_ASYNC_HANDLER_GENERIC) {
-		if (!list_empty(&handler->hlist))
+		struct list_head *alist;
+		switch (handler->type) {
+#ifdef BUILD_PCM
+		case SND_ASYNC_HANDLER_PCM:
+			alist = &handler->u.pcm->async_handlers;
+			break;
+#endif
+		case SND_ASYNC_HANDLER_CTL:
+			alist = &handler->u.ctl->async_handlers;
+			break;
+		default:
+			assert(0);
+		}
+		if (!list_empty(alist))
 			list_del(&handler->hlist);
-		if (!list_empty(&handler->hlist))
+		if (!list_empty(alist))
 			goto _glist;
 		switch (handler->type) {
 #ifdef BUILD_PCM
