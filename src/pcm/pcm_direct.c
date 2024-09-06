@@ -1018,7 +1018,7 @@ int snd_pcm_direct_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	}
 	dshare->timer_ticks = hw_param_interval(params, SND_PCM_HW_PARAM_PERIOD_SIZE)->max / dshare->slave_period_size;
 	params->info = dshare->shmptr->s.info;
-	params->info &= ~SND_PCM_INFO_RESUME;
+	params->info &= ~(SND_PCM_INFO_RESUME | SND_PCM_INFO_PAUSE);
 #ifdef REFINE_DEBUG
 	snd_output_puts(log, "DMIX REFINE (end):\n");
 	snd_pcm_hw_params_dump(params, log);
@@ -1032,7 +1032,7 @@ int snd_pcm_direct_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	snd_pcm_direct_t *dmix = pcm->private_data;
 
 	params->info = dmix->shmptr->s.info;
-	params->info &= ~SND_PCM_INFO_RESUME;
+	params->info &= ~(SND_PCM_INFO_RESUME | SND_PCM_INFO_PAUSE);
 	params->rate_num = dmix->shmptr->s.rate;
 	params->rate_den = 1;
 	params->fifo_size = 0;
@@ -1156,8 +1156,6 @@ int snd_pcm_direct_resume(snd_pcm_t *pcm)
 /* copy the slave setting */
 static void save_slave_setting(snd_pcm_direct_t *dmix, snd_pcm_t *spcm)
 {
-	spcm->info &= ~SND_PCM_INFO_PAUSE;
-
 	COPY_SLAVE(access);
 	COPY_SLAVE(format);
 	COPY_SLAVE(subformat);
