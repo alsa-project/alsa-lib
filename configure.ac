@@ -71,6 +71,15 @@ EOF
   exit 1
 fi
 
+dnl Do not use --with-pic for shared libraries (consider to use PIE)
+if test "$enable_static" = "yes" -a "$pic_mode" = "yes"; then
+cat <<EOF
+  Please, do not enable PIC (--with-pic) for static library. Consider
+  to remove this option or use PIE flags.
+EOF
+  exit 1
+fi
+
 dnl ALSA configuration directory
 AC_ARG_WITH(configdir,
     AS_HELP_STRING([--with-configdir=dir],
