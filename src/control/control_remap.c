@@ -1282,7 +1282,7 @@ ctl.name {
  * \param handlep Returns created control handle
  * \param name Name of control
  * \param root Root configuration node
- * \param conf Configuration node with Route & Volume PCM description
+ * \param conf Configuration node with control remap description
  * \param mode Control handle mode
  * \retval zero on success otherwise a negative error code
  * \warning Using of this function might be dangerous in the sense
