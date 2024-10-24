@@ -1228,10 +1228,10 @@ child controls to one or split one control to more.
 
 \code
 ctl.name {
-	type remap              # Route & Volume conversion PCM
-	child STR               # Slave name
+	type remap              # Remap controls
+	child STR               # Child name
 	# or
-	child {                 # Slave definition
+	child {                 # Child definition
 		type STR
 		...
 	}
