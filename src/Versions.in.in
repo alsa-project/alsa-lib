@@ -212,7 +212,7 @@ ALSA_1.2.13 {
     @SYMBOL_PREFIX@snd_seq_create_ump_block;
     @SYMBOL_PREFIX@snd_seq_queue_tempo_get_tempo_base;
     @SYMBOL_PREFIX@snd_seq_queue_tempo_set_tempo_base;
-    @SYMBOL_PREFIX@snd_seq_has_tempo_base;
+    @SYMBOL_PREFIX@snd_seq_has_queue_tempo_base;
     @SYMBOL_PREFIX@snd_seq_port_info_get_ump_is_midi1;
     @SYMBOL_PREFIX@snd_seq_port_info_set_ump_is_midi1;
 #endif
