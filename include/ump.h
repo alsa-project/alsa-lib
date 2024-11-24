@@ -9,6 +9,8 @@
 #ifndef __ALSA_UMP_H
 #define __ALSA_UMP_H
 
+#include "rawmidi.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif

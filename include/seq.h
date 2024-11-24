@@ -29,6 +29,8 @@
 #ifndef __ALSA_SEQ_H
 #define __ALSA_SEQ_H
 
+#include "ump.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif

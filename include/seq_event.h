@@ -28,6 +28,8 @@
 #ifndef __ALSA_SEQ_EVENT_H
 #define __ALSA_SEQ_EVENT_H
 
+#include "ump_msg.h"
+
 /**
  *  \defgroup SeqEvents Sequencer Event Definitions
  *  Sequencer Event Definitions
