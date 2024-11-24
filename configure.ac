@@ -483,6 +483,12 @@ fi
 AC_SUBST(PYTHON_LIBS)
 AC_SUBST(PYTHON_INCLUDES)
 
+if test "$build_rawmidi" != "yes"; then
+  if test "$build_seq" = "yes"; then
+    AC_ERROR([Cannot enable sequencer without rawmidi])
+  fi
+fi
+
 AM_CONDITIONAL([BUILD_MIXER], [test x$build_mixer = xyes])
 AM_CONDITIONAL([BUILD_PCM], [test x$build_pcm = xyes])
 AM_CONDITIONAL([BUILD_RAWMIDI], [test x$build_rawmidi = xyes])
