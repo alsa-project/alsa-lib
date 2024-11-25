@@ -750,19 +750,10 @@ int snd_ump_block_info_get_device(const snd_ump_block_info_t *info)
  * \param info pointer to a snd_ump_block_info_t structure
  * \return ID number of the given UMP block
  */
-#ifndef DOXYGEN
-EXPORT_SYMBOL unsigned int INTERNAL(snd_ump_block_info_get_block_id)(const snd_ump_block_info_t *info)
-#else
 unsigned int snd_ump_block_info_get_block_id(const snd_ump_block_info_t *info)
-#endif
 {
 	return info->block_id;
 }
-
-#ifndef DOC_HIDDEN
-use_symbol_version(__snd_ump_block_info_get_block_id, snd_ump_block_info_get_block_id, ALSA_1.2.10);
-use_default_symbol_version(__snd_ump_block_info_get_block_id, snd_ump_block_info_get_block_id, ALSA_1.2.13);
-#endif /* DOC_HIDDEN */
 
 /**
  * \brief get UMP block activeness
@@ -881,11 +872,21 @@ void snd_ump_block_info_set_device(snd_ump_block_info_t *info, unsigned int devi
  *
  * This function is mostly used for setting the block ID to query.
  */
+#ifndef DOXYGEN
+EXPORT_SYMBOL void INTERNAL(snd_ump_block_info_set_block_id)(snd_ump_block_info_t *info,
+							     unsigned int id)
+#else
 void snd_ump_block_info_set_block_id(snd_ump_block_info_t *info,
 				     unsigned int id)
+#endif
 {
 	info->block_id = id;
 }
+
+#ifndef DOC_HIDDEN
+use_symbol_version(__snd_ump_block_info_set_block_id, snd_ump_block_info_set_block_id, ALSA_1.2.10);
+use_default_symbol_version(__snd_ump_block_info_set_block_id, snd_ump_block_info_set_block_id, ALSA_1.2.13);
+#endif /* DOC_HIDDEN */
 
 /**
  * \brief set activeness to snd_ump_block_info_t structure
