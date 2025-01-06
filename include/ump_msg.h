@@ -10,6 +10,7 @@
 #define __ALSA_UMP_MSG_H
 
 #include <stdint.h>
+#include <string.h>
 
 #ifdef __cplusplus
 extern "C" {

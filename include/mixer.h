@@ -28,6 +28,11 @@
 #ifndef __ALSA_MIXER_H
 #define __ALSA_MIXER_H
 
+#include <alsa/control.h>
+#include <alsa/pcm.h>
+
+#include <string.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

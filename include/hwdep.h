@@ -28,6 +28,9 @@
 #ifndef __ALSA_HWDEP_H
 #define __ALSA_HWDEP_H
 
+#include <string.h>
+#include <sys/types.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

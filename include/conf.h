@@ -28,6 +28,11 @@
 #ifndef __ALSA_CONF_H
 #define __ALSA_CONF_H
 
+#include <stddef.h>
+
+#include <alsa/input.h>
+#include <alsa/output.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

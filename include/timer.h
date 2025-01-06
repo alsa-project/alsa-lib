@@ -28,6 +28,13 @@
 #ifndef __ALSA_TIMER_H
 #define __ALSA_TIMER_H
 
+#include <string.h>
+
+#include <sys/types.h>
+
+#include <alsa/conf.h>
+#include <alsa/global.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
