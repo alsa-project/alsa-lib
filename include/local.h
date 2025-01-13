@@ -208,6 +208,7 @@
 #define snd_seq_result		sndrv_seq_result
 #define snd_seq_queue_skew	sndrv_seq_queue_skew
 #define snd_seq_ev_queue_control	sndrv_seq_ev_queue_control
+#define snd_seq_ev_ump_notify	sndrv_seq_ev_ump_notify
 #define snd_seq_client_t	sndrv_seq_client_t
 #define snd_seq_client_type_t	sndrv_seq_client_type_t
 

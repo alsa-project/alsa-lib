@@ -135,6 +135,11 @@ enum snd_seq_event_type {
 	/** Ports disconnected; event data type = #snd_seq_connect_t */
 	SND_SEQ_EVENT_PORT_UNSUBSCRIBED,
 
+	/** UMP Endpoint info has changed; event data type = #snd_seq_ev_ump_notify_t */
+	SND_SEQ_EVENT_UMP_EP_CHANGE,
+	/** UMP Block info has changed; event data type = #snd_seq_ev_ump_notify_t */
+	SND_SEQ_EVENT_UMP_BLOCK_CHANGE,
+
 	/** user-defined event; event data type = any (fixed size) */
 	SND_SEQ_EVENT_USR0 = 90,
 	/** user-defined event; event data type = any (fixed size) */
@@ -294,6 +299,12 @@ typedef struct snd_seq_ev_queue_control {
 	} param;				/**< data value union */
 } snd_seq_ev_queue_control_t;
 
+/** UMP info change notify */
+typedef struct snd_seq_ev_ump_notify {
+	unsigned char client;	/**< Client number */
+	unsigned char block;	/**< Block number (optional) */
+} snd_seq_ev_ump_notify_t;
+
 /** Sequencer event data */
 typedef union snd_seq_event_data {
 	snd_seq_ev_note_t note;		/**< note information */
@@ -306,6 +317,7 @@ typedef union snd_seq_event_data {
 	snd_seq_addr_t addr;		/**< address */
 	snd_seq_connect_t connect;	/**< connect information */
 	snd_seq_result_t result;	/**< operation result code */
+	snd_seq_ev_ump_notify_t ump_notify; /**< UMP info change notification */
 } snd_seq_event_data_t;
 
 /** Sequencer event */
