@@ -640,6 +640,22 @@ unsigned int snd_rawmidi_info_get_subdevices_avail(const snd_rawmidi_info_t *inf
 }
 
 /**
+ * \brief get the tied device number for the given rawmidi device
+ * \param info pointer to a snd_rawmidi_info_t structure
+ * \return the device number for the tied device, or -1 if untied / unknown.
+ *
+ * This function is useful for UMP rawmidi devices where each of them may
+ * have the mirroring legacy rawmidi device. Those are shown as "tied".
+ */
+int snd_rawmidi_info_get_tied_device(const snd_rawmidi_info_t *info)
+{
+	assert(info);
+	if (info->tied_device > 0)
+		return info->tied_device - 1;
+	return -1;
+}
+
+/**
  * \brief set rawmidi device number
  * \param info pointer to a snd_rawmidi_info_t structure
  * \param val device number

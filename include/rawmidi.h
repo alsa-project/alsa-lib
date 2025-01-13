@@ -95,6 +95,7 @@ typedef enum _snd_rawmidi_read_mode {
 
 /** rawmidi info bit flags */
 #define SND_RAWMIDI_INFO_UMP			0x00000008	/* rawmidi is UMP */
+#define SNDRV_RAWMIDI_INFO_STREAM_INACTIVE	0x00000010	/* the selected substream is inactive */
 
 int snd_rawmidi_open(snd_rawmidi_t **in_rmidi, snd_rawmidi_t **out_rmidi,
 		     const char *name, int mode);
@@ -124,6 +125,7 @@ const char *snd_rawmidi_info_get_name(const snd_rawmidi_info_t *obj);
 const char *snd_rawmidi_info_get_subdevice_name(const snd_rawmidi_info_t *obj);
 unsigned int snd_rawmidi_info_get_subdevices_count(const snd_rawmidi_info_t *obj);
 unsigned int snd_rawmidi_info_get_subdevices_avail(const snd_rawmidi_info_t *obj);
+int snd_rawmidi_info_get_tied_device(const snd_rawmidi_info_t *obj);
 void snd_rawmidi_info_set_device(snd_rawmidi_info_t *obj, unsigned int val);
 void snd_rawmidi_info_set_subdevice(snd_rawmidi_info_t *obj, unsigned int val);
 void snd_rawmidi_info_set_stream(snd_rawmidi_info_t *obj, snd_rawmidi_stream_t val);
