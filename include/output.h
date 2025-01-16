@@ -29,6 +29,8 @@
 #define __ALSA_OUTPUT_H
 
 #include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
 
 #ifdef __cplusplus
 extern "C" {

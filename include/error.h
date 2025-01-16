@@ -28,6 +28,8 @@
 #ifndef __ALSA_ERROR_H
 #define __ALSA_ERROR_H
 
+#include <stdarg.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

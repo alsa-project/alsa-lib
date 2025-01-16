@@ -31,6 +31,9 @@
 
 #include "ump.h"
 
+#include <alsa/seq_event.h>
+#include <alsa/timer.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

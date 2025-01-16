@@ -34,6 +34,10 @@ extern "C" {
 #endif
 
 #include <stdint.h>
+#include <string.h>
+
+#include <alsa/global.h>
+#include <alsa/output.h>
 
 /**
  *  \defgroup PCM PCM Interface
