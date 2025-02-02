@@ -28,7 +28,7 @@
  *
  */
 
-#ifndef __ALSA_PCM_EXTERNAL_H
+#if !defined(__ALSA_PCM_EXTERNAL_H) && !defined(ALSA_LIBRARY_BUILD)
 #warning "use #include <alsa/pcm_external.h>, <alsa/pcm_extplug.h> should not be used directly"
 #include <alsa/pcm_external.h>
 #endif
