@@ -45,10 +45,11 @@
 #include <errno.h>
 #include <string.h>
 
+#include "../include/asoundlib.h"
+
 #include "midifile.h"		/* SMF library header */
 #include "midifile.c"		/* SMF library code */
 
-#include "../include/asoundlib.h"
 
 /* send the real-time time stamps (instead of midi ticks) to the ALSA sequencer */
 static int use_realtime = 0;
