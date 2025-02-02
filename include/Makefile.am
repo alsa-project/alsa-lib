@@ -22,15 +22,16 @@ endif
 if BUILD_PCM_PLUGIN_RATE
 alsainclude_HEADERS += pcm_rate.h
 endif
-if BUILD_PCM_PLUGIN_EXTPLUG
-alsainclude_HEADERS += pcm_external.h pcm_extplug.h
+if BUILD_PCM_PLUGIN_EXTERNAL
+# FIXME: pcm_external.h includes both pcm_extplug.h and pcm_ioplug.h
+alsainclude_HEADERS += pcm_external.h pcm_extplug.h pcm_ioplug.h
 endif
-if BUILD_PCM_PLUGIN_IOPLUG
-if !BUILD_PCM_PLUGIN_EXTPLUG
-alsainclude_HEADERS += pcm_external.h
-endif
-alsainclude_HEADERS += pcm_ioplug.h
-endif
+#if BUILD_PCM_PLUGIN_EXTPLUG
+#alsainclude_HEADERS += pcm_extplug.h
+#endif
+#if BUILD_PCM_PLUGIN_IOPLUG
+#alsainclude_HEADERS += pcm_ioplug.h
+#endif
 endif
 
 if BUILD_RAWMIDI

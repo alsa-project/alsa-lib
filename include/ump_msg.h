@@ -6,10 +6,14 @@
  * API library for ALSA rawmidi/UMP interface
  */
 
+#if !defined(__ASOUNDLIB_H) && !defined(ALSA_LIBRARY_BUILD)
+/* don't use ALSA_LIBRARY_BUILD define in sources outside alsa-lib */
+#warning "use #include <alsa/asoundlib.h>, <alsa/ump_msg.h> should not be used directly"
+#include <alsa/asoundlib.h>
+#endif
+
 #ifndef __ALSA_UMP_MSG_H
 #define __ALSA_UMP_MSG_H
-
-#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

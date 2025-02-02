@@ -26,7 +26,9 @@
 #ifndef __ALSA_PCM_EXTERNAL_H
 #define __ALSA_PCM_EXTERNAL_H
 
-#include "pcm.h"
+#ifndef __ASOUNDLIB_LOCAL
+#include <alsa/asoundlib.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {

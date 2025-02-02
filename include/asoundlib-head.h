@@ -38,3 +38,5 @@
 #include <poll.h>
 #include <errno.h>
 #include <stdarg.h>
+#include <stdint.h>
+#include <time.h>

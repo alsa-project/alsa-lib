@@ -1,3 +1,8 @@
+#if !defined(__ASOUNDLIB_H) && !defined(ALSA_LIBRARY_BUILD)
+/* don't use ALSA_LIBRARY_BUILD define in sources outside alsa-lib */
+#error "use #include <alsa/asoundlib.h>, <alsa/pcm_old.h> should not be used directly"
+#endif
+
 /*
  * Old ALSA 0.9.x API
  */

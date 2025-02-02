@@ -634,6 +634,7 @@ AM_CONDITIONAL([BUILD_PCM_PLUGIN_DSNOOP], [test x$build_pcm_dsnoop = xyes])
 AM_CONDITIONAL([BUILD_PCM_PLUGIN_ASYM], [test x$build_pcm_asym = xyes])
 AM_CONDITIONAL([BUILD_PCM_PLUGIN_IEC958], [test x$build_pcm_iec958 = xyes])
 AM_CONDITIONAL([BUILD_PCM_PLUGIN_SOFTVOL], [test x$build_pcm_softvol = xyes])
+AM_CONDITIONAL([BUILD_PCM_PLUGIN_EXTERNAL], [test x$build_pcm_extplug = xyes -o x$build_pcm_ioplug = xyes])
 AM_CONDITIONAL([BUILD_PCM_PLUGIN_EXTPLUG], [test x$build_pcm_extplug = xyes])
 AM_CONDITIONAL([BUILD_PCM_PLUGIN_IOPLUG], [test x$build_pcm_ioplug = xyes])
 AM_CONDITIONAL([BUILD_PCM_PLUGIN_MMAP_EMUL], [test x$build_pcm_mmap_emul = xyes])
@@ -826,6 +827,7 @@ test "$build_pcm" = "yes" && echo "#include <alsa/timer.h>" >> include/asoundlib
 test "$build_hwdep" = "yes" && echo "#include <alsa/hwdep.h>" >> include/asoundlib.h
 echo "#include <alsa/control.h>" >> include/asoundlib.h
 test "$build_mixer" = "yes" && echo "#include <alsa/mixer.h>" >> include/asoundlib.h
+test "$build_seq" = "yes" && echo "#include <alsa/ump_msg.h>" >> include/asoundlib.h
 test "$build_seq" = "yes" && echo "#include <alsa/seq_event.h>" >> include/asoundlib.h
 test "$build_seq" = "yes" && echo "#include <alsa/seq.h>" >> include/asoundlib.h
 test "$build_seq" = "yes" && echo "#include <alsa/seqmid.h>" >> include/asoundlib.h

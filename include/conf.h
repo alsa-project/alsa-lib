@@ -25,6 +25,11 @@
  *
  */
 
+#if !defined(__ASOUNDLIB_H) && !defined(ALSA_LIBRARY_BUILD)
+/* don't use ALSA_LIBRARY_BUILD define in sources outside alsa-lib */
+#include <alsa/asoundlib.h>
+#endif
+
 #ifndef __ALSA_CONF_H
 #define __ALSA_CONF_H
 

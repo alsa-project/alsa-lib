@@ -23,10 +23,13 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
+
 #ifndef __ALSA_CONTROL_EXTERNAL_H
 #define __ALSA_CONTROL_EXTERNAL_H
 
-#include "control.h"
+#ifndef __ASOUNDLIB_LOCAL
+#include <alsa/asoundlib.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {

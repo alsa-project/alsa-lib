@@ -31,6 +31,10 @@
 #ifndef __ALSA_PCM_RATE_H
 #define __ALSA_PCM_RATE_H
 
+#ifndef __ASOUNDLIB_LOCAL
+#include <alsa/asoundlib.h>
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif

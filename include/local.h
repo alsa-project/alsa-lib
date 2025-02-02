@@ -30,6 +30,9 @@
 #include <string.h>
 #include <fcntl.h>
 #include <assert.h>
+#include <stdint.h>
+/* for timeval and timespec */
+#include <time.h>
 #ifdef HAVE_ENDIAN_H
 #include <endian.h>
 #elif defined(HAVE_SYS_ENDIAN_H)
@@ -187,6 +190,7 @@
 #include "hwdep.h"
 #include "control.h"
 #include "mixer.h"
+#include "ump_msg.h"
 #include "seq_event.h"
 #include "seq.h"
 

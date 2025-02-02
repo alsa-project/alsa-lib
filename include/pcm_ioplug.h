@@ -28,6 +28,11 @@
  *
  */
 
+#ifndef __ALSA_PCM_EXTERNAL_H
+#warning "use #include <alsa/pcm_external.h>, <alsa/pcm_ioplug.h> should not be used directly"
+#include <alsa/pcm_external.h>
+#endif
+
 #ifndef __ALSA_PCM_IOPLUG_H
 #define __ALSA_PCM_IOPLUG_H
 
