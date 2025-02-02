@@ -552,7 +552,7 @@ int snd_seq_create_ump_endpoint(snd_seq_t *seq,
 	if (!seq->ump_ep->version)
 		seq->ump_ep->version = SND_UMP_EP_INFO_DEFAULT_VERSION;
 
-	if (info->name) {
+	if (info->name[0]) {
 		err = snd_seq_set_client_name(seq, (const char *)info->name);
 		if (err < 0)
 			goto error_free;
