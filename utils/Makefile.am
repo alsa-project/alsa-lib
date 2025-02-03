@@ -2,7 +2,7 @@ if INSTALL_M4
 aclocaldir=$(datadir)/aclocal
 aclocal_DATA=alsa.m4
 endif
-EXTRA_DIST=alsa.m4 buildrpm alsa.pc.in
+EXTRA_DIST=alsa.m4 buildrpm alsa.pc.in alsa-topology.pc.in
 
 alsapkgconfdir = @ALSA_PKGCONF_DIR@
 pkgconfigdir = $(alsapkgconfdir)
