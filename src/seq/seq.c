@@ -1870,7 +1870,7 @@ int snd_seq_client_info_get_ump_groupless_enabled(const snd_seq_client_info_t *i
 int snd_seq_client_info_get_ump_conversion(const snd_seq_client_info_t *info)
 {
 	assert(info);
-	return info->midi_version;
+	return !(info->group_filter & SNDRV_SEQ_FILTER_NO_CONVERT);
 }
 
 /**
