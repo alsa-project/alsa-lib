@@ -582,11 +582,7 @@ int snd_seq_create_ump_endpoint(snd_seq_t *seq,
 				   SNDRV_SEQ_PORT_TYPE_MIDI_UMP |
 				   SND_SEQ_PORT_TYPE_APPLICATION |
 				   SNDRV_SEQ_PORT_TYPE_PORT);
-	snd_seq_port_info_set_ump_group(pinfo,
-					SND_SEQ_PORT_TYPE_MIDI_GENERIC |
-				   SNDRV_SEQ_PORT_TYPE_MIDI_UMP |
-				   SND_SEQ_PORT_TYPE_APPLICATION |
-				   SNDRV_SEQ_PORT_TYPE_PORT);
+	snd_seq_port_info_set_ump_group(pinfo, 0);
 	err = snd_seq_create_port(seq, pinfo);
 	if (err < 0) {
 		SNDERR("Failed to create MIDI 2.0 port\n");
