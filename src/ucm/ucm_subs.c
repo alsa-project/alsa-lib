@@ -518,30 +518,32 @@ static char *rval_sysfs(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED, const char 
 	if (id[0] == '/')
 		id++;
 	snprintf(path, sizeof(path), "%s/%s", e, id);
-	if (lstat64(path, &sb) != 0)
-		return NULL;
-	if (S_ISLNK(sb.st_mode)) {
-		len = readlink(path, link, sizeof(link) - 1);
-		if (len <= 0) {
-			uc_error("sysfs: cannot read link '%s' (%d)", path, errno);
-			return NULL;
-		}
+	len = readlink(path, link, sizeof(link) - 1);
+	if (len > 0) {
 		link[len] = '\0';
 		e = strrchr(link, '/');
 		if (e)
 			return strdup(e + 1);
 		return NULL;
 	}
-	if (S_ISDIR(sb.st_mode))
-		return NULL;
-	if ((sb.st_mode & S_IRUSR) == 0)
-		return NULL;
-
-	fd = open(path, O_RDONLY);
+	fd = open(path, O_RDONLY | O_NOFOLLOW);
 	if (fd < 0) {
 		uc_error("sysfs open failed for '%s' (%d)", path, errno);
 		return NULL;
 	}
+	if (fstat64(fd, &sb) != 0) {
+		close(fd);
+		return NULL;
+	}
+	if (S_ISDIR(sb.st_mode)) {
+		close(fd);
+		return NULL;
+	}
+	if ((sb.st_mode & S_IRUSR) == 0) {
+		close(fd);
+		return NULL;
+	}
+
 	len = read(fd, path, sizeof(path)-1);
 	close(fd);
 	if (len < 0) {
