@@ -1504,7 +1504,7 @@ skip:
 	snd_config_delete(cfg);
 
 	uc_mgr_set_variable(uc_mgr, "@@LibraryVersion", SND_LIB_VERSION_STR);
-	snprintf(vname, sizeof(vname), "%d", SYNTAX_VERSION_MAX);
+	snprintf(vname, sizeof(vname), "%04d", SYNTAX_VERSION_MAX);
 	uc_mgr_set_variable(uc_mgr, "@@SyntaxVersion", vname);
 
 	return end + 3;

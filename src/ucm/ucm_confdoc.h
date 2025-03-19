@@ -407,7 +407,7 @@ ${eval:\<str\>}        | Evaluate expression like *($var+2)/3* [**Syntax 5**]
 ${find-card:\<str\>}   | Find a card - see _Find card substitution_ section
 ${find-device:\<str\>} | Find a device - see _Find device substitution_ section
 @@LibraryVersion       | e.g. "1.2.14" [**Syntax 8**]
-@@SyntaxVersion        | e.g. "8" [**Syntax 8**]
+@@SyntaxVersion        | e.g. "0008" (decimal base - no hex) [**Syntax 8**]
 
 General note: If two dollars '$$' instead one dolar '$' are used for the
 substitution identification, the error is ignored (e.g. file does not
