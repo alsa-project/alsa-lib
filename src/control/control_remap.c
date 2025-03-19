@@ -2,11 +2,11 @@
  * \file control/control_remap.c
  * \brief CTL Remap Plugin Interface
  * \author Jaroslav Kysela <perex@perex.cz>
- * \date 2021
+ * \date 2021-2025
  */
 /*
  *  Control - Remap Controls
- *  Copyright (c) 2021 by Jaroslav Kysela <perex@perex.cz>
+ *  Copyright (c) 2021-2025 by Jaroslav Kysela <perex@perex.cz>
  *
  *
  *   This library is free software; you can redistribute it and/or modify
@@ -76,6 +76,7 @@ typedef struct {
 		snd_ctl_elem_id_t id_child;
 		size_t channel_map_items;
 		size_t channel_map_alloc;
+		unsigned int src_channels;
 		long *channel_map;
 	} *controls;
 	unsigned int event_mask;
@@ -481,7 +482,7 @@ static int remap_map_elem_read(snd_ctl_remap_t *priv, snd_ctl_elem_value_t *cont
 	snd_ctl_map_t *map;
 	struct snd_ctl_map_ctl *mctl;
 	snd_ctl_elem_value_t control2;
-	size_t item, index;
+	size_t item, index, src_index;
 	int err;
 
 	map = remap_find_map_id(priv, &control->id);
@@ -501,19 +502,36 @@ static int remap_map_elem_read(snd_ctl_remap_t *priv, snd_ctl_elem_value_t *cont
 		if (map->type == SNDRV_CTL_ELEM_TYPE_BOOLEAN ||
 		    map->type == SNDRV_CTL_ELEM_TYPE_INTEGER) {
 			for (index = 0; index < mctl->channel_map_items; index++) {
-				long src = mctl->channel_map[index];
+				long base_idx = mctl->src_channels * index;
+				long src = mctl->channel_map[base_idx];
 				if ((unsigned long)src < ARRAY_SIZE(control->value.integer.value))
 					control->value.integer.value[index] = control2.value.integer.value[src];
+				for (src_index = 1; src_index < mctl->src_channels; src_index++) {
+					src = mctl->channel_map[base_idx + src_index];
+					if ((unsigned long)src < ARRAY_SIZE(control->value.integer.value))
+						if (control2.value.integer.value[src] < control->value.integer.value[index])
+							control->value.integer.value[index] = control2.value.integer.value[src];
+				}
 			}
 		} else if (map->type == SNDRV_CTL_ELEM_TYPE_INTEGER64) {
 			for (index = 0; index < mctl->channel_map_items; index++) {
-				long src = mctl->channel_map[index];
+				long base_idx = mctl->src_channels * index;
+				long src = mctl->channel_map[base_idx];
 				if ((unsigned long)src < ARRAY_SIZE(control->value.integer64.value))
 					control->value.integer64.value[index] = control2.value.integer64.value[src];
+				for (src_index = 1; src_index < mctl->src_channels; src_index++) {
+					src = mctl->channel_map[base_idx + src_index];
+					if ((unsigned long)src < ARRAY_SIZE(control->value.integer64.value))
+						if (control2.value.integer64.value[src] < control->value.integer64.value[index])
+							control->value.integer64.value[index] = control2.value.integer64.value[src];
+				}
 			}
 		} else if (map->type == SNDRV_CTL_ELEM_TYPE_BYTES) {
+			/* does it make sense to merge bytes? */
+			if (mctl->src_channels > 1)
+				return -EINVAL;
 			for (index = 0; index < mctl->channel_map_items; index++) {
-				long src = mctl->channel_map[index];
+				long src = mctl->channel_map[mctl->src_channels];
 				if ((unsigned long)src < ARRAY_SIZE(control->value.bytes.data))
 					control->value.bytes.data[index] = control2.value.bytes.data[src];
 			}
@@ -544,7 +562,7 @@ static int remap_map_elem_write(snd_ctl_remap_t *priv, snd_ctl_elem_value_t *con
 	snd_ctl_map_t *map;
 	struct snd_ctl_map_ctl *mctl;
 	snd_ctl_elem_value_t control2;
-	size_t item, index;
+	size_t item, index, src_index;
 	int err, changes;
 
 	map = remap_find_map_id(priv, &control->id);
@@ -564,21 +582,40 @@ static int remap_map_elem_write(snd_ctl_remap_t *priv, snd_ctl_elem_value_t *con
 		if (map->type == SNDRV_CTL_ELEM_TYPE_BOOLEAN ||
 		    map->type == SNDRV_CTL_ELEM_TYPE_INTEGER) {
 			for (index = 0; index < mctl->channel_map_items; index++) {
-				long dst = mctl->channel_map[index];
+				long base_idx = mctl->src_channels * index;
+				long dst = mctl->channel_map[base_idx];
 				if ((unsigned long)dst < ARRAY_SIZE(control->value.integer.value)) {
 					changes |= control2.value.integer.value[dst] != control->value.integer.value[index];
 					control2.value.integer.value[dst] = control->value.integer.value[index];
 				}
+				for (src_index = 1; src_index < mctl->src_channels; src_index++) {
+					dst = mctl->channel_map[base_idx + src_index];
+					if ((unsigned long)dst < ARRAY_SIZE(control->value.integer.value)) {
+						changes |= control2.value.integer.value[dst] != control->value.integer.value[index];
+						control2.value.integer.value[dst] = control->value.integer.value[index];
+					}
+				}
 			}
 		} else if (map->type == SNDRV_CTL_ELEM_TYPE_INTEGER64) {
 			for (index = 0; index < mctl->channel_map_items; index++) {
-				long dst = mctl->channel_map[index];
+				long base_idx = mctl->src_channels * index;
+				long dst = mctl->channel_map[base_idx];
 				if ((unsigned long)dst < ARRAY_SIZE(control->value.integer64.value)) {
 					changes |= control2.value.integer64.value[dst] != control->value.integer64.value[index];
 					control2.value.integer64.value[dst] = control->value.integer64.value[index];
 				}
+				for (src_index = 1; src_index < mctl->src_channels; src_index++) {
+					dst = mctl->channel_map[base_idx + src_index];
+					if ((unsigned long)dst < ARRAY_SIZE(control->value.integer.value)) {
+						changes |= control2.value.integer64.value[dst] != control->value.integer64.value[index];
+						control2.value.integer64.value[dst] = control->value.integer64.value[index];
+					}
+				}
 			}
 		} else if (map->type == SNDRV_CTL_ELEM_TYPE_BYTES) {
+			/* does it make sense to merge bytes? */
+			if (mctl->src_channels > 1)
+				return -EINVAL;
 			for (index = 0; index < mctl->channel_map_items; index++) {
 				long dst = mctl->channel_map[index];
 				if ((unsigned long)dst < ARRAY_SIZE(control->value.bytes.data)) {
@@ -1017,43 +1054,79 @@ static int add_ctl_to_map(snd_ctl_map_t *map, struct snd_ctl_map_ctl **_mctl, sn
 	return 0;
 }
 
-static int add_chn_to_map(struct snd_ctl_map_ctl *mctl, long idx, long val)
+static int add_chn_to_map(struct snd_ctl_map_ctl *mctl, long idx, long src_idx, long val)
 {
 	size_t off;
 	long *map;
 
+	if (src_idx >= mctl->src_channels) {
+		SNDERR("Wrong channel mapping (extra source channel?)");
+		return -EINVAL;
+	}
 	if (mctl->channel_map_alloc <= (size_t)idx) {
-		map = realloc(mctl->channel_map, (idx + 4) * sizeof(*map));
+		map = realloc(mctl->channel_map, mctl->src_channels * (idx + 4) * sizeof(*map));
 		if (map == NULL)
 			return -ENOMEM;
 		mctl->channel_map = map;
 		off = mctl->channel_map_alloc;
 		mctl->channel_map_alloc = idx + 4;
-		for ( ; off < mctl->channel_map_alloc; off++)
+		for ( ; off < mctl->src_channels * mctl->channel_map_alloc; off++)
 			map[off] = -1;
 	}
 	if ((size_t)idx >= mctl->channel_map_items)
 		mctl->channel_map_items = idx + 1;
-	mctl->channel_map[idx] = val;
+	mctl->channel_map[mctl->src_channels * idx + src_idx] = val;
+	return 0;
+}
+
+static int add_chn_to_map_array(struct snd_ctl_map_ctl *mctl, const char *dst_id, snd_config_t *conf)
+{
+	snd_config_iterator_t i, next;
+	long src_idx = 0;
+	int err;
+
+	snd_config_for_each(i, next, conf) {
+		snd_config_t *n = snd_config_iterator_entry(i);
+		long idx = -1, chn = -1;
+		if (safe_strtol(dst_id, &idx) || snd_config_get_integer(n, &chn)) {
+			SNDERR("Wrong channel mapping (%ld -> %ld)", idx, chn);
+			return -EINVAL;
+		}
+		err = add_chn_to_map(mctl, idx, src_idx, chn);
+		if (err < 0)
+			return err;
+		src_idx++;
+	}
 	return 0;
 }
 
 static int parse_map_vindex(struct snd_ctl_map_ctl *mctl, snd_config_t *conf)
 {
 	snd_config_iterator_t i, next;
+	snd_config_t *n;
 	int err;
 
 	snd_config_for_each(i, next, conf) {
-		snd_config_t *n = snd_config_iterator_entry(i);
+		n = snd_config_iterator_entry(i);
+		err = snd_config_is_array(n);
+		if (err > 0 && (unsigned int)err > mctl->src_channels)
+			mctl->src_channels = err; /* count of array items */
+	}
+	snd_config_for_each(i, next, conf) {
+		n = snd_config_iterator_entry(i);
 		long idx = -1, chn = -1;
 		const char *id;
 		if (snd_config_get_id(n, &id) < 0)
 			continue;
-		if (safe_strtol(id, &idx) || snd_config_get_integer(n, &chn)) {
-			SNDERR("Wrong channel mapping (%ld -> %ld)", idx, chn);
-			return -EINVAL;
+		if (snd_config_is_array(n) > 0) {
+			err = add_chn_to_map_array(mctl, id, n);
+		} else {
+			if (safe_strtol(id, &idx) || snd_config_get_integer(n, &chn)) {
+				SNDERR("Wrong channel mapping (%ld -> %ld)", idx, chn);
+				return -EINVAL;
+			}
+			err = add_chn_to_map(mctl, idx, 0, chn);
 		}
-		err = add_chn_to_map(mctl, idx, chn);
 		if (err < 0)
 			return err;
 	}
@@ -1066,6 +1139,7 @@ static int parse_map_config(struct snd_ctl_map_ctl *mctl, snd_config_t *conf)
 	snd_config_iterator_t i, next;
 	int err;
 
+	mctl->src_channels = 1;
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id;
@@ -1263,6 +1337,11 @@ ctl.name {
 			SRC_ID4_STR {
 				vindex.0 1	# stereo to mono (second channel)
 			}
+		}
+		# join two stereo to one stereo (minimum value is returned for read operation)
+		CREATE_ID4_STR {
+			SRC_ID5_STR.vindex.0 [ 0 1 ] # source channels 0+1 to merged channel 0
+			SRC_ID6_STR.vindex.1 [ 0 1 ] # source channels 0+1 to merged channel 1
 		}
 	}
 }
