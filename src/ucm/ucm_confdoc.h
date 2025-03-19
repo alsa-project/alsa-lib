@@ -386,25 +386,27 @@ Evaluation order   | Configuration block | Evaluation restart
 The dynamic tree identifiers and assigned values in the configuration tree are
 substituted. The substitutes strings are in the table bellow.
 
-Substituted string   | Value
----------------------|---------------------
-${OpenName}          | Original UCM card name (passed to snd_use_case_mgr_open())
-${ConfLibDir}        | Library top-level configuration directory (e.g. /usr/share/alsa)
-${ConfTopDir}        | Top-level UCM configuration directory (e.g. /usr/share/alsa/ucm2)
-${ConfDir}           | Card's UCM configuration directory (e.g. /usr/share/alsa/ucm2/conf.d/USB-Audio)
-${ConfName}          | Configuration name (e.g. USB-Audio.conf)
-${CardNumber}        | Real ALSA card number (or empty string for the virtual UCM card)
-${CardId}            | ALSA card identifier (see snd_ctl_card_info_get_id())
-${CardDriver}        | ALSA card driver (see snd_ctl_card_info_get_driver())
-${CardName}          | ALSA card name (see snd_ctl_card_info_get_name())
-${CardLongName}      | ALSA card long name (see snd_ctl_card_info_get_longname())
-${CardComponents}    | ALSA card components (see snd_ctl_card_info_get_components())
+Substituted string     | Value
+-----------------------|---------------------
+${OpenName}            | Original UCM card name (passed to snd_use_case_mgr_open())
+${ConfLibDir}          | Library top-level configuration directory (e.g. /usr/share/alsa)
+${ConfTopDir}          | Top-level UCM configuration directory (e.g. /usr/share/alsa/ucm2)
+${ConfDir}             | Card's UCM configuration directory (e.g. /usr/share/alsa/ucm2/conf.d/USB-Audio)
+${ConfName}            | Configuration name (e.g. USB-Audio.conf)
+${CardNumber}          | Real ALSA card number (or empty string for the virtual UCM card)
+${CardId}              | ALSA card identifier (see snd_ctl_card_info_get_id())
+${CardDriver}          | ALSA card driver (see snd_ctl_card_info_get_driver())
+${CardName}            | ALSA card name (see snd_ctl_card_info_get_name())
+${CardLongName}        | ALSA card long name (see snd_ctl_card_info_get_longname())
+${CardComponents}      | ALSA card components (see snd_ctl_card_info_get_components())
 ${env:\<str\>}         | Environment variable \<str\>
 ${sys:\<str\>}         | Contents of sysfs file \<str\>
 ${var:\<str\>}         | UCM parser variable (set using a _Define_ block)
 ${eval:\<str\>}        | Evaluate expression like *($var+2)/3* [**Syntax 5**]
 ${find-card:\<str\>}   | Find a card - see _Find card substitution_ section
 ${find-device:\<str\>} | Find a device - see _Find device substitution_ section
+@@LibraryVersion       | e.g. "1.2.14" [**Syntax 8**]
+@@SyntaxVersion        | e.g. "8" [**Syntax 8**]
 
 #### Special whole string substitution
 
