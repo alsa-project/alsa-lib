@@ -401,12 +401,39 @@ ${CardLongName}        | ALSA card long name (see snd_ctl_card_info_get_longname
 ${CardComponents}      | ALSA card components (see snd_ctl_card_info_get_components())
 ${env:\<str\>}         | Environment variable \<str\>
 ${sys:\<str\>}         | Contents of sysfs file \<str\>
+${sys-card:\<str\>}    | Contents of sysfs file in /sys/class/sound/card? tree [**Syntax 8**]
 ${var:\<str\>}         | UCM parser variable (set using a _Define_ block)
 ${eval:\<str\>}        | Evaluate expression like *($var+2)/3* [**Syntax 5**]
 ${find-card:\<str\>}   | Find a card - see _Find card substitution_ section
 ${find-device:\<str\>} | Find a device - see _Find device substitution_ section
 @@LibraryVersion       | e.g. "1.2.14" [**Syntax 8**]
 @@SyntaxVersion        | e.g. "8" [**Syntax 8**]
+
+General note: If two dollars '$$' instead one dolar '$' are used for the
+substitution identification, the error is ignored (e.g. file does not
+exists in sysfs tree).
+
+Note for *var* substitution: If the first characters is minus ('-') the
+empty string is substituted when the variable is not defined.
+
+Note for *sys* and *sys-card* substitutions: since syntax 8, there is
+also extension to fetch data from given range with the optional conversion
+to hexadecimal format when the source file has binary contents.
+
+Example - fetch bytes from positions 0x10..0x15 (6 bytes):
+
+~~~{.html}
+Define.Bytes1 "${sys-card:[type=hex,pos=0x10,size=6]device/../descriptors}"
+~~~
+
+Example - fetch one byte from position 0x22:
+
+~~~{.html}
+Define.Bytes2 "${sys-card:[type=hex,pos=0x22]device/../descriptors}"
+~~~
+
+Replace *type=hex* with *type=ascii* or omit this variable settings to work with ASCII characters.
+
 
 #### Special whole string substitution
 
