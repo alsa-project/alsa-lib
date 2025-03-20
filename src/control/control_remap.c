@@ -79,26 +79,36 @@ typedef struct {
 		unsigned int src_channels;
 		long *channel_map;
 	} *controls;
-	unsigned int event_mask;
 } snd_ctl_map_t;
+
+typedef struct {
+	snd_ctl_elem_id_t *id;
+	unsigned int numid_app;
+	unsigned int event_mask;
+} snd_ctl_map_event_t;
 
 typedef struct {
 	snd_ctl_t *child;
 	int numid_remap_active;
 	unsigned int numid_app_last;
+
 	size_t numid_items;
 	size_t numid_alloc;
 	snd_ctl_numid_t *numid;
 	snd_ctl_numid_t numid_temp;
+
 	size_t remap_items;
 	size_t remap_alloc;
 	snd_ctl_remap_id_t *remap;
+
 	size_t map_items;
 	size_t map_alloc;
 	snd_ctl_map_t *map;
-	size_t map_read_queue_head;
-	size_t map_read_queue_tail;
-	snd_ctl_map_t **map_read_queue;
+
+	size_t event_items;
+	size_t event_queue_head;
+	size_t event_queue_tail;
+	snd_ctl_map_event_t *event_queue;
 } snd_ctl_remap_t;
 #endif
 
@@ -303,7 +313,7 @@ static void remap_free(snd_ctl_remap_t *priv)
 			free(map->controls[idx2].channel_map);
 		free(map->controls);
 	}
-	free(priv->map_read_queue);
+	free(priv->event_queue);
 	free(priv->map);
 	free(priv->remap);
 	free(priv->numid);
@@ -831,19 +841,45 @@ static void _next_ptr(size_t *ptr, size_t count)
 	*ptr = (*ptr + 1) % count;
 }
 
+static void event_add(snd_ctl_remap_t *priv, snd_ctl_elem_id_t *id,
+		      unsigned int numid_app, unsigned int event_mask)
+{
+	snd_ctl_map_event_t *map_event;
+	int found = 0;
+	size_t head;
+
+	for (head = priv->event_queue_head;
+	     head != priv->event_queue_tail;
+	     _next_ptr(&head, priv->event_items))
+		if (priv->event_queue[head].numid_app == numid_app) {
+			found = 1;
+			priv->event_queue[head].event_mask |= event_mask;
+			break;
+		}
+	debug_id(id, "%s marking for read (already %d)\n", __func__, found);
+	if (found)
+		return;
+	map_event = &priv->event_queue[priv->event_queue_tail];
+	map_event->id = id;
+	map_event->numid_app = numid_app;
+	map_event->event_mask = event_mask;
+	_next_ptr(&priv->event_queue_tail, priv->event_items);
+}
+
 static void remap_event_for_all_map_controls(snd_ctl_remap_t *priv,
 					     snd_ctl_elem_id_t *id,
 					     unsigned int event_mask)
 {
-	size_t count, index, head;
+	size_t count, index;
 	snd_ctl_map_t *map;
 	struct snd_ctl_map_ctl *mctl;
-	int found;
+	int changed = 0;
 
 	if (event_mask == SNDRV_CTL_EVENT_MASK_REMOVE)
 		event_mask = SNDRV_CTL_EVENT_MASK_INFO;
 	map = priv->map;
 	for (count = priv->map_items; count > 0; count--, map++) {
+		changed = 0;
 		for (index = 0; index < map->controls_items; index++) {
 			mctl = &map->controls[index];
 			if (mctl->id_child.numid == 0) {
@@ -854,21 +890,10 @@ static void remap_event_for_all_map_controls(snd_ctl_remap_t *priv,
 			if (id->numid != mctl->id_child.numid)
 				continue;
 			debug_id(&map->map_id, "%s found (all)\n", __func__);
-			map->event_mask |= event_mask;
-			found = 0;
-			for (head = priv->map_read_queue_head;
-			     head != priv->map_read_queue_tail;
-			     _next_ptr(&head, priv->map_items))
-				if (priv->map_read_queue[head] == map) {
-					found = 1;
-					break;
-				}
-			if (found)
-				continue;
-			debug_id(&map->map_id, "%s marking for read\n", __func__);
-			priv->map_read_queue[priv->map_read_queue_tail] = map;
-			_next_ptr(&priv->map_read_queue_tail, priv->map_items);
+			changed = 1;
 		}
+		if (changed)
+			event_add(priv, &map->map_id, map->map_id.numid, event_mask);
 	}
 }
 
@@ -877,18 +902,18 @@ static int snd_ctl_remap_read(snd_ctl_t *ctl, snd_ctl_event_t *event)
 	snd_ctl_remap_t *priv = ctl->private_data;
 	snd_ctl_remap_id_t *rid;
 	snd_ctl_numid_t *numid;
-	snd_ctl_map_t *map;
+	snd_ctl_map_event_t *map_event;
 	int err;
 
-	if (priv->map_read_queue_head != priv->map_read_queue_tail) {
-		map = priv->map_read_queue[priv->map_read_queue_head];
-		_next_ptr(&priv->map_read_queue_head, priv->map_items);
+	if (priv->event_queue_head != priv->event_queue_tail) {
+		map_event = &priv->event_queue[priv->event_queue_head];
+		_next_ptr(&priv->event_queue_head, priv->event_items);
 		memset(event, 0, sizeof(*event));
 		event->type = SNDRV_CTL_EVENT_ELEM;
-		event->data.elem.mask = map->event_mask;
-		event->data.elem.id = map->map_id;
-		map->event_mask = 0;
-		debug_id(&map->map_id, "%s queue read\n", __func__);
+		event->data.elem.mask = map_event->event_mask;
+		event->data.elem.id = *map_event->id;
+		event->data.elem.id.numid = map_event->numid_app;
+		debug_id(&event->data.elem.id, "%s queue read\n", __func__);
 		return 1;
 	}
 	err = snd_ctl_read(priv->child, event);
@@ -950,6 +975,7 @@ static int add_to_remap(snd_ctl_remap_t *priv,
 			snd_ctl_elem_id_t *app)
 {
 	snd_ctl_remap_id_t *rid;
+
 
 	if (priv->remap_alloc == priv->remap_items) {
 		rid = realloc(priv->remap, (priv->remap_alloc + 16) * sizeof(*rid));
@@ -1266,8 +1292,9 @@ int snd_ctl_remap_open(snd_ctl_t **handlep, const char *name, snd_config_t *rema
 		return 0;
 	}
 
-	priv->map_read_queue = calloc(priv->map_items, sizeof(priv->map_read_queue[0]));
-	if (priv->map_read_queue == NULL) {
+	priv->event_items = priv->map_items;
+	priv->event_queue = calloc(priv->event_items, sizeof(priv->event_queue[0]));
+	if (priv->event_queue == NULL) {
 		result = -ENOMEM;
 		goto _err;
 	}
