@@ -88,6 +88,11 @@ typedef struct {
 } snd_ctl_map_event_t;
 
 typedef struct {
+	size_t control_items;
+	snd_ctl_elem_id_t *control_ids;
+} snd_ctl_sync_t;
+
+typedef struct {
 	snd_ctl_t *child;
 	int numid_remap_active;
 	unsigned int numid_app_last;
@@ -104,6 +109,10 @@ typedef struct {
 	size_t map_items;
 	size_t map_alloc;
 	snd_ctl_map_t *map;
+
+	size_t sync_items;
+	size_t sync_alloc;
+	snd_ctl_sync_t *sync;
 
 	size_t event_items;
 	size_t event_queue_head;
@@ -181,6 +190,23 @@ static snd_ctl_numid_t *remap_find_numid_child(snd_ctl_remap_t *priv, unsigned i
 		if (numid_child == numid->numid_child)
 			return numid;
 	return remap_numid_child_new(priv, numid_child);
+}
+
+static void remap_forget_numid_child(snd_ctl_remap_t *priv, unsigned int numid_child)
+{
+	snd_ctl_numid_t *numid;
+	size_t index;
+
+	if (!priv->numid_remap_active)
+		return;
+	numid = priv->numid;
+	for (index = 0; index < priv->numid_items; index++) {
+		if (numid[index].numid_child != numid_child)
+			continue;
+		memcpy(&priv->numid[index], &priv->numid[index + 1],
+				(priv->numid_items - 1 - index) * sizeof(*numid));
+		priv->numid_items++;
+	}
 }
 
 static snd_ctl_remap_id_t *remap_find_id_child(snd_ctl_remap_t *priv, snd_ctl_elem_id_t *id)
@@ -302,11 +328,63 @@ static int remap_id_to_app(snd_ctl_remap_t *priv, snd_ctl_elem_id_t *id, snd_ctl
 	return err;
 }
 
+static snd_ctl_sync_t *remap_find_sync_numid(snd_ctl_remap_t *priv, unsigned int numid)
+{
+	size_t count, index2;
+	snd_ctl_sync_t *sync;
+
+	if (numid == 0)
+		return NULL;
+	sync = priv->sync;
+	for (count = priv->sync_items; count > 0; count--, sync++)
+		for (index2 = 0; index2 < sync->control_items; index2++)
+			if (numid == sync->control_ids[index2].numid)
+				return sync;
+	return NULL;
+}
+
+static snd_ctl_sync_t *remap_find_sync_id(snd_ctl_remap_t *priv, snd_ctl_elem_id_t *id)
+{
+	size_t count, index2;
+	snd_ctl_sync_t *sync;
+
+	if (id->numid > 0)
+		return remap_find_sync_numid(priv, id->numid);
+	sync = priv->sync;
+	for (count = priv->sync_items; count > 0; count--, sync++)
+		for (index2 = 0; index2 < sync->control_items; index2++)
+			if (snd_ctl_elem_id_compare_set(id, &sync->control_ids[index2]) == 0)
+				return sync;
+	return NULL;
+}
+
+static void remap_update_sync_id(snd_ctl_remap_t *priv, snd_ctl_elem_id_t *id)
+{
+	size_t count, index2;
+	snd_ctl_sync_t *sync;
+
+	if (id->numid == 0)
+		return;
+	sync = priv->sync;
+	for (count = priv->sync_items; count > 0; count--, sync++)
+		for (index2 = 0; index2 < sync->control_items; index2++) {
+			if (snd_ctl_elem_id_compare_set(id, &sync->control_ids[index2]) == 0) {
+				sync->control_ids[index2].numid = id->numid;
+				break;
+			}
+		}
+}
+
 static void remap_free(snd_ctl_remap_t *priv)
 {
 	size_t idx1, idx2;
+	snd_ctl_sync_t *sync;
 	snd_ctl_map_t *map;
 
+	for (idx1 = 0; idx1 < priv->sync_items; idx1++) {
+		sync = &priv->sync[idx1];
+		free(sync->control_ids);
+	}
 	for (idx1 = 0; idx1 < priv->map_items; idx1++) {
 		map = &priv->map[idx1];
 		for (idx2 = 0; idx2 < map->controls_items; idx2++)
@@ -314,6 +392,7 @@ static void remap_free(snd_ctl_remap_t *priv)
 		free(map->controls);
 	}
 	free(priv->event_queue);
+	free(priv->sync);
 	free(priv->map);
 	free(priv->remap);
 	free(priv->numid);
@@ -484,6 +563,8 @@ static int snd_ctl_remap_elem_info(snd_ctl_t *ctl, snd_ctl_elem_info_t *info)
 	if (err < 0)
 		return err;
 	err = snd_ctl_elem_info(priv->child, info);
+	if (err >= 0 && priv->sync_items > 0)
+		remap_update_sync_id(priv, &info->id);
 	return remap_id_to_app(priv, &info->id, rid, err);
 }
 
@@ -644,6 +725,29 @@ static int remap_map_elem_write(snd_ctl_remap_t *priv, snd_ctl_elem_value_t *con
 	return 0;
 }
 
+static int remap_sync_elem_write(snd_ctl_remap_t *priv, snd_ctl_elem_value_t *control)
+{
+	snd_ctl_sync_t *sync;
+	snd_ctl_elem_value_t control2;
+	size_t item;
+	int err;
+
+	sync = remap_find_sync_id(priv, &control->id);
+	if (sync == NULL)
+		return -EREMAPNOTFOUND;
+	debug_id(&control->id, "%s\n", __func__);
+	control2 = *control;
+	for (item = 0; item < sync->control_items; item++) {
+		control2.id = sync->control_ids[item];
+		debug_id(&control2.id, "%s sync[%zd]\n", __func__, item);
+		/* TODO: it's a blind write - no checks if the values are in range for all controls */
+		err = snd_ctl_elem_write(priv->child, &control2);
+		if (err < 0)
+			return err;
+	}
+	return remap_id_to_app(priv, &control->id, NULL, 0);
+}
+
 static int snd_ctl_remap_elem_write(snd_ctl_t *ctl, snd_ctl_elem_value_t *control)
 {
 	snd_ctl_remap_t *priv = ctl->private_data;
@@ -652,6 +756,9 @@ static int snd_ctl_remap_elem_write(snd_ctl_t *ctl, snd_ctl_elem_value_t *contro
 
 	debug_id(&control->id, "%s\n", __func__);
 	err = remap_map_elem_write(priv, control);
+	if (err != -EREMAPNOTFOUND)
+		return err;
+	err = remap_sync_elem_write(priv, control);
 	if (err != -EREMAPNOTFOUND)
 		return err;
 	err = remap_id_to_child(priv, &control->id, &rid);
@@ -897,12 +1004,55 @@ static void remap_event_for_all_map_controls(snd_ctl_remap_t *priv,
 	}
 }
 
+static void remap_event_for_all_sync_controls(snd_ctl_remap_t *priv,
+					      snd_ctl_elem_id_t *id,
+					      unsigned int event_mask)
+{
+	size_t count, index;
+	snd_ctl_sync_t *sync;
+	snd_ctl_numid_t *numid;
+	snd_ctl_elem_id_t *sid;
+	int changed = 0;
+
+	if (event_mask == SNDRV_CTL_EVENT_MASK_REMOVE)
+		return;
+	sync = priv->sync;
+	for (count = priv->sync_items; count > 0; count--, sync++) {
+		changed = 0;
+		for (index = 0; index < sync->control_items; index++) {
+			sid = &sync->control_ids[index];
+			if (sid->numid == 0) {
+				if (snd_ctl_elem_id_compare_set(id, sid))
+					continue;
+				sid->numid = id->numid;
+			}
+			if (id->numid != sid->numid)
+				continue;
+			debug_id(sid, "%s found (all)\n", __func__);
+			changed = 1;
+			break;
+		}
+		if (!changed)
+			continue;
+		for (index = 0; index < sync->control_items; index++) {
+			sid = &sync->control_ids[index];
+			/* skip double updates */
+			if (sid->numid == id->numid)
+				continue;
+			numid = remap_find_numid_child(priv, sid->numid);
+			if (numid)
+				event_add(priv, sid, numid->numid_app, event_mask);
+		}
+	}
+}
+
 static int snd_ctl_remap_read(snd_ctl_t *ctl, snd_ctl_event_t *event)
 {
 	snd_ctl_remap_t *priv = ctl->private_data;
 	snd_ctl_remap_id_t *rid;
 	snd_ctl_numid_t *numid;
 	snd_ctl_map_event_t *map_event;
+	unsigned int numid_child;
 	int err;
 
 	if (priv->event_queue_head != priv->event_queue_tail) {
@@ -923,11 +1073,13 @@ static int snd_ctl_remap_read(snd_ctl_t *ctl, snd_ctl_event_t *event)
 	    (event->data.elem.mask & (SNDRV_CTL_EVENT_MASK_VALUE | SNDRV_CTL_EVENT_MASK_INFO |
 				      SNDRV_CTL_EVENT_MASK_ADD | SNDRV_CTL_EVENT_MASK_TLV)) != 0) {
 		debug_id(&event->data.elem.id, "%s event mask 0x%x\n", __func__, event->data.elem.mask);
+		numid_child = event->data.elem.id.numid;
 		remap_event_for_all_map_controls(priv, &event->data.elem.id, event->data.elem.mask);
+		remap_event_for_all_sync_controls(priv, &event->data.elem.id, event->data.elem.mask);
 		rid = remap_find_id_child(priv, &event->data.elem.id);
 		if (rid) {
 			if (rid->id_child.numid == 0) {
-				numid = remap_find_numid_child(priv, event->data.elem.id.numid);
+				numid = remap_find_numid_child(priv, numid_child);
 				if (numid == NULL)
 					return -EIO;
 				rid->id_child.numid = numid->numid_child;
@@ -935,11 +1087,13 @@ static int snd_ctl_remap_read(snd_ctl_t *ctl, snd_ctl_event_t *event)
 			}
 			event->data.elem.id = rid->id_app;
 		} else {
-			numid = remap_find_numid_child(priv, event->data.elem.id.numid);
+			numid = remap_find_numid_child(priv, numid_child);
 			if (numid == NULL)
 				return -EIO;
 			event->data.elem.id.numid = numid->numid_app;
 		}
+		if (event->data.elem.mask == SNDRV_CTL_EVENT_MASK_REMOVE)
+			remap_forget_numid_child(priv, numid_child);
 	}
 	return err;
 }
@@ -1240,12 +1394,84 @@ static int parse_map(snd_ctl_remap_t *priv, snd_config_t *conf)
 	return 0;
 }
 
+static snd_ctl_sync_t *alloc_sync(snd_ctl_remap_t *priv)
+{
+	snd_ctl_sync_t *sync;
+
+	if (priv->sync_alloc == priv->sync_items) {
+		sync = realloc(priv->sync, (priv->sync_alloc + 16) * sizeof(*sync));
+		if (sync == NULL)
+			return NULL;
+		memset(sync + priv->sync_alloc, 0, sizeof(*sync) * 16);
+		priv->sync_alloc += 16;
+		priv->sync = sync;
+	}
+	return &priv->sync[priv->sync_items++];
+}
+
+static int parse_sync1(snd_ctl_remap_t *priv, unsigned int count, snd_config_t *conf)
+{
+	snd_config_iterator_t i, next;
+	snd_ctl_elem_id_t *eid;
+	snd_ctl_sync_t *sync;
+	const char *str;
+	int err, index = 0;
+
+	sync = alloc_sync(priv);
+	if (sync == NULL)
+		return -ENOMEM;
+	sync->control_ids = calloc(count, sizeof(sync->control_ids[0]));
+	if (sync->control_ids == NULL)
+		return -ENOMEM;
+	snd_config_for_each(i, next, conf) {
+		snd_config_t *n = snd_config_iterator_entry(i);
+		if (snd_config_get_string(n, &str) < 0) {
+			SNDERR("strings are expected in sync array");
+			return -EINVAL;
+		}
+		eid = &sync->control_ids[index];
+		snd_ctl_elem_id_clear(eid);
+		err = snd_ctl_ascii_elem_id_parse(eid, str);
+		if (err < 0) {
+			SNDERR("unable to parse control id '%s'!", str);
+			return -EINVAL;
+		}
+		sync->control_items++;
+		index++;
+	}
+
+	return 0;
+}
+
+static int parse_sync(snd_ctl_remap_t *priv, snd_config_t *conf)
+{
+	snd_config_iterator_t i, next;
+	int count, err;
+
+	if (conf == NULL)
+		return 0;
+	snd_config_for_each(i, next, conf) {
+		snd_config_t *n = snd_config_iterator_entry(i);
+		count = snd_config_is_array(n);
+		if (count <= 0) {
+			SNDERR("Array is expected for sync!");
+			return -EINVAL;
+		}
+		err = parse_sync1(priv, count, n);
+		if (err < 0)
+			return err;
+	}
+
+	return 0;
+}
+
 /**
- * \brief Creates a new remap & map control handle
+ * \brief Creates a new remap/map/sync control handle
  * \param handlep Returns created control handle
  * \param name Name of control device
  * \param remap Remap configuration
  * \param map Map configuration
+ * \param sync Sync configuration
  * \param child child configuration root
  * \param mode Control handle mode
  * \retval zero on success otherwise a negative error code
@@ -1254,14 +1480,15 @@ static int parse_map(snd_ctl_remap_t *priv, snd_config_t *conf)
  *          changed in future.
  */
 int snd_ctl_remap_open(snd_ctl_t **handlep, const char *name, snd_config_t *remap,
-		       snd_config_t *map, snd_ctl_t *child, int mode)
+		       snd_config_t *map, snd_config_t *sync, snd_ctl_t *child, int mode)
 {
 	snd_ctl_remap_t *priv;
 	snd_ctl_t *ctl;
+	size_t index;
 	int result, err;
 
 	/* no-op, remove the plugin */
-	if (!remap && !map)
+	if (!remap && !map && !sync)
 		goto _noop;
 
 	priv = calloc(1, sizeof(*priv));
@@ -1280,8 +1507,14 @@ int snd_ctl_remap_open(snd_ctl_t **handlep, const char *name, snd_config_t *rema
 		goto _err;
 	}
 
+	err = parse_sync(priv, sync);
+	if (err < 0) {
+		result = err;
+		goto _err;
+	}
+
 	/* no-op check, remove the plugin */
-	if (priv->map_items == 0 && priv->remap_items == 0) {
+	if (priv->map_items == 0 && priv->remap_items == 0 && priv->sync_items == 0) {
 		remap_free(priv);
  _noop:
 		free(child->name);
@@ -1293,13 +1526,15 @@ int snd_ctl_remap_open(snd_ctl_t **handlep, const char *name, snd_config_t *rema
 	}
 
 	priv->event_items = priv->map_items;
+	for (index = 0; index < priv->sync_items; index++)
+		priv->event_items += priv->sync[index].control_items;
 	priv->event_queue = calloc(priv->event_items, sizeof(priv->event_queue[0]));
 	if (priv->event_queue == NULL) {
 		result = -ENOMEM;
 		goto _err;
 	}
 
-	priv->numid_remap_active = priv->map_items > 0;
+	priv->numid_remap_active = priv->map_items > 0 || priv->sync_items;
 
 	priv->child = child;
 	err = snd_ctl_new(&ctl, SND_CTL_TYPE_REMAP, name, mode);
@@ -1371,6 +1606,13 @@ ctl.name {
 			SRC_ID6_STR.vindex.1 [ 0 1 ] # source channels 0+1 to merged channel 1
 		}
 	}
+	sync {
+		# synchronize multiple controls without any translations
+		sample_group_1 [
+			SYNC_ID1_STR
+			SYNC_ID2_STR
+		]
+	}
 }
 \endcode
 
@@ -1401,6 +1643,7 @@ int _snd_ctl_remap_open(snd_ctl_t **handlep, char *name, snd_config_t *root, snd
 	snd_config_t *child = NULL;
 	snd_config_t *remap = NULL;
 	snd_config_t *map = NULL;
+	snd_config_t *sync = NULL;
 	snd_ctl_t *cctl;
 	int err;
 
@@ -1419,6 +1662,10 @@ int _snd_ctl_remap_open(snd_ctl_t **handlep, char *name, snd_config_t *root, snd
 			map = n;
 			continue;
 		}
+		if (strcmp(id, "sync") == 0) {
+			sync = n;
+			continue;
+		}
 		if (strcmp(id, "child") == 0) {
 			child = n;
 			continue;
@@ -1433,7 +1680,7 @@ int _snd_ctl_remap_open(snd_ctl_t **handlep, char *name, snd_config_t *root, snd
 	err = _snd_ctl_open_child(&cctl, root, child, mode, conf);
 	if (err < 0)
 		return err;
-	err = snd_ctl_remap_open(handlep, name, remap, map, cctl, mode);
+	err = snd_ctl_remap_open(handlep, name, remap, map, sync, cctl, mode);
 	if (err < 0)
 		snd_ctl_close(cctl);
 	return err;
