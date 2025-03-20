@@ -125,6 +125,15 @@ static int snd_seq_hw_set_client_info(snd_seq_t *seq, snd_seq_client_info_t * in
 {
 	snd_seq_hw_t *hw = seq->private_data;
 
+	/* added fields are not checked on older kernels */
+	if (SNDRV_PROTOCOL_VERSION(1, 0, 3) > hw->version) {
+		if (info->midi_version > 0)
+			return -EINVAL;
+		if (info->filter & SNDRV_SEQ_FILTER_NO_CONVERT)
+			return -EINVAL;
+		if (info->group_filter != 0)
+			return -EINVAL;
+	}
 	if (ioctl(hw->fd, SNDRV_SEQ_IOCTL_SET_CLIENT_INFO, info) < 0) {
 		/*SYSERR("SNDRV_SEQ_IOCTL_SET_CLIENT_INFO failed");*/
 		return -errno;
