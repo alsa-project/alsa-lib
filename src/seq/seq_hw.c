@@ -579,7 +579,7 @@ int snd_seq_hw_open(snd_seq_t **handle, const char *name, int streams, int mode)
 		}
 	}
 	if (streams & SND_SEQ_OPEN_INPUT) {
-		seq->ibuf = (char *) calloc(sizeof(snd_seq_ump_event_t), seq->ibufsize = SND_SEQ_IBUF_SIZE);
+		seq->ibuf = (char *) calloc(seq->ibufsize = SND_SEQ_IBUF_SIZE, sizeof(snd_seq_ump_event_t));
 		if (!seq->ibuf) {
 			free(seq->obuf);
 			free(hw);
