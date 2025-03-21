@@ -388,6 +388,7 @@ substituted. The substitutes strings are in the table bellow.
 
 Substituted string     | Value
 -----------------------|---------------------
+${LibCaps}             | Library capabilities (string like '*a*b*c*') [**Syntax 8**]
 ${OpenName}            | Original UCM card name (passed to snd_use_case_mgr_open())
 ${ConfLibDir}          | Library top-level configuration directory (e.g. /usr/share/alsa)
 ${ConfTopDir}          | Top-level UCM configuration directory (e.g. /usr/share/alsa/ucm2)
@@ -432,6 +433,10 @@ Define.Bytes2 "${sys-card:[type=hex,pos=0x22]device/../descriptors}"
 
 Replace *type=hex* with *type=ascii* or omit this variable settings to work with ASCII characters.
 
+
+#### Library capabilities
+
+None at the moment. The list will grow after *Syntax 8* (library 1.2.14).
 
 #### Special whole string substitution
 

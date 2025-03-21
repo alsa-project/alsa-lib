@@ -20,7 +20,7 @@
  *  transition sequences, multiple client access and user defined use
  *  cases was kindly sponsored by Wolfson Microelectronics PLC.
  *
- *  Copyright (C) 2019 Red Hat Inc.
+ *  Copyright (C) 2019-2025 Red Hat Inc.
  *  Authors: Jaroslav Kysela <perex@perex.cz>
  */
 
@@ -30,7 +30,18 @@
 #include <limits.h>
 #include <regex.h>
 
+/* capabilities string like "*a*b*c" will be used to check library extensions */
+/* use Needle like "*a*" or regex expression for a match */
+#define LIB_CAPS_STRING "*" "*"
+
 static unsigned char _hex_table[16] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
+
+static char *rval_lib_caps(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED)
+{
+	if (uc_mgr->conf_format < 8)
+		return NULL;
+	return strdup(LIB_CAPS_STRING);
+}
 
 static char *rval_open_name(snd_use_case_mgr_t *uc_mgr)
 {
@@ -883,6 +894,7 @@ __std:
 			goto __std;
 		}
 		fcn2 = NULL;
+		MATCH_VARIABLE(value, "${LibCaps}", rval_lib_caps, false);
 		MATCH_VARIABLE(value, "${OpenName}", rval_open_name, false);
 		MATCH_VARIABLE(value, "${ConfLibDir}", rval_conf_libdir, false);
 		MATCH_VARIABLE(value, "${ConfTopDir}", rval_conf_topdir, false);
