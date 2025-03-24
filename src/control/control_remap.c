@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <stdarg.h>
 #include <unistd.h>
 #include <string.h>
@@ -90,6 +91,8 @@ typedef struct {
 typedef struct {
 	size_t control_items;
 	snd_ctl_elem_id_t *control_ids;
+	snd_ctl_elem_id_t switch_id;
+	bool switch_state;
 } snd_ctl_sync_t;
 
 typedef struct {
@@ -113,6 +116,7 @@ typedef struct {
 	size_t sync_items;
 	size_t sync_alloc;
 	snd_ctl_sync_t *sync;
+	size_t sync_switch_items;
 
 	size_t event_items;
 	size_t event_queue_head;
@@ -375,6 +379,37 @@ static void remap_update_sync_id(snd_ctl_remap_t *priv, snd_ctl_elem_id_t *id)
 		}
 }
 
+static snd_ctl_sync_t *remap_find_sync_switch_numid(snd_ctl_remap_t *priv, unsigned int numid)
+{
+	size_t count;
+	snd_ctl_sync_t *sync;
+
+	if (numid == 0)
+		return NULL;
+	sync = priv->sync;
+	for (count = priv->sync_items; count > 0; count--, sync++)
+		if (numid == sync->switch_id.numid)
+			return sync;
+	return NULL;
+}
+
+static snd_ctl_sync_t *remap_find_sync_switch_id(snd_ctl_remap_t *priv, snd_ctl_elem_id_t *id)
+{
+	size_t count;
+	snd_ctl_sync_t *sync;
+
+	if (id->numid > 0)
+		return remap_find_sync_switch_numid(priv, id->numid);
+	sync = priv->sync;
+	for (count = priv->sync_items; count > 0; count--, sync++) {
+		if (sync->switch_id.numid == 0)
+			continue;
+		if (snd_ctl_elem_id_compare_set(id, &sync->switch_id) == 0)
+			return sync;
+	}
+	return NULL;
+}
+
 static void remap_free(snd_ctl_remap_t *priv)
 {
 	size_t idx1, idx2;
@@ -437,7 +472,6 @@ static int snd_ctl_remap_elem_list(snd_ctl_t *ctl, snd_ctl_elem_list_t *list)
 	snd_ctl_elem_id_t *id;
 	snd_ctl_remap_id_t *rid;
 	snd_ctl_numid_t *numid;
-	snd_ctl_map_t *map;
 	unsigned int index;
 	size_t index2;
 	int err;
@@ -457,18 +491,25 @@ static int snd_ctl_remap_elem_list(snd_ctl_t *ctl, snd_ctl_elem_list_t *list)
 			return -EIO;
 		id->numid = numid->numid_app;
 	}
-	if (list->offset >= list->count + priv->map_items)
+	if (list->offset >= list->count + priv->map_items + priv->sync_switch_items)
 		return 0;
 	index2 = 0;
 	if (list->offset > list->count)
 		index2 = list->offset - list->count;
 	for ( ; index < list->space && index2 < priv->map_items; index2++, index++) {
-		id = &list->pids[index];
-		map = &priv->map[index2];
-		*id = map->map_id;
+		snd_ctl_map_t *map = &priv->map[index2];
+		list->pids[index] = map->map_id;
 		list->used++;
 	}
-	list->count += priv->map_items;
+	if (index2 >= priv->map_items) {
+		index2 -= priv->map_items;
+		for ( ; index < list->space && index2 < priv->sync_switch_items; index2++, index++) {
+			snd_ctl_sync_t *sync = &priv->sync[index2];
+			list->pids[index] = sync->switch_id;
+			list->used++;
+		}
+	}
+	list->count += priv->map_items + priv->sync_switch_items;
 	return 0;
 }
 
@@ -549,6 +590,21 @@ static int remap_map_elem_info(snd_ctl_remap_t *priv, snd_ctl_elem_info_t *info)
 	return 0;
 }
 
+static int remap_sync_elem_info(snd_ctl_remap_t *priv, snd_ctl_elem_info_t *info)
+{
+	snd_ctl_sync_t *sync;
+
+	sync = remap_find_sync_switch_id(priv, &info->id);
+	if (!sync)
+		return -EREMAPNOTFOUND;
+	snd_ctl_elem_info_clear(info);
+	info->id = sync->switch_id;
+	info->type = SNDRV_CTL_ELEM_TYPE_BOOLEAN;
+	info->access = SNDRV_CTL_ELEM_ACCESS_READ | SNDRV_CTL_ELEM_ACCESS_WRITE;
+	info->count = 1;
+	return 0;
+}
+
 static int snd_ctl_remap_elem_info(snd_ctl_t *ctl, snd_ctl_elem_info_t *info)
 {
 	snd_ctl_remap_t *priv = ctl->private_data;
@@ -557,6 +613,9 @@ static int snd_ctl_remap_elem_info(snd_ctl_t *ctl, snd_ctl_elem_info_t *info)
 
 	debug_id(&info->id, "%s\n", __func__);
 	err = remap_map_elem_info(priv, info);
+	if (err != -EREMAPNOTFOUND)
+		return err;
+	err = remap_sync_elem_info(priv, info);
 	if (err != -EREMAPNOTFOUND)
 		return err;
 	err = remap_id_to_child(priv, &info->id, &rid);
@@ -631,6 +690,17 @@ static int remap_map_elem_read(snd_ctl_remap_t *priv, snd_ctl_elem_value_t *cont
 	return 0;
 }
 
+static int remap_sync_elem_read(snd_ctl_remap_t *priv, snd_ctl_elem_value_t *control)
+{
+	snd_ctl_sync_t *sync;
+
+	sync = remap_find_sync_switch_id(priv, &control->id);
+	if (!sync)
+		return -EREMAPNOTFOUND;
+	control->value.integer.value[0] = sync->switch_state ? 1 : 0;
+	return 0;
+}
+
 static int snd_ctl_remap_elem_read(snd_ctl_t *ctl, snd_ctl_elem_value_t *control)
 {
 	snd_ctl_remap_t *priv = ctl->private_data;
@@ -639,6 +709,9 @@ static int snd_ctl_remap_elem_read(snd_ctl_t *ctl, snd_ctl_elem_value_t *control
 
 	debug_id(&control->id, "%s\n", __func__);
 	err = remap_map_elem_read(priv, control);
+	if (err != -EREMAPNOTFOUND)
+		return err;
+	err = remap_sync_elem_read(priv, control);
 	if (err != -EREMAPNOTFOUND)
 		return err;
 	err = remap_id_to_child(priv, &control->id, &rid);
@@ -732,8 +805,16 @@ static int remap_sync_elem_write(snd_ctl_remap_t *priv, snd_ctl_elem_value_t *co
 	size_t item;
 	int err;
 
+	sync = remap_find_sync_switch_id(priv, &control->id);
+	if (sync) {
+		err = sync->switch_state != control->value.integer.value[0];
+		sync->switch_state = control->value.integer.value[0] != 0;
+		return err;
+	}
 	sync = remap_find_sync_id(priv, &control->id);
 	if (sync == NULL)
+		return -EREMAPNOTFOUND;
+	if (sync->switch_state == false)
 		return -EREMAPNOTFOUND;
 	debug_id(&control->id, "%s\n", __func__);
 	control2 = *control;
@@ -1420,6 +1501,7 @@ static int parse_sync1(snd_ctl_remap_t *priv, unsigned int count, snd_config_t *
 	sync = alloc_sync(priv);
 	if (sync == NULL)
 		return -ENOMEM;
+	sync->switch_state = true;
 	sync->control_ids = calloc(count, sizeof(sync->control_ids[0]));
 	if (sync->control_ids == NULL)
 		return -ENOMEM;
@@ -1443,6 +1525,58 @@ static int parse_sync1(snd_ctl_remap_t *priv, unsigned int count, snd_config_t *
 	return 0;
 }
 
+static int parse_sync_compound(snd_ctl_remap_t *priv, snd_config_t *conf)
+{
+	snd_config_iterator_t i, next;
+	snd_ctl_elem_id_t eid;
+	snd_ctl_numid_t *numid;
+	bool eid_found = false;
+	bool controls_found = false;
+	int count, err;
+
+	snd_ctl_elem_id_clear(&eid);
+	snd_config_for_each(i, next, conf) {
+		snd_config_t *n = snd_config_iterator_entry(i);
+		const char *id, *str;
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
+		if (strcmp(id, "switch") == 0) {
+			if (snd_config_get_string(n, &str) < 0) {
+				SNDERR("String is expected for switch");
+				return -EINVAL;
+			}
+			err = snd_ctl_ascii_elem_id_parse(&eid, str);
+			if (err < 0) {
+				SNDERR("unable to parse id '%s'!", str);
+				return -EINVAL;
+			}
+			eid_found = true;
+		}
+		if (strcmp(id, "controls") == 0) {
+			count = snd_config_is_array(n);
+			if (count <= 0) {
+				SNDERR("Array is expected for sync!");
+				return -EINVAL;
+			}
+			err = parse_sync1(priv, count, n);
+			if (err < 0)
+				return err;
+			controls_found = true;
+		}
+	}
+
+	if (!controls_found || !eid_found)
+		return 0;
+
+	numid = remap_numid_new(priv, 0, ++priv->numid_app_last);
+	if (numid == NULL)
+		return -ENOMEM;
+	eid.numid = numid->numid_app;
+	priv->sync[priv->sync_items - 1].switch_id = eid;
+	priv->sync_switch_items++;
+	return 0;
+}
+
 static int parse_sync(snd_ctl_remap_t *priv, snd_config_t *conf)
 {
 	snd_config_iterator_t i, next;
@@ -1452,12 +1586,16 @@ static int parse_sync(snd_ctl_remap_t *priv, snd_config_t *conf)
 		return 0;
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
-		count = snd_config_is_array(n);
-		if (count <= 0) {
-			SNDERR("Array is expected for sync!");
-			return -EINVAL;
+		if (snd_config_get_type(n) == SND_CONFIG_TYPE_COMPOUND) {
+			err = parse_sync_compound(priv, n);
+		} else {
+			count = snd_config_is_array(n);
+			if (count <= 0) {
+				SNDERR("Array is expected for sync!");
+				return -EINVAL;
+			}
+			err = parse_sync1(priv, count, n);
 		}
-		err = parse_sync1(priv, count, n);
 		if (err < 0)
 			return err;
 	}
@@ -1612,6 +1750,15 @@ ctl.name {
 			SYNC_ID1_STR
 			SYNC_ID2_STR
 		]
+		# synchronize multiple controls without any translations
+		# add functionality on/off switch
+		sample_group_2 {
+			switch SYNC_SWITCH_ID
+			controls [
+				SYNC_ID3_STR
+				SYNC_ID4_STR
+			]
+		}
 	}
 }
 \endcode
