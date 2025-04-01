@@ -3098,7 +3098,7 @@ snd_pcm_sframes_t snd_pcm_avail(snd_pcm_t *pcm)
  * \param delayp Total I/O latency in frames
  * \return zero on success otherwise a negative error code
  *
- * The avail and delay values retuned are in sync.
+ * The avail and delay values returned are in sync.
  *
  * The function is thread-safe when built with the proper option.
  */
@@ -8753,7 +8753,7 @@ _snd_pcm_parse_config_chmaps(snd_config_t *conf)
  * -EPIPE (overrun or underrun) and -ESTRPIPE (stream is suspended)
  * error codes trying to prepare given stream for next I/O.
  *
- * Note that this function returs the original error code when it is not
+ * Note that this function returns the original error code when it is not
  * handled inside this function (for example -EAGAIN is returned back).
  */
 int snd_pcm_recover(snd_pcm_t *pcm, int err, int silent)
