@@ -570,6 +570,7 @@ int snd_seq_create_ump_endpoint(snd_seq_t *seq,
 	snd_seq_port_info_set_port_specified(pinfo, 1);
 	snd_seq_port_info_set_name(pinfo, "MIDI 2.0");
 	snd_seq_port_info_set_capability(pinfo,
+					 SND_SEQ_PORT_CAP_UMP_ENDPOINT |
 					 SNDRV_SEQ_PORT_CAP_READ |
 					 SNDRV_SEQ_PORT_CAP_SYNC_READ |
 					 SNDRV_SEQ_PORT_CAP_SUBS_READ |
