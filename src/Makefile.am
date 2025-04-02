@@ -51,13 +51,6 @@ if BUILD_UCM
 SUBDIRS += ucm
 libasound_la_LIBADD += ucm/libucm.la
 endif
-if BUILD_ALISP
-if VERSIONED_SYMBOLS
-VERSION_CPPFLAGS += -DHAVE_ALISP_SYMS
-endif
-SUBDIRS += alisp
-libasound_la_LIBADD += alisp/libalisp.la
-endif
 SUBDIRS += conf
 libasound_la_LIBADD += @ALSA_DEPLIBS@
 
@@ -101,8 +94,5 @@ topology/libtopology.la:
 
 instr/libinstr.la:
 	$(MAKE) -C instr libinstr.la
-
-alisp/libalisp.la:
-	$(MAKE) -C alisp libalisp.la
 
 AM_CPPFLAGS=-I$(top_srcdir)/include
