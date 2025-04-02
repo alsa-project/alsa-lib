@@ -58,10 +58,6 @@ if BUILD_TOPOLOGY
 alsainclude_HEADERS += topology.h
 endif
 
-if BUILD_ALISP
-alsainclude_HEADERS += alisp.h
-endif
-
 noinst_HEADERS = alsa sys.h search.h list.h aserver.h local.h alsa-symbols.h \
 	asoundlib-head.h asoundlib-tail.h bswap.h type_compat.h
 
