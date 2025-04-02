@@ -129,19 +129,9 @@ ALSA_0.9.3 {
 } ALSA_0.9.0;
 
 ALSA_0.9.5 {
-#ifdef HAVE_ALISP_SYMS
-  global:
-
-    @SYMBOL_PREFIX@alsa_lisp;
-#endif
 } ALSA_0.9.3;
 
 ALSA_0.9.7 {
-#ifdef HAVE_ALISP_SYMS
-  global:
-
-    @SYMBOL_PREFIX@alsa_lisp_*;
-#endif
 } ALSA_0.9.5;
 
 ALSA_1.1.6 {

@@ -10,11 +10,6 @@ endif
 if BUILD_PCM_PLUGIN_SHM
 SUBDIRS += aserver
 endif
-if BUILD_MIXER
-if BUILD_ALISP
-SUBDIRS += alsalisp
-endif
-endif
 SUBDIRS += test utils
 EXTRA_DIST=README.md ChangeLog INSTALL TODO NOTES configure gitcompile libtool \
 	   depcomp version MEMORY-LEAK m4/attributes.m4

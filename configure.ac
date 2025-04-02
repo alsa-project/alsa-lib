@@ -419,10 +419,6 @@ AC_ARG_ENABLE(ucm,
 AC_ARG_ENABLE(topology,
   AS_HELP_STRING([--disable-topology], [disable the DSP topology component]),
   [build_topology="$enableval"], [build_topology="yes"])
-AC_ARG_ENABLE(alisp,
-  AS_HELP_STRING([--enable-alisp], [enable the alisp component]),
-  [build_alisp="$enableval"], [build_alisp="no"])
-test "$softfloat" = "yes" && build_alisp="no"
 AC_ARG_ENABLE(old-symbols,
   AS_HELP_STRING([--disable-old-symbols], [disable old obsoleted symbols]),
   [keep_old_symbols="$enableval"], [keep_old_symbols="yes"])
@@ -496,7 +492,6 @@ AM_CONDITIONAL([BUILD_HWDEP], [test x$build_hwdep = xyes])
 AM_CONDITIONAL([BUILD_SEQ], [test x$build_seq = xyes])
 AM_CONDITIONAL([BUILD_UCM], [test x$build_ucm = xyes])
 AM_CONDITIONAL([BUILD_TOPOLOGY], [test x$build_topology = xyes])
-AM_CONDITIONAL([BUILD_ALISP], [test x$build_alisp = xyes])
 AM_CONDITIONAL([BUILD_MIXER_MODULES], [test x$build_mixer_modules = xyes])
 AM_CONDITIONAL([BUILD_MIXER_PYMODULES], [test x$build_mixer_pymodules = xyes])
 
@@ -773,13 +768,13 @@ AC_CONFIG_FILES(Makefile doc/Makefile doc/pictures/Makefile doc/doxygen.cfg \
 		src/pcm/Makefile src/pcm/scopes/Makefile \
 		src/rawmidi/Makefile src/timer/Makefile \
 		src/hwdep/Makefile src/seq/Makefile src/ucm/Makefile \
-		src/alisp/Makefile src/topology/Makefile \
+		src/topology/Makefile \
 		src/conf/Makefile \
 		src/conf/cards/Makefile \
 		src/conf/ctl/Makefile \
 		src/conf/pcm/Makefile \
 		modules/Makefile modules/mixer/Makefile modules/mixer/simple/Makefile \
-		alsalisp/Makefile aserver/Makefile \
+		aserver/Makefile \
 		test/Makefile test/lsb/Makefile \
 		utils/Makefile utils/alsa-lib.spec utils/alsa.pc utils/alsa-topology.pc)
 
