@@ -1689,6 +1689,12 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name, int fd,
 			}
 		}
 	}
+#if defined(HAVE_CLOCK_GETTIME) && defined(CLOCK_MONOTONIC)
+	else {
+		/* the first stream already sets this */
+		tstamp_type = SND_PCM_TSTAMP_TYPE_MONOTONIC;
+	}
+#endif
 	
 	hw = calloc(1, sizeof(snd_pcm_hw_t));
 	if (!hw) {
