@@ -632,7 +632,6 @@ static void update_group_ports(snd_seq_t *seq, snd_ump_endpoint_info_t *ep)
 		char blknames[64];
 		char name[64];
 		unsigned int caps = 0;
-		int len;
 
 		blknames[0] = 0;
 		for (b = 0; b < ep->num_blocks; b++) {
@@ -664,15 +663,11 @@ static void update_group_ports(snd_seq_t *seq, snd_ump_endpoint_info_t *ep)
 				break;
 			}
 
-			if (!*bp->name)
+			if (bp->name[0] == '\0')
 				continue;
-			len = strlen(blknames);
-			if (len)
-				snprintf(blknames + len, sizeof(blknames) - len,
-					 ", %s", bp->name);
-			else
-				snd_strlcpy(blknames, (const char *)bp->name,
-					    sizeof(blknames));
+			if (blknames[0])
+				snd_strlcpy(blknames, ", ", sizeof(blknames));
+			snd_strlcpy(blknames, (const char *)bp->name, sizeof(blknames));
 		}
 
 		if (!*blknames)
