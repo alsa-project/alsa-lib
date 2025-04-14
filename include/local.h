@@ -267,6 +267,7 @@ int _snd_safe_strtod(const char *str, double *val);
 int snd_send_fd(int sock, void *data, size_t len, int fd);
 int snd_receive_fd(int sock, void *data, size_t len, int *fd);
 size_t snd_strlcpy(char *dst, const char *src, size_t size);
+size_t snd_strlcat(char *dst, const char *src, size_t size);
 
 /*
  * error messages

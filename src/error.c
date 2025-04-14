@@ -191,11 +191,38 @@ snd_lib_error_handler_t snd_err_msg = snd_err_msg_default;
  */
 size_t snd_strlcpy(char *dst, const char *src, size_t size)
 {
-  size_t ret = strlen(src);
-  if (size) {
-    size_t len = ret >= size ? size - 1 : ret;
-    memcpy(dst, src, len);
-    dst[len] = '\0';
-  }
-  return ret;
+	size_t ret = strlen(src);
+	if (size) {
+		size_t len = ret >= size ? size - 1 : ret;
+		memcpy(dst, src, len);
+		dst[len] = '\0';
+	}
+	return ret;
+}
+
+/**
+ * \brief Append a C-string into a sized buffer
+ * \param dst Where to append the string to
+ * \param src Where to copy the string from
+ * \param size Size of destination buffer
+ * \retval The total string length (no trimming)
+ *
+ * The result is always a valid NUL-terminated string that fits
+ * in the buffer (unless, of course, the buffer size is zero).
+ * It does not pad out the result.
+ */
+size_t snd_strlcat(char *dst, const char *src, size_t size)
+{
+	size_t dst_len = strlen(dst);
+	size_t len = strlen(src);
+	size_t ret = dst_len + len;
+	if (dst_len < size) {
+		dst += dst_len;
+		size -= dst_len;
+		if (len >= size)
+			len = size - 1;
+		memcpy(dst, src, len);
+		dst[len] = '\0';
+	}
+	return ret;
 }
