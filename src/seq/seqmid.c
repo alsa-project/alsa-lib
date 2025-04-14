@@ -666,8 +666,8 @@ static void update_group_ports(snd_seq_t *seq, snd_ump_endpoint_info_t *ep)
 			if (bp->name[0] == '\0')
 				continue;
 			if (blknames[0])
-				snd_strlcpy(blknames, ", ", sizeof(blknames));
-			snd_strlcpy(blknames, (const char *)bp->name, sizeof(blknames));
+				snd_strlcat(blknames, ", ", sizeof(blknames));
+			snd_strlcat(blknames, (const char *)bp->name, sizeof(blknames));
 		}
 
 		if (!*blknames)
