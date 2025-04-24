@@ -11,7 +11,7 @@ jobs:
     - name: Prepare environment
       run: |
         dnf -y upgrade
-        dnf -y install @development-tools libtool bzip2
+        dnf -y install @development-tools libtool bzip2 awk
     - name: Checkout
       uses: actions/checkout@v4
       with:
