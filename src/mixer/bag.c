@@ -68,6 +68,11 @@ int bag_del(bag_t *bag, void *ptr)
 
 void bag_del_all(bag_t *bag)
 {
-	while (!list_empty(bag))
-		list_del(bag->next);
+	struct list_head *pos, *npos;
+
+	list_for_each_safe(pos, npos, bag) {
+		bag1_t *b = list_entry(pos, bag1_t, list);
+		list_del(&b->list);
+		free(b);
+	}
 }
