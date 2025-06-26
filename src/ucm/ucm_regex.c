@@ -154,7 +154,7 @@ int uc_mgr_define_regex(snd_use_case_mgr_t *uc_mgr, const char *name,
 	err = regcomp(&re, s, options);
 	free(s);
 	if (err) {
-		uc_error("Regex '%s' compilation failed (code %d)", err);
+		uc_error("Regex '%s' compilation failed (code %d)", s, err);
 		return -EINVAL;
 	}
 
