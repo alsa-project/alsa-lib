@@ -254,8 +254,12 @@ int uc_mgr_exec(const char *prog)
 
 		close(f);
 
+#if defined(_GNU_SOURCE)
+		close_range(3, maxfd, 0);
+#else
 		for (f = 3; f < maxfd; f++)
 			close(f);
+#endif
 
 		/* install default handlers for the forked process */
 		signal(SIGINT, SIG_DFL);
