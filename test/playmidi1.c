@@ -243,14 +243,14 @@ static void alsa_stop_timer(void)
 }
 
 /* change the tempo */
-static void do_tempo(int us)
+static void do_tempo(long us)
 {
 	snd_seq_event_t ev;
 
 	if (verbose >= VERB_MUCH) {
 		double bpm;
 		bpm = 60.0E6 / (double) us;
-		printf("Tempo %d us/beat, %.2f bpm\n", us, bpm);
+		printf("Tempo %ld us/beat, %.2f bpm\n", us, bpm);
 	}
 
 	/* store the new tempo and timestamp of the tempo change */

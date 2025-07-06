@@ -1,27 +1,27 @@
 /* definitions for MIDI file parsing code */
-extern int (*Mf_getc)();
-extern void (*Mf_header)();
-extern void (*Mf_trackstart)();
-extern void (*Mf_trackend)();
-extern void (*Mf_noteon)();
-extern void (*Mf_noteoff)();
-extern void (*Mf_pressure)();
-extern void (*Mf_parameter)();
-extern void (*Mf_pitchbend)();
-extern void (*Mf_program)();
-extern void (*Mf_chanpressure)();
-extern void (*Mf_sysex)();
-extern void (*Mf_metamisc)();
-extern void (*Mf_seqspecific)();
-extern void (*Mf_seqnum)();
-extern void (*Mf_text)();
-extern void (*Mf_eot)();
-extern void (*Mf_timesig)();
-extern void (*Mf_smpte)();
-extern void (*Mf_tempo)();
-extern void (*Mf_keysig)();
-extern void (*Mf_arbitrary)();
-extern void (*Mf_error)();
+extern int (*Mf_getc)(void);
+extern void (*Mf_error)(char *s);
+extern void (*Mf_header)(int format, int ntrks, int division);
+extern void (*Mf_trackstart)(void);
+extern void (*Mf_trackend)(void);
+extern void (*Mf_noteon)(int chan, int c1, int c2);
+extern void (*Mf_noteoff)(int chan, int c1, int c2);
+extern void (*Mf_pressure)(int chan, int c1, int c2);
+extern void (*Mf_parameter)(int chan, int c1, int c2);
+extern void (*Mf_pitchbend)(int chan, int c1, int c2);
+extern void (*Mf_program)(int chan, int c1);
+extern void (*Mf_chanpressure)(int chan, int c1);
+extern void (*Mf_sysex)(int len, char *msg);
+extern void (*Mf_arbitrary)(int len, char *msg);
+extern void (*Mf_metamisc)(int type, int len, char *msg);
+extern void (*Mf_seqnum)(int num);
+extern void (*Mf_eot)(void);
+extern void (*Mf_smpte)(char m0, char m1, char m2, char m3, char m4);
+extern void (*Mf_tempo)(long tempo);
+extern void (*Mf_timesig)(char m0, char m1, char m2, char m3);
+extern void (*Mf_keysig)(char m0, char m1);
+extern void (*Mf_seqspecific)(int len, char *msg);
+extern void (*Mf_text)(int type, int len, char *msg);
 extern unsigned long Mf_currtime;
 extern unsigned long Mf_realtime;
 extern unsigned long Mf_currtempo;
@@ -33,20 +33,23 @@ extern int Mf_file_size;
 #endif
 
 /* definitions for MIDI file writing code */
-extern int (*Mf_putc)();
-extern int (*Mf_writetrack)();
-extern int (*Mf_writetempotrack)();
+extern int (*Mf_putc)(unsigned char c);
+extern int (*Mf_writetrack)(int track);
+extern int (*Mf_writetempotrack)(void);
 
-extern void midifile();
-extern unsigned long mf_sec2ticks();
-extern void mfwrite();
-extern int mf_write_meta_event();
+extern void midifile(void);
+extern unsigned long mf_sec2ticks(double secs, int division,
+	unsigned long tempo);
+extern void mfwrite(int format, int ntracks, int division, FILE *fp);
+extern int mf_write_meta_event(unsigned long delta_time, unsigned char type,
+	unsigned char *data, unsigned long size);
 extern int mf_write_midi_event(unsigned long delta_time, int type,
 	int chan, char *data, unsigned long size);
-extern double mf_ticks2sec(unsigned long ticks,int division,unsigned long tempo);
-extern void mf_write_tempo();
-extern void mf_write_seqnum();
-extern void mfread();
+extern double mf_ticks2sec(unsigned long ticks, int division,
+	unsigned long tempo);
+extern void mf_write_tempo(unsigned long delta_time, unsigned long tempo);
+extern void mf_write_seqnum(unsigned long delta_time, unsigned int seqnum);
+extern void mfread(void);
 extern void mferror(char *s);
 
 #ifndef NO_LC_DEFINES
