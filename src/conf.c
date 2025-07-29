@@ -4140,7 +4140,14 @@ static int config_file_load(snd_config_t *root, const char *fn, int errors)
 	if (!S_ISDIR(st.st_mode))
 		return config_file_open(root, fn);
 #ifndef DOC_HIDDEN
-#if defined(_GNU_SOURCE) && !defined(__NetBSD__) && !defined(__FreeBSD__) && !defined(__OpenBSD__) && !defined(__DragonFly__) && !defined(__sun) && !defined(__ANDROID__)
+#if defined(_GNU_SOURCE) && \
+    !defined(__NetBSD__) && \
+    !defined(__FreeBSD__) && \
+    !defined(__OpenBSD__) && \
+    !defined(__DragonFly__) && \
+    !defined(__sun) && \
+    !defined(__ANDROID__) && \
+    !defined(__OHOS__)
 #define SORTFUNC	versionsort64
 #else
 #define SORTFUNC	alphasort64
