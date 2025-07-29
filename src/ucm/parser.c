@@ -2928,7 +2928,14 @@ int uc_mgr_scan_master_configs(const char **_list[])
 		snprintf(filename, sizeof(filename), "%s/ucm2/conf.virt.d",
 			 snd_config_topdir());
 
-#if defined(_GNU_SOURCE) && !defined(__NetBSD__) && !defined(__FreeBSD__) && !defined(__OpenBSD__) && !defined(__DragonFly__) && !defined(__sun) && !defined(__ANDROID__)
+#if defined(_GNU_SOURCE) && \
+    !defined(__NetBSD__) && \
+    !defined(__FreeBSD__) && \
+    !defined(__OpenBSD__) && \
+    !defined(__DragonFly__) && \
+    !defined(__sun) && \
+    !defined(__ANDROID__) && \
+    !defined(__OHOS__)
 #define SORTFUNC	versionsort64
 #else
 #define SORTFUNC	alphasort64
