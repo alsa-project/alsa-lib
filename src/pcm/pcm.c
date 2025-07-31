@@ -3107,7 +3107,7 @@ int snd_pcm_avail_delay(snd_pcm_t *pcm,
 			snd_pcm_sframes_t *delayp)
 {
 	snd_pcm_sframes_t sf;
-	int err;
+	int err, ok = 0;
 
 	assert(pcm && availp && delayp);
 	if (CHECK_SANITY(! pcm->setup)) {
@@ -3118,15 +3118,25 @@ int snd_pcm_avail_delay(snd_pcm_t *pcm,
 	err = __snd_pcm_hwsync(pcm);
 	if (err < 0)
 		goto unlock;
-	sf = __snd_pcm_avail_update(pcm);
-	if (sf < 0) {
-		err = (int)sf;
-		goto unlock;
+
+	/*
+	 * Delay value is relative to avail, so we have to
+	 * loop to avoid reporting stale delay data.
+	 */
+	while (1) {
+		sf = __snd_pcm_avail_update(pcm);
+		if (sf < 0) {
+			err = (int)sf;
+			goto unlock;
+		}
+		if (ok && sf == *availp)
+			break;
+		*availp = sf;
+		err = __snd_pcm_delay(pcm, delayp);
+		if (err < 0)
+			goto unlock;
+		ok = 1;
 	}
-	err = __snd_pcm_delay(pcm, delayp);
-	if (err < 0)
-		goto unlock;
-	*availp = sf;
 	err = 0;
  unlock:
 	snd_pcm_unlock(pcm->fast_op_arg);
