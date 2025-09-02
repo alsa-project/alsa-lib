@@ -369,7 +369,7 @@ int snd_tlv_convert_from_dB(unsigned int *tlv, long rangemin, long rangemax,
 		min = tlv[SNDRV_CTL_TLVO_DB_MINMAX_MIN];
 		max = tlv[SNDRV_CTL_TLVO_DB_MINMAX_MAX];
 		if (db_gain <= min)
-			if (db_gain > SND_CTL_TLV_DB_GAIN_MUTE && xdir > 0 &&
+			if (db_gain > SND_CTL_TLV_DB_GAIN_MUTE &&
 			    type == SND_CTL_TLVT_DB_MINMAX_MUTE)
 				*value = rangemin + 1;
 			else
