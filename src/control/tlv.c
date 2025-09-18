@@ -246,16 +246,17 @@ int snd_tlv_convert_to_dB(unsigned int *tlv, long rangemin, long rangemax,
 		int mindb, maxdb;
 		mindb = tlv[SNDRV_CTL_TLVO_DB_MINMAX_MIN];
 		maxdb = tlv[SNDRV_CTL_TLVO_DB_MINMAX_MAX];
-		if (volume <= rangemin || rangemax <= rangemin) {
-			if (type == SND_CTL_TLVT_DB_MINMAX_MUTE)
-				*db_gain = SND_CTL_TLV_DB_GAIN_MUTE;
-			else
-				*db_gain = mindb;
-		} else if (volume >= rangemax)
-			*db_gain = maxdb;
+		if (rangemax <= rangemin)
+			*db_gain = mindb;
 		else
 			*db_gain = (maxdb - mindb) * (volume - rangemin) /
 				(rangemax - rangemin) + mindb;
+		if (*db_gain < mindb)
+			*db_gain = mindb;
+		if (*db_gain > maxdb)
+			*db_gain = maxdb;
+		if (type == SND_CTL_TLVT_DB_MINMAX_MUTE && *db_gain == mindb)
+			*db_gain = SND_CTL_TLV_DB_GAIN_MUTE;
 		return 0;
 	}
 #ifndef HAVE_SOFT_FLOAT
