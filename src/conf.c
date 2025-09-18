@@ -1274,7 +1274,7 @@ static int parse_array_def(snd_config_t *parent, input_t *input, int *idx, int s
 			if (_snd_config_search(parent, static_id, -1, &n) == 0) {
 				if (override) {
 					snd_config_delete(n);
-					n = NULL;
+					/* fallthrough to break */
 				} else {
 					/* merge */
 					(*idx)++;
@@ -1283,6 +1283,7 @@ static int parse_array_def(snd_config_t *parent, input_t *input, int *idx, int s
 			}
 			break;
 		}
+		n = NULL;
 		id = strdup(static_id);
 		if (id == NULL)
 			return -ENOMEM;
