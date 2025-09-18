@@ -4109,14 +4109,17 @@ static int config_filename_filter(const struct dirent64 *dirent)
 	return 0;
 }
 
-static int config_file_open(snd_config_t *root, const char *filename)
+static int config_file_open(snd_config_t *root, const char *filename, int merge)
 {
 	snd_input_t *in;
 	int err;
 
 	err = snd_input_stdio_open(&in, filename, "r");
 	if (err >= 0) {
-		err = snd_config_load(root, in);
+		if (merge)
+			err = snd_config_load(root, in);
+		else
+			err = snd_config_load_override(root, in);
 		snd_input_close(in);
 		if (err < 0)
 			SNDERR("%s may be old or corrupted: consider to remove or fix it", filename);
@@ -4126,7 +4129,7 @@ static int config_file_open(snd_config_t *root, const char *filename)
 	return err;
 }
 
-static int config_file_load(snd_config_t *root, const char *fn, int errors)
+static int config_file_load(snd_config_t *root, const char *fn, int errors, int merge)
 {
 	struct stat64 st;
 	struct dirent64 **namelist;
@@ -4139,7 +4142,7 @@ static int config_file_load(snd_config_t *root, const char *fn, int errors)
 		return 1;
 	}
 	if (!S_ISDIR(st.st_mode))
-		return config_file_open(root, fn);
+		return config_file_open(root, fn, merge);
 #ifndef DOC_HIDDEN
 #if defined(_GNU_SOURCE) && \
     !defined(__NetBSD__) && \
@@ -4165,7 +4168,7 @@ static int config_file_load(snd_config_t *root, const char *fn, int errors)
 				snprintf(filename, sl, "%s/%s", fn, namelist[j]->d_name);
 				filename[sl-1] = '\0';
 
-				err = config_file_open(root, filename);
+				err = config_file_open(root, filename, merge);
 				free(filename);
 			}
 			free(namelist[j]);
@@ -4177,20 +4180,20 @@ static int config_file_load(snd_config_t *root, const char *fn, int errors)
 	return 0;
 }
 
-static int config_file_load_user(snd_config_t *root, const char *fn, int errors)
+static int config_file_load_user(snd_config_t *root, const char *fn, int errors, int merge)
 {
 	char *fn2;
 	int err;
 
 	err = snd_user_file(fn, &fn2);
 	if (err < 0)
-		return config_file_load(root, fn, errors);
-	err = config_file_load(root, fn2, errors);
+		return config_file_load(root, fn, errors, merge);
+	err = config_file_load(root, fn2, errors, merge);
 	free(fn2);
 	return err;
 }
 
-static int config_file_load_user_all(snd_config_t *_root, snd_config_t *_file, int errors)
+static int config_file_load_user_all(snd_config_t *_root, snd_config_t *_file, int errors, int merge)
 {
 	snd_config_t *file = _file, *root = _root, *n;
 	char *name, *name2, *remain, *rname = NULL;
@@ -4221,7 +4224,7 @@ static int config_file_load_user_all(snd_config_t *_root, snd_config_t *_file, i
 			*remain = '\0';
 			remain += 3;
 		}
-		err = config_file_load_user(root, name2, errors);
+		err = config_file_load_user(root, name2, errors, merge);
 		if (err < 0)
 			goto _err;
 		if (err == 0)	/* first hit wins */
@@ -4270,7 +4273,7 @@ int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t 
 {
 	snd_config_t *n;
 	snd_config_iterator_t i, next;
-	int err, idx = 0, errors = 1, hit;
+	int err, idx = 0, errors = 1, merge = 1, hit;
 
 	assert(root && dst);
 	if ((err = snd_config_search(config, "errors", &n)) >= 0) {
@@ -4279,6 +4282,10 @@ int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t 
 			SNDERR("Invalid bool value in field errors");
 			return errors;
 		}
+	}
+	/* special case, we know the card number (may be multiple times) */
+	if (private_data && snd_config_search(private_data, "integer", &n) >= 0) {
+		merge = 0;
 	}
 	if ((err = snd_config_search(config, "files", &n)) < 0) {
 		SNDERR("Unable to find field files in the pre-load section");
@@ -4292,6 +4299,7 @@ int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t 
 		SNDERR("Invalid type for field filenames");
 		goto _err;
 	}
+
 	do {
 		hit = 0;
 		snd_config_for_each(i, next, n) {
@@ -4305,7 +4313,7 @@ int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t 
 				goto _err;
 			}
 			if (i == idx) {
-				err = config_file_load_user_all(root, n, errors);
+				err = config_file_load_user_all(root, n, errors, merge);
 				if (err < 0)
 					goto _err;
 				idx++;
