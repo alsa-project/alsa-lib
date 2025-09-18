@@ -1268,13 +1268,13 @@ static int parse_array_def(snd_config_t *parent, input_t *input, int *idx, int s
 	snd_config_t *n = NULL;
 
 	if (!skip) {
-		snd_config_t *g;
 		char static_id[12];
 		while (1) {
 			snprintf(static_id, sizeof(static_id), "%i", *idx);
-			if (_snd_config_search(parent, static_id, -1, &g) == 0) {
+			if (_snd_config_search(parent, static_id, -1, &n) == 0) {
 				if (override) {
 					snd_config_delete(n);
+					n = NULL;
 				} else {
 					/* merge */
 					(*idx)++;
