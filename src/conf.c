@@ -4413,23 +4413,18 @@ static int _snd_config_hook_table(snd_config_t *root, snd_config_t *config, snd_
 int snd_config_hook_load_for_all_cards(snd_config_t *root, snd_config_t *config, snd_config_t **dst, snd_config_t *private_data ATTRIBUTE_UNUSED)
 {
 	int card = -1, err;
-	snd_config_t *loaded;	// trace loaded cards
 	
-	err = snd_config_top(&loaded);
-	if (err < 0)
-		return err;
 	do {
 		err = snd_card_next(&card);
 		if (err < 0)
-			goto __fin_err;
+			return err;
 		if (card >= 0) {
-			snd_config_t *n, *m, *private_data = NULL;
+			snd_config_t *n, *private_data = NULL;
 			const char *driver;
 			char *fdriver = NULL;
-			bool load;
 			err = snd_determine_driver(card, &fdriver);
 			if (err < 0)
-				goto __fin_err;
+				return err;
 			if (snd_config_search(root, fdriver, &n) >= 0) {
 				if (snd_config_get_string(n, &driver) < 0) {
 					if (snd_config_get_type(n) == SND_CONFIG_TYPE_COMPOUND) {
@@ -4450,19 +4445,6 @@ int snd_config_hook_load_for_all_cards(snd_config_t *root, snd_config_t *config,
 				driver = fdriver;
 			}
 		      __std:
-			load = true;
-			err = snd_config_imake_integer(&m, driver, 1);
-			if (err < 0)
-				goto __err;
-			err = snd_config_add(loaded, m);
-			if (err < 0) {
-				if (err == -EEXIST) {
-					snd_config_delete(m);
-					load = false;
-				} else {
-					goto __err;
-				}
-			}
 			private_data = _snd_config_hook_private_data(card, driver);
 			if (!private_data) {
 				err = -ENOMEM;
@@ -4471,22 +4453,17 @@ int snd_config_hook_load_for_all_cards(snd_config_t *root, snd_config_t *config,
 			err = _snd_config_hook_table(root, config, private_data);
 			if (err < 0)
 				goto __err;
-			if (load)
-				err = snd_config_hook_load(root, config, &n, private_data);
+			err = snd_config_hook_load(root, config, &n, private_data);
 		      __err:
 			if (private_data)
 				snd_config_delete(private_data);
 			free(fdriver);
 			if (err < 0)
-				goto __fin_err;
+				return err;
 		}
 	} while (card >= 0);
-	snd_config_delete(loaded);
 	*dst = NULL;
 	return 0;
-__fin_err:
-	snd_config_delete(loaded);
-	return err;
 }
 #ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(snd_config_hook_load_for_all_cards, SND_CONFIG_DLSYM_VERSION_HOOK);
