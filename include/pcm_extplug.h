@@ -28,13 +28,13 @@
  *
  */
 
+#ifndef __ALSA_PCM_EXTPLUG_H
+#define __ALSA_PCM_EXTPLUG_H
+
 #if !defined(__ALSA_PCM_EXTERNAL_H) && !defined(ALSA_LIBRARY_BUILD)
 #warning "use #include <alsa/pcm_external.h>, <alsa/pcm_extplug.h> should not be used directly"
 #include <alsa/pcm_external.h>
 #endif
-
-#ifndef __ALSA_PCM_EXTPLUG_H
-#define __ALSA_PCM_EXTPLUG_H
 
 /**
  * \defgroup PCM_ExtPlug External Filter plugin SDK
@@ -49,7 +49,7 @@ enum {
 	SND_PCM_EXTPLUG_HW_CHANNELS,	/**< channels */
 	SND_PCM_EXTPLUG_HW_PARAMS	/**< max number of hw constraints */
 };
-	
+
 /** Handle of external filter plugin */
 typedef struct snd_pcm_extplug snd_pcm_extplug_t;
 /** Callback table of extplug */

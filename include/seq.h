@@ -26,14 +26,14 @@
  *
  */
 
+#ifndef __ALSA_SEQ_H
+#define __ALSA_SEQ_H
+
 #if !defined(__ASOUNDLIB_H) && !defined(ALSA_LIBRARY_BUILD)
 /* don't use ALSA_LIBRARY_BUILD define in sources outside alsa-lib */
 #warning "use #include <alsa/asoundlib.h>, <alsa/seq.h> should not be used directly"
 #include <alsa/asoundlib.h>
 #endif
-
-#ifndef __ALSA_SEQ_H
-#define __ALSA_SEQ_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -135,7 +135,7 @@ typedef enum snd_seq_client_type {
 	SND_SEQ_USER_CLIENT     = 1,	/**< user client */
 	SND_SEQ_KERNEL_CLIENT   = 2	/**< kernel client */
 } snd_seq_client_type_t;
-                        
+
 /** client MIDI version */
 enum {
 	SND_SEQ_CLIENT_LEGACY_MIDI = 0,		/**< Legacy client */

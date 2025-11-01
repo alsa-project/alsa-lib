@@ -25,14 +25,14 @@
  *
  */
 
+#ifndef __ALSA_ASOUNDEF_H
+#define __ALSA_ASOUNDEF_H
+
 #if !defined(__ASOUNDLIB_H) && !defined(ALSA_LIBRARY_BUILD)
 /* don't use ALSA_LIBRARY_BUILD define in sources outside alsa-lib */
 #warning "use #include <alsa/asoundlib.h>, <alsa/asoundef.h> should not be used directly"
 #include <alsa/asoundlib.h>
 #endif
-
-#ifndef __ALSA_ASOUNDEF_H
-#define __ALSA_ASOUNDEF_H
 
 #ifdef __cplusplus
 extern "C" {
