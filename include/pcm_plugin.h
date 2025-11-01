@@ -38,7 +38,7 @@
  * See the \ref pcm_plugins page for more details.
  * \{
  */
-  
+
 #define SND_PCM_PLUGIN_RATE_MIN 4000	/**< minimal rate for the rate plugin */
 #define SND_PCM_PLUGIN_RATE_MAX 768000	/**< maximal rate for the rate plugin */
 
@@ -82,7 +82,7 @@ int snd_pcm_copy_open(snd_pcm_t **pcmp, const char *name,
 int _snd_pcm_copy_open(snd_pcm_t **pcmp, const char *name,
 		       snd_config_t *root, snd_config_t *conf,
                        snd_pcm_stream_t stream, int mode);
-                                              
+
 /*
  *  Linear conversion plugin
  */
@@ -198,18 +198,6 @@ int snd_pcm_ladspa_open(snd_pcm_t **pcmp, const char *name,
 int _snd_pcm_ladspa_open(snd_pcm_t **pcmp, const char *name,
 			 snd_config_t *root, snd_config_t *conf,
 			 snd_pcm_stream_t stream, int mode);
-
-/*
- *  Jack plugin
- */
-int snd_pcm_jack_open(snd_pcm_t **pcmp, const char *name,
-					snd_config_t *playback_conf,
-					snd_config_t *capture_conf,
-		      snd_pcm_stream_t stream, int mode);
-int _snd_pcm_jack_open(snd_pcm_t **pcmp, const char *name,
-                       snd_config_t *root, snd_config_t *conf,
-                       snd_pcm_stream_t stream, int mode);
-
 
 /** \} */
 
