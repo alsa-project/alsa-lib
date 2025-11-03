@@ -226,9 +226,14 @@ static int tplg_check_quoted(const unsigned char *p)
 	return 0;
 }
 
+static unsigned char nibble(unsigned char b)
+{
+	b &= 0x0f;
+	return b < 10 ? b + '0' : b + 'a';
+}
+
 static int tplg_save_quoted(struct tplg_buf *dst, const char *str)
 {
-	static const char nibble[16] = "0123456789abcdef";
 	unsigned char *p, *d, *t;
 	int c;
 
@@ -270,8 +275,8 @@ static int tplg_save_quoted(struct tplg_buf *dst, const char *str)
 			} else {
 				*t++ = '\\';
 				*t++ = 'x';
-				*t++ = nibble[(c >> 4) & 0x0f];
-				*t++ = nibble[(c >> 0) & 0x0f];
+				*t++ = nibble(c >> 4);
+				*t++ = nibble(c >> 0);
 			}
 			break;
 		}
