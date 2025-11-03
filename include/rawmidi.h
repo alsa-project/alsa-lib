@@ -102,7 +102,9 @@ typedef enum _snd_rawmidi_read_mode {
 /** rawmidi info bit flags */
 #define SND_RAWMIDI_INFO_UMP			0x00000008	/**< rawmidi is UMP */
 #define SND_RAWMIDI_INFO_STREAM_INACTIVE	0x00000010	/**< the selected substream is inactive */
+#ifndef SNDRV_RAWMIDI_INFO_STREAM_INACTIVE
 #define SNDRV_RAWMIDI_INFO_STREAM_INACTIVE	SND_RAWMIDI_INFO_STREAM_INACTIVE /* only for compatibility */
+#endif
 
 int snd_rawmidi_open(snd_rawmidi_t **in_rmidi, snd_rawmidi_t **out_rmidi,
 		     const char *name, int mode);
