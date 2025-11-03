@@ -274,9 +274,9 @@ size_t snd_strlcat(char *dst, const char *src, size_t size);
  */
 #ifndef NDEBUG
 #define CHECK_SANITY(x) x
-extern snd_lib_error_handler_t snd_err_msg;
-#define SNDMSG(args...) snd_err_msg(__FILE__, __LINE__, __func__, 0, ##args)
-#define SYSMSG(args...) snd_err_msg(__FILE__, __LINE__, __func__, errno, ##args)
+extern snd_lib_error_handler_t _snd_err_msg;
+#define SNDMSG(args...) _snd_err_msg(__FILE__, __LINE__, __func__, 0, ##args)
+#define SYSMSG(args...) _snd_err_msg(__FILE__, __LINE__, __func__, errno, ##args)
 #else
 #define CHECK_SANITY(x) 0 /* not evaluated */
 #define SNDMSG(args...) /* nop */

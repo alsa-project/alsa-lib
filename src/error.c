@@ -131,7 +131,7 @@ int snd_lib_error_set_handler(snd_lib_error_handler_t handler)
 	snd_lib_error = handler == NULL ? snd_lib_error_default : handler;
 #ifndef NDEBUG
 	if (snd_lib_error != snd_lib_error_default)
-		snd_err_msg = snd_lib_error;
+		_snd_err_msg = snd_lib_error;
 #endif
 	return 0;
 }
@@ -174,7 +174,7 @@ static void snd_err_msg_default(const char *file, int line, const char *function
 /**
  * The ALSA error message handler
  */
-snd_lib_error_handler_t snd_err_msg = snd_err_msg_default;
+snd_lib_error_handler_t _snd_err_msg = snd_err_msg_default;
 
 #endif
 
