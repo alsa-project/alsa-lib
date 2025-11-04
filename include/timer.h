@@ -25,14 +25,14 @@
  *
  */
 
+#ifndef __ALSA_TIMER_H
+#define __ALSA_TIMER_H
+
 #if !defined(__ASOUNDLIB_H) && !defined(ALSA_LIBRARY_BUILD)
 /* don't use ALSA_LIBRARY_BUILD define in sources outside alsa-lib */
 #warning "use #include <alsa/asoundlib.h>, <alsa/timer.h> should not be used directly"
 #include <alsa/asoundlib.h>
 #endif
-
-#ifndef __ALSA_TIMER_H
-#define __ALSA_TIMER_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -99,7 +99,7 @@ typedef enum _snd_timer_event {
 	SND_TIMER_EVENT_MCONTINUE = SND_TIMER_EVENT_CONTINUE + 10,
 	SND_TIMER_EVENT_MPAUSE = SND_TIMER_EVENT_PAUSE + 10,
 	SND_TIMER_EVENT_MSUSPEND = SND_TIMER_EVENT_SUSPEND + 10,
-	SND_TIMER_EVENT_MRESUME = SND_TIMER_EVENT_RESUME + 10	
+	SND_TIMER_EVENT_MRESUME = SND_TIMER_EVENT_RESUME + 10
 } snd_timer_event_t;
 
 /** timer read structure */

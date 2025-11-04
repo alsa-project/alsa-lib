@@ -26,7 +26,7 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-  
+
 #include "pcm_local.h"
 #include "../control/control_local.h"
 #include "../timer/timer_local.h"
@@ -375,12 +375,14 @@ static int snd_pcm_hw_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 		if (pcm->tstamp_type != SND_PCM_TSTAMP_TYPE_GETTIMEOFDAY)
 			params->info |= SND_PCM_INFO_MONOTONIC;
 	}
-	
+
 	return 0;
 }
 
+#ifndef DOC_HIDDEN
 #define hw_param_mask(params,var) \
 	&((params)->masks[(var) - SND_PCM_HW_PARAM_FIRST_MASK])
+#endif
 
 static int hw_params_call(snd_pcm_hw_t *pcm_hw, snd_pcm_hw_params_t *params)
 {
@@ -434,7 +436,7 @@ static int snd_pcm_hw_change_timer(snd_pcm_t *pcm, int enable)
 	snd_timer_params_t params = {0};
 	unsigned int suspend, resume;
 	int err;
-	
+
 	if (enable) {
 		err = snd_timer_hw_open(&hw->period_timer,
 				"hw-pcm-period-event",
@@ -1689,7 +1691,7 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name, int fd,
 			return ret;
 		}
 	}
-	
+
 	hw = calloc(1, sizeof(snd_pcm_hw_t));
 	if (!hw) {
 		close(fd);
@@ -2150,7 +2152,7 @@ static int use_old_hw_params_ioctl(int fd, unsigned int cmd, snd_pcm_hw_params_t
 	struct sndrv_pcm_hw_params_old oparams;
 	unsigned int cmask = 0;
 	int res;
-	
+
 	snd_pcm_hw_convert_to_old_params(&oparams, params, &cmask);
 	res = ioctl(fd, cmd, &oparams);
 	snd_pcm_hw_convert_from_old_params(params, &oparams);

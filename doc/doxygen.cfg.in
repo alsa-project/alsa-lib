@@ -16,6 +16,7 @@ INPUT            = @top_srcdir@/doc/index.doxygen \
 		   @top_srcdir@/include/conf.h \
 		   @top_srcdir@/include/control.h \
 		   @top_srcdir@/include/pcm.h \
+		   @top_srcdir@/include/pcm_plugin.h \
 		   @top_srcdir@/include/rawmidi.h \
 		   @top_srcdir@/include/ump.h \
 		   @top_srcdir@/include/ump_msg.h \
@@ -129,6 +130,7 @@ MACRO_EXPANSION  = YES
 EXPAND_ONLY_PREDEF = YES
 PREDEFINED	 = DOXYGEN PIC "DOC_HIDDEN" \
 		   "ATTRIBUTE_UNUSED=" \
+		   ALSA_LIBRARY_BUILD \
 		   ALSA_PCM_NEW_HW_PARAMS_API \
 		   _POSIX_C_SOURCE \
 		   "use_default_symbol_version(x,y,z)=" \
@@ -137,7 +139,7 @@ PREDEFINED	 = DOXYGEN PIC "DOC_HIDDEN" \
 
 OPTIMIZE_OUTPUT_FOR_C = YES	# doxygen 1.2.6 option
 TYPEDEF_HIDES_STRUCT = YES	# needed in doxygen >= 1.5.4
-
+SORT_GROUP_NAMES = YES
 #INPUT_FILTER	 = inputfilter
 #FILTER_SOURCE_FILES = YES
 
