@@ -54,6 +54,7 @@ const char *snd_strerror(int errnum);
 #define SND_LOG_INFO		3	/**< info priority level */
 #define SND_LOG_DEBUG		4	/**< debug priority level */
 #define SND_LOG_TRACE		5	/**< trace priority level */
+#define SND_LOG_LAST		SND_LOG_TRACE
 
 #define SND_ILOG_CORE           1	/**< core library code */
 #define SND_ILOG_CONFIG		2	/**< configuration parsing and operations */
@@ -67,6 +68,7 @@ const char *snd_strerror(int errnum);
 #define SND_ILOG_UCM		10	/**< UCM API */
 #define SND_ILOG_TOPOLOGY	11	/**< topology API */
 #define SND_ILOG_ASERVER	12	/**< aserver */
+#define SND_ILOG_LAST		SND_ILOG_ASERVER
 
 /**
  * \brief Log handler callback.

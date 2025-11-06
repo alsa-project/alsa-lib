@@ -84,6 +84,61 @@ snd_lib_log_handler_t snd_lib_log_set_local(snd_lib_log_handler_t func)
 }
 
 /**
+ * Array of log priority level names.
+ */
+static const char *snd_log_prio_names[SND_LOG_LAST + 1] = {
+	[0] = NULL,
+	[SND_LOG_ERROR] = "error",
+	[SND_LOG_WARN] = "warning",
+	[SND_LOG_INFO] = "info",
+	[SND_LOG_DEBUG] = "debug",
+	[SND_LOG_TRACE] = "trace",
+};
+
+/**
+ * Array of interface names.
+ */
+static const char *snd_ilog_interface_names[SND_ILOG_LAST + 1] = {
+	[0] = NULL,
+	[SND_ILOG_CORE] = "core",
+	[SND_ILOG_CONFIG] = "config",
+	[SND_ILOG_CONTROL] = "control",
+	[SND_ILOG_HWDEP] = "hwdep",
+	[SND_ILOG_TIMER] = "timer",
+	[SND_ILOG_RAWMIDI] = "rawmidi",
+	[SND_ILOG_PCM] = "pcm",
+	[SND_ILOG_MIXER] = "mixer",
+	[SND_ILOG_SEQUENCER] = "sequencer",
+	[SND_ILOG_UCM] = "ucm",
+	[SND_ILOG_TOPOLOGY] = "topology",
+	[SND_ILOG_ASERVER] = "aserver",
+};
+
+/**
+ * \brief Function to convert log priority level to text.
+ * \param prio Priority value (SND_LOG_*).
+ * \return The textual representation of the priority level, or NULL if invalid.
+ */
+const char *snd_lib_log_priority(int prio)
+{
+	if (prio >= 0 && prio <= SND_LOG_TRACE)
+		return snd_log_prio_names[prio];
+	return NULL;
+}
+
+/**
+ * \brief Function to convert interface code to text.
+ * \param interface Interface (SND_ILOG_*).
+ * \return The textual representation of the interface code, or NULL if invalid.
+ */
+const char *snd_lib_log_interface(int interface)
+{
+	if (interface >= 0 && interface <= SND_ILOG_TOPOLOGY)
+		return snd_ilog_interface_names[interface];
+	return NULL;
+}
+
+/**
  * \brief The default log handler function.
  * \param prio Priority value (SND_LOG_*).
  * \param interface Interface (SND_ILOG_*).
@@ -100,6 +155,8 @@ snd_lib_log_handler_t snd_lib_log_set_local(snd_lib_log_handler_t func)
  */
 static void snd_lib_vlog_default(int prio, int interface, const char *file, int line, const char *function, int errcode, const char *fmt, va_list arg)
 {
+	const char *text;
+
 	if (local_log) {
 		local_log(prio, interface, file, line, function, errcode, fmt, arg);
 		return;
@@ -109,6 +166,15 @@ static void snd_lib_vlog_default(int prio, int interface, const char *file, int 
 		return;
 	}
 	fprintf(stderr, "ALSA lib %s:%i:(%s) ", file, line, function);
+
+	text = snd_lib_log_priority(prio);
+	if (text)
+		fprintf(stderr, "[%s] ", text);
+
+	text = snd_lib_log_interface(interface);
+	if (text)
+		fprintf(stderr, "[%s] ", text);
+
 	vfprintf(stderr, fmt, arg);
 	if (errcode)
 		fprintf(stderr, ": %s", snd_strerror(errcode));
