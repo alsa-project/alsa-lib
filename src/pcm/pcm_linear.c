@@ -526,11 +526,11 @@ int _snd_pcm_linear_open(snd_pcm_t **pcmp, const char *name,
 			slave = n;
 			continue;
 		}
-		SNDERR("Unknown field %s", id);
+		snd_error(PCM, "Unknown field %s", id);
 		return -EINVAL;
 	}
 	if (!slave) {
-		SNDERR("slave is not defined");
+		snd_error(PCM, "slave is not defined");
 		return -EINVAL;
 	}
 	err = snd_pcm_slave_conf(root, slave, &sconf, 1,
@@ -539,7 +539,7 @@ int _snd_pcm_linear_open(snd_pcm_t **pcmp, const char *name,
 		return err;
 	if (snd_pcm_format_linear(sformat) != 1) {
 		snd_config_delete(sconf);
-		SNDERR("slave format is not linear");
+		snd_error(PCM, "slave format is not linear");
 		return -EINVAL;
 	}
 	err = snd_pcm_open_slave(&spcm, root, sconf, stream, mode, conf);

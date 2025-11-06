@@ -914,30 +914,30 @@ static int snd_seq_open_conf(snd_seq_t **seqp, const char *name,
 	void *h = NULL;
 	if (snd_config_get_type(seq_conf) != SND_CONFIG_TYPE_COMPOUND) {
 		if (name)
-			SNDERR("Invalid type for SEQ %s definition", name);
+			snd_error(SEQUENCER, "Invalid type for SEQ %s definition", name);
 		else
-			SNDERR("Invalid type for SEQ definition");
+			snd_error(SEQUENCER, "Invalid type for SEQ definition");
 		return -EINVAL;
 	}
 	err = snd_config_search(seq_conf, "type", &conf);
 	if (err < 0) {
-		SNDERR("type is not defined");
+		snd_error(SEQUENCER, "type is not defined");
 		return err;
 	}
 	err = snd_config_get_id(conf, &id);
 	if (err < 0) {
-		SNDERR("unable to get id");
+		snd_error(SEQUENCER, "unable to get id");
 		return err;
 	}
 	err = snd_config_get_string(conf, &str);
 	if (err < 0) {
-		SNDERR("Invalid type for %s", id);
+		snd_error(SEQUENCER, "Invalid type for %s", id);
 		return err;
 	}
 	err = snd_config_search_definition(seq_root, "seq_type", str, &type_conf);
 	if (err >= 0) {
 		if (snd_config_get_type(type_conf) != SND_CONFIG_TYPE_COMPOUND) {
-			SNDERR("Invalid type for SEQ type %s definition", str);
+			snd_error(SEQUENCER, "Invalid type for SEQ type %s definition", str);
 			goto _err;
 		}
 		snd_config_for_each(i, next, type_conf) {
@@ -950,7 +950,7 @@ static int snd_seq_open_conf(snd_seq_t **seqp, const char *name,
 			if (strcmp(id, "lib") == 0) {
 				err = snd_config_get_string(n, &lib);
 				if (err < 0) {
-					SNDERR("Invalid type for %s", id);
+					snd_error(SEQUENCER, "Invalid type for %s", id);
 					goto _err;
 				}
 				continue;
@@ -958,12 +958,12 @@ static int snd_seq_open_conf(snd_seq_t **seqp, const char *name,
 			if (strcmp(id, "open") == 0) {
 				err = snd_config_get_string(n, &open_name);
 				if (err < 0) {
-					SNDERR("Invalid type for %s", id);
+					snd_error(SEQUENCER, "Invalid type for %s", id);
 					goto _err;
 				}
 				continue;
 			}
-			SNDERR("Unknown field %s", id);
+			snd_error(SEQUENCER, "Unknown field %s", id);
 			err = -EINVAL;
 			goto _err;
 		}
@@ -980,10 +980,10 @@ static int snd_seq_open_conf(snd_seq_t **seqp, const char *name,
 		open_func = snd_dlsym(h, open_name, SND_DLSYM_VERSION(SND_SEQ_DLSYM_VERSION));
 	err = 0;
 	if (!h) {
-		SNDERR("Cannot open shared library %s (%s)", lib, errbuf);
+		snd_error(SEQUENCER, "Cannot open shared library %s (%s)", lib, errbuf);
 		err = -ENOENT;
 	} else if (!open_func) {
-		SNDERR("symbol %s is not defined inside %s", open_name, lib);
+		snd_error(SEQUENCER, "symbol %s is not defined inside %s", open_name, lib);
 		snd_dlclose(h);
 		err = -ENXIO;
 	}
@@ -1008,7 +1008,7 @@ static int snd_seq_open_noupdate(snd_seq_t **seqp, snd_config_t *root,
 	snd_config_t *seq_conf;
 	err = snd_config_search_definition(root, "seq", name, &seq_conf);
 	if (err < 0) {
-		SNDERR("Unknown SEQ %s", name);
+		snd_error(SEQUENCER, "Unknown SEQ %s", name);
 		return err;
 	}
 	snd_config_set_hop(seq_conf, hop);
@@ -4594,7 +4594,7 @@ static int snd_seq_event_input_feed(snd_seq_t *seq, int timeout)
 	pfd.events = POLLIN;
 	err = poll(&pfd, 1, timeout);
 	if (err < 0) {
-		SYSERR("poll");
+		snd_errornum(SEQUENCER, "poll");
 		return -errno;
 	}
 	if (pfd.revents & POLLIN) 

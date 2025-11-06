@@ -44,7 +44,7 @@ static int lookup_ops(const char *c)
 	/* cant find string name in our table so we use its ID number */
 	i = safe_strtol(c, &ret);
 	if (i < 0) {
-		SNDERR("wrong kcontrol ops value string '%s'", c);
+		snd_error(TOPOLOGY, "wrong kcontrol ops value string '%s'", c);
 		return i;
 	}
 

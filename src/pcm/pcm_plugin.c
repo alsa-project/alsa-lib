@@ -257,8 +257,9 @@ static snd_pcm_sframes_t snd_pcm_plugin_write_areas(snd_pcm_t *pcm,
 		frames = plugin->write(pcm, areas, offset, frames,
 				       slave_areas, slave_offset, &slave_frames);
 		if (CHECK_SANITY(slave_frames > snd_pcm_mmap_playback_avail(slave))) {
-			SNDMSG("write overflow %ld > %ld", slave_frames,
-			       snd_pcm_mmap_playback_avail(slave));
+			snd_check(PCM, "write overflow %ld > %ld", slave_frames,
+				       snd_pcm_mmap_playback_avail(slave));
+
 			err = -EPIPE;
 			goto error;
 		}
@@ -314,8 +315,9 @@ static snd_pcm_sframes_t snd_pcm_plugin_read_areas(snd_pcm_t *pcm,
 		frames = (plugin->read)(pcm, areas, offset, frames,
 				      slave_areas, slave_offset, &slave_frames);
 		if (CHECK_SANITY(slave_frames > snd_pcm_mmap_capture_avail(slave))) {
-			SNDMSG("read overflow %ld > %ld", slave_frames,
-			       snd_pcm_mmap_playback_avail(slave));
+			snd_check(PCM, "read overflow %ld > %ld", slave_frames,
+				       snd_pcm_mmap_playback_avail(slave));
+
 			err = -EPIPE;
 			goto error;
 		}
@@ -447,7 +449,7 @@ snd_pcm_plugin_mmap_commit(snd_pcm_t *pcm,
 		xfer += frames;
 	}
 	if (CHECK_SANITY(size)) {
-		SNDMSG("short commit: %ld", size);
+		snd_check(PCM, "short commit: %ld", size);
 		return -EPIPE;
 	}
 	return xfer;

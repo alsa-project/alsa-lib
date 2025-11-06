@@ -69,7 +69,7 @@ static int snd_rawmidi_hw_close(snd_rawmidi_t *rmidi)
 		return 0;
 	if (close(hw->fd)) {
 		err = -errno;
-		SYSMSG("close failed");
+		snd_checknum(RAWMIDI, "close failed");
 	}
 	free(hw->buf);
 	free(hw);
@@ -82,7 +82,7 @@ static int snd_rawmidi_hw_nonblock(snd_rawmidi_t *rmidi, int nonblock)
 	long flags;
 
 	if ((flags = fcntl(hw->fd, F_GETFL)) < 0) {
-		SYSMSG("F_GETFL failed");
+		snd_checknum(RAWMIDI, "F_GETFL failed");
 		return -errno;
 	}
 	if (nonblock)
@@ -90,7 +90,7 @@ static int snd_rawmidi_hw_nonblock(snd_rawmidi_t *rmidi, int nonblock)
 	else
 		flags &= ~O_NONBLOCK;
 	if (fcntl(hw->fd, F_SETFL, flags) < 0) {
-		SYSMSG("F_SETFL for O_NONBLOCK failed");
+		snd_checknum(RAWMIDI, "F_SETFL for O_NONBLOCK failed");
 		return -errno;
 	}
 	return 0;
@@ -101,7 +101,7 @@ static int snd_rawmidi_hw_info(snd_rawmidi_t *rmidi, snd_rawmidi_info_t * info)
 	snd_rawmidi_hw_t *hw = rmidi->private_data;
 	info->stream = rmidi->stream;
 	if (ioctl(hw->fd, SNDRV_RAWMIDI_IOCTL_INFO, info) < 0) {
-		SYSMSG("SNDRV_RAWMIDI_IOCTL_INFO failed");
+		snd_checknum(RAWMIDI, "SNDRV_RAWMIDI_IOCTL_INFO failed");
 		return -errno;
 	}
 	return 0;
@@ -113,7 +113,7 @@ static int snd_rawmidi_hw_params(snd_rawmidi_t *rmidi, snd_rawmidi_params_t * pa
 	int tstamp;
 	params->stream = rmidi->stream;
 	if (ioctl(hw->fd, SNDRV_RAWMIDI_IOCTL_PARAMS, params) < 0) {
-		SYSMSG("SNDRV_RAWMIDI_IOCTL_PARAMS failed");
+		snd_checknum(RAWMIDI, "SNDRV_RAWMIDI_IOCTL_PARAMS failed");
 		return -errno;
 	}
 	buf_reset(hw);
@@ -145,7 +145,7 @@ static int snd_rawmidi_hw_status(snd_rawmidi_t *rmidi, snd_rawmidi_status_t * st
 	snd_rawmidi_hw_t *hw = rmidi->private_data;
 	status->stream = rmidi->stream;
 	if (ioctl(hw->fd, SNDRV_RAWMIDI_IOCTL_STATUS, status) < 0) {
-		SYSMSG("SNDRV_RAWMIDI_IOCTL_STATUS failed");
+		snd_checknum(RAWMIDI, "SNDRV_RAWMIDI_IOCTL_STATUS failed");
 		return -errno;
 	}
 	return 0;
@@ -156,7 +156,7 @@ static int snd_rawmidi_hw_drop(snd_rawmidi_t *rmidi)
 	snd_rawmidi_hw_t *hw = rmidi->private_data;
 	int str = rmidi->stream;
 	if (ioctl(hw->fd, SNDRV_RAWMIDI_IOCTL_DROP, &str) < 0) {
-		SYSMSG("SNDRV_RAWMIDI_IOCTL_DROP failed");
+		snd_checknum(RAWMIDI, "SNDRV_RAWMIDI_IOCTL_DROP failed");
 		return -errno;
 	}
 	buf_reset(hw);
@@ -168,7 +168,7 @@ static int snd_rawmidi_hw_drain(snd_rawmidi_t *rmidi)
 	snd_rawmidi_hw_t *hw = rmidi->private_data;
 	int str = rmidi->stream;
 	if (ioctl(hw->fd, SNDRV_RAWMIDI_IOCTL_DRAIN, &str) < 0) {
-		SYSMSG("SNDRV_RAWMIDI_IOCTL_DRAIN failed");
+		snd_checknum(RAWMIDI, "SNDRV_RAWMIDI_IOCTL_DRAIN failed");
 		return -errno;
 	}
 	return 0;
@@ -382,13 +382,13 @@ int snd_rawmidi_hw_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 		fd = snd_open_device(filename, fmode);
 		if (fd < 0) {
 			snd_ctl_close(ctl);
-			SYSMSG("open %s failed", filename);
+			snd_checknum(RAWMIDI, "open %s failed", filename);
 			return -errno;
 		}
 	}
 	if (ioctl(fd, SNDRV_RAWMIDI_IOCTL_PVERSION, &ver) < 0) {
 		ret = -errno;
-		SYSMSG("SNDRV_RAWMIDI_IOCTL_PVERSION failed");
+		snd_checknum(RAWMIDI, "SNDRV_RAWMIDI_IOCTL_PVERSION failed");
 		close(fd);
 		snd_ctl_close(ctl);
 		return ret;
@@ -407,7 +407,7 @@ int snd_rawmidi_hw_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 		memset(&info, 0, sizeof(info));
 		info.stream = outputp ? SNDRV_RAWMIDI_STREAM_OUTPUT : SNDRV_RAWMIDI_STREAM_INPUT;
 		if (ioctl(fd, SNDRV_RAWMIDI_IOCTL_INFO, &info) < 0) {
-			SYSMSG("SNDRV_RAWMIDI_IOCTL_INFO failed");
+			snd_checknum(RAWMIDI, "SNDRV_RAWMIDI_IOCTL_INFO failed");
 			ret = -errno;
 			close(fd);
 			snd_ctl_close(ctl);

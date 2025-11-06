@@ -147,7 +147,7 @@ int _snd_eval_string(snd_config_t **dst, const char *s,
 		if (c == '\0')
 			break;
 		if (pos == END) {
-			SNDERR("unexpected expression tail '%s'", s);
+			snd_error(CORE, "unexpected expression tail '%s'", s);
 			return -EINVAL;
 		}
 		if (pos == OP) {
@@ -160,7 +160,7 @@ int _snd_eval_string(snd_config_t **dst, const char *s,
 				case '|':
 				case '&': op = c; break;
 				default:
-					SNDERR("unknown operation '%c'", c);
+					snd_error(CORE, "unknown operation '%c'", c);
 					return -EINVAL;
 			}
 			pos = RIGHT;
@@ -225,7 +225,7 @@ int _snd_eval_string(snd_config_t **dst, const char *s,
 		pos = op == LEFT ? OP : END;
 	}
 	if (pos != OP && pos != END) {
-		SNDERR("incomplete expression '%s'", save);
+		snd_error(CORE, "incomplete expression '%s'", save);
 		return -EINVAL;
 	}
 
@@ -269,7 +269,7 @@ int snd_config_evaluate_string(snd_config_t **dst, const char *s,
 	if (s[1] == '[') {
 		err = _snd_eval_string(dst, s, fcn, private_data);
 		if (err < 0)
-			SNDERR("wrong expression '%s'", s);
+			snd_error(CORE, "wrong expression '%s'", s);
 	} else {
 		err = fcn(dst, s + 1, private_data);
 	}

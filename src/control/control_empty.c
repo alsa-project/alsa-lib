@@ -87,11 +87,11 @@ int _snd_ctl_empty_open(snd_ctl_t **handlep, const char *name ATTRIBUTE_UNUSED,
 			child = n;
 			continue;
 		}
-		SNDERR("Unknown field %s", id);
+		snd_error(CONTROL, "Unknown field %s", id);
 		return -EINVAL;
 	}
 	if (!child) {
-		SNDERR("child is not defined");
+		snd_error(CONTROL, "child is not defined");
 		return -EINVAL;
 	}
 	return _snd_ctl_open_named_child(handlep, name, root, child, mode, conf);

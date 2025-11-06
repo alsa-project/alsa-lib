@@ -237,7 +237,7 @@ int tplg_get_type(int asoc_type)
 	for (index = 0; index < tplg_table_items; index++)
 		if (tplg_table[index].tsoc == asoc_type)
 			return tplg_table[index].type;
-	SNDERR("uknown asoc type %d", asoc_type);
+	snd_error(TOPOLOGY, "uknown asoc type %d", asoc_type);
 	return -EINVAL;
 }
 

@@ -819,7 +819,7 @@ static int get_char_skip_comments(input_t *input)
 
 				err = add_include_path(input->current, str);
 				if (err < 0) {
-					SNDERR("Cannot add search dir %s", str);
+					snd_error(CORE, "Cannot add search dir %s", str);
 					free(str);
 					return err;
 				}
@@ -840,7 +840,7 @@ static int get_char_skip_comments(input_t *input)
 			}
 
 			if (err < 0) {
-				SNDERR("Cannot access file %s", str);
+				snd_error(CORE, "Cannot access file %s", str);
 				free(str);
 				return err;
 			}
@@ -1205,7 +1205,7 @@ static int parse_value(snd_config_t **_n, snd_config_t *parent, input_t *input, 
 				free(s);
 				if (n) {
 					if (n->type != SND_CONFIG_TYPE_REAL) {
-						SNDERR("%s is not a real", *id);
+						snd_error(CORE, "%s is not a real", *id);
 						return -EINVAL;
 					}
 				} else {
@@ -1221,7 +1221,7 @@ static int parse_value(snd_config_t **_n, snd_config_t *parent, input_t *input, 
 			free(s);
 			if (n) {
 				if (n->type != SND_CONFIG_TYPE_INTEGER && n->type != SND_CONFIG_TYPE_INTEGER64) {
-					SNDERR("%s is not an integer", *id);
+					snd_error(CORE, "%s is not an integer", *id);
 					return -EINVAL;
 				}
 			} else {
@@ -1242,7 +1242,7 @@ static int parse_value(snd_config_t **_n, snd_config_t *parent, input_t *input, 
 	}
 	if (n) {
 		if (n->type != SND_CONFIG_TYPE_STRING) {
-			SNDERR("%s is not a string", *id);
+			snd_error(CORE, "%s is not a string", *id);
 			free(s);
 			return -EINVAL;
 		}
@@ -1301,7 +1301,7 @@ static int parse_array_def(snd_config_t *parent, input_t *input, int *idx, int s
 		if (!skip) {
 			if (n) {
 				if (n->type != SND_CONFIG_TYPE_COMPOUND) {
-					SNDERR("%s is not a compound", id);
+					snd_error(CORE, "%s is not a compound", id);
 					err = -EINVAL;
 					goto __end;
 				}
@@ -1408,7 +1408,7 @@ static int parse_def(snd_config_t *parent, input_t *input, int skip, int overrid
 			}
 			if (mode != OVERRIDE) {
 				if (n->type != SND_CONFIG_TYPE_COMPOUND) {
-					SNDERR("%s is not a compound", id);
+					snd_error(CORE, "%s is not a compound", id);
 					return -EINVAL;
 				}
 				n->u.compound.join = true;
@@ -1419,7 +1419,7 @@ static int parse_def(snd_config_t *parent, input_t *input, int skip, int overrid
 			snd_config_delete(n);
 		}
 		if (mode == MERGE) {
-			SNDERR("%s does not exists", id);
+			snd_error(CORE, "%s does not exists", id);
 			err = -ENOENT;
 			goto __end;
 		}
@@ -1446,7 +1446,7 @@ static int parse_def(snd_config_t *parent, input_t *input, int skip, int overrid
 		} else {
 			n = NULL;
 			if (mode == MERGE) {
-				SNDERR("%s does not exists", id);
+				snd_error(CORE, "%s does not exists", id);
 				err = -ENOENT;
 				goto __end;
 			}
@@ -1460,7 +1460,7 @@ static int parse_def(snd_config_t *parent, input_t *input, int skip, int overrid
 		if (!skip) {
 			if (n) {
 				if (n->type != SND_CONFIG_TYPE_COMPOUND) {
-					SNDERR("%s is not a compound", id);
+					snd_error(CORE, "%s is not a compound", id);
 					err = -EINVAL;
 					goto __end;
 				}
@@ -1645,7 +1645,7 @@ int _snd_config_save_node_value(snd_config_t *n, snd_output_t *out,
 		string_print(n->u.string, 0, out);
 		break;
 	case SND_CONFIG_TYPE_POINTER:
-		SNDERR("cannot save runtime pointer type");
+		snd_error(CORE, "cannot save runtime pointer type");
 		return -EINVAL;
 	case SND_CONFIG_TYPE_COMPOUND:
 		array = snd_config_is_array(n);
@@ -2012,13 +2012,13 @@ int _snd_config_load_with_include(snd_config_t *config, snd_input_t *in,
 			str = strerror(-err);
 			break;
 		}
-		SNDERR("%s:%d:%d:%s", fd->name ? fd->name : "_toplevel_", fd->line, fd->column, str);
+		snd_error(CORE, "%s:%d:%d:%s", fd->name ? fd->name : "_toplevel_", fd->line, fd->column, str);
 		goto _end;
 	}
 	err = get_char(&input);
 	fd = input.current;
 	if (err != LOCAL_UNEXPECTED_EOF) {
-		SNDERR("%s:%d:%d:Unexpected }", fd->name ? fd->name : "", fd->line, fd->column);
+		snd_error(CORE, "%s:%d:%d:Unexpected }", fd->name ? fd->name : "", fd->line, fd->column);
 		err = -EINVAL;
 		goto _end;
 	}
@@ -3565,9 +3565,9 @@ int snd_config_save(snd_config_t *config, snd_output_t *out)
 		assert(key); \
 		if (!first && (strcmp(key, old_key) == 0 || maxloop <= 0)) { \
 			if (maxloop == 0) \
-				SNDERR("maximum loop count reached (circular configuration?)"); \
+				snd_error(CORE, "maximum loop count reached (circular configuration?)"); \
 			else \
-				SNDERR("key %s refers to itself", key); \
+				snd_error(CORE, "key %s refers to itself", key); \
 			err = -EINVAL; \
 			res = NULL; \
 			break; \
@@ -3971,12 +3971,12 @@ static int snd_config_hooks_call(snd_config_t *root, snd_config_t *config, snd_c
 
 	err = snd_config_search(config, "func", &c);
 	if (err < 0) {
-		SNDERR("Field func is missing");
+		snd_error(CORE, "Field func is missing");
 		return err;
 	}
 	err = snd_config_get_string(c, &str);
 	if (err < 0) {
-		SNDERR("Invalid type for field func");
+		snd_error(CORE, "Invalid type for field func");
 		return err;
 	}
 	assert(str);
@@ -3984,7 +3984,7 @@ static int snd_config_hooks_call(snd_config_t *root, snd_config_t *config, snd_c
 	if (err >= 0) {
 		snd_config_iterator_t i, next;
 		if (snd_config_get_type(func_conf) != SND_CONFIG_TYPE_COMPOUND) {
-			SNDERR("Invalid type for func %s definition", str);
+			snd_error(CORE, "Invalid type for func %s definition", str);
 			err = -EINVAL;
 			goto _err;
 		}
@@ -3996,7 +3996,7 @@ static int snd_config_hooks_call(snd_config_t *root, snd_config_t *config, snd_c
 			if (strcmp(id, "lib") == 0) {
 				err = snd_config_get_string(n, &lib);
 				if (err < 0) {
-					SNDERR("Invalid type for %s", id);
+					snd_error(CORE, "Invalid type for %s", id);
 					goto _err;
 				}
 				continue;
@@ -4004,12 +4004,12 @@ static int snd_config_hooks_call(snd_config_t *root, snd_config_t *config, snd_c
 			if (strcmp(id, "func") == 0) {
 				err = snd_config_get_string(n, &func_name);
 				if (err < 0) {
-					SNDERR("Invalid type for %s", id);
+					snd_error(CORE, "Invalid type for %s", id);
 					goto _err;
 				}
 				continue;
 			}
-			SNDERR("Unknown field %s", id);
+			snd_error(CORE, "Unknown field %s", id);
 		}
 	}
 	if (!func_name) {
@@ -4027,10 +4027,10 @@ static int snd_config_hooks_call(snd_config_t *root, snd_config_t *config, snd_c
 	func = h ? snd_dlsym(h, func_name, SND_DLSYM_VERSION(SND_CONFIG_DLSYM_VERSION_HOOK)) : NULL;
 	err = 0;
 	if (!h) {
-		SNDERR("Cannot open shared library %s (%s)", lib, errbuf);
+		snd_error(CORE, "Cannot open shared library %s (%s)", lib, errbuf);
 		err = -ENOENT;
 	} else if (!func) {
-		SNDERR("symbol %s is not defined inside %s", func_name, lib);
+		snd_error(CORE, "symbol %s is not defined inside %s", func_name, lib);
 		snd_dlclose(h);
 		err = -ENXIO;
 	}
@@ -4041,7 +4041,7 @@ static int snd_config_hooks_call(snd_config_t *root, snd_config_t *config, snd_c
 		snd_config_t *nroot;
 		err = func(root, config, &nroot, private_data);
 		if (err < 0)
-			SNDERR("function %s returned error: %s", func_name, snd_strerror(err));
+			snd_error(CORE, "function %s returned error: %s", func_name, snd_strerror(err));
 		snd_dlclose(h);
 		if (err >= 0 && nroot)
 			err = snd_config_substitute(root, nroot);
@@ -4070,7 +4070,7 @@ static int snd_config_hooks(snd_config_t *config, snd_config_t *private_data)
 			long i;
 			err = safe_strtol(id, &i);
 			if (err < 0) {
-				SNDERR("id of field %s is not and integer", id);
+				snd_error(CORE, "id of field %s is not and integer", id);
 				err = -EINVAL;
 				goto _err;
 			}
@@ -4122,9 +4122,9 @@ static int config_file_open(snd_config_t *root, const char *filename, int merge)
 			err = snd_config_load_override(root, in);
 		snd_input_close(in);
 		if (err < 0)
-			SNDERR("%s may be old or corrupted: consider to remove or fix it", filename);
+			snd_error(CORE, "%s may be old or corrupted: consider to remove or fix it", filename);
 	} else
-		SNDERR("cannot access file %s", filename);
+		snd_error(CORE, "cannot access file %s", filename);
 
 	return err;
 }
@@ -4138,7 +4138,7 @@ static int config_file_load(snd_config_t *root, const char *fn, int errors, int 
 	if (!errors && access(fn, R_OK) < 0)
 		return 1;
 	if (stat64(fn, &st) < 0) {
-		SNDERR("cannot stat file/directory %s", fn);
+		snd_error(CORE, "cannot stat file/directory %s", fn);
 		return 1;
 	}
 	if (!S_ISDIR(st.st_mode))
@@ -4201,13 +4201,13 @@ static int config_file_load_user_all(snd_config_t *_root, snd_config_t *_file, i
 
 	if (snd_config_get_type(_file) == SND_CONFIG_TYPE_COMPOUND) {
 		if ((err = snd_config_search(_file, "file", &file)) < 0) {
-			SNDERR("Field file not found");
+			snd_error(CORE, "Field file not found");
 			return err;
 		}
 		if ((err = snd_config_search(_file, "root", &root)) >= 0) {
 			err = snd_config_get_ascii(root, &rname);
 			if (err < 0) {
-				SNDERR("Field root is bad");
+				snd_error(CORE, "Field root is bad");
 				return err;
 			}
 			err = snd_config_make_compound(&root, rname, 0);
@@ -4279,7 +4279,7 @@ int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t 
 	if ((err = snd_config_search(config, "errors", &n)) >= 0) {
 		errors = snd_config_get_bool(n);
 		if (errors < 0) {
-			SNDERR("Invalid bool value in field errors");
+			snd_error(CORE, "Invalid bool value in field errors");
 			return errors;
 		}
 	}
@@ -4288,15 +4288,15 @@ int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t 
 		merge = 0;
 	}
 	if ((err = snd_config_search(config, "files", &n)) < 0) {
-		SNDERR("Unable to find field files in the pre-load section");
+		snd_error(CORE, "Unable to find field files in the pre-load section");
 		return -EINVAL;
 	}
 	if ((err = snd_config_expand(n, root, NULL, private_data, &n)) < 0) {
-		SNDERR("Unable to expand filenames in the pre-load section");
+		snd_error(CORE, "Unable to expand filenames in the pre-load section");
 		return err;
 	}
 	if (snd_config_get_type(n) != SND_CONFIG_TYPE_COMPOUND) {
-		SNDERR("Invalid type for field filenames");
+		snd_error(CORE, "Invalid type for field filenames");
 		goto _err;
 	}
 
@@ -4308,7 +4308,7 @@ int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t 
 			long i;
 			err = safe_strtol(id, &i);
 			if (err < 0) {
-				SNDERR("id of field %s is not and integer", id);
+				snd_error(CORE, "id of field %s is not and integer", id);
 				err = -EINVAL;
 				goto _err;
 			}
@@ -4375,18 +4375,18 @@ static int _snd_config_hook_table(snd_config_t *root, snd_config_t *config, snd_
 	if (snd_config_search(config, "table", &n) < 0)
 		return 0;
 	if ((err = snd_config_expand(n, root, NULL, private_data, &n)) < 0) {
-		SNDERR("Unable to expand table compound");
+		snd_error(CORE, "Unable to expand table compound");
 		return err;
 	}
 	if (snd_config_search(n, "id", &tn) < 0 ||
 	    snd_config_get_string(tn, &id) < 0) {
-		SNDERR("Unable to find field table.id");
+		snd_error(CORE, "Unable to find field table.id");
 		snd_config_delete(n);
 		return -EINVAL;
 	}
 	if (snd_config_search(n, "value", &tn) < 0 ||
 	    snd_config_get_type(tn) != SND_CONFIG_TYPE_STRING) {
-		SNDERR("Unable to find field table.value");
+		snd_error(CORE, "Unable to find field table.value");
 		snd_config_delete(n);
 		return -EINVAL;
 	}
@@ -4570,7 +4570,7 @@ int snd_config_update_r(snd_config_t **_top, snd_config_update_t **_update, cons
 			lf->ino = st.st_ino;
 			lf->mtime = st.st_mtime;
 		} else {
-			SNDERR("Cannot access file %s", lf->name);
+			snd_error(CORE, "Cannot access file %s", lf->name);
 			free(lf->name);
 			memmove(&local->finfo[k], &local->finfo[k+1], sizeof(struct finfo) * (local->count - k - 1));
 			k--;
@@ -4630,17 +4630,17 @@ int snd_config_update_r(snd_config_t **_top, snd_config_update_t **_update, cons
 			err = snd_config_load(top, in);
 			snd_input_close(in);
 			if (err < 0) {
-				SNDERR("%s may be old or corrupted: consider to remove or fix it", local->finfo[k].name);
+				snd_error(CORE, "%s may be old or corrupted: consider to remove or fix it", local->finfo[k].name);
 				goto _end;
 			}
 		} else {
-			SNDERR("cannot access file %s", local->finfo[k].name);
+			snd_error(CORE, "cannot access file %s", local->finfo[k].name);
 		}
 	}
  _skip:
 	err = snd_config_hooks(top, NULL);
 	if (err < 0) {
-		SNDERR("hooks failed, removing configuration");
+		snd_error(CORE, "hooks failed, removing configuration");
 		goto _end;
 	}
 	*_top = top;
@@ -5127,7 +5127,7 @@ static int _snd_config_evaluate(snd_config_t *src,
 			return 1;
 		err = snd_config_get_string(c, &str);
 		if (err < 0) {
-			SNDERR("Invalid type for @func");
+			snd_error(CORE, "Invalid type for @func");
 			return err;
 		}
 		assert(str);
@@ -5135,7 +5135,7 @@ static int _snd_config_evaluate(snd_config_t *src,
 		if (err >= 0) {
 			snd_config_iterator_t i, next;
 			if (snd_config_get_type(func_conf) != SND_CONFIG_TYPE_COMPOUND) {
-				SNDERR("Invalid type for func %s definition", str);
+				snd_error(CORE, "Invalid type for func %s definition", str);
 				err = -EINVAL;
 				goto _err;
 			}
@@ -5147,7 +5147,7 @@ static int _snd_config_evaluate(snd_config_t *src,
 				if (strcmp(id, "lib") == 0) {
 					err = snd_config_get_string(n, &lib);
 					if (err < 0) {
-						SNDERR("Invalid type for %s", id);
+						snd_error(CORE, "Invalid type for %s", id);
 						goto _err;
 					}
 					continue;
@@ -5155,12 +5155,12 @@ static int _snd_config_evaluate(snd_config_t *src,
 				if (strcmp(id, "func") == 0) {
 					err = snd_config_get_string(n, &func_name);
 					if (err < 0) {
-						SNDERR("Invalid type for %s", id);
+						snd_error(CORE, "Invalid type for %s", id);
 						goto _err;
 					}
 					continue;
 				}
-				SNDERR("Unknown field %s", id);
+				snd_error(CORE, "Unknown field %s", id);
 			}
 		}
 		if (!func_name) {
@@ -5179,11 +5179,11 @@ static int _snd_config_evaluate(snd_config_t *src,
 			func = snd_dlsym(h, func_name, SND_DLSYM_VERSION(SND_CONFIG_DLSYM_VERSION_EVALUATE));
 		err = 0;
 		if (!h) {
-			SNDERR("Cannot open shared library %s (%s)", lib, errbuf);
+			snd_error(CORE, "Cannot open shared library %s (%s)", lib, errbuf);
 			err = -ENOENT;
 			goto _errbuf;
 		} else if (!func) {
-			SNDERR("symbol %s is not defined inside %s", func_name, lib);
+			snd_error(CORE, "symbol %s is not defined inside %s", func_name, lib);
 			snd_dlclose(h);
 			err = -ENXIO;
 			goto _errbuf;
@@ -5195,7 +5195,7 @@ static int _snd_config_evaluate(snd_config_t *src,
 			snd_config_t *eval;
 			err = func(&eval, root, src, private_data);
 			if (err < 0)
-				SNDERR("function %s returned error: %s", func_name, snd_strerror(err));
+				snd_error(CORE, "function %s returned error: %s", func_name, snd_strerror(err));
 			snd_dlclose(h);
 			if (err >= 0 && eval)
 				err = snd_config_substitute(src, eval);
@@ -5259,7 +5259,7 @@ static int load_defaults(snd_config_t *subs, snd_config_t *defs)
 				}
 				continue;
 			}
-			SNDERR("Unknown field %s", id);
+			snd_error(CORE, "Unknown field %s", id);
 			return -EINVAL;
 		}
 	}
@@ -5365,7 +5365,7 @@ static int parse_string(const char **ptr, char **val)
 		int c = **ptr;
 		switch (c) {
 		case '\0':
-			SNDERR("Unterminated string");
+			snd_error(CORE, "Unterminated string");
 			return -EINVAL;
 		case '\\':
 			c = parse_char(ptr);
@@ -5502,7 +5502,7 @@ static int parse_args(snd_config_t *subs, const char *str, snd_config_t *defs)
 			const char *id = n->id;
 			err = snd_config_search(defs, id, &d);
 			if (err < 0) {
-				SNDERR("Unknown parameter %s", id);
+				snd_error(CORE, "Unknown parameter %s", id);
 				return err;
 			}
 		}
@@ -5531,11 +5531,11 @@ static int parse_args(snd_config_t *subs, const char *str, snd_config_t *defs)
 		}
 		err = snd_config_search_alias(defs, NULL, var, &def);
 		if (err < 0) {
-			SNDERR("Unknown parameter %s", var);
+			snd_error(CORE, "Unknown parameter %s", var);
 			goto _err;
 		}
 		if (snd_config_get_type(def) != SND_CONFIG_TYPE_COMPOUND) {
-			SNDERR("Parameter %s definition is not correct", var);
+			snd_error(CORE, "Parameter %s definition is not correct", var);
 			err = -EINVAL;
 			goto _err;
 		}
@@ -5547,7 +5547,7 @@ static int parse_args(snd_config_t *subs, const char *str, snd_config_t *defs)
 		err = snd_config_search(def, "type", &typ);
 		if (err < 0) {
 		_invalid_type:
-			SNDERR("Parameter %s definition is missing a valid type info", var);
+			snd_error(CORE, "Parameter %s definition is missing a valid type info", var);
 			goto _err;
 		}
 		err = snd_config_get_string(typ, &tmp);
@@ -5560,7 +5560,7 @@ static int parse_args(snd_config_t *subs, const char *str, snd_config_t *defs)
 				goto _err;
 			err = safe_strtol(val, &v);
 			if (err < 0) {
-				SNDERR("Parameter %s must be an integer", var);
+				snd_error(CORE, "Parameter %s must be an integer", var);
 				goto _err;
 			}
 			err = snd_config_set_integer(sub, v);
@@ -5573,7 +5573,7 @@ static int parse_args(snd_config_t *subs, const char *str, snd_config_t *defs)
 				goto _err;
 			err = safe_strtoll(val, &v);
 			if (err < 0) {
-				SNDERR("Parameter %s must be an integer", var);
+				snd_error(CORE, "Parameter %s must be an integer", var);
 				goto _err;
 			}
 			err = snd_config_set_integer64(sub, v);
@@ -5586,7 +5586,7 @@ static int parse_args(snd_config_t *subs, const char *str, snd_config_t *defs)
 				goto _err;
 			err = safe_strtod(val, &v);
 			if (err < 0) {
-				SNDERR("Parameter %s must be a real", var);
+				snd_error(CORE, "Parameter %s must be a real", var);
 				goto _err;
 			}
 			err = snd_config_set_real(sub, v);
@@ -5653,7 +5653,7 @@ int snd_config_expand_custom(snd_config_t *config, snd_config_t *root,
 
 	err = snd_config_walk(config, root, &res, _snd_config_expand, fcn, private_data);
 	if (err < 0) {
-		SNDERR("Expand error (walk): %s", snd_strerror(err));
+		snd_error(CORE, "Expand error (walk): %s", snd_strerror(err));
 		return err;
 	}
 	*result = res;
@@ -5685,7 +5685,7 @@ int snd_config_expand(snd_config_t *config, snd_config_t *root, const char *args
 	err = snd_config_search(config, "@args", &defs);
 	if (err < 0) {
 		if (args != NULL) {
-			SNDERR("Unknown parameters %s", args);
+			snd_error(CORE, "Unknown parameters %s", args);
 			return -EINVAL;
 		}
 		err = snd_config_copy(&res, config);
@@ -5697,28 +5697,28 @@ int snd_config_expand(snd_config_t *config, snd_config_t *root, const char *args
 			return err;
 		err = load_defaults(subs, defs);
 		if (err < 0) {
-			SNDERR("Load defaults error: %s", snd_strerror(err));
+			snd_error(CORE, "Load defaults error: %s", snd_strerror(err));
 			goto _end;
 		}
 		err = parse_args(subs, args, defs);
 		if (err < 0) {
-			SNDERR("Parse arguments error: %s", snd_strerror(err));
+			snd_error(CORE, "Parse arguments error: %s", snd_strerror(err));
 			goto _end;
 		}
 		err = snd_config_evaluate(subs, root, private_data, NULL);
 		if (err < 0) {
-			SNDERR("Args evaluate error: %s", snd_strerror(err));
+			snd_error(CORE, "Args evaluate error: %s", snd_strerror(err));
 			goto _end;
 		}
 		err = snd_config_walk(config, root, &res, _snd_config_expand, _snd_config_expand_vars, subs);
 		if (err < 0) {
-			SNDERR("Expand error (walk): %s", snd_strerror(err));
+			snd_error(CORE, "Expand error (walk): %s", snd_strerror(err));
 			goto _end;
 		}
 	}
 	err = snd_config_evaluate(res, root, private_data, NULL);
 	if (err < 0) {
-		SNDERR("Evaluate error: %s", snd_strerror(err));
+		snd_error(CORE, "Evaluate error: %s", snd_strerror(err));
 		snd_config_delete(res);
 		goto _end;
 	}
@@ -5800,7 +5800,7 @@ int snd_config_check_hop(snd_config_t *conf)
 {
 	if (conf) {
 		if (conf->hop >= SND_CONF_MAX_HOPS) {
-			SYSERR("Too many definition levels (looped?)\n");
+			snd_errornum(CORE, "Too many definition levels (looped?)\n");
 			return -EINVAL;
 		}
 		return conf->hop;

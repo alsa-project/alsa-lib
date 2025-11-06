@@ -420,7 +420,7 @@ static int snd_pcm_ladspa_connect_plugin1(snd_pcm_ladspa_plugin_t *plugin,
                 else {
         		err = snd_pcm_ladspa_find_port(&port, plugin, io->pdesc | LADSPA_PORT_AUDIO, idx);
         		if (err < 0) {
-        		        SNDERR("unable to find audio %s port %u plugin '%s'", io->pdesc & LADSPA_PORT_INPUT ? "input" : "output", idx, plugin->desc->Name);
+				snd_error(PCM, "unable to find audio %s port %u plugin '%s'", io->pdesc & LADSPA_PORT_INPUT ? "input" : "output", idx, plugin->desc->Name);
         			return err;
                         }
                 }
@@ -428,12 +428,12 @@ static int snd_pcm_ladspa_connect_plugin1(snd_pcm_ladspa_plugin_t *plugin,
                 	continue;
         	err = snd_pcm_ladspa_add_to_carray(&eps->channels, idx1, idx);
         	if (err < 0) {
-        		SNDERR("unable to add channel %u for audio %s plugin '%s'", idx, io->pdesc & LADSPA_PORT_INPUT ? "input" : "output", plugin->desc->Name);
+			snd_error(PCM, "unable to add channel %u for audio %s plugin '%s'", idx, io->pdesc & LADSPA_PORT_INPUT ? "input" : "output", plugin->desc->Name);
         	        return err;
                 }
         	err = snd_pcm_ladspa_add_to_array(&eps->ports, idx1, port);
         	if (err < 0) {
-        		SNDERR("unable to add port %u for audio %s plugin '%s'", port, io->pdesc & LADSPA_PORT_INPUT ? "input" : "output", plugin->desc->Name);
+			snd_error(PCM, "unable to add port %u for audio %s plugin '%s'", port, io->pdesc & LADSPA_PORT_INPUT ? "input" : "output", plugin->desc->Name);
         	        return err;
                 }
                 idx1++;
@@ -469,18 +469,18 @@ static int snd_pcm_ladspa_connect_plugin_duplicate1(snd_pcm_ladspa_plugin_t *plu
 	} else {
 		err = snd_pcm_ladspa_find_port(&port, plugin, io->pdesc | LADSPA_PORT_AUDIO, 0);
 		if (err < 0) {
-		        SNDERR("unable to find audio %s port %u plugin '%s'", io->pdesc & LADSPA_PORT_INPUT ? "input" : "output", (unsigned int)0, plugin->desc->Name);
+			snd_error(PCM, "unable to find audio %s port %u plugin '%s'", io->pdesc & LADSPA_PORT_INPUT ? "input" : "output", (unsigned int)0, plugin->desc->Name);
 			return err;
                 }
 	}
 	err = snd_pcm_ladspa_add_to_carray(&eps->channels, 0, idx);
 	if (err < 0) {
-        	SNDERR("unable to add channel %u for audio %s plugin '%s'", idx, io->pdesc & LADSPA_PORT_INPUT ? "input" : "output", plugin->desc->Name);
+		snd_error(PCM, "unable to add channel %u for audio %s plugin '%s'", idx, io->pdesc & LADSPA_PORT_INPUT ? "input" : "output", plugin->desc->Name);
 	        return err;
         }
         err = snd_pcm_ladspa_add_to_array(&eps->ports, 0, port);
         if (err < 0) {
-        	SNDERR("unable to add port %u for audio %s plugin '%s'", port, io->pdesc & LADSPA_PORT_INPUT ? "input" : "output", plugin->desc->Name);
+		snd_error(PCM, "unable to add port %u for audio %s plugin '%s'", port, io->pdesc & LADSPA_PORT_INPUT ? "input" : "output", plugin->desc->Name);
         	return err;
         }
         return 0;
@@ -596,13 +596,13 @@ static int snd_pcm_ladspa_check_connect(snd_pcm_ladspa_plugin_t *plugin,
 	for (idx = midx = 0; idx < plugin->desc->PortCount; idx++)
 		if ((plugin->desc->PortDescriptors[idx] & (io->pdesc | LADSPA_PORT_AUDIO)) == (io->pdesc | LADSPA_PORT_AUDIO)) {
                         if (eps->channels.array[midx] == NO_ASSIGN) {
-                                SNDERR("%s port for plugin %s depth %u is not connected", io->pdesc & LADSPA_PORT_INPUT ? "input" : "output", plugin->desc->Name, depth);
+				snd_error(PCM, "%s port for plugin %s depth %u is not connected", io->pdesc & LADSPA_PORT_INPUT ? "input" : "output", plugin->desc->Name, depth);
                                 err++;
                         }
 			midx++;
 		}
         if (err > 0) {
-                SNDERR("%i connection errors total", err);
+		snd_error(PCM, "%i connection errors total", err);
                 return -EINVAL;
         }
         return 0;
@@ -640,7 +640,7 @@ static int snd_pcm_ladspa_allocate_instances(snd_pcm_t *pcm, snd_pcm_ladspa_t *l
 			instance->handle = plugin->desc->instantiate(plugin->desc, pcm->rate);
 			instance->depth = depth;
 			if (instance->handle == NULL) {
-				SNDERR("Unable to create instance of LADSPA plugin '%s'", plugin->desc->Name);
+				snd_error(PCM, "Unable to create instance of LADSPA plugin '%s'", plugin->desc->Name);
 				free(instance);
 				return -EINVAL;
 			}
@@ -648,13 +648,13 @@ static int snd_pcm_ladspa_allocate_instances(snd_pcm_t *pcm, snd_pcm_ladspa_t *l
 			if (plugin->policy == SND_PCM_LADSPA_POLICY_DUPLICATE) {
 				err = snd_pcm_ladspa_connect_plugin_duplicate(plugin, &plugin->input, &plugin->output, instance, idx);
 				if (err < 0) {
-					SNDERR("Unable to connect duplicate port of plugin '%s' channel %u depth %u", plugin->desc->Name, idx, instance->depth);
+					snd_error(PCM, "Unable to connect duplicate port of plugin '%s' channel %u depth %u", plugin->desc->Name, idx, instance->depth);
 					return err;
 				}
 			} else {
                 		err = snd_pcm_ladspa_connect_plugin(plugin, instance);
                 		if (err < 0) {
-	                		SNDERR("Unable to connect plugin '%s' depth %u", plugin->desc->Name, depth);
+					snd_error(PCM, "Unable to connect plugin '%s' depth %u", plugin->desc->Name, depth);
 		                	return err;
                 		}
 			}
@@ -1256,7 +1256,7 @@ static int snd_pcm_ladspa_parse_controls(snd_pcm_ladspa_plugin_t *lplug,
 	int err;
 
 	if (snd_config_get_type(controls) != SND_CONFIG_TYPE_COMPOUND) {
-		SNDERR("controls definition must be a compound");
+		snd_error(PCM, "controls definition must be a compound");
 		return -EINVAL;
 	}
 
@@ -1275,16 +1275,16 @@ static int snd_pcm_ladspa_parse_controls(snd_pcm_ladspa_plugin_t *lplug,
 			err = snd_pcm_ladspa_find_sport(&port, lplug, io->pdesc | LADSPA_PORT_CONTROL, id);
 		}
 		if (err < 0) {
-			SNDERR("Unable to find an control port (%s)", id);
+			snd_error(PCM, "Unable to find an control port (%s)", id);
 			return err;
 		}
 		if (snd_config_get_ireal(n, &dval) < 0) {
-			SNDERR("Control port %s has not an float or integer value", id);
+			snd_error(PCM, "Control port %s has not an float or integer value", id);
 			return err;
 		}
 		err = snd_pcm_ladspa_find_port_idx(&uval, lplug, io->pdesc | LADSPA_PORT_CONTROL, port);
 		if (err < 0) {
-			SNDERR("internal error");
+			snd_error(PCM, "internal error");
 			return err;
 		}
 		io->controls_initialized[uval] = 1;
@@ -1304,7 +1304,7 @@ static int snd_pcm_ladspa_parse_bindings(snd_pcm_ladspa_plugin_t *lplug,
 	int err;
 
 	if (snd_config_get_type(bindings) != SND_CONFIG_TYPE_COMPOUND) {
-		SNDERR("bindings definition must be a compound");
+		snd_error(PCM, "bindings definition must be a compound");
 		return -EINVAL;
 	}
 	snd_config_for_each(i, next, bindings) {
@@ -1315,11 +1315,11 @@ static int snd_pcm_ladspa_parse_bindings(snd_pcm_ladspa_plugin_t *lplug,
 			continue;
 		err = safe_strtol(id, &channel);
 		if (err < 0 || channel < 0) {
-			SNDERR("Invalid channel number: %s", id);
+			snd_error(PCM, "Invalid channel number: %s", id);
 			return -EINVAL;
 		}
 		if (lplug->policy == SND_PCM_LADSPA_POLICY_DUPLICATE && channel > 0) {
-			SNDERR("Wrong channel specification for duplicate policy");
+			snd_error(PCM, "Wrong channel specification for duplicate policy");
 			return -EINVAL;
 		}
 		if (count < (unsigned int)(channel + 1))
@@ -1347,19 +1347,19 @@ static int snd_pcm_ladspa_parse_bindings(snd_pcm_ladspa_plugin_t *lplug,
 			if (err >= 0) {
 				err = snd_pcm_ladspa_find_port(&array[channel], lplug, io->pdesc | LADSPA_PORT_AUDIO, port);
 				if (err < 0) {
-					SNDERR("Unable to find an audio port (%li) for channel %s", port, id);
+					snd_error(PCM, "Unable to find an audio port (%li) for channel %s", port, id);
 					return err;
 				}
 				continue;
 			}
 			err = snd_config_get_string(n, &sport);
 			if (err < 0) {
-				SNDERR("Invalid LADSPA port field type for %s", id);
+				snd_error(PCM, "Invalid LADSPA port field type for %s", id);
 				return -EINVAL;
 			}
 			err = snd_pcm_ladspa_find_sport(&array[channel], lplug, io->pdesc | LADSPA_PORT_AUDIO, sport);
 			if (err < 0) {
-				SNDERR("Unable to find an audio port (%s) for channel %s", sport, id);
+				snd_error(PCM, "Unable to find an audio port (%s) for channel %s", sport, id);
 				return err;
 			}
 		}
@@ -1379,7 +1379,7 @@ static int snd_pcm_ladspa_parse_ioconfig(snd_pcm_ladspa_plugin_t *lplug,
 	/* always add default controls for both input and output */
 	err = snd_pcm_ladspa_add_default_controls(lplug, io);
 	if (err < 0) {
-		SNDERR("error adding default controls");
+		snd_error(PCM, "error adding default controls");
 		return err;
 	}
 		
@@ -1388,7 +1388,7 @@ static int snd_pcm_ladspa_parse_ioconfig(snd_pcm_ladspa_plugin_t *lplug,
 	}
 
 	if (snd_config_get_type(conf) != SND_CONFIG_TYPE_COMPOUND) {
-		SNDERR("input or output definition must be a compound");
+		snd_error(PCM, "input or output definition must be a compound");
 		return -EINVAL;
 	}
 	snd_config_for_each(i, next, conf) {
@@ -1471,7 +1471,7 @@ static int snd_pcm_ladspa_add_plugin(struct list_head *list,
 			const char *str;
 			err = snd_config_get_string(n, &str);
 			if (err < 0) {
-				SNDERR("policy field must be a string");
+				snd_error(PCM, "policy field must be a string");
 				return err;
 			}
 			if (strcmp(str, "none") == 0)
@@ -1479,14 +1479,14 @@ static int snd_pcm_ladspa_add_plugin(struct list_head *list,
 			else if (strcmp(str, "duplicate") == 0)
 				policy = SND_PCM_LADSPA_POLICY_DUPLICATE;
 			else {
-				SNDERR("unknown policy definition");
+				snd_error(PCM, "unknown policy definition");
 				return -EINVAL;
 			}
 			continue;
 		}
 	}
 	if (label == NULL && ladspa_id <= 0) {
-		SNDERR("no plugin label or id");
+		snd_error(PCM, "no plugin label or id");
 		return -EINVAL;
 	}
 	lplug = (snd_pcm_ladspa_plugin_t *)calloc(1, sizeof(snd_pcm_ladspa_plugin_t));
@@ -1499,14 +1499,14 @@ static int snd_pcm_ladspa_add_plugin(struct list_head *list,
 	if (filename) {
 		err = snd_pcm_ladspa_check_file(lplug, filename, label, ladspa_id);
 		if (err < 0) {
-			SNDERR("Unable to load plugin '%s' ID %li, filename '%s'", label, ladspa_id, filename);
+			snd_error(PCM, "Unable to load plugin '%s' ID %li, filename '%s'", label, ladspa_id, filename);
 			free(lplug);
 			return err;
 		}
 	} else {
 		err = snd_pcm_ladspa_look_for_plugin(lplug, path, label, ladspa_id);
 		if (err < 0) {
-			SNDERR("Unable to find or load plugin '%s' ID %li, path '%s'", label, ladspa_id, path);
+			snd_error(PCM, "Unable to find or load plugin '%s' ID %li, path '%s'", label, ladspa_id, path);
 			free(lplug);
 			return err;
 		}
@@ -1536,7 +1536,7 @@ static int snd_pcm_ladspa_build_plugins(struct list_head *list,
 	if (plugins == NULL)	/* nothing TODO */
 		return 0;
 	if (snd_config_get_type(plugins) != SND_CONFIG_TYPE_COMPOUND) {
-		SNDERR("plugins must be defined inside a compound");
+		snd_error(PCM, "plugins must be defined inside a compound");
 		return -EINVAL;
 	}
 	do {
@@ -1549,7 +1549,7 @@ static int snd_pcm_ladspa_build_plugins(struct list_head *list,
 				continue;
 			err = safe_strtol(id, &i);
 			if (err < 0) {
-				SNDERR("id of field %s is not an integer", id);
+				snd_error(PCM, "id of field %s is not an integer", id);
 				return err;
 			}
 			if (i == idx) {
@@ -1562,7 +1562,7 @@ static int snd_pcm_ladspa_build_plugins(struct list_head *list,
 		}
 	} while (hit);
 	if (list_empty(list)) {
-		SNDERR("empty plugin list is not accepted");
+		snd_error(PCM, "empty plugin list is not accepted");
 		return -EINVAL;
 	}
 	return 0;
@@ -1776,16 +1776,16 @@ int _snd_pcm_ladspa_open(snd_pcm_t **pcmp, const char *name,
 			cplugins = n;
 			continue;
 		}
-		SNDERR("Unknown field %s", id);
+		snd_error(PCM, "Unknown field %s", id);
 		return -EINVAL;
 	}
 	if (!slave) {
-		SNDERR("slave is not defined");
+		snd_error(PCM, "slave is not defined");
 		return -EINVAL;
 	}
 	if (plugins) {
 		if (pplugins || cplugins) {
-			SNDERR("'plugins' definition cannot be combined with 'playback_plugins' or 'capture_plugins'");
+			snd_error(PCM, "'plugins' definition cannot be combined with 'playback_plugins' or 'capture_plugins'");
 			return -EINVAL;
 		}
 		pplugins = plugins;

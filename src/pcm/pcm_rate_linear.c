@@ -246,7 +246,7 @@ static void linear_shrink(struct rate_linear *rate,
 				dst += dst_step;
 				dst_frames1++;
 				if (CHECK_SANITY(dst_frames1 > dst_frames)) {
-					SNDERR("dst_frames overflow");
+					snd_error(PCM, "dst_frames overflow");
 					break;
 				}
 			}
@@ -298,7 +298,7 @@ static void linear_shrink_s16(struct rate_linear *rate,
 				dst += dst_step;
 				dst_frames1++;
 				if (CHECK_SANITY(dst_frames1 > dst_frames)) {
-					SNDERR("dst_frames overflow");
+					snd_error(PCM, "dst_frames overflow");
 					break;
 				}
 			}
@@ -375,8 +375,9 @@ static int linear_adjust_pitch(void *obj, snd_pcm_rate_info_t *info)
 		cframes_new = input_frames(rate, info->out.period_size);
 		if ((cframes > info->in.period_size && cframes_new < info->in.period_size) ||
 		    (cframes < info->in.period_size && cframes_new > info->in.period_size)) {
-			SNDERR("invalid pcm period_size %ld -> %ld",
-			       info->in.period_size, info->out.period_size);
+			snd_error(PCM, "invalid pcm period_size %ld -> %ld",
+				       info->in.period_size, info->out.period_size);
+
 			return -EIO;
 		}
 		cframes = cframes_new;

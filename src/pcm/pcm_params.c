@@ -2232,7 +2232,7 @@ int snd_pcm_hw_refine_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 		return err;
 	err = sprepare(pcm, &sparams);
 	if (err < 0) {
-		SNDERR("Slave PCM not usable");
+		snd_error(PCM, "Slave PCM not usable");
 		return err;
 	}
 #ifdef RULES_DEBUG

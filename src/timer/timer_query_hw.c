@@ -130,7 +130,7 @@ int _snd_timer_query_hw_open(snd_timer_query_t **timer, char *name,
 			continue;
 		if (_snd_conf_generic_id(id))
 			continue;
-		SNDERR("Unexpected field %s", id);
+		snd_error(TIMER, "Unexpected field %s", id);
 		return -EINVAL;
 	}
 	return snd_timer_query_hw_open(timer, name, mode);

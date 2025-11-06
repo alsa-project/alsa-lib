@@ -525,7 +525,7 @@ int snd_seq_create_ump_endpoint(snd_seq_t *seq,
 		return -EINVAL;
 
 	if (!(info->protocol_caps & info->protocol)) {
-		SNDERR("Inconsistent UMP protocol_caps and protocol\n");
+		snd_error(SEQUENCER, "Inconsistent UMP protocol_caps and protocol\n");
 		return -EINVAL;
 	}
 
@@ -534,13 +534,13 @@ int snd_seq_create_ump_endpoint(snd_seq_t *seq,
 	} else if (info->protocol & SND_UMP_EP_INFO_PROTO_MIDI1) {
 		version = SND_SEQ_CLIENT_UMP_MIDI_1_0;
 	} else {
-		SNDERR("Invalid UMP protocol set 0x%x\n", info->protocol);
+		snd_error(SEQUENCER, "Invalid UMP protocol set 0x%x\n", info->protocol);
 		return -EINVAL;
 	}
 
 	err = snd_seq_set_client_midi_version(seq, version);
 	if (err < 0) {
-		SNDERR("Failed to set to MIDI protocol 0x%x\n", version);
+		snd_error(SEQUENCER, "Failed to set to MIDI protocol 0x%x\n", version);
 		return err;
 	}
 
@@ -560,7 +560,7 @@ int snd_seq_create_ump_endpoint(snd_seq_t *seq,
 
 	err = snd_seq_set_ump_endpoint_info(seq, seq->ump_ep);
 	if (err < 0) {
-		SNDERR("Failed to set UMP EP info\n");
+		snd_error(SEQUENCER, "Failed to set UMP EP info\n");
 		goto error_free;
 	}
 
@@ -586,7 +586,7 @@ int snd_seq_create_ump_endpoint(snd_seq_t *seq,
 	snd_seq_port_info_set_ump_group(pinfo, 0);
 	err = snd_seq_create_port(seq, pinfo);
 	if (err < 0) {
-		SNDERR("Failed to create MIDI 2.0 port\n");
+		snd_error(SEQUENCER, "Failed to create MIDI 2.0 port\n");
 		goto error_free;
 	}
 
@@ -601,7 +601,7 @@ int snd_seq_create_ump_endpoint(snd_seq_t *seq,
 		snd_seq_port_info_set_ump_group(pinfo, i + 1);
 		err = snd_seq_create_port(seq, pinfo);
 		if (err < 0) {
-			SNDERR("Failed to create Group port %d\n", i + 1);
+			snd_error(SEQUENCER, "Failed to create Group port %d\n", i + 1);
 			goto error;
 		}
 	}
@@ -725,7 +725,7 @@ int snd_seq_create_ump_block(snd_seq_t *seq, int blkid,
 
 	err = snd_seq_set_ump_block_info(seq, blkid, bp);
 	if (err < 0) {
-		SNDERR("Failed to set UMP EP info\n");
+		snd_error(SEQUENCER, "Failed to set UMP EP info\n");
 		free(bp);
 		seq->ump_blks[blkid] = NULL;
 		return err;

@@ -480,7 +480,7 @@ static int snd_pcm_plug_change_channels(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm
 				ttable[c * tt_ssize + c] = SND_PCM_PLUGIN_ROUTE_FULL;
 			break;
 		default:
-			SNDERR("Invalid route policy");
+			snd_error(PCM, "Invalid route policy");
 			break;
 		}
 	}
@@ -861,16 +861,16 @@ static int snd_pcm_plug_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 		}
 
 		if (snd_pcm_format_mask_empty(&sfmt_mask)) {
-			SNDERR("Unable to find an usable slave format for '%s'", pcm->name);
+			snd_error(PCM, "Unable to find an usable slave format for '%s'", pcm->name);
 			for (format = 0; format <= SND_PCM_FORMAT_LAST; format++) {
 				if (!snd_pcm_format_mask_test(format_mask, format))
 					continue;
-				SNDERR("Format: %s", snd_pcm_format_name(format));
+				snd_error(PCM, "Format: %s", snd_pcm_format_name(format));
 			}
 			for (format = 0; format <= SND_PCM_FORMAT_LAST; format++) {
 				if (!snd_pcm_format_mask_test(sformat_mask, format))
 					continue;
-				SNDERR("Slave format: %s", snd_pcm_format_name(format));
+				snd_error(PCM, "Slave format: %s", snd_pcm_format_name(format));
 			}
 			return -EINVAL;
 		}
@@ -883,8 +883,9 @@ static int snd_pcm_plug_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 	if (snd_pcm_hw_param_never_eq(params, SND_PCM_HW_PARAM_ACCESS, sparams)) {
 		err = check_access_change(params, sparams);
 		if (err < 0) {
-			SNDERR("Unable to find an usable access for '%s'",
-			       pcm->name);
+			snd_error(PCM, "Unable to find an usable access for '%s'",
+				       pcm->name);
+
 			return err;
 		}
 	}
@@ -950,16 +951,16 @@ static int snd_pcm_plug_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
 		}
 
 		if (snd_pcm_format_mask_empty(&fmt_mask)) {
-			SNDERR("Unable to find an usable client format");
+			snd_error(PCM, "Unable to find an usable client format");
 			for (format = 0; format <= SND_PCM_FORMAT_LAST; format++) {
 				if (!snd_pcm_format_mask_test(format_mask, format))
 					continue;
-				SNDERR("Format: %s", snd_pcm_format_name(format));
+				snd_error(PCM, "Format: %s", snd_pcm_format_name(format));
 			}
 			for (format = 0; format <= SND_PCM_FORMAT_LAST; format++) {
 				if (!snd_pcm_format_mask_test(sformat_mask, format))
 					continue;
-				SNDERR("Slave format: %s", snd_pcm_format_name(format));
+				snd_error(PCM, "Slave format: %s", snd_pcm_format_name(format));
 			}
 			return -EINVAL;
 		}
@@ -1293,7 +1294,7 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 		if (strcmp(id, "ttable") == 0) {
 			route_policy = PLUG_ROUTE_POLICY_NONE;
 			if (snd_config_get_type(n) != SND_CONFIG_TYPE_COMPOUND) {
-				SNDERR("Invalid type for %s", id);
+				snd_error(PCM, "Invalid type for %s", id);
 				return -EINVAL;
 			}
 			tt = n;
@@ -1302,11 +1303,11 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 		if (strcmp(id, "route_policy") == 0) {
 			const char *str;
 			if ((err = snd_config_get_string(n, &str)) < 0) {
-				SNDERR("Invalid type for %s", id);
+				snd_error(PCM, "Invalid type for %s", id);
 				return -EINVAL;
 			}
 			if (tt != NULL)
-				SNDERR("Table is defined, route policy is ignored");
+				snd_error(PCM, "Table is defined, route policy is ignored");
 			if (!strcmp(str, "default"))
 				route_policy = PLUG_ROUTE_POLICY_DEFAULT;
 			else if (!strcmp(str, "average"))
@@ -1324,11 +1325,11 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 			continue;
 		}
 #endif
-		SNDERR("Unknown field %s", id);
+		snd_error(PCM, "Unknown field %s", id);
 		return -EINVAL;
 	}
 	if (!slave) {
-		SNDERR("slave is not defined");
+		snd_error(PCM, "slave is not defined");
 		return -EINVAL;
 	}
 	err = snd_pcm_slave_conf(root, slave, &sconf, 3,

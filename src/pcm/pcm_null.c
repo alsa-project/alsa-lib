@@ -386,13 +386,13 @@ int snd_pcm_null_open(snd_pcm_t **pcmp, const char *name, snd_pcm_stream_t strea
 	if (stream == SND_PCM_STREAM_PLAYBACK) {
 		fd = open("/dev/null", O_WRONLY);
 		if (fd < 0) {
-			SYSERR("Cannot open /dev/null");
+			snd_errornum(PCM, "Cannot open /dev/null");
 			return -errno;
 		}
 	} else {
 		fd = open("/dev/full", O_RDONLY);
 		if (fd < 0) {
-			SYSERR("Cannot open /dev/full");
+			snd_errornum(PCM, "Cannot open /dev/full");
 			return -errno;
 		}
 	}
@@ -481,12 +481,12 @@ int _snd_pcm_null_open(snd_pcm_t **pcmp, const char *name,
 			snd_pcm_free_chmaps(chmap);
 			chmap = _snd_pcm_parse_config_chmaps(n);
 			if (!chmap) {
-				SNDERR("Invalid channel map for %s", id);
+				snd_error(PCM, "Invalid channel map for %s", id);
 				return -EINVAL;
 			}
 			continue;
 		}
-		SNDERR("Unknown field %s", id);
+		snd_error(PCM, "Unknown field %s", id);
 		snd_pcm_free_chmaps(chmap);
 		return -EINVAL;
 	}

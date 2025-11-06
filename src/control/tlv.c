@@ -69,7 +69,7 @@ int snd_tlv_parse_dB_info(unsigned int *tlv,
 	/* Validate that it is possible to read the type and size
 	 * without reading past the end of the buffer. */
 	if (tlv_size < MIN_TLV_STREAM_LEN) {
-		SNDERR("TLV stream too short");
+		snd_error(CONTROL, "TLV stream too short");
 		return -EINVAL;
 	}
 
@@ -78,7 +78,7 @@ int snd_tlv_parse_dB_info(unsigned int *tlv,
 	size = tlv[SNDRV_CTL_TLVO_LEN];
 	tlv_size -= 2 * sizeof(int);
 	if (size > tlv_size) {
-		SNDERR("TLV size error");
+		snd_error(CONTROL, "TLV size error");
 		return -EINVAL;
 	}
 	switch (type) {
@@ -110,11 +110,11 @@ int snd_tlv_parse_dB_info(unsigned int *tlv,
 		else
 			minsize = 2 * sizeof(int);
 		if (size < minsize) {
-			SNDERR("Invalid dB_scale TLV size");
+			snd_error(CONTROL, "Invalid dB_scale TLV size");
 			return -EINVAL;
 		}
 		if (size > MAX_TLV_RANGE_SIZE) {
-			SNDERR("Too big dB_scale TLV size: %d", size);
+			snd_error(CONTROL, "Too big dB_scale TLV size: %d", size);
 			return -EINVAL;
 		}
 		*db_tlvp = tlv;

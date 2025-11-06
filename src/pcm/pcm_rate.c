@@ -396,7 +396,7 @@ static int snd_pcm_rate_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	sinfo->period_size = slave->period_size;
 
 	if (CHECK_SANITY(rate->pareas)) {
-		SNDMSG("rate plugin already in use");
+		snd_check(PCM, "rate plugin already in use");
 		return -EBUSY;
 	}
 
@@ -412,7 +412,7 @@ static int snd_pcm_rate_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	rate->orig_in_format = rate->info.in.format;
 	rate->orig_out_format = rate->info.out.format;
 	if (choose_preferred_format(rate) < 0) {
-		SNDERR("No matching format in rate plugin");
+		snd_error(PCM, "No matching format in rate plugin");
 		err = -EINVAL;
 		goto error_pareas;
 	}
@@ -854,7 +854,7 @@ static int snd_pcm_rate_commit_area(snd_pcm_t *pcm, snd_pcm_rate_t *rate,
 			return result;
 #if 0
 		if (slave_offset) {
-			SNDERR("non-zero slave_offset %ld", slave_offset);
+			snd_error(PCM, "non-zero slave_offset %ld", slave_offset);
 			return -EIO;
 		}
 #endif
@@ -953,7 +953,7 @@ static int snd_pcm_rate_grab_next_period(snd_pcm_t *pcm, snd_pcm_uframes_t hw_of
 			return result;
 #if 0
 		if (slave_offset) {
-			SNDERR("non-zero slave_offset %ld", slave_offset);
+			snd_error(PCM, "non-zero slave_offset %ld", slave_offset);
 			return -EIO;
 		}
 #endif
@@ -1565,20 +1565,20 @@ int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name,
 			break;
 		}
 		if (!type) {
-			SNDERR("No name given for rate converter");
+			snd_error(PCM, "No name given for rate converter");
 			snd_pcm_free(pcm);
 			free(rate);
 			return -EINVAL;
 		}
 		err = rate_open_func(rate, type, converter, 1);
 	} else {
-		SNDERR("Invalid type for rate converter");
+		snd_error(PCM, "Invalid type for rate converter");
 		snd_pcm_free(pcm);
 		free(rate);
 		return -EINVAL;
 	}
 	if (err < 0) {
-		SNDERR("Cannot find rate converter");
+		snd_error(PCM, "Cannot find rate converter");
 		snd_pcm_free(pcm);
 		free(rate);
 		return -ENOENT;
@@ -1596,7 +1596,7 @@ int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name,
 
 	if (! rate->ops.init || ! (rate->ops.convert || rate->ops.convert_s16) ||
 	    ! rate->ops.input_frames || ! rate->ops.output_frames) {
-		SNDERR("Inproper rate plugin %s initialization", type);
+		snd_error(PCM, "Inproper rate plugin %s initialization", type);
 		snd_pcm_free(pcm);
 		free(rate);
 		return err;
@@ -1698,11 +1698,11 @@ int _snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name,
 			converter = n;
 			continue;
 		}
-		SNDERR("Unknown field %s", id);
+		snd_error(PCM, "Unknown field %s", id);
 		return -EINVAL;
 	}
 	if (!slave) {
-		SNDERR("slave is not defined");
+		snd_error(PCM, "slave is not defined");
 		return -EINVAL;
 	}
 
@@ -1714,7 +1714,7 @@ int _snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name,
 	if (sformat != SND_PCM_FORMAT_UNKNOWN &&
 	    snd_pcm_format_linear(sformat) != 1) {
 	    	snd_config_delete(sconf);
-		SNDERR("slave format is not linear");
+		snd_error(PCM, "slave format is not linear");
 		return -EINVAL;
 	}
 	err = snd_pcm_open_slave(&spcm, root, sconf, stream, mode, conf);

@@ -238,11 +238,11 @@ static snd_pcm_uframes_t _snd_pcm_share_missing(snd_pcm_t *pcm)
 			}
 			err = snd_pcm_mmap_commit(spcm, snd_pcm_mmap_offset(spcm), frames);
 			if (err < 0) {
-				SYSMSG("snd_pcm_mmap_commit error");
+				snd_checknum(PCM, "snd_pcm_mmap_commit error");
 				return INT_MAX;
 			}
 			if (err != frames)
-				SYSMSG("commit returns %ld for size %ld", err, frames);
+				snd_checknum(PCM, "commit returns %ld for size %ld", err, frames);
 			slave_avail -= err;
 		} else {
 			if (safety_missing == 0)
@@ -282,7 +282,7 @@ static snd_pcm_uframes_t _snd_pcm_share_missing(snd_pcm_t *pcm)
 		running = 1;
 		break;
 	default:
-		SNDERR("invalid shared PCM state %d", share->state);
+		snd_error(PCM, "invalid shared PCM state %d", share->state);
 		return INT_MAX;
 	}
 
@@ -370,13 +370,13 @@ static void *snd_pcm_share_thread(void *data)
 	pfd[0].events = POLLIN;
 	err = snd_pcm_poll_descriptors(spcm, &pfd[1], 1);
 	if (err != 1) {
-		SNDERR("invalid poll descriptors %d", err);
+		snd_error(PCM, "invalid poll descriptors %d", err);
 		return NULL;
 	}
 	Pthread_mutex_lock(&slave->mutex);
 	err = pipe(slave->poll);
 	if (err < 0) {
-		SYSERR("can't create a pipe");
+		snd_errornum(PCM, "can't create a pipe");
 		Pthread_mutex_unlock(&slave->mutex);
 		return NULL;
 	}
@@ -403,7 +403,7 @@ static void *snd_pcm_share_thread(void *data)
 				snd_pcm_sw_params_set_avail_min(spcm, &slave->sw_params, avail_min);
 				err = snd_pcm_sw_params(spcm, &slave->sw_params);
 				if (err < 0) {
-					SYSERR("snd_pcm_sw_params error");
+					snd_errornum(PCM, "snd_pcm_sw_params error");
 					Pthread_mutex_unlock(&slave->mutex);
 					return NULL;
 				}
@@ -457,7 +457,7 @@ static void _snd_pcm_share_update(snd_pcm_t *pcm)
 			snd_pcm_sw_params_set_avail_min(spcm, &slave->sw_params, avail_min);
 			err = snd_pcm_sw_params(spcm, &slave->sw_params);
 			if (err < 0) {
-				SYSERR("snd_pcm_sw_params error");
+				snd_errornum(PCM, "snd_pcm_sw_params error");
 				return;
 			}
 		}
@@ -648,7 +648,7 @@ static int snd_pcm_share_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 					    spcm->buffer_size, 0);
 	_err:
 		if (err < 0) {
-			SNDERR("slave is already running with incompatible setup");
+			snd_error(PCM, "slave is already running with incompatible setup");
 			err = -EBUSY;
 			goto _end;
 		}
@@ -852,11 +852,11 @@ static snd_pcm_sframes_t _snd_pcm_share_mmap_commit(snd_pcm_t *pcm,
 			snd_pcm_sframes_t err;
 			err = snd_pcm_mmap_commit(spcm, snd_pcm_mmap_offset(spcm), frames);
 			if (err < 0) {
-				SYSMSG("snd_pcm_mmap_commit error");
+				snd_checknum(PCM, "snd_pcm_mmap_commit error");
 				return err;
 			}
 			if (err != frames) {
-				SYSMSG("commit returns %ld for size %ld", err, frames);
+				snd_checknum(PCM, "commit returns %ld for size %ld", err, frames);
 				return err;
 			}
 		}
@@ -1399,11 +1399,11 @@ int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 
 	for (k = 0; k < channels; ++k) {
 		if (channels_map[k] >= sizeof(slave_map) / sizeof(slave_map[0])) {
-			SNDERR("Invalid slave channel (%d) in binding", channels_map[k]);
+			snd_error(PCM, "Invalid slave channel (%d) in binding", channels_map[k]);
 			return -EINVAL;
 		}
 		if (slave_map[channels_map[k]]) {
-			SNDERR("Repeated slave channel (%d) in binding", channels_map[k]);
+			snd_error(PCM, "Repeated slave channel (%d) in binding", channels_map[k]);
 			return -EINVAL;
 		}
 		slave_map[channels_map[k]] = 1;
@@ -1516,7 +1516,7 @@ int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 			snd_pcm_share_t *sh = list_entry(i, snd_pcm_share_t, list);
 			for (k = 0; k < sh->channels; ++k) {
 				if (slave_map[sh->slave_channels[k]]) {
-					SNDERR("Slave channel %d is already in use", sh->slave_channels[k]);
+					snd_error(PCM, "Slave channel %d is already in use", sh->slave_channels[k]);
 					Pthread_mutex_unlock(&slave->mutex);
 					close(sd[0]);
 					close(sd[1]);
@@ -1638,17 +1638,17 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name,
 		}
 		if (strcmp(id, "bindings") == 0) {
 			if (snd_config_get_type(n) != SND_CONFIG_TYPE_COMPOUND) {
-				SNDERR("Invalid type for %s", id);
+				snd_error(PCM, "Invalid type for %s", id);
 				return -EINVAL;
 			}
 			bindings = n;
 			continue;
 		}
-		SNDERR("Unknown field %s", id);
+		snd_error(PCM, "Unknown field %s", id);
 		return -EINVAL;
 	}
 	if (!slave) {
-		SNDERR("slave is not defined");
+		snd_error(PCM, "slave is not defined");
 		return -EINVAL;
 	}
 	err = snd_pcm_slave_conf(root, slave, &sconf, 5,
@@ -1665,12 +1665,12 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name,
 	sname = err >= 0 && sname ? strdup(sname) : NULL;
 	snd_config_delete(sconf);
 	if (sname == NULL) {
-		SNDERR("slave.pcm is not a string");
+		snd_error(PCM, "slave.pcm is not a string");
 		return err;
 	}
 
 	if (!bindings) {
-		SNDERR("bindings is not defined");
+		snd_error(PCM, "bindings is not defined");
 		err = -EINVAL;
 		goto _free;
 	}
@@ -1682,7 +1682,7 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name,
 			continue;
 		err = safe_strtol(id, &cchannel);
 		if (err < 0 || cchannel < 0) {
-			SNDERR("Invalid client channel in binding: %s", id);
+			snd_error(PCM, "Invalid client channel in binding: %s", id);
 			err = -EINVAL;
 			goto _free;
 		}
@@ -1690,7 +1690,7 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name,
 			channels = cchannel + 1;
 	}
 	if (channels == 0) {
-		SNDERR("No bindings defined");
+		snd_error(PCM, "No bindings defined");
 		err = -EINVAL;
 		goto _free;
 	}

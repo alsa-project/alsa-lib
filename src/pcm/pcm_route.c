@@ -810,7 +810,7 @@ static int determine_chmap(snd_config_t *tt, snd_pcm_chmap_t **tt_chmap)
 				continue;
 
 			if (chmap->channels >= MAX_CHMAP_CHANNELS) {
-				SNDERR("Too many channels in ttable chmap");
+				snd_error(PCM, "Too many channels in ttable chmap");
 				goto err;
 			}
 			chmap->pos[chmap->channels++] = ch;
@@ -875,7 +875,7 @@ static int find_matching_chmap(snd_pcm_chmap_query_t **chmaps,
 	}
 
 	if (*found_chmap == NULL) {
-		SNDERR("Found no matching channel map");
+		snd_error(PCM, "Found no matching channel map");
 		return -EINVAL;
 	}
 	return 0;
@@ -1085,7 +1085,7 @@ static int _snd_pcm_route_determine_ttable(snd_config_t *tt,
 			continue;
 		err = safe_strtol(id, &cchannel);
 		if (err < 0) {
-			SNDERR("Invalid client channel: %s", id);
+			snd_error(PCM, "Invalid client channel: %s", id);
 			return -EINVAL;
 		}
 		if (cchannel + 1 > csize)
@@ -1100,7 +1100,7 @@ static int _snd_pcm_route_determine_ttable(snd_config_t *tt,
 				continue;
 			err = strtochannel(id, chmap, &schannel, 1);
 			if (err < 0) {
-				SNDERR("Invalid slave channel: %s", id);
+				snd_error(PCM, "Invalid slave channel: %s", id);
 				return -EINVAL;
 			}
 			if (schannel + 1 > ssize)
@@ -1108,7 +1108,7 @@ static int _snd_pcm_route_determine_ttable(snd_config_t *tt,
 		}
 	}
 	if (csize == 0 || ssize == 0) {
-		SNDERR("Invalid null ttable configuration");
+		snd_error(PCM, "Invalid null ttable configuration");
 		return -EINVAL;
 	}
 	*tt_csize = csize;
@@ -1168,7 +1168,7 @@ static int _snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_ent
 		err = safe_strtol(id, &cchannel);
 		if (err < 0 || 
 		    cchannel < 0 || (unsigned int) cchannel > tt_csize) {
-			SNDERR("Invalid client channel: %s", id);
+			snd_error(PCM, "Invalid client channel: %s", id);
 			return -EINVAL;
 		}
 		if (snd_config_get_type(in) != SND_CONFIG_TYPE_COMPOUND)
@@ -1183,13 +1183,13 @@ static int _snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_ent
 
 			ss = strtochannel(id, chmap, scha, tt_ssize);
 			if (ss < 0) {
-				SNDERR("Invalid slave channel: %s", id);
+				snd_error(PCM, "Invalid slave channel: %s", id);
 				return -EINVAL;
 			}
 
 			err = snd_config_get_ireal(jnode, &value);
 			if (err < 0) {
-				SNDERR("Invalid type for %s", id);
+				snd_error(PCM, "Invalid type for %s", id);
 				return -EINVAL;
 			}
 
@@ -1197,7 +1197,7 @@ static int _snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_ent
 				long schannel = scha[k];
 				if (schannel < 0 || (unsigned int) schannel > tt_ssize ||
 				    (schannels > 0 && schannel >= schannels)) {
-					SNDERR("Invalid slave channel: %s", id);
+					snd_error(PCM, "Invalid slave channel: %s", id);
 					return -EINVAL;
 				}
 				ttable[cchannel * tt_ssize + schannel] = value;
@@ -1315,7 +1315,7 @@ int _snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 		}
 		if (strcmp(id, "ttable") == 0) {
 			if (snd_config_get_type(n) != SND_CONFIG_TYPE_COMPOUND) {
-				SNDERR("Invalid type for %s", id);
+				snd_error(PCM, "Invalid type for %s", id);
 				snd_pcm_free_chmaps(chmaps);
 				return -EINVAL;
 			}
@@ -1325,21 +1325,21 @@ int _snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 		if (strcmp(id, "chmap") == 0) {
 			chmaps = _snd_pcm_parse_config_chmaps(n);
 			if (!chmaps) {
-				SNDERR("Invalid channel map for %s", id);
+				snd_error(PCM, "Invalid channel map for %s", id);
 				return -EINVAL;
 			}
 			continue;
 		}
-		SNDERR("Unknown field %s", id);
+		snd_error(PCM, "Unknown field %s", id);
 		return -EINVAL;
 	}
 	if (!slave) {
-		SNDERR("slave is not defined");
+		snd_error(PCM, "slave is not defined");
 		snd_pcm_free_chmaps(chmaps);
 		return -EINVAL;
 	}
 	if (!tt) {
-		SNDERR("ttable is not defined");
+		snd_error(PCM, "ttable is not defined");
 		snd_pcm_free_chmaps(chmaps);
 		return -EINVAL;
 	}
@@ -1353,7 +1353,7 @@ int _snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 	if (sformat != SND_PCM_FORMAT_UNKNOWN &&
 	    snd_pcm_format_linear(sformat) != 1) {
 	    	snd_config_delete(sconf);
-		SNDERR("slave format is not linear");
+		snd_error(PCM, "slave format is not linear");
 		snd_pcm_free_chmaps(chmaps);
 		return -EINVAL;
 	}

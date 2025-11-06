@@ -71,7 +71,7 @@ static int snd_ctl_hw_nonblock(snd_ctl_t *handle, int nonblock)
 	long flags;
 	int fd = hw->fd;
 	if ((flags = fcntl(fd, F_GETFL)) < 0) {
-		SYSERR("F_GETFL failed");
+		snd_errornum(CONTROL, "F_GETFL failed");
 		return -errno;
 	}
 	if (nonblock)
@@ -79,7 +79,7 @@ static int snd_ctl_hw_nonblock(snd_ctl_t *handle, int nonblock)
 	else
 		flags &= ~O_NONBLOCK;
 	if (fcntl(fd, F_SETFL, flags) < 0) {
-		SYSERR("F_SETFL for O_NONBLOCK failed");
+		snd_errornum(CONTROL, "F_SETFL for O_NONBLOCK failed");
 		return -errno;
 	}
 	return 0;
@@ -92,7 +92,7 @@ static int snd_ctl_hw_async(snd_ctl_t *ctl, int sig, pid_t pid)
 	int fd = hw->fd;
 
 	if ((flags = fcntl(fd, F_GETFL)) < 0) {
-		SYSERR("F_GETFL failed");
+		snd_errornum(CONTROL, "F_GETFL failed");
 		return -errno;
 	}
 	if (sig >= 0)
@@ -100,17 +100,17 @@ static int snd_ctl_hw_async(snd_ctl_t *ctl, int sig, pid_t pid)
 	else
 		flags &= ~O_ASYNC;
 	if (fcntl(fd, F_SETFL, flags) < 0) {
-		SYSERR("F_SETFL for O_ASYNC failed");
+		snd_errornum(CONTROL, "F_SETFL for O_ASYNC failed");
 		return -errno;
 	}
 	if (sig < 0)
 		return 0;
 	if (fcntl(fd, F_SETSIG, (long)sig) < 0) {
-		SYSERR("F_SETSIG failed");
+		snd_errornum(CONTROL, "F_SETSIG failed");
 		return -errno;
 	}
 	if (fcntl(fd, F_SETOWN, (long)pid) < 0) {
-		SYSERR("F_SETOWN failed");
+		snd_errornum(CONTROL, "F_SETOWN failed");
 		return -errno;
 	}
 	return 0;
@@ -120,7 +120,7 @@ static int snd_ctl_hw_subscribe_events(snd_ctl_t *handle, int subscribe)
 {
 	snd_ctl_hw_t *hw = handle->private_data;
 	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_SUBSCRIBE_EVENTS, &subscribe) < 0) {
-		SYSERR("SNDRV_CTL_IOCTL_SUBSCRIBE_EVENTS failed");
+		snd_errornum(CONTROL, "SNDRV_CTL_IOCTL_SUBSCRIBE_EVENTS failed");
 		return -errno;
 	}
 	return 0;
@@ -130,7 +130,7 @@ static int snd_ctl_hw_card_info(snd_ctl_t *handle, snd_ctl_card_info_t *info)
 {
 	snd_ctl_hw_t *hw = handle->private_data;
 	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_CARD_INFO, info) < 0) {
-		SYSERR("SNDRV_CTL_IOCTL_CARD_INFO failed");
+		snd_errornum(CONTROL, "SNDRV_CTL_IOCTL_CARD_INFO failed");
 		return -errno;
 	}
 	return 0;
@@ -375,8 +375,9 @@ static int snd_ctl_hw_read(snd_ctl_t *handle, snd_ctl_event_t *event)
 	if (res <= 0)
 		return -errno;
 	if (CHECK_SANITY(res != sizeof(*event))) {
-		SNDMSG("snd_ctl_hw_read: read size error (req:%d, got:%d)",
-		       sizeof(*event), res);
+		snd_check(CONTROL, "snd_ctl_hw_read: read size error (req:%d, got:%d)",
+				   sizeof(*event), res);
+
 		return -EINVAL;
 	}
 	return 1;
@@ -437,7 +438,7 @@ int snd_ctl_hw_open(snd_ctl_t **handle, const char *name, int card, int mode)
 	*handle = NULL;	
 
 	if (CHECK_SANITY(card < 0 || card >= SND_MAX_CARDS)) {
-		SNDMSG("Invalid card index %d", card);
+		snd_check(CONTROL, "Invalid card index %d", card);
 		return -EINVAL;
 	}
 	sprintf(filename, SNDRV_FILE_CONTROL, card);

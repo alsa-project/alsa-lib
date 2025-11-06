@@ -483,11 +483,11 @@ int _snd_pcm_lfloat_open(snd_pcm_t **pcmp, const char *name,
 			slave = n;
 			continue;
 		}
-		SNDERR("Unknown field %s", id);
+		snd_error(PCM, "Unknown field %s", id);
 		return -EINVAL;
 	}
 	if (!slave) {
-		SNDERR("slave is not defined");
+		snd_error(PCM, "slave is not defined");
 		return -EINVAL;
 	}
 	err = snd_pcm_slave_conf(root, slave, &sconf, 1,
@@ -497,7 +497,7 @@ int _snd_pcm_lfloat_open(snd_pcm_t **pcmp, const char *name,
 	if (snd_pcm_format_linear(sformat) != 1 &&
 	    snd_pcm_format_float(sformat) != 1) {
 		snd_config_delete(sconf);
-		SNDERR("slave format is not linear integer or linear float");
+		snd_error(PCM, "slave format is not linear integer or linear float");
 		return -EINVAL;
 	}
 	err = snd_pcm_open_slave(&spcm, root, sconf, stream, mode, conf);
@@ -521,7 +521,7 @@ int snd_pcm_lfloat_open(snd_pcm_t **pcmp ATTRIBUTE_UNUSED,
 			snd_pcm_t *slave ATTRIBUTE_UNUSED,
 			int close_slave ATTRIBUTE_UNUSED)
 {
-	SNDERR("please, upgrade your GCC to use lfloat plugin");
+	snd_error(PCM, "please, upgrade your GCC to use lfloat plugin");
 	return -EINVAL;
 }
 
@@ -532,7 +532,7 @@ int _snd_pcm_lfloat_open(snd_pcm_t **pcmp ATTRIBUTE_UNUSED,
 			 snd_pcm_stream_t stream ATTRIBUTE_UNUSED,
 			 int mode ATTRIBUTE_UNUSED)
 {
-	SNDERR("please, upgrade your GCC to use lfloat plugin");
+	snd_error(PCM, "please, upgrade your GCC to use lfloat plugin");
 	return -EINVAL;
 }
 

@@ -667,7 +667,7 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 	assert(pcmp);
 
 	if (stream != SND_PCM_STREAM_PLAYBACK) {
-		SNDERR("The dshare plugin supports only playback stream");
+		snd_error(PCM, "The dshare plugin supports only playback stream");
 		return -EINVAL;
 	}
 
@@ -698,18 +698,18 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 		ret = snd_pcm_open_slave(&spcm, root, sconf, stream,
 					 mode | SND_PCM_NONBLOCK, NULL);
 		if (ret < 0) {
-			SNDERR("unable to open slave");
+			snd_error(PCM, "unable to open slave");
 			goto _err;
 		}
 	
 		if (snd_pcm_type(spcm) != SND_PCM_TYPE_HW) {
-			SNDERR("dshare plugin can be only connected to hw plugin");
+			snd_error(PCM, "dshare plugin can be only connected to hw plugin");
 			goto _err;
 		}
 		
 		ret = snd_pcm_direct_initialize_slave(dshare, spcm, params);
 		if (ret < 0) {
-			SNDERR("unable to initialize slave");
+			snd_error(PCM, "unable to initialize slave");
 			goto _err;
 		}
 
@@ -718,7 +718,7 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 		if (dshare->shmptr->use_server) {
 			ret = snd_pcm_direct_server_create(dshare);
 			if (ret < 0) {
-				SNDERR("unable to create server");
+				snd_error(PCM, "unable to create server");
 				goto _err;
 			}
 		}
@@ -730,7 +730,7 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 			snd_pcm_direct_semaphore_up(dshare, DIRECT_IPC_SEM_CLIENT);
 			ret = snd_pcm_direct_client_connect(dshare);
 			if (ret < 0) {
-				SNDERR("unable to connect client");
+				snd_error(PCM, "unable to connect client");
 				goto _err_nosem;
 			}
 			
@@ -753,18 +753,18 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 					first_instance = 1;
 					goto retry;
 				}
-				SNDERR("unable to open slave");
+				snd_error(PCM, "unable to open slave");
 				goto _err;
 			}
 			if (snd_pcm_type(spcm) != SND_PCM_TYPE_HW) {
-				SNDERR("dshare plugin can be only connected to hw plugin");
+				snd_error(PCM, "dshare plugin can be only connected to hw plugin");
 				ret = -EINVAL;
 				goto _err;
 			}
 		
 			ret = snd_pcm_direct_initialize_secondary_slave(dshare, spcm, params);
 			if (ret < 0) {
-				SNDERR("unable to initialize slave");
+				snd_error(PCM, "unable to initialize slave");
 				goto _err;
 			}
 		}
@@ -778,7 +778,7 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 			dshare->u.dshare.chn_mask |= (1ULL << dchn);
 	}
 	if (dshare->shmptr->u.dshare.chn_mask & dshare->u.dshare.chn_mask) {
-		SNDERR("destination channel specified in bindings is already used");
+		snd_error(PCM, "destination channel specified in bindings is already used");
 		dshare->u.dshare.chn_mask = 0;
 		ret = -EINVAL;
 		goto _err;
@@ -787,7 +787,7 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 		
 	ret = snd_pcm_direct_initialize_poll_fd(dshare);
 	if (ret < 0) {
-		SNDERR("unable to initialize poll_fd");
+		snd_error(PCM, "unable to initialize poll_fd");
 		goto _err;
 	}
 

@@ -538,7 +538,7 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 	assert(pcmp);
 
 	if (stream != SND_PCM_STREAM_CAPTURE) {
-		SNDERR("The dsnoop plugin supports only capture stream");
+		snd_error(PCM, "The dsnoop plugin supports only capture stream");
 		return -EINVAL;
 	}
 
@@ -564,18 +564,18 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 		ret = snd_pcm_open_slave(&spcm, root, sconf, stream,
 					 mode | SND_PCM_NONBLOCK, NULL);
 		if (ret < 0) {
-			SNDERR("unable to open slave");
+			snd_error(PCM, "unable to open slave");
 			goto _err;
 		}
 	
 		if (snd_pcm_type(spcm) != SND_PCM_TYPE_HW) {
-			SNDERR("dsnoop plugin can be only connected to hw plugin");
+			snd_error(PCM, "dsnoop plugin can be only connected to hw plugin");
 			goto _err;
 		}
 		
 		ret = snd_pcm_direct_initialize_slave(dsnoop, spcm, params);
 		if (ret < 0) {
-			SNDERR("unable to initialize slave");
+			snd_error(PCM, "unable to initialize slave");
 			goto _err;
 		}
 
@@ -584,7 +584,7 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 		if (dsnoop->shmptr->use_server) {
 			ret = snd_pcm_direct_server_create(dsnoop);
 			if (ret < 0) {
-				SNDERR("unable to create server");
+				snd_error(PCM, "unable to create server");
 				goto _err;
 			}
 		}
@@ -596,7 +596,7 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 			snd_pcm_direct_semaphore_up(dsnoop, DIRECT_IPC_SEM_CLIENT);
 			ret = snd_pcm_direct_client_connect(dsnoop);
 			if (ret < 0) {
-				SNDERR("unable to connect client");
+				snd_error(PCM, "unable to connect client");
 				goto _err_nosem;
 			}
 			
@@ -619,18 +619,18 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 					first_instance = 1;
 					goto retry;
 				}
-				SNDERR("unable to open slave");
+				snd_error(PCM, "unable to open slave");
 				goto _err;
 			}
 			if (snd_pcm_type(spcm) != SND_PCM_TYPE_HW) {
-				SNDERR("dsnoop plugin can be only connected to hw plugin");
+				snd_error(PCM, "dsnoop plugin can be only connected to hw plugin");
 				ret = -EINVAL;
 				goto _err;
 			}
 		
 			ret = snd_pcm_direct_initialize_secondary_slave(dsnoop, spcm, params);
 			if (ret < 0) {
-				SNDERR("unable to initialize slave");
+				snd_error(PCM, "unable to initialize slave");
 				goto _err;
 			}
 		}
@@ -640,7 +640,7 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 
 	ret = snd_pcm_direct_initialize_poll_fd(dsnoop);
 	if (ret < 0) {
-		SNDERR("unable to initialize poll_fd");
+		snd_error(PCM, "unable to initialize poll_fd");
 		goto _err;
 	}
 

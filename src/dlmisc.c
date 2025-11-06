@@ -223,7 +223,7 @@ static int snd_dlsym_verify(void *handle, const char *name, const char *version)
 	res = dlsym(handle, vname) == NULL ? -ENOENT : 0;
 	// printf("dlsym verify: %i, vname = '%s'\n", res, vname);
 	if (res < 0)
-		SNDERR("unable to verify version for symbol %s", name);
+		snd_error(CORE, "unable to verify version for symbol %s", name);
 	return res;
 #else
 	return 0;
@@ -336,17 +336,20 @@ snd_dlobj_cache_get0(const char *lib, const char *name,
 	                   verbose ? sizeof(errbuf) : 0);
 	if (dlobj == NULL) {
 		if (verbose)
-			SNDERR("Cannot open shared library %s (%s)",
-						lib ? lib : "[builtin]",
-						errbuf);
+			snd_error(CORE, "Cannot open shared library %s (%s)",
+							 lib ? lib : "[builtin]",
+
+							 errbuf);
+
 		return NULL;
 	}
 
 	func = snd_dlsym(dlobj, name, version);
 	if (func == NULL) {
 		if (verbose)
-			SNDERR("symbol %s is not defined inside %s",
-					name, lib ? lib : "[builtin]");
+			snd_error(CORE, "symbol %s is not defined inside %s",
+						 name, lib ? lib : "[builtin]");
+
 		goto __err;
 	}
 	c = malloc(sizeof(*c));

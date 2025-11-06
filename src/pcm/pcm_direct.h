@@ -308,7 +308,7 @@ static inline int snd_pcm_direct_semaphore_up(snd_pcm_direct_t *dmix, int sem_nu
 static inline int snd_pcm_direct_semaphore_final(snd_pcm_direct_t *dmix, int sem_num)
 {
 	if (dmix->locked[sem_num] != 1) {
-		SNDMSG("invalid semaphore count to finalize %d: %d", sem_num, dmix->locked[sem_num]);
+		snd_check(PCM, "invalid semaphore count to finalize %d: %d", sem_num, dmix->locked[sem_num]);
 		return -EBUSY;
 	}
 	return snd_pcm_direct_semaphore_up(dmix, sem_num);

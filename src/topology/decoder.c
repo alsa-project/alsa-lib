@@ -61,40 +61,40 @@ int snd_tplg_decode(snd_tplg_t *tplg, void *bin, size_t size, int dflags)
 		}
 		if (size - pos < sizeof(*hdr)) {
 			tplg_log(tplg, 'D', pos, "block: small size");
-			SNDERR("incomplete header data to decode");
+			snd_error(TOPOLOGY, "incomplete header data to decode");
 			return -EINVAL;
 		}
 		hdr = b;
 		if (hdr->magic != SND_SOC_TPLG_MAGIC) {
-			SNDERR("bad block magic %08x", hdr->magic);
+			snd_error(TOPOLOGY, "bad block magic %08x", hdr->magic);
 			return -EINVAL;
 		}
 
 		tplg_log(tplg, 'D', pos, "block: abi %d size %d payload size %d",
 			 hdr->abi, hdr->size, hdr->payload_size);
 		if (hdr->abi != SND_SOC_TPLG_ABI_VERSION) {
-			SNDERR("unsupported ABI version %d", hdr->abi);
+			snd_error(TOPOLOGY, "unsupported ABI version %d", hdr->abi);
 			return -EINVAL;
 		}
 		if (hdr->size != sizeof(*hdr)) {
-			SNDERR("header size mismatch");
+			snd_error(TOPOLOGY, "header size mismatch");
 			return -EINVAL;
 		}
 
 		if (size - pos < hdr->size + hdr->payload_size) {
-			SNDERR("incomplete payload data to decode");
+			snd_error(TOPOLOGY, "incomplete payload data to decode");
 			return -EINVAL;
 		}
 
 		if (hdr->payload_size < 8) {
-			SNDERR("wrong payload size %d", hdr->payload_size);
+			snd_error(TOPOLOGY, "wrong payload size %d", hdr->payload_size);
 			return -EINVAL;
 		}
 
 		/* first block must be manifest */
 		if (b == bin) {
 			if (hdr->type != SND_SOC_TPLG_TYPE_MANIFEST) {
-				SNDERR("first block must be manifest (value %d)", hdr->type);
+				snd_error(TOPOLOGY, "first block must be manifest (value %d)", hdr->type);
 				return -EINVAL;
 			}
 			err = snd_tplg_set_version(tplg, hdr->version);
@@ -109,7 +109,7 @@ int snd_tplg_decode(snd_tplg_t *tplg, void *bin, size_t size, int dflags)
 				break;
 		}
 		if (index >= tplg_table_items || tptr->decod == NULL) {
-			SNDERR("unknown block type %d", hdr->type);
+			snd_error(TOPOLOGY, "unknown block type %d", hdr->type);
 			return -EINVAL;
 		}
 		tplg_log(tplg, 'D', pos, "block: type %d - %s", hdr->type, tptr->name);

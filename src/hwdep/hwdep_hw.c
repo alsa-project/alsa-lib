@@ -172,7 +172,7 @@ int _snd_hwdep_hw_open(snd_hwdep_t **hwdep, char *name,
 				return err;
 			continue;
 		}
-		SNDERR("Unexpected field %s", id);
+		snd_error(HWDEP, "Unexpected field %s", id);
 		return -EINVAL;
 	}
 	if (card < 0)

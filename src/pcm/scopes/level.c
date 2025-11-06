@@ -236,7 +236,7 @@ int _snd_pcm_scope_level_open(snd_pcm_t *pcm, const char *name,
 		if (strcmp(id, "bar_width") == 0) {
 			err = snd_config_get_integer(n, &bar_width);
 			if (err < 0) {
-				SNDERR("Invalid type for %s", id);
+				snd_error(PCM, "Invalid type for %s", id);
 				return -EINVAL;
 			}
 			continue;
@@ -244,7 +244,7 @@ int _snd_pcm_scope_level_open(snd_pcm_t *pcm, const char *name,
 		if (strcmp(id, "decay_ms") == 0) {
 			err = snd_config_get_integer(n, &decay_ms);
 			if (err < 0) {
-				SNDERR("Invalid type for %s", id);
+				snd_error(PCM, "Invalid type for %s", id);
 				return -EINVAL;
 			}
 			continue;
@@ -252,12 +252,12 @@ int _snd_pcm_scope_level_open(snd_pcm_t *pcm, const char *name,
 		if (strcmp(id, "peak_ms") == 0) {
 			err = snd_config_get_integer(n, &peak_ms);
 			if (err < 0) {
-				SNDERR("Invalid type for %s", id);
+				snd_error(PCM, "Invalid type for %s", id);
 				return -EINVAL;
 			}
 			continue;
 		}
-		SNDERR("Unknown field %s", id);
+		snd_error(PCM, "Unknown field %s", id);
 		return -EINVAL;
 	}
 	if (bar_width < 0)

@@ -650,11 +650,11 @@ int _snd_pcm_adpcm_open(snd_pcm_t **pcmp, const char *name,
 			slave = n;
 			continue;
 		}
-		SNDERR("Unknown field %s", id);
+		snd_error(PCM, "Unknown field %s", id);
 		return -EINVAL;
 	}
 	if (!slave) {
-		SNDERR("slave is not defined");
+		snd_error(PCM, "slave is not defined");
 		return -EINVAL;
 	}
 	err = snd_pcm_slave_conf(root, slave, &sconf, 1,
@@ -664,7 +664,7 @@ int _snd_pcm_adpcm_open(snd_pcm_t **pcmp, const char *name,
 	if (snd_pcm_format_linear(sformat) != 1 &&
 	    sformat != SND_PCM_FORMAT_IMA_ADPCM) {
 	    	snd_config_delete(sconf);
-		SNDERR("invalid slave format");
+		snd_error(PCM, "invalid slave format");
 		return -EINVAL;
 	}
 	err = snd_pcm_open_slave(&spcm, root, sconf, stream, mode, conf);

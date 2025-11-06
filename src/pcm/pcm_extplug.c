@@ -547,12 +547,12 @@ SND_PCM_PLUGIN_DEFINE_FUNC(myplug)
 			....
 			continue;
 		}
-		SNDERR("Unknown field %s", id);
+		snd_error(PCM, "Unknown field %s", id);
 		return -EINVAL;
 	}
 
 	if (! slave) {
-		SNDERR("No slave defined for myplug");
+		snd_error(PCM, "No slave defined for myplug");
 		return -EINVAL;
 	}
 
@@ -690,8 +690,9 @@ int snd_pcm_extplug_create(snd_pcm_extplug_t *extplug, const char *name,
 	/* We support 1.0.0 to current */
 	if (extplug->version < 0x010000 ||
 	    extplug->version > SND_PCM_EXTPLUG_VERSION) {
-		SNDERR("extplug: Plugin version mismatch: 0x%x",
-		       extplug->version);
+		snd_error(PCM, "extplug: Plugin version mismatch: 0x%x",
+			       extplug->version);
+
 		return -ENXIO;
 	}
 
@@ -781,7 +782,7 @@ int snd_pcm_extplug_set_slave_param_list(snd_pcm_extplug_t *extplug, int type, u
 {
 	extplug_priv_t *ext = extplug->pcm->private_data;
 	if (type < 0 || type >= SND_PCM_EXTPLUG_HW_PARAMS) {
-		SNDERR("EXTPLUG: invalid parameter type %d", type);
+		snd_error(PCM, "EXTPLUG: invalid parameter type %d", type);
 		return -EINVAL;
 	}
 	return snd_ext_parm_set_list(&ext->sparams[type], num_list, list);
@@ -803,11 +804,11 @@ int snd_pcm_extplug_set_slave_param_minmax(snd_pcm_extplug_t *extplug, int type,
 {
 	extplug_priv_t *ext = extplug->pcm->private_data;
 	if (type < 0 || type >= SND_PCM_EXTPLUG_HW_PARAMS) {
-		SNDERR("EXTPLUG: invalid parameter type %d", type);
+		snd_error(PCM, "EXTPLUG: invalid parameter type %d", type);
 		return -EINVAL;
 	}
 	if (is_mask_type(type)) {
-		SNDERR("EXTPLUG: invalid parameter type %d", type);
+		snd_error(PCM, "EXTPLUG: invalid parameter type %d", type);
 		return -EINVAL;
 	}
 	return snd_ext_parm_set_minmax(&ext->sparams[type], min, max);
@@ -829,7 +830,7 @@ int snd_pcm_extplug_set_param_list(snd_pcm_extplug_t *extplug, int type, unsigne
 {
 	extplug_priv_t *ext = extplug->pcm->private_data;
 	if (type < 0 || type >= SND_PCM_EXTPLUG_HW_PARAMS) {
-		SNDERR("EXTPLUG: invalid parameter type %d", type);
+		snd_error(PCM, "EXTPLUG: invalid parameter type %d", type);
 		return -EINVAL;
 	}
 	return snd_ext_parm_set_list(&ext->params[type], num_list, list);
@@ -851,11 +852,11 @@ int snd_pcm_extplug_set_param_minmax(snd_pcm_extplug_t *extplug, int type, unsig
 {
 	extplug_priv_t *ext = extplug->pcm->private_data;
 	if (type < 0 || type >= SND_PCM_EXTPLUG_HW_PARAMS) {
-		SNDERR("EXTPLUG: invalid parameter type %d", type);
+		snd_error(PCM, "EXTPLUG: invalid parameter type %d", type);
 		return -EINVAL;
 	}
 	if (is_mask_type(type)) {
-		SNDERR("EXTPLUG: invalid parameter type %d", type);
+		snd_error(PCM, "EXTPLUG: invalid parameter type %d", type);
 		return -EINVAL;
 	}
 	return snd_ext_parm_set_minmax(&ext->params[type], min, max);
@@ -877,7 +878,7 @@ int snd_pcm_extplug_set_param_link(snd_pcm_extplug_t *extplug, int type,
 	extplug_priv_t *ext = extplug->pcm->private_data;
 
 	if (type < 0 || type >= SND_PCM_EXTPLUG_HW_PARAMS) {
-		SNDERR("EXTPLUG: invalid parameter type %d", type);
+		snd_error(PCM, "EXTPLUG: invalid parameter type %d", type);
 		return -EINVAL;
 	}
 	ext->params[type].keep_link = keep_link ? 1 : 0;

@@ -1086,8 +1086,9 @@ int snd_pcm_ioplug_create(snd_pcm_ioplug_t *ioplug, const char *name,
 	/* We support 1.0.0 to current */
 	if (ioplug->version < 0x010000 ||
 	    ioplug->version > SND_PCM_IOPLUG_VERSION) {
-		SNDERR("ioplug: Plugin version mismatch: 0x%x",
-		       ioplug->version);
+		snd_error(PCM, "ioplug: Plugin version mismatch: 0x%x",
+			       ioplug->version);
+
 		return -ENXIO;
 	}
 
@@ -1156,7 +1157,7 @@ int snd_pcm_ioplug_set_param_list(snd_pcm_ioplug_t *ioplug, int type, unsigned i
 {
 	ioplug_priv_t *io = ioplug->pcm->private_data;
 	if (type < 0 || type >= SND_PCM_IOPLUG_HW_PARAMS) {
-		SNDERR("IOPLUG: invalid parameter type %d", type);
+		snd_error(PCM, "IOPLUG: invalid parameter type %d", type);
 		return -EINVAL;
 	}
 	if (type == SND_PCM_IOPLUG_HW_PERIODS)
@@ -1180,11 +1181,11 @@ int snd_pcm_ioplug_set_param_minmax(snd_pcm_ioplug_t *ioplug, int type, unsigned
 {
 	ioplug_priv_t *io = ioplug->pcm->private_data;
 	if (type < 0 || type >= SND_PCM_IOPLUG_HW_PARAMS) {
-		SNDERR("IOPLUG: invalid parameter type %d", type);
+		snd_error(PCM, "IOPLUG: invalid parameter type %d", type);
 		return -EINVAL;
 	}
 	if (type == SND_PCM_IOPLUG_HW_ACCESS || type == SND_PCM_IOPLUG_HW_FORMAT) {
-		SNDERR("IOPLUG: invalid parameter type %d", type);
+		snd_error(PCM, "IOPLUG: invalid parameter type %d", type);
 		return -EINVAL;
 	}
 	if (type == SND_PCM_IOPLUG_HW_PERIODS)

@@ -74,7 +74,7 @@ static snd_pcm_sframes_t snd_pcm_mmap_write_areas(snd_pcm_t *pcm,
 	snd_pcm_uframes_t xfer = 0;
 
 	if (snd_pcm_mmap_playback_avail(pcm) < size) {
-		SNDMSG("too short avail %ld to size %ld", snd_pcm_mmap_playback_avail(pcm), size);
+		snd_check(PCM, "too short avail %ld to size %ld", snd_pcm_mmap_playback_avail(pcm), size);
 		return -EPIPE;
 	}
 	while (size > 0) {
@@ -106,7 +106,7 @@ static snd_pcm_sframes_t snd_pcm_mmap_read_areas(snd_pcm_t *pcm,
 	snd_pcm_uframes_t xfer = 0;
 
 	if (snd_pcm_mmap_capture_avail(pcm) < size) {
-		SNDMSG("too short avail %ld to size %ld", snd_pcm_mmap_capture_avail(pcm), size);
+		snd_check(PCM, "too short avail %ld to size %ld", snd_pcm_mmap_capture_avail(pcm), size);
 		return -EPIPE;
 	}
 	while (size > 0) {
@@ -244,7 +244,7 @@ int snd_pcm_channel_info_shm(snd_pcm_t *pcm, snd_pcm_channel_info_t *info, int s
 		info->step = pcm->sample_bits;
 		break;
 	default:
-		SNDMSG("invalid access type %d", pcm->access);
+		snd_check(PCM, "invalid access type %d", pcm->access);
 		return -EINVAL;
 	}
 	info->addr = 0;
@@ -263,11 +263,11 @@ int snd_pcm_mmap(snd_pcm_t *pcm)
 	unsigned int c;
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
-		SNDMSG("PCM not set up");
+		snd_check(PCM, "PCM not set up");
 		return -EIO;
 	}
 	if (CHECK_SANITY(pcm->mmap_channels || pcm->running_areas)) {
-		SNDMSG("Already mmapped");
+		snd_check(PCM, "Already mmapped");
 		return -EBUSY;
 	}
 	if (pcm->ops->mmap)
@@ -342,7 +342,7 @@ int snd_pcm_mmap(snd_pcm_t *pcm)
 		case SND_PCM_AREA_MMAP:
 			ptr = mmap(NULL, size, PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, i->u.mmap.fd, i->u.mmap.offset);
 			if (ptr == MAP_FAILED) {
-				SYSERR("mmap failed");
+				snd_errornum(PCM, "mmap failed");
 				return -errno;
 			}
 			i->addr = ptr;
@@ -354,23 +354,23 @@ int snd_pcm_mmap(snd_pcm_t *pcm)
 				/* FIXME: safer permission? */
 				id = shmget(IPC_PRIVATE, size, 0666);
 				if (id < 0) {
-					SYSERR("shmget failed");
+					snd_errornum(PCM, "shmget failed");
 					return -errno;
 				}
 				i->u.shm.shmid = id;
 				ptr = shmat(i->u.shm.shmid, 0, 0);
 				if (ptr == (void *) -1) {
-					SYSERR("shmat failed");
+					snd_errornum(PCM, "shmat failed");
 					return -errno;
 				}
 				/* automatically remove segment if not used */
 				if (shmctl(id, IPC_RMID, NULL) < 0){
-					SYSERR("shmctl mark remove failed");
+					snd_errornum(PCM, "shmctl mark remove failed");
 					return -errno;
 				}
 				i->u.shm.area = snd_shm_area_create(id, ptr);
 				if (i->u.shm.area == NULL) {
-					SYSERR("snd_shm_area_create failed");
+					snd_errornum(PCM, "snd_shm_area_create failed");
 					return -ENOMEM;
 				}
 				if (pcm->access == SND_PCM_ACCESS_MMAP_INTERLEAVED ||
@@ -387,20 +387,20 @@ int snd_pcm_mmap(snd_pcm_t *pcm)
 			} else {
 				ptr = shmat(i->u.shm.shmid, 0, 0);
 				if (ptr == (void*) -1) {
-					SYSERR("shmat failed");
+					snd_errornum(PCM, "shmat failed");
 					return -errno;
 				}
 			}
 			i->addr = ptr;
 			break;
 #else
-			SYSERR("shm support not available");
+			snd_errornum(PCM, "shm support not available");
 			return -ENOSYS;
 #endif
 		case SND_PCM_AREA_LOCAL:
 			ptr = malloc(size);
 			if (ptr == NULL) {
-				SYSERR("malloc failed");
+				snd_errornum(PCM, "malloc failed");
 				return -errno;
 			}
 			i->addr = ptr;
@@ -445,7 +445,7 @@ int snd_pcm_munmap(snd_pcm_t *pcm)
 	unsigned int c;
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->mmap_channels)) {
-		SNDMSG("Not mmapped");
+		snd_check(PCM, "Not mmapped");
 		return -ENXIO;
 	}
 	if (pcm->mmap_shadow) {
@@ -476,7 +476,7 @@ int snd_pcm_munmap(snd_pcm_t *pcm)
 		case SND_PCM_AREA_MMAP:
 			err = munmap(i->addr, size);
 			if (err < 0) {
-				SYSERR("mmap failed");
+				snd_errornum(PCM, "mmap failed");
 				return -errno;
 			}
 			errno = 0;
@@ -500,7 +500,7 @@ int snd_pcm_munmap(snd_pcm_t *pcm)
 			}
 			break;
 #else
-			SYSERR("shm support not available");
+			snd_errornum(PCM, "shm support not available");
 			return -ENOSYS;
 #endif
 		case SND_PCM_AREA_LOCAL:
@@ -567,7 +567,7 @@ snd_pcm_sframes_t snd_pcm_write_mmap(snd_pcm_t *pcm, snd_pcm_uframes_t offset,
 			break;
 		}
 		default:
-			SNDMSG("invalid access type %d", pcm->access);
+			snd_check(PCM, "invalid access type %d", pcm->access);
 			return -EINVAL;
 		}
 		if (err < 0)
@@ -623,7 +623,7 @@ snd_pcm_sframes_t snd_pcm_read_mmap(snd_pcm_t *pcm, snd_pcm_uframes_t offset,
 			break;
 		}
 		default:
-			SNDMSG("invalid access type %d", pcm->access);
+			snd_check(PCM, "invalid access type %d", pcm->access);
 			return -EINVAL;
 		}
 		if (err < 0)

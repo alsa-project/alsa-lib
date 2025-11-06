@@ -1552,9 +1552,11 @@ static int simple_add1(snd_mixer_class_t *class, const char *name,
 		snd_mixer_selem_id_free(id);
 	}
 	if (simple->ctls[type].elem) {
-		SNDERR("helem (%s,'%s',%u,%u,%u) appears twice or more",
-		       snd_ctl_elem_iface_name(
-				snd_hctl_elem_get_interface(helem)),
+		snd_error(MIXER, "helem (%s,'%s',%u,%u,%u) appears twice or more",
+				 snd_ctl_elem_iface_name(
+
+					  snd_hctl_elem_get_interface(helem)),
+
 		       snd_hctl_elem_get_name(helem),
 		       snd_hctl_elem_get_index(helem),
 		       snd_hctl_elem_get_device(helem),

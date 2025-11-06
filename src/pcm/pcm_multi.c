@@ -266,7 +266,7 @@ static int snd_pcm_multi_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	for (k = 0; k < multi->slaves_count; ++k) {
 		err = snd_pcm_multi_hw_refine_sprepare(pcm, k, &sparams[k]);
 		if (err < 0) {
-			SNDERR("Slave PCM #%d not usable", k);
+			snd_error(PCM, "Slave PCM #%d not usable", k);
 			return err;
 		}
 	}
@@ -1267,7 +1267,7 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 			continue;
 		if (strcmp(id, "slaves") == 0) {
 			if (snd_config_get_type(n) != SND_CONFIG_TYPE_COMPOUND) {
-				SNDERR("Invalid type for %s", id);
+				snd_error(PCM, "Invalid type for %s", id);
 				return -EINVAL;
 			}
 			slaves = n;
@@ -1275,7 +1275,7 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 		}
 		if (strcmp(id, "bindings") == 0) {
 			if (snd_config_get_type(n) != SND_CONFIG_TYPE_COMPOUND) {
-				SNDERR("Invalid type for %s", id);
+				snd_error(PCM, "Invalid type for %s", id);
 				return -EINVAL;
 			}
 			bindings = n;
@@ -1283,27 +1283,27 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 		}
 		if (strcmp(id, "master") == 0) {
 			if (snd_config_get_integer(n, &master_slave) < 0) {
-				SNDERR("Invalid type for %s", id);
+				snd_error(PCM, "Invalid type for %s", id);
 				return -EINVAL;
 			}
 			continue;
 		}
-		SNDERR("Unknown field %s", id);
+		snd_error(PCM, "Unknown field %s", id);
 		return -EINVAL;
 	}
 	if (!slaves) {
-		SNDERR("slaves is not defined");
+		snd_error(PCM, "slaves is not defined");
 		return -EINVAL;
 	}
 	if (!bindings) {
-		SNDERR("bindings is not defined");
+		snd_error(PCM, "bindings is not defined");
 		return -EINVAL;
 	}
 	snd_config_for_each(i, inext, slaves) {
 		++slaves_count;
 	}
 	if (master_slave < 0 || master_slave >= (long)slaves_count) {
-		SNDERR("Master slave is out of range (0-%u)", slaves_count-1);
+		snd_error(PCM, "Master slave is out of range (0-%u)", slaves_count-1);
 		return -EINVAL;
 	}
 	snd_config_for_each(i, inext, bindings) {
@@ -1314,14 +1314,14 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 			continue;
 		err = safe_strtol(id, &cchannel);
 		if (err < 0 || cchannel < 0) {
-			SNDERR("Invalid channel number: %s", id);
+			snd_error(PCM, "Invalid channel number: %s", id);
 			return -EINVAL;
 		}
 		if ((unsigned long)cchannel >= channels_count)
 			channels_count = cchannel + 1;
 	}
 	if (channels_count == 0) {
-		SNDERR("No channels defined");
+		snd_error(PCM, "No channels defined");
 		return -EINVAL;
 	}
 	slaves_id = calloc(slaves_count, sizeof(*slaves_id));
@@ -1365,7 +1365,7 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 			continue;
 		err = safe_strtol(id, &cchannel);
 		if (err < 0 || cchannel < 0) {
-			SNDERR("Invalid channel number: %s", id);
+			snd_error(PCM, "Invalid channel number: %s", id);
 			err = -EINVAL;
 			goto _free;
 		}
@@ -1383,7 +1383,7 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 				if (err < 0) {
 					err = snd_config_get_integer(n, &val);
 					if (err < 0) {
-						SNDERR("Invalid value for %s", id);
+						snd_error(PCM, "Invalid value for %s", id);
 						goto _free;
 					}
 					sprintf(buf, "%ld", val);
@@ -1398,23 +1398,23 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 			if (strcmp(id, "channel") == 0) {
 				err = snd_config_get_integer(n, &schannel);
 				if (err < 0) {
-					SNDERR("Invalid type for %s", id);
+					snd_error(PCM, "Invalid type for %s", id);
 					goto _free;
 				}
 				continue;
 			}
-			SNDERR("Unknown field %s", id);
+			snd_error(PCM, "Unknown field %s", id);
 			err = -EINVAL;
 			goto _free;
 		}
 		if (slave < 0 || (unsigned int)slave >= slaves_count) {
-			SNDERR("Invalid or missing sidx for channel %s", id);
+			snd_error(PCM, "Invalid or missing sidx for channel %s", id);
 			err = -EINVAL;
 			goto _free;
 		}
 		if (schannel < 0 || 
 		    (unsigned int) schannel >= slaves_channels[slave]) {
-			SNDERR("Invalid or missing schannel for channel %s", id);
+			snd_error(PCM, "Invalid or missing schannel for channel %s", id);
 			err = -EINVAL;
 			goto _free;
 		}

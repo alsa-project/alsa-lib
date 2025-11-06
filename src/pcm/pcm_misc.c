@@ -803,11 +803,11 @@ int snd_pcm_parse_control_id(snd_config_t *conf, snd_ctl_elem_id_t *ctl_id, int 
 		if (strcmp(id, "iface") == 0 || strcmp(id, "interface") == 0) {
 			const char *ptr;
 			if ((err = snd_config_get_string(n, &ptr)) < 0) {
-				SNDERR("field %s is not a string", id);
+				snd_error(PCM, "field %s is not a string", id);
 				goto _err;
 			}
 			if ((err = snd_config_get_ctl_iface_ascii(ptr)) < 0) {
-				SNDERR("Invalid value for '%s'", id);
+				snd_error(PCM, "Invalid value for '%s'", id);
 				goto _err;
 			}
 			iface = err;
@@ -815,28 +815,28 @@ int snd_pcm_parse_control_id(snd_config_t *conf, snd_ctl_elem_id_t *ctl_id, int 
 		}
 		if (strcmp(id, "name") == 0) {
 			if ((err = snd_config_get_string(n, &name)) < 0) {
-				SNDERR("field %s is not a string", id);
+				snd_error(PCM, "field %s is not a string", id);
 				goto _err;
 			}
 			continue;
 		}
 		if (strcmp(id, "index") == 0) {
 			if ((err = snd_config_get_integer(n, &index)) < 0) {
-				SNDERR("field %s is not an integer", id);
+				snd_error(PCM, "field %s is not an integer", id);
 				goto _err;
 			}
 			continue;
 		}
 		if (strcmp(id, "device") == 0) {
 			if ((err = snd_config_get_integer(n, &device)) < 0) {
-				SNDERR("field %s is not an integer", id);
+				snd_error(PCM, "field %s is not an integer", id);
 				goto _err;
 			}
 			continue;
 		}
 		if (strcmp(id, "subdevice") == 0) {
 			if ((err = snd_config_get_integer(n, &subdevice)) < 0) {
-				SNDERR("field %s is not an integer", id);
+				snd_error(PCM, "field %s is not an integer", id);
 				goto _err;
 			}
 			continue;
@@ -844,11 +844,11 @@ int snd_pcm_parse_control_id(snd_config_t *conf, snd_ctl_elem_id_t *ctl_id, int 
 		if (cchannelsp && strcmp(id, "count") == 0) {
 			long v;
 			if ((err = snd_config_get_integer(n, &v)) < 0) {
-				SNDERR("field %s is not an integer", id);
+				snd_error(PCM, "field %s is not an integer", id);
 				goto _err;
 			}
 			if (v < 1 || v > 2) {
-				SNDERR("Invalid count %ld", v);
+				snd_error(PCM, "Invalid count %ld", v);
 				goto _err;
 			}
 			*cchannelsp = v;
@@ -856,17 +856,17 @@ int snd_pcm_parse_control_id(snd_config_t *conf, snd_ctl_elem_id_t *ctl_id, int 
 		}
 		if (hwctlp && strcmp(id, "hwctl") == 0) {
 			if ((err = snd_config_get_bool(n)) < 0) {
-				SNDERR("The field %s must be a boolean type", id);
+				snd_error(PCM, "The field %s must be a boolean type", id);
 				return err;
 			}
 			*hwctlp = err;
 			continue;
 		}
-		SNDERR("Unknown field %s", id);
+		snd_error(PCM, "Unknown field %s", id);
 		return -EINVAL;
 	}
 	if (name == NULL) {
-		SNDERR("Missing control name");
+		snd_error(PCM, "Missing control name");
 		err = -EINVAL;
 		goto _err;
 	}

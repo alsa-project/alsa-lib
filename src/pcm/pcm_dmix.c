@@ -970,7 +970,7 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 	assert(pcmp);
 
 	if (stream != SND_PCM_STREAM_PLAYBACK) {
-		SNDERR("The dmix plugin supports only playback stream");
+		snd_error(PCM, "The dmix plugin supports only playback stream");
 		return -EINVAL;
 	}
 
@@ -997,19 +997,19 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 		ret = snd_pcm_open_slave(&spcm, root, sconf, stream,
 					 mode | SND_PCM_NONBLOCK, NULL);
 		if (ret < 0) {
-			SNDERR("unable to open slave");
+			snd_error(PCM, "unable to open slave");
 			goto _err;
 		}
 	
 		if (snd_pcm_type(spcm) != SND_PCM_TYPE_HW) {
-			SNDERR("dmix plugin can be only connected to hw plugin");
+			snd_error(PCM, "dmix plugin can be only connected to hw plugin");
 			ret = -EINVAL;
 			goto _err;
 		}
 		
 		ret = snd_pcm_direct_initialize_slave(dmix, spcm, params);
 		if (ret < 0) {
-			SNDERR("unable to initialize slave");
+			snd_error(PCM, "unable to initialize slave");
 			goto _err;
 		}
 
@@ -1020,7 +1020,7 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 		
 			ret = snd_pcm_direct_server_create(dmix);
 			if (ret < 0) {
-				SNDERR("unable to create server");
+				snd_error(PCM, "unable to create server");
 				goto _err;
 			}
 		}
@@ -1032,7 +1032,7 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 			snd_pcm_direct_semaphore_up(dmix, DIRECT_IPC_SEM_CLIENT);
 			ret = snd_pcm_direct_client_connect(dmix);
 			if (ret < 0) {
-				SNDERR("unable to connect client");
+				snd_error(PCM, "unable to connect client");
 				goto _err_nosem;
 			}
 			
@@ -1054,18 +1054,18 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 					first_instance = 1;
 					goto retry;
 				}
-				SNDERR("unable to open slave");
+				snd_error(PCM, "unable to open slave");
 				goto _err;
 			}
 			if (snd_pcm_type(spcm) != SND_PCM_TYPE_HW) {
-				SNDERR("dmix plugin can be only connected to hw plugin");
+				snd_error(PCM, "dmix plugin can be only connected to hw plugin");
 				ret = -EINVAL;
 				goto _err;
 			}
 		
 			ret = snd_pcm_direct_initialize_secondary_slave(dmix, spcm, params);
 			if (ret < 0) {
-				SNDERR("unable to initialize slave");
+				snd_error(PCM, "unable to initialize slave");
 				goto _err;
 			}
 		}
@@ -1075,13 +1075,13 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 
 	ret = shm_sum_create_or_connect(dmix);
 	if (ret < 0) {
-		SNDERR("unable to initialize sum ring buffer");
+		snd_error(PCM, "unable to initialize sum ring buffer");
 		goto _err;
 	}
 
 	ret = snd_pcm_direct_initialize_poll_fd(dmix);
 	if (ret < 0) {
-		SNDERR("unable to initialize poll_fd");
+		snd_error(PCM, "unable to initialize poll_fd");
 		goto _err;
 	}
 
@@ -1325,7 +1325,7 @@ int _snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 		params.format = SND_PCM_FORMAT_UNKNOWN;
 	else if (!(dmix_supported_format & (1ULL << params.format))) {
 		/* sorry, limited features */
-		SNDERR("Unsupported format");
+		snd_error(PCM, "Unsupported format");
 		snd_config_delete(sconf);
 		return -EINVAL;
 	}

@@ -931,7 +931,7 @@ static PyObject *new_helem(struct python_priv *priv, snd_hctl_elem_t *helem)
 		}
 		Py_XDECREF(obj1);
 	} else {
-		SNDERR("Unable to create InternalMixer object");
+		snd_error(MIXER, "Unable to create InternalMixer object");
 		return NULL;
 	}
 	if (obj2) {
@@ -1073,7 +1073,7 @@ static int alsa_mixer_simple_pyinit(struct python_priv *priv,
 		PyDict_SetItemString(mdict, "mixer", obj2);
 		priv->py_mixer = obj2;
 	} else {
-		SNDERR("Unable to create InternalMixer object");
+		snd_error(MIXER, "Unable to create InternalMixer object");
 		return -EIO;
 	}
 
@@ -1083,7 +1083,7 @@ static int alsa_mixer_simple_pyinit(struct python_priv *priv,
 	Py_XDECREF(obj);
 	priv->py_event_func = PyDict_GetItemString(mdict, "event");
 	if (priv->py_event_func == NULL) {
-		SNDERR("Unable to find python function 'event'");
+		snd_error(MIXER, "Unable to find python function 'event'");
 		return -EIO;
 	}
 	return 0;
@@ -1128,7 +1128,7 @@ int alsa_mixer_simple_finit(snd_mixer_class_t *class,
 
 	fp = fopen(file, "r");
 	if (fp == NULL) {
-		SNDERR("Unable to find python module '%s'", file);
+		snd_error(MIXER, "Unable to find python module '%s'", file);
 		return -ENODEV;
 	}
 	

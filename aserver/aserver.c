@@ -1056,7 +1056,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	if (snd_config_get_type(conf) != SND_CONFIG_TYPE_COMPOUND) {
-		SNDERR("Invalid type for server %s definition", srvname);
+		snd_error(ASERVER, "Invalid type for server %s definition", srvname);
 		return -EINVAL;
 	}
 	snd_config_for_each(i, next, conf) {

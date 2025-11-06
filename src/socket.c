@@ -67,7 +67,7 @@ int snd_send_fd(int sock, void *data, size_t len, int fd)
 
 	ret = sendmsg(sock, &msghdr, 0 );
 	if (ret < 0) {
-		SYSERR("sendmsg failed");
+		snd_errornum(CORE, "sendmsg failed");
 		return -errno;
 	}
 	return ret;
@@ -100,7 +100,7 @@ int snd_receive_fd(int sock, void *data, size_t len, int *fd)
 
 	ret = recvmsg(sock, &msghdr, 0);
 	if (ret < 0) {
-		SYSERR("recvmsg failed");
+		snd_errornum(CORE, "recvmsg failed");
 		return -errno;
 	}
 	*fd = *fds;

@@ -300,7 +300,7 @@ static int try_config(snd_config_t *config,
 	    strcmp(str, "hw") == 0) {
 		if (snd_config_search(cfg1, "device", &cfg) >= 0) {
 			if (snd_config_get_integer(cfg, &dev) < 0) {
-				SNDERR("(%s) device must be an integer", buf);
+				snd_error(CONTROL, "(%s) device must be an integer", buf);
 				err = -EINVAL;
 				goto __cleanup;
 			}
@@ -309,7 +309,7 @@ static int try_config(snd_config_t *config,
       	
 	if (snd_config_search(cfg1, "hint", &cfg) >= 0) {
 		if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
-			SNDERR("hint (%s) must be a compound", buf);
+			snd_error(CONTROL, "hint (%s) must be a compound", buf);
 			err = -EINVAL;
 			goto __cleanup;
 		}
@@ -332,7 +332,7 @@ static int try_config(snd_config_t *config,
 		}
 		if (snd_config_search(cfg, "device", &n) >= 0) {
 			if (snd_config_get_integer(n, &dev) < 0) {
-				SNDERR("(%s) device must be an integer", buf);
+				snd_error(CONTROL, "(%s) device must be an integer", buf);
 				err = -EINVAL;
 				goto __cleanup;
 			}
@@ -341,7 +341,7 @@ static int try_config(snd_config_t *config,
 		}
 		if (snd_config_search(cfg, "device_input", &n) >= 0) {
 			if (snd_config_get_integer(n, &list->device_input) < 0) {
-				SNDERR("(%s) device_input must be an integer", buf);
+				snd_error(CONTROL, "(%s) device_input must be an integer", buf);
 				err = -EINVAL;
 				goto __cleanup;
 			}
@@ -351,7 +351,7 @@ static int try_config(snd_config_t *config,
 		}
 		if (snd_config_search(cfg, "device_output", &n) >= 0) {
 			if (snd_config_get_integer(n, &list->device_output) < 0) {
-				SNDERR("(%s) device_output must be an integer", buf);
+				snd_error(CONTROL, "(%s) device_output must be an integer", buf);
 				err = -EINVAL;
 				goto __cleanup;
 			}
