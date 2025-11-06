@@ -5800,7 +5800,7 @@ int snd_config_check_hop(snd_config_t *conf)
 {
 	if (conf) {
 		if (conf->hop >= SND_CONF_MAX_HOPS) {
-			snd_errornum(CORE, "Too many definition levels (looped?)\n");
+			snd_error(CORE, "Too many definition levels (looped?)\n");
 			return -EINVAL;
 		}
 		return conf->hop;
