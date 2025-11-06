@@ -68,47 +68,100 @@ const char *snd_strerror(int errnum)
 #endif
 #endif
 
+static TLS_PFX snd_lib_log_handler_t local_log = NULL;
 static TLS_PFX snd_local_error_handler_t local_error = NULL;
 
 /**
- * \brief Install local error handler
- * \param func The local error handler function
- * \retval Previous local error handler function
+ * \brief Install local log handler
+ * \param func The local log handler function
+ * \retval Previous local log handler function
  */
-snd_local_error_handler_t snd_lib_error_set_local(snd_local_error_handler_t func)
+snd_lib_log_handler_t snd_lib_log_set_local(snd_lib_log_handler_t func)
 {
-	snd_local_error_handler_t old = local_error;
-	local_error = func;
+	snd_lib_log_handler_t old = local_log;
+	local_log = func;
 	return old;
 }
 
 /**
- * \brief The default error handler function.
+ * \brief The default log handler function.
+ * \param prio Priority value (SND_LOG_*).
+ * \param interface Interface (SND_ILOG_*).
  * \param file The filename where the error was hit.
  * \param line The line number.
  * \param function The function name.
- * \param err The error code.
+ * \param errcode The error code.
  * \param fmt The message (including the format characters).
  * \param ... Optional arguments.
  *
  * If a local error function has been installed for the current thread by
- * \ref snd_lib_error_set_local, it is called. Otherwise, prints the error
+ * \ref snd_lib_log_set_local, it is called. Otherwise, prints the error
  * message including location to \c stderr.
  */
-static void snd_lib_error_default(const char *file, int line, const char *function, int err, const char *fmt, ...)
+static void snd_lib_vlog_default(int prio, int interface, const char *file, int line, const char *function, int errcode, const char *fmt, va_list arg)
 {
-	va_list arg;
-	va_start(arg, fmt);
-	if (local_error) {
-		local_error(file, line, function, err, fmt, arg);
-		va_end(arg);
+	if (local_log) {
+		local_log(prio, interface, file, line, function, errcode, fmt, arg);
+		return;
+	}
+	if (local_error && prio == SND_LOG_ERROR) {
+		local_error(file, line, function, errcode, fmt, arg);
 		return;
 	}
 	fprintf(stderr, "ALSA lib %s:%i:(%s) ", file, line, function);
 	vfprintf(stderr, fmt, arg);
-	if (err)
-		fprintf(stderr, ": %s", snd_strerror(err));
+	if (errcode)
+		fprintf(stderr, ": %s", snd_strerror(errcode));
 	putc('\n', stderr);
+}
+
+/**
+ * \brief Root log handler function.
+ * \param prio Priority value (SND_LOG_*).
+ * \param interface Interface (SND_ILOG_*).
+ * \param file The filename where the error was hit.
+ * \param line The line number.
+ * \param function The function name.
+ * \param errcode The error code.
+ * \param fmt The message (including the format characters).
+ * \param ... Optional arguments.
+ */
+void snd_lib_log(int prio, int interface, const char *file, int line, const char *function, int errcode, const char *fmt, ...)
+{
+	va_list arg;
+	va_start(arg, fmt);
+	snd_lib_vlog(prio, interface, file, line, function, errcode, fmt, arg);
+	va_end(arg);
+}
+
+/**
+ * \brief The check point function.
+ * \param interface Interface (SND_ILOG_*).
+ * \param file The filename where the error was hit.
+ * \param line The line number.
+ * \param function The function name.
+ * \param errcode The error code.
+ * \param fmt The message (including the format characters).
+ * \param ... Optional arguments.
+ *
+ * The error message is passed with error priority level to snd_lib_vlog handler.
+ */
+void snd_lib_check(int interface, const char *file, int line, const char *function, int errcode, const char *fmt, ...)
+{
+	const char *verbose;
+
+	va_list arg;
+	va_start(arg, fmt);
+	verbose = getenv("LIBASOUND_DEBUG");
+	if (! verbose || ! *verbose)
+		goto finish;
+	snd_lib_vlog(SND_LOG_ERROR, interface, file, line, function, errcode, fmt, arg);
+#ifdef ALSA_DEBUG_ASSERT
+	verbose = getenv("LIBASOUND_DEBUG_ASSERT");
+	if (verbose && *verbose)
+		assert(0);
+#endif
+finish:
 	va_end(arg);
 }
 
@@ -117,11 +170,71 @@ static void snd_lib_error_default(const char *file, int line, const char *functi
  * Pointer to the error handler function.
  * For internal use only.
  */
+snd_lib_log_handler_t snd_lib_vlog = snd_lib_vlog_default;
+
+/**
+ * \brief Sets the log handler.
+ * \param handler The pointer to the new log handler function.
+ * \retval Previous log handler function
+ *
+ * This function sets a new log handler, or (if \c handler is \c NULL)
+ * the default one which prints the error messages to \c stderr.
+ */
+snd_lib_log_handler_t snd_lib_log_set_handler(snd_lib_log_handler_t handler)
+{
+	snd_lib_log_handler_t old = snd_lib_vlog;
+	snd_lib_vlog = handler == NULL ? snd_lib_vlog_default : handler;
+	return old;
+}
+
+
+/**
+ * \brief Install local error handler
+ * \param func The local error handler function
+ * \retval Previous local error handler function
+ * \deprecated Since 1.2.15
+ */
+snd_local_error_handler_t snd_lib_error_set_local(snd_local_error_handler_t func)
+{
+	snd_local_error_handler_t old = local_error;
+	local_error = func;
+	return old;
+}
+link_warning(snd_lib_error_set_local, "Warning: snd_lib_error_set_local is deprecated, use snd_lib_log_set_local");
+
+/**
+ * \brief The default error handler function.
+ * \param file The filename where the error was hit.
+ * \param line The line number.
+ * \param function The function name.
+ * \param errcode The error code.
+ * \param fmt The message (including the format characters).
+ * \param ... Optional arguments.
+ * \deprecated Since 1.2.15
+ *
+ * Use snd_lib_vlog handler to print error message for anonymous interface.
+ */
+static void snd_lib_error_default(const char *file, int line, const char *function, int errcode, const char *fmt, ...)
+{
+	va_list arg;
+	va_start(arg, fmt);
+	snd_lib_vlog(SND_LOG_ERROR, 0, file, line, function, errcode, fmt, arg);
+	va_end(arg);
+}
+
+/**
+ * \ingroup Error
+ * \deprecated Since 1.2.15
+ * Pointer to the error handler function.
+ * For internal use only.
+ */
 snd_lib_error_handler_t snd_lib_error = snd_lib_error_default;
+link_warning(snd_lib_error, "Warning: snd_lib_error is deprecated, use snd_log interface");
 
 /**
  * \brief Sets the error handler.
  * \param handler The pointer to the new error handler function.
+ * \deprecated Since 1.2.15
  *
  * This function sets a new error handler, or (if \c handler is \c NULL)
  * the default one which prints the error messages to \c stderr.
@@ -129,10 +242,6 @@ snd_lib_error_handler_t snd_lib_error = snd_lib_error_default;
 int snd_lib_error_set_handler(snd_lib_error_handler_t handler)
 {
 	snd_lib_error = handler == NULL ? snd_lib_error_default : handler;
-#ifndef NDEBUG
-	if (snd_lib_error != snd_lib_error_default)
-		_snd_err_msg = snd_lib_error;
-#endif
 	return 0;
 }
 
@@ -144,39 +253,6 @@ const char *snd_asoundlib_version(void)
 {
 	return SND_LIB_VERSION_STR;
 }
-
-#ifndef NDEBUG
-/*
- * internal error handling
- */
-static void snd_err_msg_default(const char *file, int line, const char *function, int err, const char *fmt, ...)
-{
-	va_list arg;
-	const char *verbose;
-	
-	verbose = getenv("LIBASOUND_DEBUG");
-	if (! verbose || ! *verbose)
-		return;
-	va_start(arg, fmt);
-	fprintf(stderr, "ALSA lib %s:%i:(%s) ", file, line, function);
-	vfprintf(stderr, fmt, arg);
-	if (err)
-		fprintf(stderr, ": %s", snd_strerror(err));
-	putc('\n', stderr);
-	va_end(arg);
-#ifdef ALSA_DEBUG_ASSERT
-	verbose = getenv("LIBASOUND_DEBUG_ASSERT");
-	if (verbose && *verbose)
-		assert(0);
-#endif
-}
-
-/**
- * The ALSA error message handler
- */
-snd_lib_error_handler_t _snd_err_msg = snd_err_msg_default;
-
-#endif
 
 /**
  * \brief Copy a C-string into a sized buffer

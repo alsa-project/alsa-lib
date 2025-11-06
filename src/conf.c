@@ -811,7 +811,7 @@ static int get_char_skip_comments(input_t *input)
 
 				dirp = opendir(str);
 				if (!dirp) {
-					SNDERR("Invalid search dir %s", str);
+					snd_error(CONFIG, "Invalid search dir %s", str);
 					free(str);
 					return -EINVAL;
 				}
