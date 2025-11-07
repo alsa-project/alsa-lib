@@ -91,6 +91,8 @@ void snd_lib_log(int prio, int interface, const char *file, int line, const char
 void snd_lib_check(int interface, const char *file, int line, const char *function, int errcode, const char *fmt, ...);
 snd_lib_log_handler_t snd_lib_log_set_handler(snd_lib_log_handler_t handler);
 snd_lib_log_handler_t snd_lib_log_set_local(snd_lib_log_handler_t handler);
+const char *snd_lib_log_priority(int prio);
+const char *snd_lib_log_interface(int interface);
 
 #if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ > 95)
 #define snd_error(interface, ...) snd_lib_log(SND_LOG_ERROR, SND_ILOG_##interface, __FILE__, __LINE__, __func__, 0, __VA_ARGS__) /**< Shows an error log message. */
