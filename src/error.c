@@ -139,6 +139,158 @@ const char *snd_lib_log_interface(int interface)
 }
 
 /**
+ * \brief Structure to hold parsed debug configuration.
+ */
+static struct {
+	const char *configstr;
+	int global_level;
+	int interface_levels[SND_ILOG_LAST + 1];
+	int parsed;
+} debug_config;
+
+/**
+ * \brief Parse the LIBASOUND_DEBUG environment variable.
+ *
+ * Format: [<level>][,<interface1>:<level1>][,<interface2>:<level2>,...]
+ *
+ * Examples:
+ *   "debug"                 - Set global level to debug
+ *   "3"                     - Set global level to 3 (info)
+ *   "info,pcm:debug"        - Set global to info, pcm to debug
+ *   "error,mixer:5,pcm:4"   - Set global to error, mixer to 5 (trace), pcm to 4 (debug)
+ */
+static void parse_libasound_debug(const char *configstr)
+{
+	const char *env;
+	char *str, *token, *saveptr;
+	int i;
+
+	if (debug_config.parsed && debug_config.configstr == configstr)
+		return;
+
+	debug_config.parsed = 1;
+	debug_config.global_level = 0;
+	debug_config.configstr = configstr;
+	for (i = 0; i <= SND_ILOG_LAST; i++)
+		debug_config.interface_levels[i] = 0;
+
+	if (configstr == NULL) {
+		env = getenv("LIBASOUND_DEBUG");
+		if (!env || !*env)
+			return;
+	} else {
+		env = configstr;
+	}
+
+	str = strdup(env);
+	if (!str)
+		return;
+
+	token = strtok_r(str, ",", &saveptr);
+	while (token) {
+		char *colon = strchr(token, ':');
+		if (colon) {
+			/* interface:level format */
+			*colon = '\0';
+			const char *interface_name = token;
+			const char *level_str = colon + 1;
+			int interface_num = -1;
+			int level = -1;
+
+			/* Try to find interface by name */
+			for (i = 1; i <= SND_ILOG_LAST; i++) {
+				if (snd_ilog_interface_names[i] &&
+				    strcmp(snd_ilog_interface_names[i], interface_name) == 0) {
+					interface_num = i;
+					break;
+				}
+			}
+
+			/* If not found by name, try direct number */
+			if (interface_num < 0) {
+				char *endptr;
+				long val = strtol(interface_name, &endptr, 10);
+				if (*endptr == '\0' && val >= 0 && val <= SND_ILOG_LAST)
+					interface_num = val;
+			}
+
+			/* Parse level */
+			for (i = 1; i <= SND_LOG_LAST; i++) {
+				if (snd_log_prio_names[i] &&
+				    strcmp(snd_log_prio_names[i], level_str) == 0) {
+					level = i;
+					break;
+				}
+			}
+
+			/* If not found by name, try direct number */
+			if (level < 0) {
+				char *endptr;
+				long val = strtol(level_str, &endptr, 10);
+				if (*endptr == '\0' && val >= 0 && val <= SND_LOG_LAST)
+					level = val;
+			}
+
+			/* Store the interface-specific level */
+			if (interface_num > 0 && level > 0)
+				debug_config.interface_levels[interface_num] = level;
+		} else {
+			/* Global level only */
+			int level = -1;
+
+			/* Try to find level by name */
+			for (i = 1; i <= SND_LOG_LAST; i++) {
+				if (snd_log_prio_names[i] &&
+				    strcmp(snd_log_prio_names[i], token) == 0) {
+					level = i;
+					break;
+				}
+			}
+
+			/* If not found by name, try direct number */
+			if (level < 0) {
+				char *endptr;
+				long val = strtol(token, &endptr, 10);
+				if (*endptr == '\0' && val >= 0 && val <= SND_LOG_LAST)
+					level = val;
+			}
+
+			if (level > 0)
+				debug_config.global_level = level;
+		}
+
+		token = strtok_r(NULL, ",", &saveptr);
+	}
+
+	free(str);
+}
+
+/**
+ * \brief Check if a log message should be shown based on LIBASOUND_DEBUG.
+ * \param prio Priority value (SND_LOG_*).
+ * \param interface Interface (SND_ILOG_*).
+ * \param configstr Configuration string (usually LIBASOUND_DEBUG environment variable)
+ * \return 1 if the message should be shown, 0 otherwise.
+ */
+int snd_lib_log_filter(int prio, int interface, const char *configstr)
+{
+	unsigned int level;
+
+	parse_libasound_debug(configstr);
+
+	if (interface > 0 && interface <= SND_ILOG_LAST && debug_config.interface_levels[interface] > 0) {
+		level = debug_config.interface_levels[interface];
+	} else {
+		level = debug_config.global_level;	}
+
+	if (level == 0)
+		level = SND_LOG_ERROR;
+
+	/* Show message if its priority is less than or equal to the configured level */
+	return prio <= (int)level;
+}
+
+/**
  * \brief The default log handler function.
  * \param prio Priority value (SND_LOG_*).
  * \param interface Interface (SND_ILOG_*).
@@ -165,6 +317,10 @@ static void snd_lib_vlog_default(int prio, int interface, const char *file, int 
 		local_error(file, line, function, errcode, fmt, arg);
 		return;
 	}
+
+	if (!snd_lib_log_filter(prio, interface, NULL))
+		return;
+
 	fprintf(stderr, "ALSA lib %s:%i:(%s) ", file, line, function);
 
 	text = snd_lib_log_priority(prio);

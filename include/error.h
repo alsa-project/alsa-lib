@@ -86,6 +86,7 @@ const char *snd_strerror(int errnum);
  */
 typedef void (*snd_lib_log_handler_t)(int prio, int interface, const char *file, int line, const char *function, int errcode, const char *fmt, va_list arg);
 extern snd_lib_log_handler_t snd_lib_vlog;
+int snd_lib_log_filter(int prio, int interface, const char *configstr);
 void snd_lib_log(int prio, int interface, const char *file, int line, const char *function, int errcode, const char *fmt, ...) /* __attribute__ ((format (printf, 7, 8))) */;
 void snd_lib_check(int interface, const char *file, int line, const char *function, int errcode, const char *fmt, ...);
 snd_lib_log_handler_t snd_lib_log_set_handler(snd_lib_log_handler_t handler);
