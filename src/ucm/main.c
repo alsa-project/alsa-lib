@@ -165,8 +165,8 @@ static int read_tlv_file(unsigned int **res,
 			 const char *filepath)
 {
 	int err = 0;
-	int fd;
-	struct stat64 st;
+	int fd = -1;
+	struct stat64 st = { 0 };
 	size_t sz;
 	ssize_t sz_read;
 	struct snd_ctl_tlv *tlv;
@@ -174,7 +174,7 @@ static int read_tlv_file(unsigned int **res,
 	fd = open(filepath, O_RDONLY);
 	if (fd < 0) {
 		err = -errno;
-		return err;
+		goto __fail;
 	}
 	if (fstat64(fd, &st) == -1) {
 		err = -errno;
@@ -208,7 +208,9 @@ static int read_tlv_file(unsigned int **res,
 	}
 
 __fail:
-	close(fd);
+	if (fd >= 0)
+		close(fd);
+	snd_trace(UCM, "read TLV from '%s' (size %llu)", filepath, (long long int)st.st_size);
 	return err;
 }
 
@@ -217,8 +219,8 @@ static int binary_file_parse(snd_ctl_elem_value_t *dst,
 			      const char *filepath)
 {
 	int err = 0;
-	int fd;
-	struct stat64 st;
+	int fd = -1;
+	struct stat64 st = { 0 };
 	size_t sz;
 	ssize_t sz_read;
 	char *res;
@@ -229,12 +231,12 @@ static int binary_file_parse(snd_ctl_elem_value_t *dst,
 	if (type != SND_CTL_ELEM_TYPE_BYTES) {
 		uc_error("only support byte type!");
 		err = -EINVAL;
-		return err;
+		goto __fail;
 	}
 	fd = open(filepath, O_RDONLY);
 	if (fd < 0) {
 		err = -errno;
-		return err;
+		goto __fail;
 	}
 	if (stat64(filepath, &st) == -1) {
 		err = -errno;
@@ -262,7 +264,9 @@ static int binary_file_parse(snd_ctl_elem_value_t *dst,
       __fail_read:
 	free(res);
       __fail:
-	close(fd);
+	if (fd >= 0)
+		close(fd);
+	snd_trace(UCM, "read binary data from '%s' (size %llu)", filepath, (long long int)st.st_size);
 	return err;
 }
 
@@ -408,6 +412,8 @@ static int execute_cset(snd_ctl_t *ctl, const char *cset, unsigned int type)
 	snd_ctl_elem_info_t *info, *info2 = NULL;
 	unsigned int *res = NULL;
 
+	snd_trace(UCM, "execute cset [%d] '%s'", type, cset);
+
 	snd_ctl_elem_id_malloc(&id);
 	snd_ctl_elem_value_malloc(&value);
 	snd_ctl_elem_info_malloc(&info);
@@ -526,6 +532,8 @@ static int execute_sysw(const char *sysw)
 	int fd, myerrno;
 	bool ignore_error = false;
 
+	snd_trace(UCM, "execute sysw '%s'", sysw);
+
 	if (sysw == NULL || *sysw == '\0')
 		return 0;
 
@@ -596,6 +604,8 @@ static int execute_cfgsave(snd_use_case_mgr_t *uc_mgr, const char *filename)
 	snd_output_t *out;
 	bool with_root = false;
 	int err = 0;
+
+	snd_trace(UCM, "execute cfgsave to '%s'", filename);
 
 	file = strdup(filename);
 	if (!file)
@@ -678,6 +688,8 @@ static int run_device_sequence(snd_use_case_mgr_t *uc_mgr, struct use_case_verb 
 {
 	struct use_case_device *device;
 
+	snd_trace(UCM, "device sequence '%s/%s': %s", verb->name, name, uc_mgr_enable_str(enable));
+
 	if (verb == NULL) {
 		uc_error("error: enadev2 / disdev2 must be executed inside the verb context");
 		return -ENOENT;
@@ -701,6 +713,8 @@ static int run_device_all_sequence(snd_use_case_mgr_t *uc_mgr, struct use_case_v
 	struct use_case_device *device;
 	struct list_head *pos;
 	int err;
+
+	snd_trace(UCM, "disable all devices sequence for '%s'", verb->name);
 
 	if (verb == NULL) {
 		uc_error("error: disdevall must be executed inside the verb context");
@@ -835,6 +849,7 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 				goto __fail;
 			break;
 		case SEQUENCE_ELEMENT_TYPE_SLEEP:
+			snd_trace(UCM, "sleeping %li", s->data.sleep);
 			usleep(s->data.sleep);
 			break;
 		case SEQUENCE_ELEMENT_TYPE_EXEC:
@@ -852,6 +867,7 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 				break;
 			ignore_error = s->data.exec[0] == '-';
 shell_retry:
+			snd_debug(UCM, "system command '%s'", s->data.exec + (ignore_error ? 1 : 0));
 			err = system(s->data.exec + (ignore_error ? 1 : 0));
 			if (WIFSIGNALED(err)) {
 				err = -EINTR;
@@ -934,6 +950,9 @@ static int execute_component_seq(snd_use_case_mgr_t *uc_mgr,
 	struct use_case_device *device = cmpt_seq->device;
 	struct list_head *seq;
 	int err;
+
+	snd_trace(UCM, "execute component sequence '%s': %s", cmpt_seq->device ?
+			cmpt_seq->device->name : NULL, uc_mgr_enable_str(cmpt_seq->enable));
 
 	/* enter component domain and store cdev for the component */
 	uc_mgr->in_component_domain = 1;
@@ -1511,6 +1530,8 @@ int snd_use_case_mgr_open(snd_use_case_mgr_t **uc_mgr,
 	snd_use_case_mgr_t *mgr;
 	int err;
 
+	snd_trace(UCM, "{API call} open '%s'", card_name);
+
 	/* create a new UCM */
 	mgr = calloc(1, sizeof(snd_use_case_mgr_t));
 	if (mgr == NULL)
@@ -1563,17 +1584,21 @@ int snd_use_case_mgr_open(snd_use_case_mgr_t **uc_mgr,
 	}
 
 	*uc_mgr = mgr;
+	snd_trace(UCM, "{API call} open '%s' succeed", card_name);
 	return 0;
 
 _err:
 	uc_mgr_card_close(mgr);
 	uc_mgr_free(mgr);
+	snd_trace(UCM, "{API call} open '%s' failed: %s", card_name, snd_strerror(err));
 	return err;
 }
 
 int snd_use_case_mgr_reload(snd_use_case_mgr_t *uc_mgr)
 {
 	int err;
+
+	snd_trace(UCM, "{API call} reload");
 
 	pthread_mutex_lock(&uc_mgr->mutex);
 
@@ -2079,10 +2104,12 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
 			  const char **list[])
 {
 	char *str, *str1;
-	int err;
+	int err, i;
 
-	if (uc_mgr == NULL || identifier == NULL)
-		return uc_mgr_scan_master_configs(list);
+	if (uc_mgr == NULL || identifier == NULL) {
+		err = uc_mgr_scan_master_configs(list);
+		goto __end_unlocked;
+	}
 	pthread_mutex_lock(&uc_mgr->mutex);
 	if (strcmp(identifier, "_verbs") == 0)
 		err = get_verb_list(uc_mgr, list);
@@ -2120,6 +2147,10 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
 	}
       __end:
 	pthread_mutex_unlock(&uc_mgr->mutex);
+      __end_unlocked:
+	snd_trace(UCM, "{API call} get list '%s': %d (%s)", identifier, err, snd_strerror(err));
+	for (i = 0; i < err; i++)
+		snd_trace(UCM, " [%d]='%s'", i, (*list)[i]);
 	return err;
 }
 
@@ -2374,6 +2405,7 @@ int snd_use_case_get(snd_use_case_mgr_t *uc_mgr,
 	}
       __end:
 	pthread_mutex_unlock(&uc_mgr->mutex);
+	snd_trace(UCM, "{API call} get string '%s'='%s' (error %s)", identifier, err >= 0 ? *value : NULL, snd_strerror(err));
 	return err;
 }
 
@@ -2436,6 +2468,7 @@ int snd_use_case_geti(snd_use_case_mgr_t *uc_mgr,
 	}
       __end:
 	pthread_mutex_unlock(&uc_mgr->mutex);
+	snd_trace(UCM, "{API call} get integer '%s'=%li (error %s)", identifier, err >= 0 ? *value : -1, snd_strerror(err));
 	return err;
 }
 
@@ -2518,6 +2551,8 @@ static int set_verb_user(snd_use_case_mgr_t *uc_mgr,
 	struct use_case_verb *verb;
 	int err = 0;
 
+	snd_trace(UCM, "{API call} set verb '%s'", verb_name);
+
 	if (uc_mgr->active_verb &&
 	    strcmp(uc_mgr->active_verb->name, verb_name) == 0)
 		return 0;
@@ -2557,6 +2592,7 @@ static int set_device_user(snd_use_case_mgr_t *uc_mgr,
 {
 	struct use_case_device *device;
 
+	snd_trace(UCM, "{API call} set device '%s'", device_name);
 	if (uc_mgr->active_verb == NULL)
 		return -ENOENT;
 	device = find_device(uc_mgr, uc_mgr->active_verb, device_name, 1);
@@ -2570,6 +2606,8 @@ static int set_modifier_user(snd_use_case_mgr_t *uc_mgr,
 			     int enable)
 {
 	struct use_case_modifier *modifier;
+
+	snd_trace(UCM, "{API call} set modifier '%s': %s", modifier_name, uc_mgr_enable_str(enable));
 
 	if (uc_mgr->active_verb == NULL)
 		return -ENOENT;
@@ -2589,6 +2627,7 @@ static int switch_device(snd_use_case_mgr_t *uc_mgr,
 	struct list_head *pos;
 	int err, seq_found = 0;
 
+	snd_trace(UCM, "{API call} switch device '%s'->'%s'", old_device, new_device);
 	if (uc_mgr->active_verb == NULL)
 		return -ENOENT;
 	if (device_status(uc_mgr, old_device) == 0) {
@@ -2644,6 +2683,7 @@ static int switch_modifier(snd_use_case_mgr_t *uc_mgr,
 	struct list_head *pos;
 	int err, seq_found = 0;
 
+	snd_trace(UCM, "{API call} switch modifier '%s'->'%s'", old_modifier, new_modifier);
 	if (uc_mgr->active_verb == NULL)
 		return -ENOENT;
 	if (modifier_status(uc_mgr, old_modifier) == 0) {
@@ -2695,6 +2735,7 @@ int snd_use_case_set(snd_use_case_mgr_t *uc_mgr,
 	char *str, *str1;
 	int err = 0;
 
+	snd_trace(UCM, "{API call} set '%s'='%s'", identifier, value);
 	pthread_mutex_lock(&uc_mgr->mutex);
 	if (strcmp(identifier, "_fboot") == 0)
 		err = set_fixedboot_user(uc_mgr, value);

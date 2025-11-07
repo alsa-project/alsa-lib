@@ -683,6 +683,8 @@ int uc_mgr_set_variable(snd_use_case_mgr_t *uc_mgr, const char *name,
 	struct ucm_value *curr;
 	char *val2;
 
+	snd_trace(UCM, "set variable '%s'='%s'", name, val);
+
 	list_for_each(pos, &uc_mgr->variable_list) {
 		curr = list_entry(pos, struct ucm_value, list);
 		if (strcmp(curr->name, name) == 0) {
@@ -717,6 +719,8 @@ int uc_mgr_delete_variable(snd_use_case_mgr_t *uc_mgr, const char *name)
 {
 	struct list_head *pos;
 	struct ucm_value *curr;
+
+	snd_trace(UCM, "delete variable '%s'", name);
 
 	list_for_each(pos, &uc_mgr->variable_list) {
 		curr = list_entry(pos, struct ucm_value, list);

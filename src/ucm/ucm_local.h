@@ -321,6 +321,11 @@ static inline int uc_mgr_has_local_config(snd_use_case_mgr_t *uc_mgr)
 			 snd_config_iterator_end(uc_mgr->local_config);
 }
 
+static inline const char *uc_mgr_enable_str(bool enable)
+{
+	return enable ? "enable" : "disable";
+}
+
 int uc_mgr_card_open(snd_use_case_mgr_t *uc_mgr);
 void uc_mgr_card_close(snd_use_case_mgr_t *uc_mgr);
 
