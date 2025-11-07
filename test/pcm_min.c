@@ -32,7 +32,7 @@ int main(void)
 		exit(EXIT_FAILURE);
 	}
 
-        for (i = 0; i < 16; i++) {
+	for (i = 0; i < 16; i++) {
 		frames = snd_pcm_writei(handle, buffer, sizeof(buffer));
 		if (frames < 0)
 			frames = snd_pcm_recover(handle, frames, 0);

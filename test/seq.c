@@ -28,7 +28,7 @@ void set_name(snd_seq_t *handle)
 {
 	int err;
 	char name[64];
-	
+
 	sprintf(name, "SeqUtil - %i", getpid());
 	if ((err = snd_seq_set_client_name(handle, name)) < 0) {
 		fprintf(stderr, "Set client info error: %s\n", snd_strerror(err));
@@ -40,7 +40,7 @@ void system_info(snd_seq_t *handle)
 {
 	int err;
 	snd_seq_system_info_t *sysinfo;
-	
+
 	snd_seq_system_info_alloca(&sysinfo);
 	if ((err = snd_seq_system_info(handle, sysinfo))<0) {
 		fprintf(stderr, "System info error: %s\n", snd_strerror(err));
@@ -75,7 +75,7 @@ void show_queue_status(snd_seq_t *handle, int queue)
 			exit(0);
 		}
 		printf("Queue %i info\n", snd_seq_queue_status_get_queue(status));
-		printf("  Tick          : %u\n", snd_seq_queue_status_get_tick_time(status)); 
+		printf("  Tick          : %u\n", snd_seq_queue_status_get_tick_time(status));
 		printf("  Realtime      : %i.%i\n",
 		       snd_seq_queue_status_get_real_time(status)->tv_sec,
 		       snd_seq_queue_status_get_real_time(status)->tv_nsec);
@@ -162,10 +162,10 @@ int main(int argc, char *argv[])
 		{"verbose", 0, NULL, HELPID_VERBOSE},
 		{"version", 0, NULL, HELPID_VERSION},
 		{NULL, 0, NULL, 0},
-        };
-        
-        morehelp = 0;
-	
+	};
+
+	morehelp = 0;
+
 	while (1) {
 		int c;
 
@@ -193,10 +193,10 @@ int main(int argc, char *argv[])
 			morehelp++;
 		}
 	}
-        if (morehelp) {
-                help();
-                return 1;
-        }
+	if (morehelp) {
+		help();
+		return 1;
+	}
 	if (argc - optind <= 0) {
 		fprintf(stderr, "seq: Specify command...\n");
 		return 0;
@@ -208,7 +208,7 @@ int main(int argc, char *argv[])
 	set_name(handle);
 	system_info(handle);
 
-        if (!strcmp(argv[optind], "system")) {
+	if (!strcmp(argv[optind], "system")) {
 		show_system_info(handle);
 	} else if (!strcmp(argv[optind], "queue")) {
 		arg = argc - optind > 1 ? atoi(argv[optind + 1]) : -1;

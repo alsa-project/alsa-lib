@@ -119,7 +119,7 @@ int snd_seq_delete_simple_port(snd_seq_t *seq, int port)
 int snd_seq_connect_from(snd_seq_t *seq, int myport, int src_client, int src_port)
 {
 	snd_seq_port_subscribe_t subs;
-	
+
 	memset(&subs, 0, sizeof(subs));
 	subs.sender.client = src_client;
 	subs.sender.port = src_port;
@@ -146,7 +146,7 @@ int snd_seq_connect_from(snd_seq_t *seq, int myport, int src_client, int src_por
 int snd_seq_connect_to(snd_seq_t *seq, int myport, int dest_client, int dest_port)
 {
 	snd_seq_port_subscribe_t subs;
-	
+
 	memset(&subs, 0, sizeof(subs));
 	/*subs.sender.client = seq->client;*/
 	subs.sender.client = snd_seq_client_id(seq);
@@ -173,7 +173,7 @@ int snd_seq_connect_to(snd_seq_t *seq, int myport, int dest_client, int dest_por
 int snd_seq_disconnect_from(snd_seq_t *seq, int myport, int src_client, int src_port)
 {
 	snd_seq_port_subscribe_t subs;
-	
+
 	memset(&subs, 0, sizeof(subs));
 	subs.sender.client = src_client;
 	subs.sender.port = src_port;
@@ -200,7 +200,7 @@ int snd_seq_disconnect_from(snd_seq_t *seq, int myport, int src_client, int src_
 int snd_seq_disconnect_to(snd_seq_t *seq, int myport, int dest_client, int dest_port)
 {
 	snd_seq_port_subscribe_t subs;
-	
+
 	memset(&subs, 0, sizeof(subs));
 	/*subs.sender.client = seq->client;*/
 	subs.sender.client = snd_seq_client_id(seq);
@@ -400,7 +400,7 @@ int snd_seq_sync_output_queue(snd_seq_t *seq)
 	pfd.fd = seq->poll_fd;
 	pfd.events = POLLOUT;
 	err = poll(&pfd, 1, -1);
-	/* restore the room size */ 
+	/* restore the room size */
 	info.output_room = saved_room;
 	snd_seq_set_client_pool(seq, &info);
 	return err;

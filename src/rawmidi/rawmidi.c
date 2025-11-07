@@ -86,7 +86,7 @@ is passed to \link ::snd_rawmidi_open() \endlink or \link ::snd_rawmidi_open_lco
 It contains two parts: device name and arguments. Devices and arguments are described
 in configuration files. The usual place for default definitions is at /usr/share/alsa/alsa.conf.
 
-\subsection rawmidi_dev_names_default 
+\subsection rawmidi_dev_names_default
 
 The default device is equal to hw device. The defaults are used:
 
@@ -143,7 +143,7 @@ This example shows open and read/write rawmidi operations.
  * \anchor example_test_rawmidi
  * Shows open and read/write rawmidi operations.
  */
- 
+
 #include "rawmidi_local.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -360,7 +360,7 @@ int snd_rawmidi_open_lconf(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 int snd_rawmidi_close(snd_rawmidi_t *rawmidi)
 {
 	int err;
-  	assert(rawmidi);
+	assert(rawmidi);
 	err = rawmidi->ops->close(rawmidi);
 	free(rawmidi->name);
 	if (rawmidi->open_func)
@@ -448,12 +448,12 @@ int snd_rawmidi_poll_descriptors(snd_rawmidi_t *rawmidi, struct pollfd *pfds, un
  */
 int snd_rawmidi_poll_descriptors_revents(snd_rawmidi_t *rawmidi, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
 {
-        assert(rawmidi && pfds && revents);
-        if (nfds == 1) {
-                *revents = pfds->revents;
-                return 0;
-        }
-        return -EINVAL;
+	assert(rawmidi && pfds && revents);
+	if (nfds == 1) {
+		*revents = pfds->revents;
+		return 0;
+	}
+	return -EINVAL;
 }
 
 /**

@@ -97,8 +97,8 @@ int mixer_simple_basic_dlopen(snd_mixer_class_t *class,
 	return 1;
 
       __error:
-      	if (initflag)
-      		free(priv);
+	if (initflag)
+		free(priv);
 	if (h)
 		snd_dlclose(h);
 	free(xlib);

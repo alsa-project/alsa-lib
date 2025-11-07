@@ -18,7 +18,7 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-  
+
 typedef struct _snd_interval snd_interval_t;
 
 #ifdef SND_INTERVAL_INLINE
@@ -62,9 +62,9 @@ void snd_interval_add(const snd_interval_t *a, const snd_interval_t *b, snd_inte
 void snd_interval_sub(const snd_interval_t *a, const snd_interval_t *b, snd_interval_t *c);
 void snd_interval_mul(const snd_interval_t *a, const snd_interval_t *b, snd_interval_t *c);
 void snd_interval_div(const snd_interval_t *a, const snd_interval_t *b, snd_interval_t *c);
-void snd_interval_muldiv(const snd_interval_t *a, const snd_interval_t *b, 
+void snd_interval_muldiv(const snd_interval_t *a, const snd_interval_t *b,
 		     const snd_interval_t *c, snd_interval_t *d);
-void snd_interval_muldivk(const snd_interval_t *a, const snd_interval_t *b, 
+void snd_interval_muldivk(const snd_interval_t *a, const snd_interval_t *b,
 		      unsigned int k, snd_interval_t *c);
 void snd_interval_mulkdiv(const snd_interval_t *a, unsigned int k,
 		      const snd_interval_t *b, snd_interval_t *c);

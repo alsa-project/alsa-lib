@@ -390,7 +390,7 @@ int main(int argc, char *argv[])
 			}
 
 
-			printf("\t capture: systime: %lli nsec, audio time %lli nsec, \tsystime delta %lli \t resolution %d ns \n", 
+			printf("\t capture: systime: %lli nsec, audio time %lli nsec, \tsystime delta %lli \t resolution %d ns \n",
 				timediff(tstamp_c, trigger_tstamp_c),
 				timestamp2ns(audio_tstamp_c),
 				timediff(tstamp_c, trigger_tstamp_c) - timestamp2ns(audio_tstamp_c), audio_tstamp_report_c.accuracy

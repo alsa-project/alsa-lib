@@ -13,8 +13,8 @@
   GNU Lesser General Public License for more details.
 
   Authors: Mengdong Lin <mengdong.lin@intel.com>
-           Yao Jin <yao.jin@intel.com>
-           Liam Girdwood <liam.r.girdwood@linux.intel.com>
+	   Yao Jin <yao.jin@intel.com>
+	   Liam Girdwood <liam.r.girdwood@linux.intel.com>
 */
 
 #include "tplg_local.h"
@@ -413,7 +413,7 @@ static int write_hex(char *buf, char *str, int width)
 	long val;
 	void *p = &val;
 
-        errno = 0;
+	errno = 0;
 	if (safe_strtol_base(str, &val, 16) < 0)
 		return -EINVAL;
 

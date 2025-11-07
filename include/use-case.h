@@ -239,14 +239,14 @@ int snd_use_case_free_list(const char *list[], int items);
  *
  */
 int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
-                          const char *identifier,
-                          const char **list[]);
+			  const char *identifier,
+			  const char **list[]);
 
 
 /**
  * \brief Get current - string
  * \param uc_mgr Use case manager
- * \param identifier 
+ * \param identifier
  * \param value Value pointer
  * \return Zero if success, otherwise a negative error code
  *
@@ -410,14 +410,14 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
  *	   increase latency.
  */
 int snd_use_case_get(snd_use_case_mgr_t *uc_mgr,
-                     const char *identifier,
-                     const char **value);
+		     const char *identifier,
+		     const char **value);
 
 /**
  * \brief Get current - integer
  * \param uc_mgr Use case manager
- * \param identifier 
- * \param value result 
+ * \param identifier
+ * \param value result
  * \return Zero if success, otherwise a negative error code
  *
  * Known identifiers:
@@ -456,8 +456,8 @@ int snd_use_case_geti(snd_use_case_mgr_t *uc_mgr,
  *                      - check transmit sequence firstly
  */
 int snd_use_case_set(snd_use_case_mgr_t *uc_mgr,
-                     const char *identifier,
-                     const char *value);
+		     const char *identifier,
+		     const char *value);
 
 /**
  * \brief Open and initialise use case core for sound card
@@ -482,7 +482,7 @@ int snd_use_case_set(snd_use_case_mgr_t *uc_mgr,
  * only one ALSA sound card in this case.
  */
 int snd_use_case_mgr_open(snd_use_case_mgr_t **uc_mgr,
-                          const char *card_name);
+			  const char *card_name);
 
 
 /**

@@ -248,7 +248,7 @@ int snd_timer_open_lconf(snd_timer_t **timer, const char *name,
 int snd_timer_close(snd_timer_t *timer)
 {
 	int err;
-  	assert(timer);
+	assert(timer);
 	while (!list_empty(&timer->async_handlers)) {
 		snd_async_handler_t *h = list_entry(timer->async_handlers.next, snd_async_handler_t, hlist);
 		snd_async_del_handler(h);
@@ -335,7 +335,7 @@ snd_timer_t *snd_async_handler_get_timer(snd_async_handler_t *handler)
 		return NULL;
 	}
 	return handler->u.timer;
-}                                                            
+}
 
 /**
  * \brief get count of poll descriptors for timer handle
@@ -388,12 +388,12 @@ int snd_timer_poll_descriptors(snd_timer_t *timer, struct pollfd *pfds, unsigned
  */
 int snd_timer_poll_descriptors_revents(snd_timer_t *timer, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
 {
-        assert(timer && pfds && revents);
-        if (nfds == 1) {
-                *revents = pfds->revents;
-                return 0;
-        }
-        return -EINVAL;
+	assert(timer && pfds && revents);
+	if (nfds == 1) {
+		*revents = pfds->revents;
+		return 0;
+	}
+	return -EINVAL;
 }
 
 /**
@@ -428,8 +428,8 @@ int snd_timer_nonblock(snd_timer_t *timer, int nonblock)
 int snd_timer_async(snd_timer_t *timer, int sig, pid_t pid)
 {
 	assert(timer);
-        if (sig == 0)
-                sig = SIGIO;
+	if (sig == 0)
+		sig = SIGIO;
 	if (pid == 0)
 		pid = getpid();
 	return timer->ops->async(timer, sig, pid);

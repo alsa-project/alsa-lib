@@ -25,7 +25,7 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-  
+
 #include "pcm_local.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -122,7 +122,7 @@ static snd_pcm_uframes_t snd_pcm_share_slave_avail(snd_pcm_share_slave_t *slave)
 {
 	snd_pcm_sframes_t avail;
 	snd_pcm_t *pcm = slave->pcm;
-  	avail = slave->hw_ptr - *pcm->appl.ptr;
+	avail = slave->hw_ptr - *pcm->appl.ptr;
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
 		avail += pcm->buffer_size;
 	if (avail < 0)
@@ -188,7 +188,7 @@ static snd_pcm_uframes_t _snd_pcm_share_slave_forward(snd_pcm_share_slave_t *sla
 }
 
 
-/* 
+/*
    - stop PCM on xrun
    - update poll status
    - draining silencing
@@ -566,7 +566,7 @@ static int snd_pcm_share_hw_refine_schange(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_
 		return err;
 	return 0;
 }
-	
+
 static int snd_pcm_share_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params,
 					   snd_pcm_hw_params_t *sparams)
 {
@@ -635,7 +635,7 @@ static int snd_pcm_share_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 		if (err < 0)
 			goto _err;
 		err = _snd_pcm_hw_param_set_minmax(params, SND_PCM_HW_PARAM_RATE,
-						   spcm->rate, 0, 
+						   spcm->rate, 0,
 						   spcm->rate, 1);
 		if (err < 0)
 			goto _err;
@@ -1253,7 +1253,7 @@ static int snd_pcm_share_drop(snd_pcm_t *pcm)
 		assert(0);
 		break;
 	}
-	
+
 	share->appl_ptr = share->hw_ptr = 0;
  _end:
 	Pthread_mutex_unlock(&slave->mutex);
@@ -1435,7 +1435,7 @@ int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 		free(share);
 		return -errno;
 	}
-		
+
 	if (stream == SND_PCM_STREAM_PLAYBACK) {
 		int bufsize = 1;
 		err = setsockopt(sd[0], SOL_SOCKET, SO_SNDBUF, &bufsize, sizeof(bufsize));
@@ -1533,7 +1533,7 @@ int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 	share->pcm = pcm;
 	share->client_socket = sd[0];
 	share->slave_socket = sd[1];
-	
+
 	pcm->mmap_rw = 1;
 	pcm->ops = &snd_pcm_share_ops;
 	pcm->fast_ops = &snd_pcm_share_fast_ops;
@@ -1569,17 +1569,17 @@ doesn't need the explicit server but access to the shared buffer.
 
 \code
 pcm.name {
-        type share              # Share PCM
-        slave STR               # Slave name
-        # or
-        slave {                 # Slave definition
-                pcm STR         # Slave PCM name
-                [format STR]    # Slave format
-                [channels INT]  # Slave channels
-                [rate INT]      # Slave rate
-                [period_time INT] # Slave period time in us
-                [buffer_time INT] # Slave buffer time in us
-        }
+	type share              # Share PCM
+	slave STR               # Slave name
+	# or
+	slave {                 # Slave definition
+		pcm STR         # Slave PCM name
+		[format STR]    # Slave format
+		[channels INT]  # Slave channels
+		[rate INT]      # Slave rate
+		[period_time INT] # Slave period time in us
+		[buffer_time INT] # Slave buffer time in us
+	}
 	bindings {
 		N INT		# Slave channel INT for client channel N
 	}
@@ -1624,7 +1624,7 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name,
 	int srate = -1;
 	int speriod_time= -1, sbuffer_time = -1;
 	unsigned int schannel_max = 0;
-	
+
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id;
@@ -1720,7 +1720,7 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name,
 	}
 	if (schannels <= 0)
 		schannels = schannel_max + 1;
-	err = snd_pcm_share_open(pcmp, name, sname, sformat, srate, 
+	err = snd_pcm_share_open(pcmp, name, sname, sformat, srate,
 				 (unsigned int) schannels,
 				 speriod_time, sbuffer_time,
 				 channels, channels_map, stream, mode);

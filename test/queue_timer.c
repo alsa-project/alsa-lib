@@ -11,7 +11,7 @@ void normalize(struct timeval *tv)
     } else if (tv->tv_sec < 0) {
 	while (tv->tv_usec <= -1000000) { tv->tv_usec += 1000000; --tv->tv_sec; }
 	while (tv->tv_usec > 0) { tv->tv_usec -= 1000000; ++tv->tv_sec; }
-    } else { 
+    } else {
 	while (tv->tv_usec >= 1000000) { tv->tv_usec -= 1000000; ++tv->tv_sec; }
 	while (tv->tv_usec < 0) { tv->tv_usec += 1000000; --tv->tv_sec; }
     }

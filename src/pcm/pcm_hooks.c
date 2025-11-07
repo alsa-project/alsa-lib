@@ -26,7 +26,7 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-  
+
 #include "pcm_local.h"
 #include "pcm_generic.h"
 
@@ -283,9 +283,9 @@ pcm.NAME {
 	slave STR		# Slave name
 	# or
 	slave {			# Slave definition
-	  	pcm STR		# Slave PCM name
+		pcm STR		# Slave PCM name
 		# or
-	  	pcm { }		# Slave PCM definition
+		pcm { }		# Slave PCM definition
 	}
 	hooks {
 		ID STR		# Hook name (see pcm_hook)
@@ -480,7 +480,7 @@ static int snd_pcm_hook_add_conf(snd_pcm_t *pcm, snd_config_t *root, snd_config_
  *	    changed in future.
  */
 int _snd_pcm_hooks_open(snd_pcm_t **pcmp, const char *name,
-			snd_config_t *root, snd_config_t *conf, 
+			snd_config_t *root, snd_config_t *conf,
 			snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i, next;

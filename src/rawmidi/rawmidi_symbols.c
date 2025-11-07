@@ -31,7 +31,7 @@ static const char **snd_rawmidi_open_objects[] = {
 	&_snd_module_rawmidi_virt
 #endif
 };
-	
+
 void *snd_rawmidi_open_symbols(void)
 {
 	return snd_rawmidi_open_objects;

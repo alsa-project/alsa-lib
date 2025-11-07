@@ -95,7 +95,7 @@ char *snd_input_gets(snd_input_t *input, char *str, size_t size)
 {
 	return (input->ops->gets)(input, str, size);
 }
-			
+
 /**
  * \brief Reads a character from an input handle (like \c fgetc(3)).
  * \param input The input handle.
@@ -144,7 +144,7 @@ static char *snd_input_stdio_gets(snd_input_t *input, char *str, size_t size)
 	snd_input_stdio_t *stdio = input->private_data;
 	return fgets(str, (int) size, stdio->fp);
 }
-			
+
 static int snd_input_stdio_getc(snd_input_t *input)
 {
 	snd_input_stdio_t *stdio = input->private_data;
@@ -197,7 +197,7 @@ int snd_input_stdio_attach(snd_input_t **inputp, FILE *fp, int _close)
 	*inputp = input;
 	return 0;
 }
-	
+
 /**
  * \brief Creates a new input object reading from a file.
  * \param inputp The functions puts the pointer to the new input object
@@ -262,7 +262,7 @@ static char *snd_input_buffer_gets(snd_input_t *input, char *str, size_t size)
 	*str = '\0';
 	return str;
 }
-			
+
 static int snd_input_buffer_getc(snd_input_t *input)
 {
 	snd_input_buffer_t *buffer = input->private_data;
@@ -334,4 +334,4 @@ int snd_input_buffer_open(snd_input_t **inputp, const char *buf, ssize_t size)
 	*inputp = input;
 	return 0;
 }
-	
+

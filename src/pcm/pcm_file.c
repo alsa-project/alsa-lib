@@ -25,7 +25,7 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-  
+
 #include "pcm_local.h"
 #include "pcm_plugin.h"
 #include "bswap.h"
@@ -353,7 +353,7 @@ static int write_wav_header(snd_pcm_t *pcm)
 		'd', 'a', 't', 'a',
 		0, 0, 0, 0
 	};
-	
+
 	setup_wav_header(pcm, &file->wav_header);
 
 	res = safe_write(file->fd, header, sizeof(header));
@@ -472,7 +472,7 @@ static int snd_pcm_file_add_frames(snd_pcm_t *pcm,
 			n = cont;
 		if (n > avail)
 			n = avail;
-		snd_pcm_areas_copy(file->wbuf_areas, file->appl_ptr, 
+		snd_pcm_areas_copy(file->wbuf_areas, file->appl_ptr,
 				   areas, offset,
 				   pcm->channels, n, pcm->format);
 		frames -= n;
@@ -564,7 +564,7 @@ static snd_pcm_sframes_t snd_pcm_file_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t f
 	snd_pcm_file_t *file = pcm->private_data;
 	snd_pcm_sframes_t err;
 	snd_pcm_uframes_t n;
-	
+
 	n = snd_pcm_frames_to_bytes(pcm, frames);
 	if (n > file->wbuf_used_bytes)
 		frames = snd_pcm_bytes_to_frames(pcm, file->wbuf_used_bytes);
@@ -592,7 +592,7 @@ static snd_pcm_sframes_t snd_pcm_file_forward(snd_pcm_t *pcm, snd_pcm_uframes_t 
 	snd_pcm_file_t *file = pcm->private_data;
 	snd_pcm_sframes_t err;
 	snd_pcm_uframes_t n;
-	
+
 	n = snd_pcm_frames_to_bytes(pcm, frames);
 	if (file->wbuf_used_bytes + n > file->wbuf_size_bytes)
 		frames = snd_pcm_bytes_to_frames(pcm, file->wbuf_size_bytes - file->wbuf_used_bytes);
@@ -690,7 +690,7 @@ static snd_pcm_sframes_t snd_pcm_file_readn(snd_pcm_t *pcm, void **bufs, snd_pcm
 }
 
 static snd_pcm_sframes_t snd_pcm_file_mmap_commit(snd_pcm_t *pcm,
-					          snd_pcm_uframes_t offset,
+						  snd_pcm_uframes_t offset,
 						  snd_pcm_uframes_t size)
 {
 	snd_pcm_file_t *file = pcm->private_data;
@@ -982,14 +982,14 @@ to a command, and optionally uses an existing file as an input data source
 
 \code
 pcm.name {
-        type file               # File PCM
-        slave STR               # Slave name
-        # or
-        slave {                 # Slave definition
-                pcm STR         # Slave PCM name
-                # or
-                pcm { }         # Slave PCM definition
-        }
+	type file               # File PCM
+	slave STR               # Slave name
+	# or
+	slave {                 # Slave definition
+		pcm STR         # Slave PCM name
+		# or
+		pcm { }         # Slave PCM definition
+	}
 	file STR		# Output filename (or shell command the stream
 				# will be piped to if STR starts with the pipe
 				# char).
@@ -1034,7 +1034,7 @@ pcm.name {
  *          changed in future.
  */
 int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
-		       snd_config_t *root, snd_config_t *conf, 
+		       snd_config_t *root, snd_config_t *conf,
 		       snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i, next;

@@ -335,7 +335,7 @@ int snd_rawmidi_hw_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 		*outputp = NULL;
 	if (!inputp && !outputp)
 		return -EINVAL;
-	
+
 	if ((ret = snd_ctl_hw_open(&ctl, NULL, card, 0)) < 0)
 		return ret;
 	if (is_ump)
@@ -344,11 +344,11 @@ int snd_rawmidi_hw_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 		sprintf(filename, SNDRV_FILE_RAWMIDI, card, device);
 
       __again:
-      	if (attempt++ > 3) {
-      		snd_ctl_close(ctl);
-      		return -EBUSY;
-      	}
-      	ret = snd_ctl_rawmidi_prefer_subdevice(ctl, subdevice);
+	if (attempt++ > 3) {
+		snd_ctl_close(ctl);
+		return -EBUSY;
+	}
+	ret = snd_ctl_rawmidi_prefer_subdevice(ctl, subdevice);
 	if (ret < 0) {
 		snd_ctl_close(ctl);
 		return ret;
@@ -369,7 +369,7 @@ int snd_rawmidi_hw_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 	if (mode & SND_RAWMIDI_NONBLOCK) {
 		fmode |= O_NONBLOCK;
 	}
-	
+
 	if (mode & SND_RAWMIDI_SYNC) {
 		fmode |= O_SYNC;
 	}

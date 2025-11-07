@@ -92,30 +92,30 @@ void mix_areas_srv(unsigned int size,
 {
 	src_step /= sizeof(*src);
 	sum_step /= sizeof(*sum);
-        while (size-- > 0) {
-                atomic_add(sum, *src);
-                src += src_step;
-                sum += sum_step;
-        }
+	while (size-- > 0) {
+		atomic_add(sum, *src);
+		src += src_step;
+		sum += sum_step;
+	}
 }
 
 void saturate(unsigned int size,
-              s16 *dst, const s32 *sum,
-              unsigned int dst_step, unsigned int sum_step)
+	      s16 *dst, const s32 *sum,
+	      unsigned int dst_step, unsigned int sum_step)
 {
 	dst_step /= sizeof(*dst);
 	sum_step /= sizeof(*sum);
-        while (size-- > 0) {
-                s32 sample = *sum;
-                if (unlikely(sample < -0x8000))
-                        *dst = -0x8000;
-                else if (unlikely(sample > 0x7fff))
-                        *dst = 0x7fff;
-                else
-                        *dst = sample;
-                dst += dst_step;
-                sum += sum_step;
-        }
+	while (size-- > 0) {
+		s32 sample = *sum;
+		if (unlikely(sample < -0x8000))
+			*dst = -0x8000;
+		else if (unlikely(sample > 0x7fff))
+			*dst = 0x7fff;
+		else
+			*dst = sample;
+		dst += dst_step;
+		sum += sum_step;
+	}
 }
 
 void mix_areas0(unsigned int size,
@@ -206,7 +206,7 @@ void init(s16 *dst, s32 *sum, int size)
 {
 	int count;
 	char *a;
-	
+
 	for (count = size - 1; count >= 0; count--)
 		*sum++ = 0;
 	for (count = size - 1; count >= 0; count--)
@@ -226,16 +226,16 @@ int main(int argc, char **argv)
 	int LOOP = 100;
 	int i, t;
 	unsigned long long begin, end, diff, diffS, diff0, diff1, diff1_mmx, diff2;
-        double cpu_clock = detect_cpu_clock();
+	double cpu_clock = detect_cpu_clock();
 	s16 *dst = malloc(sizeof(*dst) * size);
 	s32 *sum = calloc(size, sizeof(*sum));
 	s16 **srcs = malloc(sizeof(*srcs) * n);
 
 	setscheduler();
 #ifndef CONFIG_SMP
-        printf("CPU clock: %fMhz (UP)\n\n", cpu_clock / 10e5);
+	printf("CPU clock: %fMhz (UP)\n\n", cpu_clock / 10e5);
 #else
-        printf("CPU clock: %fMhz (SMP)\n\n", cpu_clock / 10e5);
+	printf("CPU clock: %fMhz (SMP)\n\n", cpu_clock / 10e5);
 #endif
 	if (argc > 3) {
 		size = atoi(argv[1]);

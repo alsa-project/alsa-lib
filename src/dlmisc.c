@@ -211,7 +211,7 @@ static int snd_dlsym_verify(void *handle, const char *name, const char *version)
 #ifdef HAVE_LIBDL
 	int res;
 	char *vname;
-	
+
 	if (handle == NULL)
 		return -EINVAL;
 	vname = alloca(1 + strlen(name) + strlen(version) + 1);
@@ -332,8 +332,8 @@ snd_dlobj_cache_get0(const char *lib, const char *name,
 
 	errbuf[0] = '\0';
 	dlobj = INTERNAL(snd_dlopen)(lib, RTLD_NOW,
-	                   verbose ? errbuf : 0,
-	                   verbose ? sizeof(errbuf) : 0);
+			   verbose ? errbuf : 0,
+			   verbose ? sizeof(errbuf) : 0);
 	if (dlobj == NULL) {
 		if (verbose)
 			snd_error(CORE, "Cannot open shared library %s (%s)",

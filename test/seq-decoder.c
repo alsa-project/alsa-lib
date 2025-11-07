@@ -149,7 +149,7 @@ int decode_event(snd_seq_event_t * ev)
 		       ev->data.note.note,
 		       ev->data.note.velocity);
 		break;
-		
+
 	case SND_SEQ_EVENT_CONTROLLER:
 		printf("; ch=%d, param=%i, value=%i\n",
 		       ev->data.control.channel,
@@ -162,32 +162,32 @@ int decode_event(snd_seq_event_t * ev)
 		       ev->data.control.channel,
 		       ev->data.control.value);
 		break;
-			
+
 	case SND_SEQ_EVENT_CHANPRESS:
 	case SND_SEQ_EVENT_PITCHBEND:
 		printf("; ch=%d, value=%i\n",
 		       ev->data.control.channel,
 		       ev->data.control.value);
 		break;
-			
+
 	case SND_SEQ_EVENT_SYSEX:
 		{
 			unsigned char *sysex = (unsigned char *) ev + sizeof(snd_seq_event_t);
 			unsigned int c;
-			
+
 			printf("; len=%d [", ev->data.ext.len);
-			
+
 			for (c = 0; c < ev->data.ext.len; c++) {
 				printf("%02x%s", sysex[c], c < ev->data.ext.len - 1 ? ":" : "");
 			}
 			printf("]\n");
 		}
 		break;
-			
+
 	case SND_SEQ_EVENT_QFRAME:
 		printf("; frame=0x%02x\n", ev->data.control.value);
 		break;
-		
+
 	case SND_SEQ_EVENT_CLOCK:
 	case SND_SEQ_EVENT_START:
 	case SND_SEQ_EVENT_CONTINUE:
@@ -202,14 +202,14 @@ int decode_event(snd_seq_event_t * ev)
 	case SND_SEQ_EVENT_ECHO:
 		{
 			int i;
-				
+
 			printf("; ");
 			for (i = 0; i < 8; i++) {
 				printf("%02i%s", ev->data.raw8.d[i], i < 7 ? ":" : "\n");
 			}
 		}
 		break;
-			
+
 	case SND_SEQ_EVENT_CLIENT_START:
 	case SND_SEQ_EVENT_CLIENT_EXIT:
 	case SND_SEQ_EVENT_CLIENT_CHANGE:
@@ -340,7 +340,7 @@ void event_decoder(snd_seq_t *handle, int argc, char *argv[])
 			return;
 		}
 	}
-	
+
 	max = snd_seq_poll_descriptors_count(handle, POLLIN);
 	pfds = alloca(sizeof(*pfds) * max);
 	while (1) {

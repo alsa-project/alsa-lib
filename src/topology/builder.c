@@ -13,8 +13,8 @@
   GNU Lesser General Public License for more details.
 
   Authors: Mengdong Lin <mengdong.lin@intel.com>
-           Yao Jin <yao.jin@intel.com>
-           Liam Girdwood <liam.r.girdwood@linux.intel.com>
+	   Yao Jin <yao.jin@intel.com>
+	   Liam Girdwood <liam.r.girdwood@linux.intel.com>
 */
 
 #include "tplg_local.h"
@@ -132,7 +132,7 @@ static int write_elem_block(snd_tplg_t *tplg,
 				if (sub_pos == pos)
 					break;
 			}
-			/* the last elem of the current sub list as the head of 
+			/* the last elem of the current sub list as the head of
 			next sub list*/
 			sub_base = pos;
 			count = 0;

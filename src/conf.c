@@ -51,7 +51,7 @@ any surplus whitespace is discarded. For example, the two sequences
 and
 
 \code
-  a 1 
+  a 1
      b 2
 \endcode
 
@@ -255,8 +255,8 @@ name [=] value [,|;]
 
 # Compound assignment (first style)
 name [=] {
-        name1 [=] value [,|;]
-        ...
+	name1 [=] value [,|;]
+	...
 }
 
 # Compound assignment (second style)
@@ -264,9 +264,9 @@ name.name1 [=] value [,|;]
 
 # Array assignment (first style)
 name [
-        value0 [,|;]
-        value1 [,|;]
-        ...
+	value0 [,|;]
+	value1 [,|;]
+	...
 ]
 
 # Array assignment (second style)
@@ -377,7 +377,7 @@ values in the current compound are used as configuration for the function.
 If the compound func.\<function_name\> is defined in the root node, then the
 library and function from this compound configuration are used, otherwise
 'snd_func_' is prefixed to the string and code from the ALSA library is used.
-The definition of a function looks like:</P> 
+The definition of a function looks like:</P>
 
 \code
 func.remove_first_char {
@@ -868,10 +868,10 @@ static int get_char_skip_comments(input_t *input)
 				break;
 		}
 	}
-		
+
 	return c;
 }
-			
+
 
 static int get_nonwhite(input_t *input)
 {
@@ -1057,7 +1057,7 @@ static int get_freestring(char **string, int id, input_t *input)
 	free_local_string(&str);
 	return c;
 }
-			
+
 static int get_delimstring(char **string, int delim, input_t *input)
 {
 	struct local_string str;
@@ -1145,7 +1145,7 @@ static int _snd_config_make(snd_config_t **config, char **id, snd_config_type_t 
 	*config = n;
 	return 0;
 }
-	
+
 
 static int _snd_config_make_add(snd_config_t **config, char **id,
 				snd_config_type_t type, snd_config_t *parent)
@@ -1162,7 +1162,7 @@ static int _snd_config_make_add(snd_config_t **config, char **id,
 	return 0;
 }
 
-static int _snd_config_search(snd_config_t *config, 
+static int _snd_config_search(snd_config_t *config,
 			      const char *id, int len, snd_config_t **result)
 {
 	snd_config_iterator_t i, next;
@@ -1225,16 +1225,16 @@ static int parse_value(snd_config_t **_n, snd_config_t *parent, input_t *input, 
 					return -EINVAL;
 				}
 			} else {
-				if (i <= INT_MAX) 
+				if (i <= INT_MAX)
 					err = _snd_config_make_add(&n, id, SND_CONFIG_TYPE_INTEGER, parent);
 				else
 					err = _snd_config_make_add(&n, id, SND_CONFIG_TYPE_INTEGER64, parent);
 				if (err < 0)
 					return err;
 			}
-			if (n->type == SND_CONFIG_TYPE_INTEGER) 
+			if (n->type == SND_CONFIG_TYPE_INTEGER)
 				n->u.integer = (long) i;
-			else 
+			else
 				n->u.integer64 = i;
 			*_n = n;
 			return 0;
@@ -1341,7 +1341,7 @@ static int parse_array_def(snd_config_t *parent, input_t *input, int *idx, int s
 	err = 0;
       __end:
 	free(id);
-      	return err;
+	return err;
 }
 
 static int parse_array_defs(snd_config_t *parent, input_t *input, int skip, int override)
@@ -1505,7 +1505,7 @@ static int parse_def(snd_config_t *parent, input_t *input, int skip, int overrid
 	free(id);
 	return err;
 }
-		
+
 static int parse_defs(snd_config_t *parent, input_t *input, int skip, int override)
 {
 	int c, err;
@@ -2774,7 +2774,7 @@ __make:
 int snd_config_imake_integer(snd_config_t **config, const char *id, const long value)
 {
 	int err;
-	
+
 	err = snd_config_make(config, id, SND_CONFIG_TYPE_INTEGER);
 	if (err < 0)
 		return err;
@@ -2804,7 +2804,7 @@ int snd_config_imake_integer(snd_config_t **config, const char *id, const long v
 int snd_config_imake_integer64(snd_config_t **config, const char *id, const long long value)
 {
 	int err;
-	
+
 	err = snd_config_make(config, id, SND_CONFIG_TYPE_INTEGER64);
 	if (err < 0)
 		return err;
@@ -2831,7 +2831,7 @@ int snd_config_imake_integer64(snd_config_t **config, const char *id, const long
 int snd_config_imake_real(snd_config_t **config, const char *id, const double value)
 {
 	int err;
-	
+
 	err = snd_config_make(config, id, SND_CONFIG_TYPE_REAL);
 	if (err < 0)
 		return err;
@@ -2862,7 +2862,7 @@ int snd_config_imake_string(snd_config_t **config, const char *id, const char *v
 {
 	int err;
 	snd_config_t *tmp;
-	
+
 	err = snd_config_make(&tmp, id, SND_CONFIG_TYPE_STRING);
 	if (err < 0)
 		return err;
@@ -2950,7 +2950,7 @@ int snd_config_imake_safe_string(snd_config_t **config, const char *id, const ch
 int snd_config_imake_pointer(snd_config_t **config, const char *id, const void *value)
 {
 	int err;
-	
+
 	err = snd_config_make(config, id, SND_CONFIG_TYPE_POINTER);
 	if (err < 0)
 		return err;
@@ -4422,7 +4422,7 @@ static int _snd_config_hook_table(snd_config_t *root, snd_config_t *config, snd_
 int snd_config_hook_load_for_all_cards(snd_config_t *root, snd_config_t *config, snd_config_t **dst, snd_config_t *private_data ATTRIBUTE_UNUSED)
 {
 	int card = -1, err;
-	
+
 	do {
 		err = snd_card_next(&card);
 		if (err < 0)
@@ -4478,7 +4478,7 @@ int snd_config_hook_load_for_all_cards(snd_config_t *root, snd_config_t *config,
 SND_DLSYM_BUILD_VERSION(snd_config_hook_load_for_all_cards, SND_CONFIG_DLSYM_VERSION_HOOK);
 #endif
 
-/** 
+/**
  * \brief Updates a configuration tree by rereading the configuration files (if needed).
  * \param[in,out] _top Address of the handle to the top-level node.
  * \param[in,out] _update Address of a pointer to private update information.
@@ -4514,7 +4514,7 @@ int snd_config_update_r(snd_config_t **_top, snd_config_update_t **_update, cons
 	snd_config_update_t *local;
 	snd_config_update_t *update;
 	snd_config_t *top;
-	
+
 	assert(_top && _update);
 	top = *_top;
 	update = *_update;
@@ -4608,12 +4608,12 @@ int snd_config_update_r(snd_config_t **_top, snd_config_update_t **_update, cons
 	return err;
 
  _reread:
- 	*_top = NULL;
- 	*_update = NULL;
- 	if (update) {
- 		snd_config_update_free(update);
- 		update = NULL;
- 	}
+	*_top = NULL;
+	*_update = NULL;
+	if (update) {
+		snd_config_update_free(update);
+		update = NULL;
+	}
 	if (top) {
 		snd_config_delete(top);
 		top = NULL;
@@ -4648,7 +4648,7 @@ int snd_config_update_r(snd_config_t **_top, snd_config_update_t **_update, cons
 	return 1;
 }
 
-/** 
+/**
  * \brief Updates #snd_config by rereading the global configuration files (if needed).
  * \return 0 if #snd_config was up to date, 1 if #snd_config was
  *         updated, otherwise a negative error code.
@@ -4744,7 +4744,7 @@ void snd_config_unref(snd_config_t *cfg)
 	snd_config_unlock();
 }
 
-/** 
+/**
  * \brief Frees a private update structure.
  * \param[in] update The private update structure to free.
  * \return Zero if successful, otherwise a negative error code.
@@ -4761,7 +4761,7 @@ int snd_config_update_free(snd_config_update_t *update)
 	return 0;
 }
 
-/** 
+/**
  * \brief Frees the global configuration tree in #snd_config.
  * \return Zero if successful, otherwise a negative error code.
  *
@@ -4881,7 +4881,7 @@ typedef int (*snd_config_walk_callback_t)(snd_config_t *src,
 
 static int snd_config_walk(snd_config_t *src,
 			   snd_config_t *root,
-			   snd_config_t **dst, 
+			   snd_config_t **dst,
 			   snd_config_walk_callback_t callback,
 			   snd_config_expand_fcn_t fcn,
 			   void *private_data)
@@ -5221,7 +5221,7 @@ static int _snd_config_evaluate(snd_config_t *src,
  * replaces those nodes with the respective function results.
  */
 int snd_config_evaluate(snd_config_t *config, snd_config_t *root,
-		        snd_config_t *private_data, snd_config_t **result)
+			snd_config_t *private_data, snd_config_t **result)
 {
 	/* FIXME: Only in place evaluation is currently implemented */
 	assert(result == NULL);
@@ -5408,7 +5408,7 @@ static int parse_string(const char **ptr, char **val)
 		buf[idx++] = c;
 	}
 }
-				
+
 
 /* Parse var=val or val */
 static int parse_arg(const char **ptr, unsigned int *varlen, char **val)
@@ -5508,7 +5508,7 @@ static int parse_args(snd_config_t *subs, const char *str, snd_config_t *defs)
 		}
 		return 0;
 	}
-	
+
 	while (1) {
 		char buf[256];
 		const char *var = buf;
@@ -5725,7 +5725,7 @@ int snd_config_expand(snd_config_t *config, snd_config_t *root, const char *args
 	*result = res;
 	err = 1;
  _end:
- 	if (subs)
+	if (subs)
 		snd_config_delete(subs);
 	return err;
 }

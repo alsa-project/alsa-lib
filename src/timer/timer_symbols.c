@@ -25,7 +25,7 @@ extern const char *_snd_module_timer_hw;
 static const char **snd_timer_open_objects[] = {
 	&_snd_module_timer_hw
 };
-	
+
 void *snd_timer_open_symbols(void)
 {
 	return (void *)snd_timer_open_objects[0];
@@ -37,7 +37,7 @@ extern const char *_snd_module_timer_query_hw;
 static const char **snd_timer_query_open_objects[] = {
 	&_snd_module_timer_query_hw
 };
-	
+
 void *snd_timer_query_open_symbols(void)
 {
 	return snd_timer_query_open_objects;

@@ -71,7 +71,7 @@ void event_sender_start_timer(snd_seq_t *handle,
 			      snd_pcm_t *phandle ATTRIBUTE_UNUSED)
 {
 	int err;
-	
+
 #ifdef USE_PCM
 	if (phandle) {
 		snd_pcm_playback_info_t pinfo;
@@ -90,7 +90,7 @@ void event_sender_start_timer(snd_seq_t *handle,
 			fprintf(stderr, "Sequencer PCM timer setup failed: %s\n", snd_strerror(err));
 			exit(0);
 		}
-	}	
+	}
 #endif
 	if ((err = snd_seq_start_queue(handle, queue, NULL))<0)
 		fprintf(stderr, "Timer event output error: %s\n", snd_strerror(err));
@@ -108,11 +108,11 @@ void event_sender_filter(snd_seq_t *handle)
 }
 
 void send_event(snd_seq_t *handle, int queue, int client, int port,
-                snd_seq_addr_t *dest, int *time)
+		snd_seq_addr_t *dest, int *time)
 {
 	int err;
 	snd_seq_event_t ev;
-	
+
 	bzero(&ev, sizeof(ev));
 	ev.queue = queue;
 	ev.source.client = ev.dest.client = client;
@@ -222,7 +222,7 @@ void event_sender(snd_seq_t *handle, int argc, char *argv[])
 	}
 #endif
 	event_sender_start_timer(handle, client, queue, phandle);
-	
+
 	/* send the first event */
 	send_event(handle, queue, client, port, &addr, &time);
 #ifdef USE_PCM

@@ -18,7 +18,7 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-  
+
 #include <strings.h>
 #include <sys/types.h>
 
@@ -32,36 +32,36 @@
 
 MASK_INLINE unsigned int ld2(uint32_t v)
 {
-        unsigned r = 0;
+	unsigned r = 0;
 
-        if (v >= 0x10000) {
-                v >>= 16;
-                r += 16;
-        }
-        if (v >= 0x100) {
-                v >>= 8;
-                r += 8;
-        }
-        if (v >= 0x10) {
-                v >>= 4;
-                r += 4;
-        }
-        if (v >= 4) {
-                v >>= 2;
-                r += 2;
-        }
-        if (v >= 2)
-                r++;
-        return r;
+	if (v >= 0x10000) {
+		v >>= 16;
+		r += 16;
+	}
+	if (v >= 0x100) {
+		v >>= 8;
+		r += 8;
+	}
+	if (v >= 0x10) {
+		v >>= 4;
+		r += 4;
+	}
+	if (v >= 4) {
+		v >>= 2;
+		r += 2;
+	}
+	if (v >= 2)
+		r++;
+	return r;
 }
 
 MASK_INLINE unsigned int hweight32(uint32_t v)
 {
-        v = (v & 0x55555555) + ((v >> 1) & 0x55555555);
-        v = (v & 0x33333333) + ((v >> 2) & 0x33333333);
-        v = (v & 0x0F0F0F0F) + ((v >> 4) & 0x0F0F0F0F);
-        v = (v & 0x00FF00FF) + ((v >> 8) & 0x00FF00FF);
-        return (v & 0x0000FFFF) + ((v >> 16) & 0x0000FFFF);
+	v = (v & 0x55555555) + ((v >> 1) & 0x55555555);
+	v = (v & 0x33333333) + ((v >> 2) & 0x33333333);
+	v = (v & 0x0F0F0F0F) + ((v >> 4) & 0x0F0F0F0F);
+	v = (v & 0x00FF00FF) + ((v >> 8) & 0x00FF00FF);
+	return (v & 0x0000FFFF) + ((v >> 16) & 0x0000FFFF);
 }
 
 MASK_INLINE size_t snd_mask_sizeof(void)

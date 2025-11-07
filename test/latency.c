@@ -251,9 +251,9 @@ int setparams(snd_pcm_t *phandle, snd_pcm_t *chandle, int *bufsize)
 	}
 
       __again:
-      	if (buffer_size > 0)
-      		return -1;
-      	if (last_bufsize == *bufsize)
+	if (buffer_size > 0)
+		return -1;
+	if (last_bufsize == *bufsize)
 		*bufsize += 4;
 	last_bufsize = *bufsize;
 	if (*bufsize > latency_max)
@@ -282,8 +282,8 @@ int setparams(snd_pcm_t *phandle, snd_pcm_t *chandle, int *bufsize)
 	snd_pcm_hw_params_get_buffer_size(p_params, &p_size);
 	playback_buffer_size = p_size;
 	if (p_psize * 2 < p_size) {
-                snd_pcm_hw_params_get_periods_min(p_params, &val, NULL);
-                if (val > 2) {
+		snd_pcm_hw_params_get_periods_min(p_params, &val, NULL);
+		if (val > 2) {
 			printf("playback device does not support 2 periods per buffer\n");
 			exit(0);
 		}
@@ -291,7 +291,7 @@ int setparams(snd_pcm_t *phandle, snd_pcm_t *chandle, int *bufsize)
 	}
 	snd_pcm_hw_params_get_buffer_size(c_params, &c_size);
 	if (c_psize * 2 < c_size) {
-                snd_pcm_hw_params_get_periods_min(c_params, &val, NULL);
+		snd_pcm_hw_params_get_periods_min(c_params, &val, NULL);
 		if (val > 2 ) {
 			printf("capture device does not support 2 periods per buffer\n");
 			exit(0);
@@ -490,7 +490,7 @@ void applyeffect(char* buffer,int r)
 			y[chn][1] = y[chn][0];
 
 			x[chn][0] = samples[i*channels+chn];
-			y[chn][0] = a0*x[chn][0] + a1*x[chn][1] + a2*x[chn][2] 
+			y[chn][0] = a0*x[chn][0] + a1*x[chn][1] + a2*x[chn][2]
 				- b1*y[chn][1] - b2*y[chn][2];
 			samples[i*channels+chn] = y[chn][0];
 		}
@@ -537,14 +537,14 @@ void help(void)
 "-X,--realtime  do a realtime check (buffering)\n"
 "-O,--policy    set scheduler policy (RR, FIFO or OTHER)\n"
 );
-        printf("Recognized sample formats are:");
-        for (k = 0; k < SND_PCM_FORMAT_LAST; ++k) {
-                const char *s = snd_pcm_format_name(k);
-                if (s)
-                        printf(" %s", s);
-        }
-        printf("\n\n");
-        printf(
+	printf("Recognized sample formats are:");
+	for (k = 0; k < SND_PCM_FORMAT_LAST; ++k) {
+		const char *s = snd_pcm_format_name(k);
+		if (s)
+			printf(" %s", s);
+	}
+	printf("\n\n");
+	printf(
 "Tip #1 (usable latency with large periods, non-blocking mode, good CPU usage,\n"
 "        superb xrun prevention):\n"
 "  latency -m 8192 -M 8192 -t 1 -p\n"
@@ -724,17 +724,17 @@ int main(int argc, char *argv[])
 		lfo = 0;
 		dlfo = 2.*M_PI*FILTERSWEEP_LFO_FREQ/fs;
 
-		x[0] = (float*) malloc(channels*sizeof(float));		
-		x[1] = (float*) malloc(channels*sizeof(float));		
-		x[2] = (float*) malloc(channels*sizeof(float));		
-		y[0] = (float*) malloc(channels*sizeof(float));		
-		y[1] = (float*) malloc(channels*sizeof(float));		
-		y[2] = (float*) malloc(channels*sizeof(float));		
+		x[0] = (float*) malloc(channels*sizeof(float));
+		x[1] = (float*) malloc(channels*sizeof(float));
+		x[2] = (float*) malloc(channels*sizeof(float));
+		y[0] = (float*) malloc(channels*sizeof(float));
+		y[1] = (float*) malloc(channels*sizeof(float));
+		y[2] = (float*) malloc(channels*sizeof(float));
 	}
 
 	cap_avail_max = 0;
 	pbk_fill_min = latency * 2;
-			  
+
 	while (1) {
 		frames_in = frames_out = 0;
 		if (setparams(phandle, chandle, &latency) < 0)
@@ -819,7 +819,7 @@ int main(int argc, char *argv[])
 			else {
 				if (effect)
 					applyeffect(buffer, r);
-			 	if (writebuf(phandle, buffer, r, &frames_out) < 0)
+				if (writebuf(phandle, buffer, r, &frames_out) < 0)
 					ok = 0;
 			}
 		}

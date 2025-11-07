@@ -24,7 +24,7 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-  
+
 #include "local.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -60,7 +60,7 @@ int snd_send_fd(int sock, void *data, size_t len, int fd)
 	msghdr.msg_name = NULL;
 	msghdr.msg_namelen = 0;
 	msghdr.msg_iov = &vec;
- 	msghdr.msg_iovlen = 1;
+	msghdr.msg_iovlen = 1;
 	msghdr.msg_control = cmsg;
 	msghdr.msg_controllen = cmsg_len;
 	msghdr.msg_flags = 0;

@@ -52,7 +52,7 @@ file. The format is:
 
 \verbatim
 index [ID     ] Driver - name
-                longname
+		longname
 \endverbatim
 
 Note that the mixername and components are not listed.
@@ -279,7 +279,7 @@ int snd_ctl_new(snd_ctl_t **ctlp, snd_ctl_type_t type, const char *name, int mod
 	*ctlp = ctl;
 	return 0;
 }
-	
+
 
 /**
  * \brief set async mode
@@ -353,7 +353,7 @@ int snd_ctl_poll_descriptors_revents(snd_ctl_t *ctl, struct pollfd *pfds, unsign
 		return ctl->ops->poll_revents(ctl, pfds, nfds, revents);
 	if (nfds == 1) {
 		*revents = pfds->revents;
-                return 0;
+		return 0;
 	}
 	return -EINVAL;
 }
@@ -1039,7 +1039,7 @@ int snd_ctl_elem_write(snd_ctl_t *ctl, snd_ctl_elem_value_t *data)
 
 static int snd_ctl_tlv_do(snd_ctl_t *ctl, int op_flag,
 			  const snd_ctl_elem_id_t *id,
-		          unsigned int *tlv, unsigned int tlv_size)
+			  unsigned int *tlv, unsigned int tlv_size)
 {
 	snd_ctl_elem_info_t *info = NULL;
 	int err;
@@ -1060,8 +1060,8 @@ static int snd_ctl_tlv_do(snd_ctl_t *ctl, int op_flag,
 	}
 	err = ctl->ops->element_tlv(ctl, op_flag, id->numid, tlv, tlv_size);
       __err:
-      	if (info)
-      		free(info);
+	if (info)
+		free(info);
 	return err;
 }
 
@@ -1402,7 +1402,7 @@ int snd_ctl_wait(snd_ctl_t *ctl, int timeout)
  * \param private_data Callback private data
  * \return 0 otherwise a negative error code on failure
  */
-int snd_async_add_ctl_handler(snd_async_handler_t **handler, snd_ctl_t *ctl, 
+int snd_async_add_ctl_handler(snd_async_handler_t **handler, snd_ctl_t *ctl,
 			      snd_async_callback_t callback, void *private_data)
 {
 	int err;
@@ -1752,7 +1752,7 @@ int snd_ctl_elem_list_alloc_space(snd_ctl_elem_list_t *obj, unsigned int entries
 	}
 	obj->space = entries;
 	return 0;
-}  
+}
 
 /**
  * \brief free previously allocated space for CTL element identifiers list

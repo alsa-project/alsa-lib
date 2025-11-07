@@ -25,7 +25,7 @@ extern const char *_snd_module_seq_hw;
 static const char **snd_seq_open_objects[] = {
 	&_snd_module_seq_hw
 };
-	
+
 void *snd_seq_open_symbols(void)
 {
 	return snd_seq_open_objects;

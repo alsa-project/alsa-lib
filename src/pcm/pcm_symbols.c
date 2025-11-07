@@ -55,7 +55,7 @@ static const char **snd_pcm_open_objects[] = {
 	&_snd_module_pcm_hw,
 #include "pcm_symbols_list.c"
 };
-	
+
 void *snd_pcm_open_symbols(void)
 {
 	return snd_pcm_open_objects;

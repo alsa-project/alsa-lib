@@ -25,7 +25,7 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-  
+
 #include "pcm_local.h"
 #include "pcm_generic.h"
 #include <stdio.h>
@@ -208,7 +208,7 @@ static int snd_pcm_multi_hw_refine_schange(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
 		return err;
 	return 0;
 }
-	
+
 static int snd_pcm_multi_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
 					   unsigned int slave_idx ATTRIBUTE_UNUSED,
 					   snd_pcm_hw_params_t *params,
@@ -523,7 +523,7 @@ static int snd_pcm_multi_reset(snd_pcm_t *pcm)
 	for (i = 0; i < multi->slaves_count; ++i) {
 		/* Reset each slave, as well as in prepare */
 		err = snd_pcm_reset(multi->slaves[i].pcm);
-		if (err < 0) 
+		if (err < 0)
 			result = err;
 	}
 	multi->hw_ptr = multi->appl_ptr = 0;
@@ -735,7 +735,7 @@ static int snd_pcm_multi_resume(snd_pcm_t *pcm)
  * including the first one has to be relinked to the given master.
  */
 static int snd_pcm_multi_link_slaves(snd_pcm_t *pcm, snd_pcm_t *master)
-{ 
+{
 	snd_pcm_multi_t *multi = pcm->private_data;
 	unsigned int i;
 	int err;
@@ -993,7 +993,7 @@ static void snd_pcm_multi_dump(snd_pcm_t *pcm, snd_output_t *out)
 		snd_pcm_multi_channel_t *c = &multi->channels[k];
 		if (c->slave_idx < 0)
 			continue;
-		snd_output_printf(out, "    %d: slave %d, channel %d\n", 
+		snd_output_printf(out, "    %d: slave %d, channel %d\n",
 			k, c->slave_idx, c->slave_channel);
 	}
 	if (pcm->setup) {
@@ -1097,7 +1097,7 @@ int snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 	}
 
 	stream = slaves_pcm[0]->stream;
-	
+
 	multi->slaves_count = slaves_count;
 	multi->master_slave = master_slave;
 	multi->slaves = calloc(slaves_count, sizeof(*multi->slaves));
@@ -1160,8 +1160,8 @@ This plugin converts multiple streams to one.
 
 \code
 pcm.name {
-        type multi              # Multiple streams conversion PCM
-        slaves {		# Slaves definition
+	type multi              # Multiple streams conversion PCM
+	slaves {		# Slaves definition
 		ID STR		# Slave PCM name
 		# or
 		ID {
@@ -1170,7 +1170,7 @@ pcm.name {
 			pcm { } 	# Slave PCM definition
 			channels INT	# Slave channels
 		}
-        }
+	}
 	bindings {		# Bindings table
 		N {
 			slave STR	# Slave key
@@ -1412,7 +1412,7 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 			err = -EINVAL;
 			goto _free;
 		}
-		if (schannel < 0 || 
+		if (schannel < 0 ||
 		    (unsigned int) schannel >= slaves_channels[slave]) {
 			snd_error(PCM, "Invalid or missing schannel for channel %s", id);
 			err = -EINVAL;
@@ -1421,7 +1421,7 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 		channels_sidx[cchannel] = slave;
 		channels_schannel[cchannel] = schannel;
 	}
-	
+
 	for (idx = 0; idx < slaves_count; ++idx) {
 		err = snd_pcm_open_slave(&slaves_pcm[idx], root,
 					 slaves_conf[idx], stream, mode,

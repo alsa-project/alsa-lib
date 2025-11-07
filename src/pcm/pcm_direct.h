@@ -19,7 +19,7 @@
  *
  */
 
-#include "pcm_local.h"  
+#include "pcm_local.h"
 #include "../timer/timer_local.h"
 
 #define DIRECT_IPC_SEMS         1
@@ -103,8 +103,8 @@ typedef struct {
 		unsigned int period_step;
 		unsigned int sleep_min; /* not used */
 		unsigned int avail_min;
-		unsigned int start_threshold;	
-		unsigned int stop_threshold;	
+		unsigned int start_threshold;
+		unsigned int stop_threshold;
 		unsigned int silence_threshold;
 		unsigned int silence_size;
 		unsigned int recoveries;	/* no of executed recoveries on slave*/

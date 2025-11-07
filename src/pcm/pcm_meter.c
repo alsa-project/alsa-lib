@@ -25,7 +25,7 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-  
+
 
 #include "pcm_local.h"
 #include "pcm_plugin.h"
@@ -93,7 +93,7 @@ static void snd_pcm_meter_add_frames(snd_pcm_t *pcm,
 			n = dst_cont;
 		if (n > src_cont)
 			n = src_cont;
-		snd_pcm_areas_copy(meter->buf_areas, dst_offset, 
+		snd_pcm_areas_copy(meter->buf_areas, dst_offset,
 				   areas, src_offset,
 				   pcm->channels, n, pcm->format);
 		frames -= n;
@@ -259,7 +259,7 @@ static void *snd_pcm_meter_thread(void *data)
 			if (scope->enabled)
 				scope->ops->update(scope);
 		}
-	        nanosleep(&meter->delay, NULL);
+		nanosleep(&meter->delay, NULL);
 	}
 	list_for_each(pos, &meter->scopes) {
 		scope = list_entry(pos, snd_pcm_scope_t, list);
@@ -404,7 +404,7 @@ static int snd_pcm_meter_hw_refine_schange(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_
 		return err;
 	return 0;
 }
-	
+
 static int snd_pcm_meter_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params,
 					  snd_pcm_hw_params_t *sparams)
 {
@@ -716,14 +716,14 @@ pcm_scope.name {
 }
 
 pcm.name {
-        type meter              # Meter PCM
-        slave STR               # Slave name
-        # or
-        slave {                 # Slave definition
-                pcm STR         # Slave PCM name
-                # or
-                pcm { }         # Slave PCM definition
-        }
+	type meter              # Meter PCM
+	slave STR               # Slave name
+	# or
+	slave {                 # Slave definition
+		pcm STR         # Slave PCM name
+		# or
+		pcm { }         # Slave PCM definition
+	}
 	[frequency INT]		# Updates per second
 	scopes {
 		ID STR		# Scope name (see pcm_scope)
@@ -756,7 +756,7 @@ pcm.name {
  *          changed in future.
  */
 int _snd_pcm_meter_open(snd_pcm_t **pcmp, const char *name,
-			snd_config_t *root, snd_config_t *conf, 
+			snd_config_t *root, snd_config_t *conf,
 			snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i, next;
@@ -1174,7 +1174,7 @@ static const snd_pcm_scope_ops_t s16_ops = {
  * \param scopep Pointer to newly created and added scope
  * \return 0 on success otherwise a negative error code
  *
- * s16 pseudo scope convert #SND_PCM_TYPE_METER PCM frames in CPU endian 
+ * s16 pseudo scope convert #SND_PCM_TYPE_METER PCM frames in CPU endian
  * 16 bit frames for use with other scopes. Don't forget to insert it before
  * and to not insert it more time (see #snd_pcm_meter_search_scope)
  */

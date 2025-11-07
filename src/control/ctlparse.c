@@ -253,7 +253,7 @@ int __snd_ctl_ascii_elem_id_parse(snd_ctl_elem_id_t *dst, const char *str,
 			if (*str)
 				goto out;
 		}
-	}			
+	}
 	err = 0;
 
  out:
@@ -277,12 +277,12 @@ int snd_ctl_ascii_elem_id_parse(snd_ctl_elem_id_t *dst, const char *str)
 static int get_ctl_enum_item_index(snd_ctl_t *handle,
 				   snd_ctl_elem_info_t *info,
 				   const char **ptrp)
-{ 
+{
 	char *ptr = (char *)*ptrp;
 	int items, i, len;
 	const char *name;
 	char end;
-  
+
 	items = snd_ctl_elem_info_get_items(info);
 	if (items <= 0)
 		return -1;
@@ -362,7 +362,7 @@ int snd_ctl_ascii_value_parse(snd_ctl_t *handle,
 
 	if (count > get_ctl_type_max_elements(type))
 		count = get_ctl_type_max_elements(type);
-	
+
 	for (idx = 0; idx < count && ptr && *ptr; idx++) {
 		if (*ptr == ',')
 			goto skip;

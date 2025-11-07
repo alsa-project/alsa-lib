@@ -409,7 +409,7 @@ struct snd_pcm_hw_params {
 			       SNDRV_PCM_HW_PARAM_FIRST_MASK + 1];
 	struct snd_mask mres[5];	/* reserved masks */
 	struct snd_interval intervals[SNDRV_PCM_HW_PARAM_LAST_INTERVAL -
-				        SNDRV_PCM_HW_PARAM_FIRST_INTERVAL + 1];
+					SNDRV_PCM_HW_PARAM_FIRST_INTERVAL + 1];
 	struct snd_interval ires[9];	/* reserved intervals */
 	unsigned int rmask;		/* W: requested masks */
 	unsigned int cmask;		/* R: changed masks */

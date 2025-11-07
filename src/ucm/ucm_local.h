@@ -10,7 +10,7 @@
  *  Lesser General Public License for more details.
  *
  *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software  
+ *  License along with this library; if not, write to the Free Software
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  *  Support for the verb/device/modifier core logic and API,
@@ -62,9 +62,9 @@
 #define SEQUENCE_ELEMENT_TYPE_DEV_DISABLE_ALL	15
 
 struct ucm_value {
-        struct list_head list;
-        char *name;
-        char *data;
+	struct list_head list;
+	char *name;
+	char *data;
 };
 
 /* sequence of a component device */

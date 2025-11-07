@@ -18,7 +18,7 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-  
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
@@ -420,7 +420,7 @@ static int make_local_socket(const char *filename)
 	sock = socket(PF_LOCAL, SOCK_STREAM, 0);
 	if (sock < 0)
 		return -errno;
-	
+
 	addr->sun_family = AF_LOCAL;
 	memcpy(addr->sun_path, filename, l);
 
@@ -492,7 +492,7 @@ int snd_ctl_shm_open(snd_ctl_t **handlep, const char *name, const char *sockname
 		result = -errno;
 		goto _err;
 	}
-		
+
 	shm = calloc(1, sizeof(snd_ctl_shm_t));
 	if (!shm) {
 		result = -ENOMEM;

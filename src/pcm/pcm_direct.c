@@ -18,7 +18,7 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-  
+
 #include "pcm_local.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,7 +44,7 @@
 /*
  *
  */
- 
+
 #if !defined(__OpenBSD__) && !defined(__DragonFly__) && !defined(__ANDROID__)
 union semun {
 	int              val;    /* Value for SETVAL */
@@ -55,7 +55,7 @@ union semun {
 #endif
 };
 #endif
- 
+
 /*
  * FIXME:
  *  add possibility to use futexes here
@@ -96,14 +96,14 @@ static unsigned int snd_pcm_direct_magic(snd_pcm_direct_t *dmix)
 }
 
 /*
- *  global shared memory area 
+ *  global shared memory area
  */
 
 int snd_pcm_direct_shm_create_or_connect(snd_pcm_direct_t *dmix)
 {
 	struct shmid_ds buf;
 	int tmpid, err, first_instance = 0;
-	
+
 retryget:
 	dmix->shmid = shmget(dmix->ipc_key, sizeof(snd_pcm_direct_share_t),
 			     dmix->ipc_perm);
@@ -120,7 +120,7 @@ retryget:
 		if ((tmpid = shmget(dmix->ipc_key, 0, dmix->ipc_perm)) != -1)
 		if (!shmctl(tmpid, IPC_STAT, &buf))
 		if (!buf.shm_nattch)
-	    	/* no users so destroy the segment */
+		/* no users so destroy the segment */
 		if (!shmctl(tmpid, IPC_RMID, NULL))
 		    goto retryget;
 		return err;
@@ -221,7 +221,7 @@ static int make_local_socket(const char *filename, int server, mode_t ipc_perm, 
 	memset(addr, 0, size); /* make valgrind happy */
 	addr->sun_family = AF_LOCAL;
 	memcpy(addr->sun_path, filename, l);
-	
+
 	if (server) {
 		if (bind(sock, (struct sockaddr *) addr, size) < 0) {
 			int result = -errno;
@@ -309,7 +309,7 @@ static int _snd_send_fd(int sock, void *data, size_t len, int fd)
 	msghdr.msg_name = NULL;
 	msghdr.msg_namelen = 0;
 	msghdr.msg_iov = &vec;
- 	msghdr.msg_iovlen = 1;
+	msghdr.msg_iovlen = 1;
 	msghdr.msg_control = cmsg;
 	msghdr.msg_controllen = cmsg_len;
 	msghdr.msg_flags = 0;
@@ -342,7 +342,7 @@ static void server_job(snd_pcm_direct_t *dmix)
 		if (i != dmix->server_fd && i != dmix->hw_fd)
 			close(i);
 	}
-	
+
 	/* detach from parent */
 	setsid();
 
@@ -431,7 +431,7 @@ int snd_pcm_direct_server_create(snd_pcm_direct_t *dmix)
 	ret = get_tmp_name(dmix->shmptr->socket_name, sizeof(dmix->shmptr->socket_name));
 	if (ret < 0)
 		return ret;
-	
+
 	ret = make_local_socket(dmix->shmptr->socket_name, 1, dmix->ipc_perm, dmix->ipc_gid);
 	if (ret < 0)
 		return ret;
@@ -442,7 +442,7 @@ int snd_pcm_direct_server_create(snd_pcm_direct_t *dmix)
 		close(dmix->server_fd);
 		return ret;
 	}
-	
+
 	ret = fork();
 	if (ret < 0) {
 		close(dmix->server_fd);
@@ -894,7 +894,7 @@ static int snd_interval_step(struct snd_interval *i, unsigned int min,
 int snd_pcm_direct_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_direct_t *dshare = pcm->private_data;
-	static const snd_mask_t access = { .bits = { 
+	static const snd_mask_t access = { .bits = {
 					(1<<SNDRV_PCM_ACCESS_MMAP_INTERLEAVED) |
 					(1<<SNDRV_PCM_ACCESS_MMAP_NONINTERLEAVED) |
 					(1<<SNDRV_PCM_ACCESS_RW_INTERLEAVED) |
@@ -1057,14 +1057,14 @@ int snd_pcm_direct_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 
 int snd_pcm_direct_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info)
 {
-        return snd_pcm_channel_info_shm(pcm, info, -1);
+	return snd_pcm_channel_info_shm(pcm, info, -1);
 }
 
 int snd_pcm_direct_mmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 {
 	return 0;
 }
-        
+
 int snd_pcm_direct_munmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 {
 	return 0;
@@ -1202,10 +1202,10 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 	int loops = 10;
 
       __again:
-      	if (loops-- <= 0) {
+	if (loops-- <= 0) {
 		snd_error(PCM, "unable to find a valid configuration for slave");
-      		return -EINVAL;
-      	}
+		return -EINVAL;
+	}
 	ret = snd_pcm_hw_params_any(spcm, &hw_params);
 	if (ret < 0) {
 		snd_error(PCM, "snd_pcm_hw_params_any failed");
@@ -1306,8 +1306,8 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 			snd_error(PCM, "unable to set period_size");
 			return ret;
 		}
-	}		
-	
+	}
+
 	if (buffer_is_not_initialized && params->periods > 0) {
 		unsigned int periods = params->periods;
 		ret = INTERNAL(snd_pcm_hw_params_set_periods_near)(spcm,
@@ -1329,7 +1329,7 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 			return ret;
 		}
 	}
-	
+
 	ret = snd_pcm_hw_params(spcm, &hw_params);
 	if (ret < 0) {
 		snd_error(PCM, "unable to install hw params");
@@ -1420,7 +1420,7 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 		snd_pcm_areas_silence(dst_areas, 0, spcm->channels,
 				      spcm->buffer_size, spcm->format);
 	}
-	
+
 	ret = snd_pcm_start(spcm);
 	if (ret < 0) {
 		snd_error(PCM, "unable to start PCM stream");
@@ -1433,7 +1433,7 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 	}
 	snd_pcm_poll_descriptors(spcm, &fd, 1);
 	dmix->hw_fd = fd.fd;
-	
+
 	save_slave_setting(dmix, spcm);
 
 	/* Currently, we assume that each dmix client has the same
@@ -1601,7 +1601,7 @@ int snd_pcm_direct_open_secondary_client(snd_pcm_t **spcmp, snd_pcm_direct_t *dm
 		snd_error(PCM, "unable to open hardware");
 		return ret;
 	}
-		
+
 	spcm = *spcmp;
 	spcm->donot_close = 1;
 	spcm->setup = 1;

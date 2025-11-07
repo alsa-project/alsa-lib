@@ -260,7 +260,7 @@ conv_xx12_xxx2: as_u8(dst) = as_u16c(src) & 0xff; goto CONV_END;
 conv_xx12_x210: as_u32(dst) = sx24((uint32_t)bswap_16(as_u16c(src)) << 8); goto CONV_END;
 conv_xx12_012x: as_u32(dst) = sx24s((uint32_t)as_u16c(src) << 8); goto CONV_END;
 conv_xx12_2100: as_u32(dst) = (uint32_t)bswap_16(as_u16c(src)) << 16; goto CONV_END;
-conv_xx12_0012: as_u32(dst) = (uint32_t)as_u16c(src); goto CONV_END; 
+conv_xx12_0012: as_u32(dst) = (uint32_t)as_u16c(src); goto CONV_END;
 conv_xx12_xxxA: as_u8(dst) = (as_u16c(src) ^ 0x80) & 0xff; goto CONV_END;
 conv_xx12_xxA1: as_u16(dst) = bswap_16(as_u16c(src) ^ 0x80); goto CONV_END;
 conv_xx12_xx1A: as_u16(dst) = as_u16c(src) ^ 0x80; goto CONV_END;
@@ -681,35 +681,35 @@ static void *const get32float_labels[2 * 2] = {
 #ifdef GET32F_END
 get32f_1234F_1234: tmp_float.f = as_floatc(src);
 		   if (tmp_float.f >= 1.0)
-		   	sample = 0x7fffffff;
+			sample = 0x7fffffff;
 		   else if (tmp_float.f <= -1.0)
-		   	sample = 0x80000000;
+			sample = 0x80000000;
 		   else
-		   	sample = (int32_t)(tmp_float.f * (float_t)0x80000000UL);
+			sample = (int32_t)(tmp_float.f * (float_t)0x80000000UL);
 		   goto GET32F_END;
 get32f_4321F_1234: tmp_float.i = bswap_32(as_u32c(src));
 		   if (tmp_float.f >= 1.0)
-		   	sample = 0x7fffffff;
+			sample = 0x7fffffff;
 		   else if (tmp_float.f <= -1.0)
-		   	sample = 0x80000000;
+			sample = 0x80000000;
 		   else
-		   	sample = (int32_t)(tmp_float.f * (float_t)0x80000000UL);
+			sample = (int32_t)(tmp_float.f * (float_t)0x80000000UL);
 		   goto GET32F_END;
 get32f_1234D_1234: tmp_double.d = as_doublec(src);
 		   if (tmp_double.d >= 1.0)
-		   	sample = 0x7fffffff;
+			sample = 0x7fffffff;
 		   else if (tmp_double.d <= -1.0)
-		   	sample = 0x80000000;
+			sample = 0x80000000;
 		   else
-		   	sample = (int32_t)(tmp_double.d * (double_t)0x80000000UL);
+			sample = (int32_t)(tmp_double.d * (double_t)0x80000000UL);
 		   goto GET32F_END;
 get32f_4321D_1234: tmp_double.l = bswap_64(as_u64c(src));
 		   if (tmp_double.d >= 1.0)
-		   	sample = 0x7fffffff;
+			sample = 0x7fffffff;
 		   else if (tmp_double.d <= -1.0)
-		   	sample = 0x80000000;
+			sample = 0x80000000;
 		   else
-		   	sample = (int32_t)(tmp_double.d * (double_t)0x80000000UL);
+			sample = (int32_t)(tmp_double.d * (double_t)0x80000000UL);
 		   goto GET32F_END;
 #endif
 

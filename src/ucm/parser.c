@@ -10,7 +10,7 @@
  *  Lesser General Public License for more details.
  *
  *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software  
+ *  License along with this library; if not, write to the Free Software
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  *  Support for the verb/device/modifier core logic and API,
@@ -847,7 +847,7 @@ static int parse_transition(snd_use_case_mgr_t *uc_mgr,
 			free(tseq);
 			return err;
 		}
-	
+
 		err = parse_sequence(uc_mgr, &tseq->transition_list, n);
 		if (err < 0) {
 			uc_mgr_free_transition_element(tseq);
@@ -873,7 +873,7 @@ static int parse_compound(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg,
 
 	if (snd_config_get_id(cfg, &id) < 0)
 		return -EINVAL;
-	
+
 	if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
 		uc_error("compound type expected for %s", id);
 		return -EINVAL;
@@ -886,7 +886,7 @@ static int parse_compound(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg,
 			uc_error("compound type expected for %s, is %d", id, snd_config_get_type(cfg));
 			return -EINVAL;
 		}
-		
+
 		err = fcn(uc_mgr, n, data1, data2);
 		if (err < 0)
 			return err;
@@ -1898,7 +1898,7 @@ static int parse_verb(snd_use_case_mgr_t *uc_mgr,
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
 	int err;
-	
+
 	/* in-place evaluation */
 	err = uc_mgr_evaluate_inplace(uc_mgr, cfg);
 	if (err < 0)

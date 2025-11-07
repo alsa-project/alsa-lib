@@ -18,7 +18,7 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-  
+
 #include "pcm_local.h"
 #include "bswap.h"
 #include <stdio.h>
@@ -519,7 +519,7 @@ uint64_t snd_pcm_format_silence_64(snd_pcm_format_t format)
 		return bswap_64(u.i);
 #endif
 	}
-	case SNDRV_PCM_FORMAT_FLOAT_BE:		
+	case SNDRV_PCM_FORMAT_FLOAT_BE:
 	{
 		union {
 			float f[2];
@@ -547,7 +547,7 @@ uint64_t snd_pcm_format_silence_64(snd_pcm_format_t format)
 	}
 	case SNDRV_PCM_FORMAT_IEC958_SUBFRAME_LE:
 	case SNDRV_PCM_FORMAT_IEC958_SUBFRAME_BE:
-		return 0;	
+		return 0;
 	case SNDRV_PCM_FORMAT_MU_LAW:
 		return 0x7f7f7f7f7f7f7f7fULL;
 	case SNDRV_PCM_FORMAT_A_LAW:

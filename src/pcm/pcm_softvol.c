@@ -294,7 +294,7 @@ static inline short MULTI_DIV_short(short a, unsigned int b, int swap)
 		}							\
 	}								\
 } while (0)
-		
+
 #define GET_VOL_SCALE \
 	switch (ch) { \
 	case 0: \
@@ -349,7 +349,7 @@ static void softvol_convert_stereo_vol(snd_pcm_softvol_t *svol,
 	case SND_PCM_FORMAT_S16_LE:
 	case SND_PCM_FORMAT_S16_BE:
 		/* 16bit samples */
-		CONVERT_AREA(short, 
+		CONVERT_AREA(short,
 			     !snd_pcm_format_cpu_endian(svol->sformat));
 		break;
 	case SND_PCM_FORMAT_S32_LE:
@@ -404,7 +404,7 @@ static void softvol_convert_mono_vol(snd_pcm_softvol_t *svol,
 	case SND_PCM_FORMAT_S16_LE:
 	case SND_PCM_FORMAT_S16_BE:
 		/* 16bit samples */
-		CONVERT_AREA(short, 
+		CONVERT_AREA(short,
 			     !snd_pcm_format_cpu_endian(svol->sformat));
 		break;
 	case SND_PCM_FORMAT_S32_LE:
@@ -475,7 +475,7 @@ static int snd_pcm_softvol_hw_refine_cprepare(snd_pcm_t *pcm,
 			(1ULL << SND_PCM_FORMAT_S16_BE) |
 			(1ULL << SND_PCM_FORMAT_S24_LE) |
 			(1ULL << SND_PCM_FORMAT_S32_LE) |
- 			(1ULL << SND_PCM_FORMAT_S32_BE),
+			(1ULL << SND_PCM_FORMAT_S32_BE),
 			(1ULL << (SND_PCM_FORMAT_S24_3LE - 32))
 		}
 	};
@@ -562,7 +562,7 @@ static int snd_pcm_softvol_hw_refine_schange(snd_pcm_t *pcm,
 			      SND_PCM_HW_PARBIT_BUFFER_TIME |
 			      SND_PCM_HW_PARBIT_TICK_TIME);
 	if (svol->sformat == SND_PCM_FORMAT_UNKNOWN)
-		links |= (SND_PCM_HW_PARBIT_FORMAT | 
+		links |= (SND_PCM_HW_PARBIT_FORMAT |
 			  SND_PCM_HW_PARBIT_SUBFORMAT |
 			  SND_PCM_HW_PARBIT_SAMPLE_BITS);
 	err = _snd_pcm_hw_params_refine(sparams, links, params);
@@ -575,7 +575,7 @@ static int snd_pcm_softvol_hw_refine_schange(snd_pcm_t *pcm,
 
 	return 0;
 }
-	
+
 static int snd_pcm_softvol_hw_refine_cchange(snd_pcm_t *pcm,
 					     snd_pcm_hw_params_t *params,
 					    snd_pcm_hw_params_t *sparams)
@@ -591,7 +591,7 @@ static int snd_pcm_softvol_hw_refine_cchange(snd_pcm_t *pcm,
 			      SND_PCM_HW_PARBIT_BUFFER_TIME |
 			      SND_PCM_HW_PARBIT_TICK_TIME);
 	if (svol->sformat == SND_PCM_FORMAT_UNKNOWN)
-		links |= (SND_PCM_HW_PARBIT_FORMAT | 
+		links |= (SND_PCM_HW_PARBIT_FORMAT |
 			  SND_PCM_HW_PARBIT_SUBFORMAT |
 			  SND_PCM_HW_PARBIT_SAMPLE_BITS);
 	err = _snd_pcm_hw_params_refine(params, links, sparams);
@@ -628,7 +628,7 @@ static int snd_pcm_softvol_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * param
 		return err;
 	if (slave->format != SND_PCM_FORMAT_S16_LE &&
 	    slave->format != SND_PCM_FORMAT_S16_BE &&
-	    slave->format != SND_PCM_FORMAT_S24_3LE && 
+	    slave->format != SND_PCM_FORMAT_S24_3LE &&
 	    slave->format != SND_PCM_FORMAT_S24_LE &&
 	    slave->format != SND_PCM_FORMAT_S32_LE &&
 	    slave->format != SND_PCM_FORMAT_S32_BE) {
@@ -727,7 +727,7 @@ static int add_user_ctl(snd_pcm_softvol_t *svol, snd_ctl_elem_info_t *cinfo,
 	int err;
 	int i;
 	unsigned int def_val;
-	
+
 	if (svol->max_val == 1) {
 		snd_ctl_elem_info_set_read_write(cinfo, 1, 1);
 		err = snd_ctl_add_boolean_elem_set(svol->ctl, cinfo, 1, count);
@@ -795,7 +795,7 @@ static int softvol_load_control(snd_pcm_t *pcm, snd_pcm_softvol_t *svol,
 	else
 		svol->zero_dB_val = (min_dB / (min_dB - max_dB)) *
 								svol->max_val;
-		
+
 	snd_ctl_elem_info_set_id(&cinfo, ctl_id);
 	if ((err = snd_ctl_elem_info(svol->ctl, &cinfo)) < 0) {
 		if (err != -ENOENT) {
@@ -926,7 +926,7 @@ int snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 	if (sformat != SND_PCM_FORMAT_UNKNOWN &&
 	    sformat != SND_PCM_FORMAT_S16_LE &&
 	    sformat != SND_PCM_FORMAT_S16_BE &&
-	    sformat != SND_PCM_FORMAT_S24_3LE && 
+	    sformat != SND_PCM_FORMAT_S24_3LE &&
 	    sformat != SND_PCM_FORMAT_S24_LE &&
 	    sformat != SND_PCM_FORMAT_S32_LE &&
 	    sformat != SND_PCM_FORMAT_S32_BE)
@@ -1101,17 +1101,17 @@ any changes.
 
 \code
 pcm.name {
-        type softvol            # Soft Volume conversion PCM
-        slave STR               # Slave name
-        # or
-        slave {                 # Slave definition
-                pcm STR         # Slave PCM name
-                # or
-                pcm { }         # Slave PCM definition
-                [format STR]    # Slave format
-        }
-        control {
-	        name STR        # control element id string
+	type softvol            # Soft Volume conversion PCM
+	slave STR               # Slave name
+	# or
+	slave {                 # Slave definition
+		pcm STR         # Slave PCM name
+		# or
+		pcm { }         # Slave PCM definition
+		[format STR]    # Slave format
+	}
+	control {
+		name STR        # control element id string
 		[card STR]      # control card index
 		[iface STR]     # interface of the element
 		[index INT]     # index of the element
@@ -1149,7 +1149,7 @@ pcm.name {
  *          changed in future.
  */
 int _snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
-			  snd_config_t *root, snd_config_t *conf, 
+			  snd_config_t *root, snd_config_t *conf,
 			  snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i, next;
@@ -1245,7 +1245,7 @@ int _snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 		if (sformat != SND_PCM_FORMAT_UNKNOWN &&
 		    sformat != SND_PCM_FORMAT_S16_LE &&
 		    sformat != SND_PCM_FORMAT_S16_BE &&
-		    sformat != SND_PCM_FORMAT_S24_3LE && 
+		    sformat != SND_PCM_FORMAT_S24_3LE &&
 		    sformat != SND_PCM_FORMAT_S24_LE &&
 		    sformat != SND_PCM_FORMAT_S32_LE &&
 		    sformat != SND_PCM_FORMAT_S32_BE) {

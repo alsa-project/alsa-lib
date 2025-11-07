@@ -522,7 +522,7 @@ int snd_seq_hw_open(snd_seq_t **handle, const char *name, int streams, int mode)
 		assert(0);
 		return -EINVAL;
 	}
-	
+
 	if (mode & SND_SEQ_NONBLOCK)
 		fmode |= O_NONBLOCK;
 

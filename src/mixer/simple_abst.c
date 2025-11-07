@@ -243,7 +243,7 @@ static int find_module(snd_mixer_class_t *class, snd_config_t *top)
 static void private_free(snd_mixer_class_t *class)
 {
 	class_priv_t *priv = snd_mixer_class_get_private(class);
-	
+
 	if (priv->private_free)
 		priv->private_free(class);
 	if (priv->dlhandle)
@@ -350,7 +350,7 @@ int snd_mixer_simple_basic_register(snd_mixer_t *mixer,
 	      __error:
 		if (top)
 			snd_config_delete(top);
-	      	if (class)
+		if (class)
 			snd_mixer_class_free(class);
 		return err;
 	}

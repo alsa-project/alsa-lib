@@ -85,8 +85,8 @@ static snd_pcm_sframes_t snd_pcm_mmap_write_areas(snd_pcm_t *pcm,
 
 		__snd_pcm_mmap_begin(pcm, &pcm_areas, &pcm_offset, &frames);
 		snd_pcm_areas_copy(pcm_areas, pcm_offset,
-				   areas, offset, 
-				   pcm->channels, 
+				   areas, offset,
+				   pcm->channels,
 				   frames, pcm->format);
 		result = __snd_pcm_mmap_commit(pcm, pcm_offset, frames);
 		if (result < 0)
@@ -114,11 +114,11 @@ static snd_pcm_sframes_t snd_pcm_mmap_read_areas(snd_pcm_t *pcm,
 		snd_pcm_uframes_t pcm_offset;
 		snd_pcm_uframes_t frames = size;
 		snd_pcm_sframes_t result;
-		
+
 		__snd_pcm_mmap_begin(pcm, &pcm_areas, &pcm_offset, &frames);
 		snd_pcm_areas_copy(areas, offset,
 				   pcm_areas, pcm_offset,
-				   pcm->channels, 
+				   pcm->channels,
 				   frames, pcm->format);
 		result = __snd_pcm_mmap_commit(pcm, pcm_offset, frames);
 		if (result < 0)
@@ -255,7 +255,7 @@ int snd_pcm_channel_info_shm(snd_pcm_t *pcm, snd_pcm_channel_info_t *info, int s
 	} else
 		info->type = SND_PCM_AREA_LOCAL;
 	return 0;
-}	
+}
 
 int snd_pcm_mmap(snd_pcm_t *pcm)
 {
@@ -306,12 +306,12 @@ int snd_pcm_mmap(snd_pcm_t *pcm)
 		size_t size;
 		unsigned int c1;
 		if (i->addr) {
-        		a->addr = i->addr;
-        		a->first = i->first;
-        		a->step = i->step;
-		        continue;
-                }
-                size = i->first + i->step * (pcm->buffer_size - 1) + pcm->sample_bits;
+			a->addr = i->addr;
+			a->first = i->first;
+			a->step = i->step;
+			continue;
+		}
+		size = i->first + i->step * (pcm->buffer_size - 1) + pcm->sample_bits;
 		for (c1 = c + 1; c1 < pcm->channels; ++c1) {
 			snd_pcm_channel_info_t *i1 = &pcm->mmap_channels[c1];
 			size_t s;
@@ -415,7 +415,7 @@ int snd_pcm_mmap(snd_pcm_t *pcm)
 			switch (i1->type) {
 			case SND_PCM_AREA_MMAP:
 				if (i1->u.mmap.fd != i->u.mmap.fd ||
-                                    i1->u.mmap.offset != i->u.mmap.offset)
+				    i1->u.mmap.offset != i->u.mmap.offset)
 					continue;
 				break;
 			case SND_PCM_AREA_SHM:
@@ -425,7 +425,7 @@ int snd_pcm_mmap(snd_pcm_t *pcm)
 			case SND_PCM_AREA_LOCAL:
 				if (pcm->access != SND_PCM_ACCESS_MMAP_INTERLEAVED &&
 				    pcm->access != SND_PCM_ACCESS_RW_INTERLEAVED)
-				        continue;
+					continue;
 				break;
 			default:
 				assert(0);

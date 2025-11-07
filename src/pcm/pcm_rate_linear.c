@@ -1,6 +1,6 @@
 /*
  *  Linear rate converter plugin
- * 
+ *
  *  Copyright (c) 2000 by Abramo Bagnara <abramo@alsa-project.org>
  *                2004 by Jaroslav Kysela <perex@perex.cz>
  *                2006 by Takashi Iwai <tiwai@suse.de>
@@ -83,7 +83,7 @@ static void linear_expand(struct rate_linear *rate,
 	unsigned int dst_frames1;
 	int16_t sample = 0;
 	unsigned int pos;
-	
+
 	for (channel = 0; channel < rate->channels; ++channel) {
 		const snd_pcm_channel_area_t *src_area = &src_areas[channel];
 		const snd_pcm_channel_area_t *dst_area = &dst_areas[channel];
@@ -129,7 +129,7 @@ static void linear_expand(struct rate_linear *rate,
 				src += src_step;
 				src_frames1++;
 			}
-		} 
+		}
 		rate->old_sample[channel] = new_sample;
 	}
 }
@@ -146,7 +146,7 @@ static void linear_expand_s16(struct rate_linear *rate,
 	unsigned int dst_frames1;
 	unsigned int get_threshold = rate->pitch;
 	unsigned int pos;
-	
+
 	for (channel = 0; channel < rate->channels; ++channel) {
 		const snd_pcm_channel_area_t *src_area = &src_areas[channel];
 		const snd_pcm_channel_area_t *dst_area = &dst_areas[channel];
@@ -181,7 +181,7 @@ static void linear_expand_s16(struct rate_linear *rate,
 				src += src_step;
 				src_frames1++;
 			}
-		} 
+		}
 		rate->old_sample[channel] = new_sample;
 	}
 }
@@ -223,7 +223,7 @@ static void linear_shrink(struct rate_linear *rate,
 		src_frames1 = 0;
 		dst_frames1 = 0;
 		while (src_frames1 < src_frames) {
-			
+
 			goto *get;
 #define GET16_END after_get
 #include "plugin_ops.h"
@@ -285,7 +285,7 @@ static void linear_shrink_s16(struct rate_linear *rate,
 		src_frames1 = 0;
 		dst_frames1 = 0;
 		while (src_frames1 < src_frames) {
-			
+
 			new_sample = *src;
 			src += src_step;
 			src_frames1++;
@@ -307,7 +307,7 @@ static void linear_shrink_s16(struct rate_linear *rate,
 	}
 }
 
-static void linear_convert(void *obj, 
+static void linear_convert(void *obj,
 			   const snd_pcm_channel_area_t *dst_areas,
 			   snd_pcm_uframes_t dst_offset, unsigned int dst_frames,
 			   const snd_pcm_channel_area_t *src_areas,
@@ -364,7 +364,7 @@ static int linear_adjust_pitch(void *obj, snd_pcm_rate_info_t *info)
 
 	rate->pitch = (((uint64_t)info->out.period_size * LINEAR_DIV) +
 		       (info->in.period_size/2) ) / info->in.period_size;
-			
+
 	cframes = input_frames(rate, info->out.period_size);
 	while (cframes != info->in.period_size) {
 		snd_pcm_uframes_t cframes_new;

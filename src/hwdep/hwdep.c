@@ -209,7 +209,7 @@ int snd_hwdep_open_lconf(snd_hwdep_t **hwdep, const char *name,
 int snd_hwdep_close(snd_hwdep_t *hwdep)
 {
 	int err;
-  	assert(hwdep);
+	assert(hwdep);
 	err = hwdep->ops->close(hwdep);
 	if (hwdep->dl_handle)
 		snd_dlclose(hwdep->dl_handle);
@@ -296,14 +296,14 @@ int snd_hwdep_poll_descriptors(snd_hwdep_t *hwdep, struct pollfd *pfds, unsigned
  */
 int snd_hwdep_poll_descriptors_revents(snd_hwdep_t *hwdep, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
 {
-        assert(hwdep && pfds && revents);
-        if (nfds == 1) {
-                *revents = pfds->revents;
-                return 0;
-        }
-        return -EINVAL;
-}                                                                       
-                                                                       
+	assert(hwdep && pfds && revents);
+	if (nfds == 1) {
+		*revents = pfds->revents;
+		return 0;
+	}
+	return -EINVAL;
+}
+
 /**
  * \brief set nonblock mode
  * \param hwdep HwDep handle

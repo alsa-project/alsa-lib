@@ -37,7 +37,7 @@ struct hint_list {
 	const char *siface;
 	snd_ctl_elem_iface_t iface;
 	snd_ctl_t *ctl;
-	snd_ctl_card_info_t *info;	
+	snd_ctl_card_info_t *info;
 	int card;
 	int device;
 	long device_input;
@@ -173,7 +173,7 @@ static char *get_dev_name(struct hint_list *list)
 {
 	char *str1, *str2, *res;
 	int device;
-	
+
 	device = list->device_input >= 0 ? list->device_input : list->device;
 	if (get_dev_name1(list, &str1, device, 1) < 0)
 		return NULL;
@@ -261,7 +261,7 @@ static int try_config(snd_config_t *config,
 	    snd_config_get_string(cfg, &str) >= 0 &&
 	    ((strncmp(base, str, strlen(base)) == 0 &&
 	     str[strlen(base)] == '.') || strchr(str, '.') == NULL))
-	     	goto __skip_add;
+		goto __skip_add;
 	if (list->card >= 0 && list->device >= 0)
 		sprintf(buf, "%s:CARD=%s,DEV=%i", name, snd_ctl_card_info_get_id(list->info), list->device);
 	else if (list->card >= 0)
@@ -294,7 +294,7 @@ static int try_config(snd_config_t *config,
 	cfg1 = res;
 	level = 0;
       __hint:
-      	level++;
+	level++;
 	if (snd_config_search(cfg1, "type", &cfg) >= 0 &&
 	    snd_config_get_string(cfg, &str) >= 0 &&
 	    strcmp(str, "hw") == 0) {
@@ -306,7 +306,7 @@ static int try_config(snd_config_t *config,
 			}
 		}
 	}
-      	
+
 	if (snd_config_search(cfg1, "hint", &cfg) >= 0) {
 		if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
 			snd_error(CONTROL, "hint (%s) must be a compound", buf);
@@ -363,7 +363,7 @@ static int try_config(snd_config_t *config,
 		goto __skip_add;
 	if (snd_config_search(cfg1, "slave", &cfg) >= 0 &&
 	    snd_config_search(cfg, base, &cfg1) >= 0)
-	    	goto __hint;
+		goto __hint;
 	snd_config_delete(res);
 	res = NULL;
 	cleanup_res = 0;
@@ -395,38 +395,38 @@ static int try_config(snd_config_t *config,
       __ok:
 	err = 0;
       __cleanup:
-      	if (err >= 0) {
-      		list->device = dev;
- 		str = list->card >= 0 ? get_dev_name(list) : NULL;
-      		if (str != NULL) {
-      			level = (buf1 == NULL ? 0 : strlen(buf1)) + 1 + strlen(str);
-      			buf2 = realloc((char *)str, level + 1);
-      			if (buf2 != NULL) {
-      				if (buf1 != NULL) {
-      					str = strchr(buf2, '|');
-      					if (str != NULL)
+	if (err >= 0) {
+		list->device = dev;
+		str = list->card >= 0 ? get_dev_name(list) : NULL;
+		if (str != NULL) {
+			level = (buf1 == NULL ? 0 : strlen(buf1)) + 1 + strlen(str);
+			buf2 = realloc((char *)str, level + 1);
+			if (buf2 != NULL) {
+				if (buf1 != NULL) {
+					str = strchr(buf2, '|');
+					if (str != NULL)
 						memmove(buf2 + (level - strlen(str)), str, strlen(str));
 					else
 						str = buf2 + strlen(buf2);
-      					*(char *)str++ = '\n';
-	      				memcpy((char *)str, buf1, strlen(buf1));
-	      				buf2[level] = '\0';
+					*(char *)str++ = '\n';
+					memcpy((char *)str, buf1, strlen(buf1));
+					buf2[level] = '\0';
 					free(buf1);
 				}
 				buf1 = buf2;
 			} else {
 				free((char *)str);
 			}
-      		} else if (list->device >= 0)
-      			goto __skip_add;
-	      	err = hint_list_add(list, buf, buf1);
+		} else if (list->device >= 0)
+			goto __skip_add;
+		err = hint_list_add(list, buf, buf1);
 	}
       __skip_add:
 	if (res && cleanup_res)
-	      	snd_config_delete(res);
+		snd_config_delete(res);
 	if (buf1)
 		free(buf1);
-      	free(buf);
+	free(buf);
 	return err;
 }
 
@@ -455,7 +455,7 @@ static int add_card(snd_config_t *config, snd_config_t *rw_config, struct hint_l
 	char ctl_name[16];
 	snd_ctl_card_info_t info = {0};
 	int device, max_device = 0;
-	
+
 	list->info = &info;
 	err = snd_config_search(config, list->siface, &conf);
 	if (err < 0)
@@ -471,7 +471,7 @@ static int add_card(snd_config_t *config, snd_config_t *rw_config, struct hint_l
 		n = snd_config_iterator_entry(i);
 		if (snd_config_get_id(n, &str) < 0)
 			continue;
-		
+
 		if (next_devices[list->iface] != NULL) {
 			list->card = card;
 			device = max_device = -1;
@@ -510,7 +510,7 @@ static int add_card(snd_config_t *config, snd_config_t *rw_config, struct hint_l
 	}
 	err = 0;
       __error:
-      	snd_ctl_close(list->ctl);
+	snd_ctl_close(list->ctl);
 	return err;
 }
 
@@ -665,9 +665,9 @@ int snd_device_name_hint(int card, const char *iface, void ***hints)
 	if (!err && !list.list)
 		err = hint_list_add(&list, NULL, NULL);
 	if (err < 0)
-      		snd_device_name_free_hint((void **)list.list);
+		snd_device_name_free_hint((void **)list.list);
 	else
-      		*hints = (void **)list.list;
+		*hints = (void **)list.list;
 	free(list.cardname);
 	if (local_config_rw)
 		snd_config_delete(local_config_rw);
@@ -726,7 +726,7 @@ char *snd_device_name_get_hint(const void *hint, const char *id)
 				return NULL;
 			hint1 = delim + 1;
 			continue;
-		} 
+		}
 		if (delim == NULL)
 			return strdup(hint1 + 4);
 		size = delim - hint1 - 4;

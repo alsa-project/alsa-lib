@@ -270,7 +270,7 @@ static int add_iec958_elem_set(struct elem_set_trial *trial,
 
 	err = snd_ctl_elem_add_iec958(trial->handle, trial->id);
 	if (err < 0)
-	        return err;
+		return err;
 
 	/*
 	 * In historical reason, the above API is not allowed to fill all of

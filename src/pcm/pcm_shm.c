@@ -25,7 +25,7 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-  
+
 #include "pcm_local.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -91,7 +91,7 @@ static int snd_pcm_shm_new_rbptr(snd_pcm_t *pcm, snd_pcm_shm_t *shm,
 		size_t mmap_size, mmap_offset, offset;
 		int fd;
 		long result;
-		
+
 		shm->ctrl->cmd = &pcm->hw == rbptr ? SND_PCM_IOCTL_HW_PTR_FD : SND_PCM_IOCTL_APPL_PTR_FD;
 		result = snd_pcm_shm_action_fd0(pcm, &fd);
 		if (result < 0)
@@ -240,7 +240,7 @@ static int snd_pcm_shm_hw_refine_schange(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pc
 		return err;
 	return 0;
 }
-	
+
 static int snd_pcm_shm_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params,
 					  snd_pcm_hw_params_t *sparams)
 {
@@ -283,7 +283,7 @@ static int snd_pcm_shm_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 				       snd_pcm_shm_hw_refine_slave);
 }
 
-static int snd_pcm_shm_hw_params_slave(snd_pcm_t *pcm, 
+static int snd_pcm_shm_hw_params_slave(snd_pcm_t *pcm,
 				       snd_pcm_hw_params_t *params)
 {
 	snd_pcm_shm_t *shm = pcm->private_data;
@@ -644,7 +644,7 @@ static int make_local_socket(const char *filename)
 		snd_errornum(PCM, "socket failed");
 		return -errno;
 	}
-	
+
 	addr->sun_family = AF_LOCAL;
 	memcpy(addr->sun_path, filename, l);
 
@@ -732,7 +732,7 @@ int snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name,
 		result = -errno;
 		goto _err;
 	}
-		
+
 	shm = calloc(1, sizeof(snd_pcm_shm_t));
 	if (!shm) {
 		result = -ENOMEM;
@@ -781,7 +781,7 @@ performance.
 
 \code
 pcm.name {
-        type shm                # Shared memory PCM
+	type shm                # Shared memory PCM
 	server STR		# Server name
 	pcm STR			# PCM name
 }

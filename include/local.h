@@ -385,7 +385,7 @@ int snd_config_check_hop(snd_config_t *conf);
 #define SND_CONF_MAX_HOPS	64
 
 int snd_config_search_alias_hooks(snd_config_t *config,
-                                  const char *base, const char *key,
+				  const char *base, const char *key,
 				  snd_config_t **result);
 
 int _snd_conf_generic_id(const char *id);

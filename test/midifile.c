@@ -370,8 +370,8 @@ readtrack (void)		/* read a track chunk */
 	      old_currtempo = Mf_currtempo;
 	      old_realtime = Mf_realtime;
 	      if (revised_time != tempo_change_time) {
-	        old_f_realtime = Mf_f_realtime;
-	        old_currtime = save_time;
+		old_f_realtime = Mf_f_realtime;
+		old_currtime = save_time;
 	      }
 	    delta_secs = mf_ticks2sec (revised_time-old_currtime, Mf_division, save_tempo);
 #ifdef DEBUG_TIMES
@@ -856,17 +856,17 @@ mf_write_track_chunk (int which_track, FILE *fp)
 	eputc(laststatus = meta_event);
 	eputc(end_of_track);
 
- 	eputc(0);
+	eputc(0);
  */
 
   /* It's impossible to know how long the track chunk will be beforehand,
-           so the position of the track length data is kept so that it can
-           be written after the chunk has been generated */
+	   so the position of the track length data is kept so that it can
+	   be written after the chunk has been generated */
   place_marker = ftell (fp);
 
   /* This method turned out not to be portable because the
-           parameter returned from ftell is not guaranteed to be
-           in bytes on every machine */
+	   parameter returned from ftell is not guaranteed to be
+	   in bytes on every machine */
   /* track.length = place_marker - offset - (long) sizeof(track); */
 
 #ifdef DEBUG

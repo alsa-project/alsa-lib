@@ -52,7 +52,7 @@ typedef struct {
 	int pending;
 } snd_rawmidi_virtual_t;
 
-int _snd_seq_open_lconf(snd_seq_t **seqp, const char *name, 
+int _snd_seq_open_lconf(snd_seq_t **seqp, const char *name,
 			int streams, int mode, snd_config_t *lconf,
 			snd_config_t *parent_conf);
 #endif

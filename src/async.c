@@ -109,7 +109,7 @@ static void snd_async_handler(int signo ATTRIBUTE_UNUSED, siginfo_t *siginfo, vo
  *
  * \see snd_async_add_pcm_handler, snd_async_add_ctl_handler
  */
-int snd_async_add_handler(snd_async_handler_t **handler, int fd, 
+int snd_async_add_handler(snd_async_handler_t **handler, int fd,
 			  snd_async_callback_t callback, void *private_data)
 {
 	snd_async_handler_t *h;

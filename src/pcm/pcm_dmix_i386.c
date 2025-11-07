@@ -55,7 +55,7 @@
 #undef LOCK_PREFIX
 #undef XADD
 #undef XSUB
- 
+
 #define MIX_AREAS_16 remix_areas_16_smp
 #define MIX_AREAS_16_MMX remix_areas_16_smp_mmx
 #define MIX_AREAS_32 remix_areas_32_smp
@@ -73,7 +73,7 @@
 #undef LOCK_PREFIX
 #undef XADD
 #undef XSUB
- 
+
 #define i386_dmix_supported_format \
 	((1ULL << SND_PCM_FORMAT_S16_LE) |\
 	 (1ULL << SND_PCM_FORMAT_S32_LE) |\
@@ -100,7 +100,7 @@ static void mix_select_callbacks(snd_pcm_direct_t *dmix)
 	if (!smp) {
 		FILE *in;
 		char line[255];
-	
+
 		/* try to determine the capabilities of the CPU */
 		in = fopen("/proc/cpuinfo", "r");
 		if (in) {
@@ -117,7 +117,7 @@ static void mix_select_callbacks(snd_pcm_direct_t *dmix)
 			fclose(in);
 		}
 	}
-	
+
 	if (mmx) {
 		dmix->u.dmix.mix_areas_16 = smp > 1 ? mix_areas_16_smp_mmx : mix_areas_16_mmx;
 		dmix->u.dmix.remix_areas_16 = smp > 1 ? remix_areas_16_smp_mmx : remix_areas_16_mmx;

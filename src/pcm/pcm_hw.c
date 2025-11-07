@@ -26,7 +26,7 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-  
+
 #include "pcm_local.h"
 #include "../control/control_local.h"
 #include "../timer/timer_local.h"
@@ -375,7 +375,7 @@ static int snd_pcm_hw_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 		if (pcm->tstamp_type != SND_PCM_TSTAMP_TYPE_GETTIMEOFDAY)
 			params->info |= SND_PCM_INFO_MONOTONIC;
 	}
-	
+
 	return 0;
 }
 
@@ -434,7 +434,7 @@ static int snd_pcm_hw_change_timer(snd_pcm_t *pcm, int enable)
 	snd_timer_params_t params = {0};
 	unsigned int suspend, resume;
 	int err;
-	
+
 	if (enable) {
 		err = snd_timer_hw_open(&hw->period_timer,
 				"hw-pcm-period-event",
@@ -456,7 +456,7 @@ static int snd_pcm_hw_change_timer(snd_pcm_t *pcm, int enable)
 			return -EINVAL;
 		}
 		hw->period_timer_pfd.events = POLLIN;
- 		hw->period_timer_pfd.revents = 0;
+		hw->period_timer_pfd.revents = 0;
 		snd_timer_poll_descriptors(hw->period_timer,
 					   &hw->period_timer_pfd, 1);
 		hw->period_timer_need_poll = 0;
@@ -473,7 +473,7 @@ static int snd_pcm_hw_change_timer(snd_pcm_t *pcm, int enable)
 			 * In older versions, check via poll before read() is
 			 * needed because of the confliction between
 			 * TIMER_START and FIONBIO ioctls.
-                         */
+			 */
 			if (ver < SNDRV_PROTOCOL_VERSION(2, 0, 4))
 				hw->period_timer_need_poll = 1;
 			/*
@@ -1691,7 +1691,7 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name, int fd,
 			return ret;
 		}
 	}
-	
+
 	hw = calloc(1, sizeof(snd_pcm_hw_t));
 	if (!hw) {
 		close(fd);
@@ -1785,7 +1785,7 @@ int snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 	sprintf(filename, filefmt, card, device);
 
       __again:
-      	if (attempt++ > 3) {
+	if (attempt++ > 3) {
 		ret = -EBUSY;
 		goto _err;
 	}
@@ -2085,8 +2085,8 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 	return 0;
 
 fail:
-        snd_pcm_free_chmaps(chmap);
-        return err;
+	snd_pcm_free_chmaps(chmap);
+	return err;
 }
 
 #ifndef DOC_HIDDEN
@@ -2152,7 +2152,7 @@ static int use_old_hw_params_ioctl(int fd, unsigned int cmd, snd_pcm_hw_params_t
 	struct sndrv_pcm_hw_params_old oparams;
 	unsigned int cmask = 0;
 	int res;
-	
+
 	snd_pcm_hw_convert_to_old_params(&oparams, params, &cmask);
 	res = ioctl(fd, cmd, &oparams);
 	snd_pcm_hw_convert_from_old_params(params, &oparams);

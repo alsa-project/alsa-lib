@@ -58,7 +58,7 @@ static int level_enable(snd_pcm_scope_t *scope)
 	snd_pcm_scope_set_callback_private(scope, level);
 	level->win = initscr();
 	winsdelln(level->win, snd_pcm_meter_get_channels(level->pcm));
-        getyx(level->win, y, x);
+	getyx(level->win, y, x);
 	level->top = y;
 	return 0;
 }

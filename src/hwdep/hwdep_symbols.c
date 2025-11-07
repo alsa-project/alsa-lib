@@ -25,7 +25,7 @@ extern const char *_snd_module_hwdep_hw;
 static const char **snd_hwdep_open_objects[] = {
 	&_snd_module_hwdep_hw
 };
-	
+
 void *snd_hwdep_open_symbols(void)
 {
 	return snd_hwdep_open_objects;

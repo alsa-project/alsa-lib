@@ -18,7 +18,7 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-  
+
 #define INTERVAL_INLINE static inline
 
 INTERVAL_INLINE void snd_interval_any(snd_interval_t *i)
@@ -50,7 +50,7 @@ INTERVAL_INLINE int snd_interval_empty(const snd_interval_t *i)
 INTERVAL_INLINE int snd_interval_single(const snd_interval_t *i)
 {
 	assert(!snd_interval_empty(i));
-	return (i->min == i->max || 
+	return (i->min == i->max ||
 		(i->min + 1 == i->max && (i->openmin || i->openmax)));
 }
 
@@ -146,8 +146,8 @@ INTERVAL_INLINE int snd_interval_always_eq(const snd_interval_t *i1, const snd_i
 
 INTERVAL_INLINE int snd_interval_never_eq(const snd_interval_t *i1, const snd_interval_t *i2)
 {
-	
-	return (i1->max < i2->min || 
+
+	return (i1->max < i2->min ||
 		(i1->max == i2->min &&
 		 (i1->openmax || i1->openmin)) ||
 		i1->min > i2->max ||

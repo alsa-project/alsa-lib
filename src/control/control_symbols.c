@@ -31,7 +31,7 @@ static const char **snd_control_open_objects[] = {
 	&_snd_module_control_empty,
 #include "ctl_symbols_list.c"
 };
-	
+
 void *snd_control_open_symbols(void)
 {
 	return snd_control_open_objects;

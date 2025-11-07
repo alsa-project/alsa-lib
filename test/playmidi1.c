@@ -1,5 +1,5 @@
 /*
- *   MIDI file player for ALSA sequencer 
+ *   MIDI file player for ALSA sequencer
  *   (type 0 only!, the library that is used doesn't support merging of tracks)
  *
  *   Copyright (c) 1998 by Frank van de Pol <F.K.W.van.de.Pol@inter.nl.net>
@@ -166,15 +166,15 @@ static void do_header(int format, int ntracks, int division)
 	snd_seq_queue_tempo_alloca(&tempo);
 	/* ppq must be set before starting the timer */
 	if (snd_seq_get_queue_tempo(seq_handle, dest_queue, tempo) < 0) {
-    		perror("get_queue_tempo");
-    		exit(1);
+		perror("get_queue_tempo");
+		exit(1);
 	}
 	if ((slave_ppq = snd_seq_queue_tempo_get_ppq(tempo)) != ppq) {
 		snd_seq_queue_tempo_set_ppq(tempo, ppq);
 		if (snd_seq_set_queue_tempo(seq_handle, dest_queue, tempo) < 0) {
-    			perror("set_queue_tempo");
-    			if (!slave && !shared_queue)
-    				exit(1);
+			perror("set_queue_tempo");
+			if (!slave && !shared_queue)
+				exit(1);
 			else
 				printf("different PPQ %d in SMF from queue PPQ %d\n", ppq, slave_ppq);
 		} else
@@ -186,10 +186,10 @@ static void do_header(int format, int ntracks, int division)
 	/* start playing... */
 	if (slave) {
 		if (verbose >= VERB_INFO)
-			printf("Wait till timer starts...\n");	
+			printf("Wait till timer starts...\n");
 		wait_start();
 		if (verbose >= VERB_INFO)
-			printf("Go!\n");	
+			printf("Go!\n");
 	} else if (shared_queue) {
 		snd_seq_queue_status_t *stat;
 		snd_seq_queue_status_alloca(&stat);
@@ -369,7 +369,7 @@ static snd_seq_event_t *wait_for_event(void)
 {
 	int left;
 	snd_seq_event_t *input_event;
-  
+
 	if (use_blocking_mode) {
 		/* read the event - blocked until any event is read */
 		left = snd_seq_event_input(seq_handle, &input_event);
@@ -506,13 +506,13 @@ int main(int argc, char *argv[])
 		perror("open /dev/snd/seq");
 		exit(1);
 	}
-	
+
 	tmp = snd_seq_nonblock(seq_handle, !use_blocking_mode);
 	if (tmp < 0) {
 		perror("block_mode");
 		exit(1);
 	}
-			
+
 	/* set the name */
 	/* set the event filter to receive only the echo event */
 	/* if running in slave mode, also listen for a START event */
@@ -529,7 +529,7 @@ int main(int argc, char *argv[])
 		perror("create port");
 		exit(1);
 	}
-	
+
 	if (snd_seq_parse_address(seq_handle, &dest_addr, addr) < 0) {
 		perror("invalid destination address");
 		exit(1);
@@ -560,17 +560,17 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	/* subscribe for the timer START event */	
-	if (slave) {	
+	/* subscribe for the timer START event */
+	if (slave) {
 		tmp = snd_seq_connect_from(seq_handle, my_port,
 					   SND_SEQ_CLIENT_SYSTEM,
 					   dest_queue + 16 /*snd_seq_queue_sync_port(dest_queue)*/);
 		if (tmp < 0) {
 			perror("subscribe");
 			exit(1);
-		}	
+		}
 	}
-	
+
 	/* change the pool size */
 	if (snd_seq_set_client_pool_output(seq_handle, WRITE_POOL_SIZE) < 0 ||
 	    snd_seq_set_client_pool_input(seq_handle, READ_POOL_SIZE) < 0 ||
@@ -578,7 +578,7 @@ int main(int argc, char *argv[])
 		perror("pool");
 		exit(1);
 	}
-	
+
 	if (optind < argc) {
 		F = fopen(argv[optind], "r");
 		if (F == NULL) {

@@ -18,11 +18,11 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-  
+
 typedef struct {
 	snd_pcm_t *slave;
 	int close_slave;
-} snd_pcm_generic_t;	
+} snd_pcm_generic_t;
 
 /* make local functions really local */
 #define snd_pcm_generic_close \

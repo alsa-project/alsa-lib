@@ -10,7 +10,7 @@
  *  Lesser General Public License for more details.
  *
  *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software  
+ *  License along with this library; if not, write to the Free Software
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  *  Support for the verb/device/modifier core logic and API,
@@ -1027,7 +1027,7 @@ static int set_defaults(snd_use_case_mgr_t *uc_mgr, bool force)
 static int import_master_config(snd_use_case_mgr_t *uc_mgr)
 {
 	int err;
-	
+
 	err = uc_mgr_import_master_config(uc_mgr);
 	if (err < 0)
 		return err;
@@ -1210,7 +1210,7 @@ static inline struct use_case_verb *find_verb(snd_use_case_mgr_t *uc_mgr,
 		    verb_name);
 }
 
-static int is_devlist_supported(snd_use_case_mgr_t *uc_mgr, 
+static int is_devlist_supported(snd_use_case_mgr_t *uc_mgr,
 	struct dev_list *dev_list)
 {
 	struct dev_list_node *device;
@@ -1243,13 +1243,13 @@ static int is_devlist_supported(snd_use_case_mgr_t *uc_mgr,
 	return 1 - found_ret;
 }
 
-static inline int is_modifier_supported(snd_use_case_mgr_t *uc_mgr, 
+static inline int is_modifier_supported(snd_use_case_mgr_t *uc_mgr,
 	struct use_case_modifier *modifier)
 {
 	return is_devlist_supported(uc_mgr, &modifier->dev_list);
 }
 
-static inline int is_device_supported(snd_use_case_mgr_t *uc_mgr, 
+static inline int is_device_supported(snd_use_case_mgr_t *uc_mgr,
 	struct use_case_device *device)
 {
 	return is_devlist_supported(uc_mgr, &device->dev_list);
@@ -1639,7 +1639,7 @@ static int dismantle_use_case(snd_use_case_mgr_t *uc_mgr)
 	uc_mgr->active_verb = NULL;
 
 	err = set_defaults(uc_mgr, true);
-	
+
 	return err;
 }
 

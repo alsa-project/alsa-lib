@@ -10,7 +10,7 @@
  *  Lesser General Public License for more details.
  *
  *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software  
+ *  License along with this library; if not, write to the Free Software
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  *  Support for the verb/device/modifier core logic and API,
@@ -412,7 +412,7 @@ void uc_mgr_free_value(struct list_head *base)
 {
 	struct list_head *pos, *npos;
 	struct ucm_value *val;
-	
+
 	list_for_each_safe(pos, npos, base) {
 		val = list_entry(pos, struct ucm_value, list);
 		uc_mgr_free_value1(val);
@@ -423,7 +423,7 @@ void uc_mgr_free_dev_list(struct dev_list *dev_list)
 {
 	struct list_head *pos, *npos;
 	struct dev_list_node *dlist;
-	
+
 	list_for_each_safe(pos, npos, &dev_list->list) {
 		dlist = list_entry(pos, struct dev_list_node, list);
 		free(dlist->name);
@@ -534,7 +534,7 @@ void uc_mgr_free_sequence(struct list_head *base)
 {
 	struct list_head *pos, *npos;
 	struct sequence_element *seq;
-	
+
 	list_for_each_safe(pos, npos, base) {
 		seq = list_entry(pos, struct sequence_element, list);
 		list_del(&seq->list);
@@ -553,7 +553,7 @@ void uc_mgr_free_transition(struct list_head *base)
 {
 	struct list_head *pos, *npos;
 	struct transition_sequence *tseq;
-	
+
 	list_for_each_safe(pos, npos, base) {
 		tseq = list_entry(pos, struct transition_sequence, list);
 		list_del(&tseq->list);
@@ -579,7 +579,7 @@ void uc_mgr_free_modifier(struct list_head *base)
 {
 	struct list_head *pos, *npos;
 	struct use_case_modifier *mod;
-	
+
 	list_for_each_safe(pos, npos, base) {
 		mod = list_entry(pos, struct use_case_modifier, list);
 		free(mod->name);
@@ -611,7 +611,7 @@ void uc_mgr_free_device_list(struct list_head *base)
 {
 	struct list_head *pos, *npos;
 	struct use_case_device *dev;
-	
+
 	list_for_each_safe(pos, npos, base) {
 		dev = list_entry(pos, struct use_case_device, list);
 		uc_mgr_free_device(dev);

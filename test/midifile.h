@@ -66,7 +66,7 @@ extern void mferror(char *s);
 
 /* 7 bit controllers */
 #define damper_pedal            0x40
-#define portamento	        0x41 	
+#define portamento	        0x41
 #define sustenuto	        0x42
 #define soft_pedal	        0x43
 #define general_4               0x44
@@ -119,7 +119,7 @@ extern void mferror(char *s);
 #define Lexicon      (0x06) /* Lexicon 			*/
 #define Tempi        (0x20) /* Bon Tempi                */
 #define Siel         (0x21) /* S.I.E.L.                 */
-#define Kawai        (0x41) 
+#define Kawai        (0x41)
 #define Roland       (0x42)
 #define Korg         (0x42)
 #define Yamaha       (0x43)

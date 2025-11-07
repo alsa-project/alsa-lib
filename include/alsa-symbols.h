@@ -56,8 +56,8 @@
 #define use_symbol_version(real, name, version) /* nothing */
 #if defined(__alpha__) || defined(__mips__)
 #define use_default_symbol_version(real, name, version) \
-        __asm__ (".weak " ASM_NAME(#name)); \
-        __asm__ (ASM_NAME(#name) " = " ASM_NAME(#real))
+	__asm__ (".weak " ASM_NAME(#name)); \
+	__asm__ (ASM_NAME(#name) " = " ASM_NAME(#real))
 #else
 #define use_default_symbol_version(real, name, version) \
 	__asm__ (".weak " ASM_NAME(#name)); \

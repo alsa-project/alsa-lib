@@ -200,7 +200,7 @@ int snd_timer_query_open_lconf(snd_timer_query_t **timer, const char *name,
 int snd_timer_query_close(snd_timer_query_t *timer)
 {
 	int err;
-  	assert(timer);
+	assert(timer);
 	err = timer->ops->close(timer);
 	if (timer->dl_handle)
 		snd_dlclose(timer->dl_handle);
@@ -220,8 +220,8 @@ int snd_timer_query_close(snd_timer_query_t *timer)
  */
 int snd_timer_query_next_device(snd_timer_query_t *timer, snd_timer_id_t *tid)
 {
-  	assert(timer);
-  	assert(tid);
+	assert(timer);
+	assert(tid);
 	return timer->ops->next_device(timer, tid);
 }
 
@@ -261,9 +261,9 @@ int snd_timer_ginfo_malloc(snd_timer_ginfo_t **info)
 void snd_timer_ginfo_free(snd_timer_ginfo_t *info)
 {
 	assert(info);
-	free(info);  
+	free(info);
 }
-  
+
 /**
  * \brief copy one snd_timer_info_t structure to another
  * \param dst destination snd_timer_info_t structure
@@ -389,8 +389,8 @@ EXPORT_SYMBOL int INTERNAL(snd_timer_query_info)(snd_timer_query_t *timer, snd_t
 int snd_timer_query_info(snd_timer_query_t *timer, snd_timer_ginfo_t *info)
 #endif
 {
-  	assert(timer);
-  	assert(info);
+	assert(timer);
+	assert(info);
 	return timer->ops->info(timer, info);
 }
 use_default_symbol_version(__snd_timer_query_info, snd_timer_query_info, ALSA_0.9.0);
@@ -407,8 +407,8 @@ EXPORT_SYMBOL int INTERNAL(snd_timer_query_params)(snd_timer_query_t *timer, snd
 int snd_timer_query_params(snd_timer_query_t *timer, snd_timer_gparams_t *params)
 #endif
 {
-  	assert(timer);
-  	assert(params);
+	assert(timer);
+	assert(params);
 	return timer->ops->params(timer, params);
 }
 use_default_symbol_version(__snd_timer_query_params, snd_timer_query_params, ALSA_0.9.0);
@@ -425,8 +425,8 @@ EXPORT_SYMBOL int INTERNAL(snd_timer_query_status)(snd_timer_query_t *timer, snd
 int snd_timer_query_status(snd_timer_query_t *timer, snd_timer_gstatus_t *status)
 #endif
 {
-  	assert(timer);
-  	assert(status);
+	assert(timer);
+	assert(status);
 	return timer->ops->status(timer, status);
 }
 use_default_symbol_version(__snd_timer_query_status, snd_timer_query_status, ALSA_0.9.0);

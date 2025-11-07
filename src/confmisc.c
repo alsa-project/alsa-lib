@@ -5,7 +5,7 @@
  * \author Abramo Bagnara <abramo@alsa-project.org>
  * \author Jaroslav Kysela <perex@perex.cz>
  * \date 2000-2001
- * 
+ *
  * Configuration helper functions.
  *
  * See the \ref conffunc page for more details.
@@ -176,7 +176,7 @@ int snd_config_get_card(const snd_config_t *conf)
  * \brief Gets the control interface index from the given ASCII string.
  * \param ascii The string to be parsed.
  * \return The control interface index if successful, otherwise a negative error code.
- */ 
+ */
 int snd_config_get_ctl_iface_ascii(const char *ascii)
 {
 	long v;
@@ -199,7 +199,7 @@ int snd_config_get_ctl_iface_ascii(const char *ascii)
  * \brief Gets the control interface index from a configuration node.
  * \param conf Handle to the configuration node to be parsed.
  * \return The control interface index if successful, otherwise a negative error code.
- */ 
+ */
 int snd_config_get_ctl_iface(const snd_config_t *conf)
 {
 	long v;
@@ -251,7 +251,7 @@ int snd_config_get_ctl_iface(const snd_config_t *conf)
 		default 0
 	}
 \endcode
- */ 
+ */
 int snd_func_getenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 		    snd_config_t *private_data)
 {
@@ -260,7 +260,7 @@ int snd_func_getenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 	const char *res, *id;
 	char *def = NULL;
 	int idx = 0, err, hit;
-	
+
 	err = snd_config_search(src, "vars", &n);
 	if (err < 0) {
 		snd_error(CORE, "field vars not found");
@@ -351,7 +351,7 @@ SND_DLSYM_BUILD_VERSION(snd_func_getenv, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 		default 0
 	}
 \endcode
- */ 
+ */
 int snd_func_igetenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 		     snd_config_t *private_data)
 {
@@ -385,7 +385,7 @@ int snd_func_igetenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 #ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(snd_func_igetenv, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 #endif
-		
+
 /**
  * \brief Merges the given strings.
  * \param dst The function puts the handle to the result configuration node
@@ -402,7 +402,7 @@ SND_DLSYM_BUILD_VERSION(snd_func_igetenv, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 		strings [ "a1" "b2" "c3" ]
 	}
 \endcode
- */ 
+ */
 int snd_func_concat(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 		    snd_config_t *private_data)
 {
@@ -411,7 +411,7 @@ int snd_func_concat(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 	const char *id;
 	char *res = NULL, *tmp;
 	int idx = 0, len = 0, len1, err, hit;
-	
+
 	err = snd_config_search(src, "strings", &n);
 	if (err < 0) {
 		snd_error(CORE, "field strings not found");
@@ -490,7 +490,7 @@ static int snd_func_iops(snd_config_t **dst,
 	char *res = NULL;
 	long result = 0, val;
 	int idx = 0, err, hit;
-	
+
 	err = snd_config_search(src, "integers", &n);
 	if (err < 0) {
 		snd_error(CORE, "field integers not found");
@@ -556,9 +556,9 @@ static int snd_func_iops(snd_config_t **dst,
 		integers [ 2 3 5 ]
 	}
 \endcode
- */ 
+ */
 int snd_func_iadd(snd_config_t **dst, snd_config_t *root,
-	          snd_config_t *src, snd_config_t *private_data)
+		  snd_config_t *src, snd_config_t *private_data)
 {
 	return snd_func_iops(dst, root, src, private_data, 0);
 }
@@ -582,7 +582,7 @@ SND_DLSYM_BUILD_VERSION(snd_func_iadd, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 		integers [ 2 3 2 ]
 	}
 \endcode
- */ 
+ */
 int snd_func_imul(snd_config_t **dst, snd_config_t *root,
 		  snd_config_t *src, snd_config_t *private_data)
 {
@@ -607,13 +607,13 @@ SND_DLSYM_BUILD_VERSION(snd_func_imul, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 		@func datadir
 	}
 \endcode
- */ 
+ */
 int snd_func_datadir(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNUSED,
 		     snd_config_t *src, snd_config_t *private_data ATTRIBUTE_UNUSED)
 {
 	int err;
 	const char *id;
-	
+
 	err = snd_config_get_id(src, &id);
 	if (err < 0)
 		return err;
@@ -683,7 +683,7 @@ notfound:
 		@func private_string
 	}
 \endcode
- */ 
+ */
 int snd_func_private_string(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNUSED,
 			    snd_config_t *src, snd_config_t *private_data)
 {
@@ -797,7 +797,7 @@ int snd_determine_driver(int card, char **driver)
 		@func private_card_driver
 	}
 \endcode
- */ 
+ */
 int snd_func_private_card_driver(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *src,
 				 snd_config_t *private_data)
 {
@@ -834,7 +834,7 @@ static int parse_card(snd_config_t *root, snd_config_t *src,
 	snd_config_t *n;
 	char *str;
 	int card, err;
-	
+
 	err = snd_config_search(src, "card", &n);
 	if (err < 0) {
 		snd_error(CORE, "field card not found");
@@ -873,13 +873,13 @@ static int parse_card(snd_config_t *root, snd_config_t *src,
 		card '0'
 	}
 \endcode
- */ 
+ */
 int snd_func_card_inum(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 		       snd_config_t *private_data)
 {
 	const char *id;
 	int card, err;
-	
+
 	card = parse_card(root, src, private_data);
 	if (card < 0)
 		return card;
@@ -908,13 +908,13 @@ SND_DLSYM_BUILD_VERSION(snd_func_card_inum, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 		card 0
 	}
 \endcode
- */ 
+ */
 int snd_func_card_driver(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 			 snd_config_t *private_data)
 {
 	snd_config_t *val;
 	int card, err;
-	
+
 	card = parse_card(root, src, private_data);
 	if (card < 0)
 		return card;
@@ -945,7 +945,7 @@ SND_DLSYM_BUILD_VERSION(snd_func_card_driver, SND_CONFIG_DLSYM_VERSION_EVALUATE)
 		card 0
 	}
 \endcode
- */ 
+ */
 int snd_func_card_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 		     snd_config_t *private_data)
 {
@@ -953,7 +953,7 @@ int snd_func_card_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 	snd_ctl_card_info_t info = {0};
 	const char *id;
 	int card, err;
-	
+
 	card = parse_card(root, src, private_data);
 	if (card < 0)
 		return card;
@@ -972,8 +972,8 @@ int snd_func_card_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 		err = snd_config_imake_string(dst, id,
 					      snd_ctl_card_info_get_id(&info));
       __error:
-      	if (ctl)
-      		snd_ctl_close(ctl);
+	if (ctl)
+		snd_ctl_close(ctl);
 	return err;
 }
 #ifndef DOC_HIDDEN
@@ -996,7 +996,7 @@ SND_DLSYM_BUILD_VERSION(snd_func_card_id, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 		card 0
 	}
 \endcode
- */ 
+ */
 int snd_func_card_name(snd_config_t **dst, snd_config_t *root,
 		       snd_config_t *src, snd_config_t *private_data)
 {
@@ -1004,7 +1004,7 @@ int snd_func_card_name(snd_config_t **dst, snd_config_t *root,
 	snd_ctl_card_info_t info = {0};
 	const char *id;
 	int card, err;
-	
+
 	card = parse_card(root, src, private_data);
 	if (card < 0)
 		return card;
@@ -1023,8 +1023,8 @@ int snd_func_card_name(snd_config_t **dst, snd_config_t *root,
 		err = snd_config_imake_safe_string(dst, id,
 					snd_ctl_card_info_get_name(&info));
       __error:
-      	if (ctl)
-      		snd_ctl_close(ctl);
+	if (ctl)
+		snd_ctl_close(ctl);
 	return err;
 }
 #ifndef DOC_HIDDEN
@@ -1033,7 +1033,7 @@ SND_DLSYM_BUILD_VERSION(snd_func_card_name, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 
 #ifdef DOXYGEN
 /* For consistency with the PCM Interface module, include documentation even
- * when PCM module is not included in the build. */ 
+ * when PCM module is not included in the build. */
 #ifndef BUILD_PCM
 #define BUILD_PCM
 #endif
@@ -1060,7 +1060,7 @@ SND_DLSYM_BUILD_VERSION(snd_func_card_name, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 		subdevice 0	# optional
 	}
 \endcode
- */ 
+ */
 int snd_func_pcm_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
 {
 	snd_config_t *n;
@@ -1069,7 +1069,7 @@ int snd_func_pcm_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src, v
 	const char *id;
 	long card, device, subdevice = 0;
 	int err;
-	
+
 	card = parse_card(root, src, private_data);
 	if (card < 0)
 		return card;
@@ -1117,8 +1117,8 @@ int snd_func_pcm_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src, v
 		err = snd_config_imake_string(dst, id,
 						snd_pcm_info_get_id(&info));
       __error:
-      	if (ctl)
-      		snd_ctl_close(ctl);
+	if (ctl)
+		snd_ctl_close(ctl);
 	return err;
 }
 #ifndef DOC_HIDDEN
@@ -1144,7 +1144,7 @@ SND_DLSYM_BUILD_VERSION(snd_func_pcm_id, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 		index 0
 	}
 \endcode
- */ 
+ */
 int snd_func_pcm_args_by_class(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
 {
 	snd_config_t *n;
@@ -1217,14 +1217,14 @@ int snd_func_pcm_args_by_class(snd_config_t **dst, snd_config_t *root, snd_confi
 					index == idx++)
 				goto __out;
 		}
-      		snd_ctl_close(ctl);
+		snd_ctl_close(ctl);
 		ctl = NULL;
 	}
 	err = -ENODEV;
 
       __out:
-      	if (ctl)
-      		snd_ctl_close(ctl);
+	if (ctl)
+		snd_ctl_close(ctl);
 	if (err < 0)
 		return err;
 	if((err = snd_config_get_id(src, &id)) >= 0) {
@@ -1254,7 +1254,7 @@ SND_DLSYM_BUILD_VERSION(snd_func_pcm_args_by_class, SND_CONFIG_DLSYM_VERSION_EVA
 		@func private_pcm_subdevice
 	}
 \endcode
- */ 
+ */
 int snd_func_private_pcm_subdevice(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNUSED,
 				   snd_config_t *src, snd_config_t *private_data)
 {
@@ -1314,14 +1314,14 @@ SND_DLSYM_BUILD_VERSION(snd_func_private_pcm_subdevice, SND_CONFIG_DLSYM_VERSION
 		name "id1.id2.id3"
 	}
 \endcode
- */ 
+ */
 int snd_func_refer(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 		   snd_config_t *private_data)
 {
 	snd_config_t *n;
 	const char *file = NULL, *name = NULL;
 	int err;
-	
+
 	err = snd_config_search(src, "file", &n);
 	if (err >= 0) {
 		err = snd_config_evaluate(n, root, private_data, NULL);

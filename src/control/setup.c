@@ -564,14 +564,14 @@ static int add_elem(snd_sctl_t *h, snd_config_t *_conf, snd_config_t *private_da
 		if (err < 0)
 			goto _err;
 	}
-		
+
 	err = snd_config_get_ctl_elem_value(value, h->ctl, elem->val, elem->mask, elem->info);
 	if (err < 0)
 		goto _err;
 	list_add_tail(&elem->list, &h->elems);
 
  _err:
- 	if (err < 0 && elem) {
+	if (err < 0 && elem) {
 		if (elem->id)
 			snd_ctl_elem_id_free(elem->id);
 		if (elem->info)
