@@ -274,12 +274,8 @@ size_t snd_strlcat(char *dst, const char *src, size_t size);
  */
 #ifndef NDEBUG
 #define CHECK_SANITY(x) x
-#define SNDMSG(args...) snd_lib_check(0, __FILE__, __LINE__, __func__, 0, ##args)
-#define SYSMSG(args...) snd_lib_check(0, __FILE__, __LINE__, __func__, errno, ##args)
 #else
 #define CHECK_SANITY(x) 0 /* not evaluated */
-#define SNDMSG(args...) /* nop */
-#define SYSMSG(args...) /* nop */
 #endif
 
 /*
