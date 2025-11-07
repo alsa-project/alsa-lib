@@ -236,15 +236,16 @@ int uc_mgr_exec(const char *prog)
 	if (p == -1) {
 		err = -errno;
 		pthread_mutex_unlock(&fork_lock);
-		uc_error("Unable to fork() for \"%s\" -- %s", prog, strerror(errno));
+		snd_error(UCM, "Unable to fork() for \"%s\" -- %s", prog, strerror(errno));
 		goto __error;
 	}
 
 	if (p == 0) {
 		f = open("/dev/null", O_RDWR);
 		if (f == -1) {
-			uc_error("pid %d cannot open /dev/null for redirect %s -- %s",
-				 getpid(), prog, strerror(errno));
+			snd_error(UCM, "pid %d cannot open /dev/null for redirect %s -- %s",
+				       getpid(), prog, strerror(errno));
+
 			exit(1);
 		}
 

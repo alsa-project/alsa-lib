@@ -98,24 +98,24 @@ int uc_mgr_define_regex(snd_use_case_mgr_t *uc_mgr, const char *name,
 	int err;
 
 	if (uc_mgr->conf_format < 3) {
-		uc_error("define regex is supported in v3+ syntax");
+		snd_error(UCM, "define regex is supported in v3+ syntax");
 		return -EINVAL;
 	}
 
 	if (snd_config_get_type(eval) != SND_CONFIG_TYPE_COMPOUND) {
-		uc_error("compound type expected for DefineRegex");
+		snd_error(UCM, "compound type expected for DefineRegex");
 		return -EINVAL;
 	}
 
 	err = get_string(eval, "String", &string);
 	if (err < 0) {
-		uc_error("DefineRegex error (String)");
+		snd_error(UCM, "DefineRegex error (String)");
 		return -EINVAL;
 	}
 
 	err = get_string(eval, "Regex", &regex_string);
 	if (err < 0) {
-		uc_error("DefineRegex error (Regex string)");
+		snd_error(UCM, "DefineRegex error (Regex string)");
 		return -EINVAL;
 	}
 
@@ -123,7 +123,7 @@ int uc_mgr_define_regex(snd_use_case_mgr_t *uc_mgr, const char *name,
 	if (err == -ENOENT) {
 		options = REG_EXTENDED;
 	} else if (err < 0) {
-		uc_error("DefineRegex error (Flags string)");
+		snd_error(UCM, "DefineRegex error (Flags string)");
 		return -EINVAL;
 	} else {
 		while (*flags_string) {
@@ -141,7 +141,7 @@ int uc_mgr_define_regex(snd_use_case_mgr_t *uc_mgr, const char *name,
 				options |= REG_NEWLINE;
 				break;
 			default:
-				uc_error("DefineRegex error (unknown flag '%c')", *flags_string);
+				snd_error(UCM, "DefineRegex error (unknown flag '%c')", *flags_string);
 				return -EINVAL;
 			}
 			flags_string++;
@@ -154,7 +154,7 @@ int uc_mgr_define_regex(snd_use_case_mgr_t *uc_mgr, const char *name,
 	err = regcomp(&re, s, options);
 	free(s);
 	if (err) {
-		uc_error("Regex '%s' compilation failed (code %d)", s, err);
+		snd_error(UCM, "Regex '%s' compilation failed (code %d)", s, err);
 		return -EINVAL;
 	}
 

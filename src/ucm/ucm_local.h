@@ -285,8 +285,6 @@ struct snd_use_case_mgr {
 	char *cdev;
 };
 
-#define uc_error SNDERR
-
 #ifdef UC_MGR_DEBUG
 #define uc_dbg SNDERR
 #else

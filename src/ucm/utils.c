@@ -55,7 +55,7 @@ const char *uc_mgr_sysfs_root(void)
 	if (e == NULL)
 		return "/sys";
 	if (*e == '\0')
-		uc_error("no sysfs root!");
+		snd_error(UCM, "no sysfs root!");
 	return e;
 }
 
@@ -69,7 +69,7 @@ struct ctl_list *uc_mgr_get_master_ctl(snd_use_case_mgr_t *uc_mgr)
 		if (ctl_list2->slave)
 			continue;
 		if (ctl_list) {
-			uc_error("multiple control device names were found!");
+			snd_error(UCM, "multiple control device names were found!");
 			return NULL;
 		}
 		ctl_list = ctl_list2;
@@ -298,7 +298,7 @@ int uc_mgr_open_ctl(snd_use_case_mgr_t *uc_mgr,
 	if (err == 0)
 		id = snd_ctl_card_info_get_id(info);
 	if (err < 0 || id == NULL || id[0] == '\0') {
-		uc_error("control hardware info (%s): %s", device, snd_strerror(err));
+		snd_error(UCM, "control hardware info (%s): %s", device, snd_strerror(err));
 		snd_ctl_close(ctl);
 		return err >= 0 ? -EINVAL : err;
 	}
@@ -361,7 +361,7 @@ int uc_mgr_config_load_into(int format, const char *file, snd_config_t *top)
 	if (!fp) {
 		err = -errno;
   __err_open:
-		uc_error("could not open configuration file %s", file);
+		snd_error(UCM, "could not open configuration file %s", file);
 		return err;
 	}
 	err = snd_input_stdio_attach(&in, fp, 1);
@@ -372,7 +372,7 @@ int uc_mgr_config_load_into(int format, const char *file, snd_config_t *top)
 	default_paths[1] = NULL;
 	err = _snd_config_load_with_include(top, in, 0, default_paths);
 	if (err < 0) {
-		uc_error("could not load configuration file %s", file);
+		snd_error(UCM, "could not load configuration file %s", file);
 		if (in)
 			snd_input_close(in);
 		return err;
