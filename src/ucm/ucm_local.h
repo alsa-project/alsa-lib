@@ -30,12 +30,6 @@
  *               Jaroslav Kysela <perex@perex.cz>
  */
 
-
-
-#if 0
-#define UC_MGR_DEBUG
-#endif
-
 #include "local.h"
 #include <pthread.h>
 #include "use-case.h"
@@ -284,12 +278,6 @@ struct snd_use_case_mgr {
 	int in_component_domain;
 	char *cdev;
 };
-
-#ifdef UC_MGR_DEBUG
-#define uc_dbg SNDERR
-#else
-#define uc_dbg(fmt, arg...) do { } while (0)
-#endif
 
 void uc_mgr_error(const char *fmt, ...);
 void uc_mgr_stdout(const char *fmt, ...);

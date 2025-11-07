@@ -1600,7 +1600,6 @@ static int parse_device(snd_use_case_mgr_t *uc_mgr,
 		}
 
 		if (strcmp(id, "EnableSequence") == 0) {
-			uc_dbg("EnableSequence");
 			err = parse_sequence(uc_mgr, &device->enable_list, n);
 			if (err < 0) {
 				snd_error(UCM, "error: failed to parse device enable"
@@ -1612,7 +1611,6 @@ static int parse_device(snd_use_case_mgr_t *uc_mgr,
 		}
 
 		if (strcmp(id, "DisableSequence") == 0) {
-			uc_dbg("DisableSequence");
 			err = parse_sequence(uc_mgr, &device->disable_list, n);
 			if (err < 0) {
 				snd_error(UCM, "error: failed to parse device disable"
@@ -1624,7 +1622,6 @@ static int parse_device(snd_use_case_mgr_t *uc_mgr,
 		}
 
 		if (strcmp(id, "TransitionSequence") == 0) {
-			uc_dbg("TransitionSequence");
 			err = parse_transition(uc_mgr, &device->transition_list, n);
 			if (err < 0) {
 				snd_error(UCM, "error: failed to parse transition"
@@ -1925,7 +1922,6 @@ static int parse_verb(snd_use_case_mgr_t *uc_mgr,
 			continue;
 
 		if (strcmp(id, "EnableSequence") == 0) {
-			uc_dbg("Parse EnableSequence");
 			err = parse_sequence(uc_mgr, &verb->enable_list, n);
 			if (err < 0) {
 				snd_error(UCM, "error: failed to parse verb enable sequence");
@@ -1935,7 +1931,6 @@ static int parse_verb(snd_use_case_mgr_t *uc_mgr,
 		}
 
 		if (strcmp(id, "DisableSequence") == 0) {
-			uc_dbg("Parse DisableSequence");
 			err = parse_sequence(uc_mgr, &verb->disable_list, n);
 			if (err < 0) {
 				snd_error(UCM, "error: failed to parse verb disable sequence");
@@ -1945,7 +1940,7 @@ static int parse_verb(snd_use_case_mgr_t *uc_mgr,
 		}
 
 		if (strcmp(id, "TransitionSequence") == 0) {
-			uc_dbg("Parse TransitionSequence");
+			snd_debug(UCM, "Parse TransitionSequence");
 			err = parse_transition(uc_mgr, &verb->transition_list, n);
 			if (err < 0) {
 				snd_error(UCM, "error: failed to parse transition sequence");
@@ -1955,7 +1950,6 @@ static int parse_verb(snd_use_case_mgr_t *uc_mgr,
 		}
 
 		if (strcmp(id, "Value") == 0) {
-			uc_dbg("Parse Value");
 			err = parse_value(uc_mgr, &verb->value_list, n);
 			if (err < 0)
 				return err;
@@ -2271,7 +2265,7 @@ static int parse_master_section(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg,
 	}
 
 	if (!variant) {
-		uc_dbg("use_case_name %s file '%s'", use_case_name, file);
+		snd_debug(UCM, "use_case_name %s file '%s'", use_case_name, file);
 
 		/* do we have both use case name and file ? */
 		if (!file) {
