@@ -34,7 +34,7 @@
 #endif
 
 #ifndef __ALSA_PCM_EXTPLUG_H
-#define __ALSA_PCM_EXTPLUG_H
+#define __ALSA_PCM_EXTPLUG_H /**< header include loop protection */
 
 /**
  * \defgroup PCM_ExtPlug External Filter plugin SDK

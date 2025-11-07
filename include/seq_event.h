@@ -32,7 +32,7 @@
 #endif
 
 #ifndef __ALSA_SEQ_EVENT_H
-#define __ALSA_SEQ_EVENT_H
+#define __ALSA_SEQ_EVENT_H /**< header include loop protection */
 
 /**
  *  \defgroup SeqEvents Sequencer Event Definitions

@@ -33,7 +33,7 @@
 #endif
 
 #ifndef __ALSA_PCM_H
-#define __ALSA_PCM_H
+#define __ALSA_PCM_H /**< header include loop protection */
 
 #ifdef __cplusplus
 extern "C" {

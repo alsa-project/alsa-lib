@@ -32,7 +32,7 @@
 #endif
 
 #ifndef __ALSA_SEQMID_H
-#define __ALSA_SEQMID_H
+#define __ALSA_SEQMID_H /**< header include loop protection */
 
 #ifdef __cplusplus
 extern "C" {

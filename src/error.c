@@ -419,7 +419,9 @@ snd_local_error_handler_t snd_lib_error_set_local(snd_local_error_handler_t func
 	local_error = func;
 	return old;
 }
+#ifndef DOC_HIDDEN
 link_warning(snd_lib_error_set_local, "Warning: snd_lib_error_set_local is deprecated, use snd_lib_log_set_local");
+#endif
 
 /**
  * \brief The default error handler function.
@@ -448,7 +450,9 @@ static void snd_lib_error_default(const char *file, int line, const char *functi
  * For internal use only.
  */
 snd_lib_error_handler_t snd_lib_error = snd_lib_error_default;
+#ifndef DOC_HIDDEN
 link_warning(snd_lib_error, "Warning: snd_lib_error is deprecated, use snd_log interface");
+#endif
 
 /**
  * \brief Sets the error handler.

@@ -31,7 +31,7 @@
 #endif
 
 #ifndef __ALSA_CONF_H
-#define __ALSA_CONF_H
+#define __ALSA_CONF_H /**< header include loop protection */
 
 #ifdef __cplusplus
 extern "C" {

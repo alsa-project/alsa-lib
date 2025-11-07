@@ -379,8 +379,10 @@ static int snd_pcm_hw_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	return 0;
 }
 
+#ifndef DOC_HIDDEN
 #define hw_param_mask(params,var) \
 	&((params)->masks[(var) - SND_PCM_HW_PARAM_FIRST_MASK])
+#endif
 
 static int hw_params_call(snd_pcm_hw_t *pcm_hw, snd_pcm_hw_params_t *params)
 {

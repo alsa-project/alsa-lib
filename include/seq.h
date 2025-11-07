@@ -33,7 +33,7 @@
 #endif
 
 #ifndef __ALSA_SEQ_H
-#define __ALSA_SEQ_H
+#define __ALSA_SEQ_H /**< header include loop protection */
 
 #ifdef __cplusplus
 extern "C" {

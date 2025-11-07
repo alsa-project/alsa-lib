@@ -32,7 +32,7 @@
 #endif
 
 #ifndef __ALSA_GLOBAL_H_
-#define __ALSA_GLOBAL_H_
+#define __ALSA_GLOBAL_H_ /**< header include loop protection */
 
 #ifdef __cplusplus
 extern "C" {

@@ -34,7 +34,7 @@
 #endif
 
 #ifndef __ALSA_PCM_IOPLUG_H
-#define __ALSA_PCM_IOPLUG_H
+#define __ALSA_PCM_IOPLUG_H /**< header include loop protection */
 
 /**
  * \defgroup PCM_IOPlug External I/O plugin SDK

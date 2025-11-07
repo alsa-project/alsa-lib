@@ -32,7 +32,7 @@
 #endif
 
 #ifndef __ALSA_MIXER_H
-#define __ALSA_MIXER_H
+#define __ALSA_MIXER_H /**< header include loop protection */
 
 #ifdef __cplusplus
 extern "C" {

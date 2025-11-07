@@ -32,7 +32,7 @@
 #endif
 
 #ifndef __ALSA_TIMER_H
-#define __ALSA_TIMER_H
+#define __ALSA_TIMER_H /**< header include loop protection */
 
 #ifdef __cplusplus
 extern "C" {

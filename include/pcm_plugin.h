@@ -202,10 +202,34 @@ int _snd_pcm_ladspa_open(snd_pcm_t **pcmp, const char *name,
 /*
  *  Jack plugin
  */
+
+/**
+ * \brief Creates a new Jack PCM
+ * \param pcmp Returns created PCM handle
+ * \param name Name of PCM
+ * \param playback_conf Playback configuration
+ * \param capture_conf Capture configuration
+ * \param stream Stream direction
+ * \param mode PCM open mode
+ * \retval zero on success otherwise a negative error code
+ * \warning alsa-lib must be compiled against the JACK library for this plugin to be available
+ */
 int snd_pcm_jack_open(snd_pcm_t **pcmp, const char *name,
 					snd_config_t *playback_conf,
 					snd_config_t *capture_conf,
 		      snd_pcm_stream_t stream, int mode);
+
+/**
+ * \brief Creates a new Jack PCM (internal)
+ * \param pcmp Returns created PCM handle
+ * \param name Name of PCM
+ * \param root Root configuration node
+ * \param conf Configuration for this PCM
+ * \param stream Stream direction
+ * \param mode PCM open mode
+ * \retval zero on success otherwise a negative error code
+ * \warning alsa-lib must be compiled against the JACK library for this plugin to be available
+ */
 int _snd_pcm_jack_open(snd_pcm_t **pcmp, const char *name,
 		       snd_config_t *root, snd_config_t *conf,
 		       snd_pcm_stream_t stream, int mode);
