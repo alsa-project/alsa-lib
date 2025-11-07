@@ -325,7 +325,12 @@ static void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *dst_area,
 #endif
 	zero_end:
 		for (srcidx = 0; srcidx < nsrcs; ++srcidx) {
-			const char *src = srcs[srcidx];
+			const char *src;
+#if defined(__GNUC__) && __GNUC__ >= 8
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
+			src = srcs[srcidx];
 
 			/* Get sample */
 			goto *get32;
@@ -333,6 +338,9 @@ static void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *dst_area,
 #include "plugin_ops.h"
 #undef GET32_END
 		after_get:
+#if defined(__GNUC__) && __GNUC__ >= 8
+#pragma GCC diagnostic pop
+#endif
 
 			/* Sum */
 			goto *add;
