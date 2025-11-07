@@ -692,13 +692,13 @@ static int run_device_sequence(snd_use_case_mgr_t *uc_mgr, struct use_case_verb 
 	snd_trace(UCM, "device sequence '%s/%s': %s", verb->name, name, uc_mgr_enable_str(enable));
 
 	if (verb == NULL) {
-		snd_error(UCM, "error: enadev2 / disdev2 must be executed inside the verb context");
+		snd_error(UCM, "enadev2 / disdev2 must be executed inside the verb context");
 		return -ENOENT;
 	}
 
 	device = find_device(uc_mgr, verb, name, 0);
 	if (device == NULL) {
-		snd_error(UCM, "error: unable to find device '%s'\n", name);
+		snd_error(UCM, "unable to find device '%s'\n", name);
 		return -ENOENT;
 	}
 
@@ -718,7 +718,7 @@ static int run_device_all_sequence(snd_use_case_mgr_t *uc_mgr, struct use_case_v
 	snd_trace(UCM, "disable all devices sequence for '%s'", verb->name);
 
 	if (verb == NULL) {
-		snd_error(UCM, "error: disdevall must be executed inside the verb context");
+		snd_error(UCM, "disdevall must be executed inside the verb context");
 		return -ENOENT;
 	}
 
@@ -758,7 +758,7 @@ static int execute_sequence(snd_use_case_mgr_t *uc_mgr,
 	int err = 0;
 
 	if (uc_mgr->sequence_hops > 100) {
-		snd_error(UCM, "error: too many inner sequences!");
+		snd_error(UCM, "too many inner sequences!");
 		return -EINVAL;
 	}
 	uc_mgr->sequence_hops++;
@@ -1500,7 +1500,7 @@ const char *parse_open_variables(snd_use_case_mgr_t *uc_mgr, const char *name)
 
 	err = snd_config_load_string(&cfg, args, 0);
 	if (err < 0) {
-		snd_error(UCM, "error: open arguments are not valid (%s)", args);
+		snd_error(UCM, "open arguments are not valid (%s)", args);
 		goto skip;
 	}
 
@@ -1573,7 +1573,7 @@ int snd_use_case_mgr_open(snd_use_case_mgr_t **uc_mgr,
 	if (err < 0) {
 		if (err == -ENXIO && mgr->suppress_nodev_errors)
 			goto _err;
-		snd_error(UCM, "error: failed to import %s use case configuration %d",
+		snd_error(UCM, "failed to import %s use case configuration %d",
 			       card_name, err);
 
 		goto _err;
@@ -1581,7 +1581,7 @@ int snd_use_case_mgr_open(snd_use_case_mgr_t **uc_mgr,
 
 	err = check_empty_configuration(mgr);
 	if (err < 0) {
-		snd_error(UCM, "error: failed to import %s (empty configuration)", card_name);
+		snd_error(UCM, "failed to import %s (empty configuration)", card_name);
 		goto _err;
 	}
 
@@ -1613,7 +1613,7 @@ int snd_use_case_mgr_reload(snd_use_case_mgr_t *uc_mgr)
 	/* reload all use cases */
 	err = import_master_config(uc_mgr);
 	if (err < 0) {
-		snd_error(UCM, "error: failed to reload use cases");
+		snd_error(UCM, "failed to reload use cases");
 		pthread_mutex_unlock(&uc_mgr->mutex);
 		return -EINVAL;
 	}
@@ -2480,7 +2480,7 @@ static int set_fixedboot_user(snd_use_case_mgr_t *uc_mgr,
 	int err;
 
 	if (value != NULL && *value) {
-		snd_error(UCM, "error: wrong value for _fboot (%s)", value);
+		snd_error(UCM, "wrong value for _fboot (%s)", value);
 		return -EINVAL;
 	}
 	if (list_empty(&uc_mgr->fixedboot_list))
@@ -2500,7 +2500,7 @@ static int set_boot_user(snd_use_case_mgr_t *uc_mgr,
 	int err;
 
 	if (value != NULL && *value) {
-		snd_error(UCM, "error: wrong value for _boot (%s)", value);
+		snd_error(UCM, "wrong value for _boot (%s)", value);
 		return -EINVAL;
 	}
 	if (list_empty(&uc_mgr->boot_list))
@@ -2518,7 +2518,7 @@ static int set_defaults_user(snd_use_case_mgr_t *uc_mgr,
 			     const char *value)
 {
 	if (value != NULL && *value) {
-		snd_error(UCM, "error: wrong value for _defaults (%s)", value);
+		snd_error(UCM, "wrong value for _defaults (%s)", value);
 		return -EINVAL;
 	}
 	return set_defaults(uc_mgr, false);
@@ -2581,8 +2581,7 @@ static int set_verb_user(snd_use_case_mgr_t *uc_mgr,
 	if (verb) {
 		err = set_verb(uc_mgr, verb, 1);
 		if (err < 0)
-			snd_error(UCM, "error: failed to initialize new use case: %s",
-				       verb_name);
+			snd_error(UCM, "failed to initialize new use case: %s", verb_name);
 
 	}
 	return err;
@@ -2634,11 +2633,11 @@ static int switch_device(snd_use_case_mgr_t *uc_mgr,
 	if (uc_mgr->active_verb == NULL)
 		return -ENOENT;
 	if (device_status(uc_mgr, old_device) == 0) {
-		snd_error(UCM, "error: device %s not enabled", old_device);
+		snd_error(UCM, "device %s not enabled", old_device);
 		return -EINVAL;
 	}
 	if (device_status(uc_mgr, new_device) != 0) {
-		snd_error(UCM, "error: device %s already enabled", new_device);
+		snd_error(UCM, "device %s already enabled", new_device);
 		return -EINVAL;
 	}
 	xold = find_device(uc_mgr, uc_mgr->active_verb, old_device, 1);
@@ -2690,11 +2689,11 @@ static int switch_modifier(snd_use_case_mgr_t *uc_mgr,
 	if (uc_mgr->active_verb == NULL)
 		return -ENOENT;
 	if (modifier_status(uc_mgr, old_modifier) == 0) {
-		snd_error(UCM, "error: modifier %s not enabled", old_modifier);
+		snd_error(UCM, "modifier %s not enabled", old_modifier);
 		return -EINVAL;
 	}
 	if (modifier_status(uc_mgr, new_modifier) != 0) {
-		snd_error(UCM, "error: modifier %s already enabled", new_modifier);
+		snd_error(UCM, "modifier %s already enabled", new_modifier);
 		return -EINVAL;
 	}
 	xold = find_modifier(uc_mgr, uc_mgr->active_verb, old_modifier, 1);

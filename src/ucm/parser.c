@@ -75,7 +75,7 @@ int uc_mgr_config_load_file(snd_use_case_mgr_t *uc_mgr,
 		     file);
 	err = uc_mgr_config_load(uc_mgr->conf_format, filename, cfg);
 	if (err < 0) {
-		snd_error(UCM, "error: failed to open file %s: %d", filename, err);
+		snd_error(UCM, "failed to open file %s: %d", filename, err);
 		return err;
 	}
 	return 0;
@@ -237,7 +237,7 @@ static int error_node(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 
 	err = parse_string_substitute3(uc_mgr, cfg, &s);
 	if (err < 0) {
-		snd_error(UCM, "error: failed to get Error string");
+		snd_error(UCM, "failed to get Error string");
 		return err;
 	}
 	if (!uc_mgr->suppress_nodev_errors)
@@ -309,7 +309,7 @@ static int evaluate_regex(snd_use_case_mgr_t *uc_mgr,
 		if (err < 0)
 			return err;
 		if (id[0] == '@') {
-			snd_error(UCM, "error: value names starting with '@' are reserved for application variables");
+			snd_error(UCM, "value names starting with '@' are reserved for application variables");
 			return -EINVAL;
 		}
 		err = uc_mgr_define_regex(uc_mgr, id, n);
@@ -363,7 +363,7 @@ static int evaluate_define(snd_use_case_mgr_t *uc_mgr,
 			return err;
 		if (id[0] == '@') {
 			free(s);
-			snd_error(UCM, "error: value names starting with '@' are reserved for application variables");
+			snd_error(UCM, "value names starting with '@' are reserved for application variables");
 			return -EINVAL;
 		}
 		err = uc_mgr_set_variable(uc_mgr, id, s);
@@ -925,8 +925,7 @@ static int parse_device_list(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
 	int err;
 
 	if (dev_list->type != DEVLIST_NONE) {
-		snd_error(UCM, "error: multiple supported or"
-			      " conflicting device lists");
+		snd_error(UCM, "multiple supported or conflicting device lists");
 
 		return -EEXIST;
 	}
@@ -1033,7 +1032,7 @@ static int parse_component_seq(snd_use_case_mgr_t *uc_mgr,
 
 	cmpt_seq->device = find_component_dev(uc_mgr, val);
 	if (!cmpt_seq->device) {
-		snd_error(UCM, "error: Cannot find component device %s", val);
+		snd_error(UCM, "Cannot find component device %s", val);
 		free(val);
 		return -EINVAL;
 	}
@@ -1074,7 +1073,7 @@ static int parse_sequence(snd_use_case_mgr_t *uc_mgr,
 	const char *cmd = NULL;
 
 	if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
-		snd_error(UCM, "error: compound is expected for sequence definition");
+		snd_error(UCM, "compound is expected for sequence definition");
 		return -EINVAL;
 	}
 
@@ -1087,7 +1086,7 @@ static int parse_sequence(snd_use_case_mgr_t *uc_mgr,
 			continue;
 		if (idx == 1) {
 			if (snd_config_get_type(n) != SND_CONFIG_TYPE_STRING) {
-				snd_error(UCM, "error: string type is expected for sequence command");
+				snd_error(UCM, "string type is expected for sequence command");
 				return -EINVAL;
 			}
 			snd_config_get_string(n, &cmd);
@@ -1104,7 +1103,7 @@ static int parse_sequence(snd_use_case_mgr_t *uc_mgr,
 			curr->type = SEQUENCE_ELEMENT_TYPE_CDEV;
 			err = parse_string_substitute3(uc_mgr, n, &curr->data.cdev);
 			if (err < 0) {
-				snd_error(UCM, "error: cdev requires a string!");
+				snd_error(UCM, "cdev requires a string!");
 				return err;
 			}
 			continue;
@@ -1115,7 +1114,7 @@ static int parse_sequence(snd_use_case_mgr_t *uc_mgr,
 cset:
 			err = parse_string_substitute3(uc_mgr, n, &curr->data.cset);
 			if (err < 0) {
-				snd_error(UCM, "error: %s requires a string!", cmd);
+				snd_error(UCM, "%s requires a string!", cmd);
 				return err;
 			}
 			continue;
@@ -1129,7 +1128,7 @@ cset:
 						strcmp(cmd, "enadev") == 0,
 						&curr->data.cmpt_seq);
 			if (err < 0) {
-				snd_error(UCM, "error: %s requires a valid device!", cmd);
+				snd_error(UCM, "%s requires a valid device!", cmd);
 				return err;
 			}
 			continue;
@@ -1145,7 +1144,7 @@ cset:
 device:
 			err = parse_string_substitute3(uc_mgr, n, &curr->data.device);
 			if (err < 0) {
-				snd_error(UCM, "error: %s requires a valid device!", cmd);
+				snd_error(UCM, "%s requires a valid device!", cmd);
 				return err;
 			}
 			continue;
@@ -1180,7 +1179,7 @@ device:
 			curr->type = SEQUENCE_ELEMENT_TYPE_SYSSET;
 			err = parse_string_substitute3(uc_mgr, n, &curr->data.sysw);
 			if (err < 0) {
-				snd_error(UCM, "error: sysw requires a string!");
+				snd_error(UCM, "sysw requires a string!");
 				return err;
 			}
 			continue;
@@ -1190,7 +1189,7 @@ device:
 			curr->type = SEQUENCE_ELEMENT_TYPE_SLEEP;
 			err = parse_integer_substitute3(uc_mgr, n, &curr->data.sleep);
 			if (err < 0) {
-				snd_error(UCM, "error: usleep requires integer!");
+				snd_error(UCM, "usleep requires integer!");
 				return err;
 			}
 			continue;
@@ -1200,7 +1199,7 @@ device:
 			curr->type = SEQUENCE_ELEMENT_TYPE_SLEEP;
 			err = parse_integer_substitute3(uc_mgr, n, &curr->data.sleep);
 			if (err < 0) {
-				snd_error(UCM, "error: msleep requires integer!");
+				snd_error(UCM, "msleep requires integer!");
 				return err;
 			}
 			curr->data.sleep *= 1000L;
@@ -1212,7 +1211,7 @@ device:
 exec:
 			err = parse_string_substitute3(uc_mgr, n, &curr->data.exec);
 			if (err < 0) {
-				snd_error(UCM, "error: exec requires a string!");
+				snd_error(UCM, "exec requires a string!");
 				return err;
 			}
 			continue;
@@ -1227,7 +1226,7 @@ exec:
 			curr->type = SEQUENCE_ELEMENT_TYPE_CFGSAVE;
 			err = parse_string_substitute3(uc_mgr, n, &curr->data.cfgsave);
 			if (err < 0) {
-				snd_error(UCM, "error: sysw requires a string!");
+				snd_error(UCM, "sysw requires a string!");
 				return err;
 			}
 			continue;
@@ -1236,7 +1235,7 @@ exec:
 		if (strcmp(cmd, "comment") == 0)
 			goto skip;
 
-		snd_error(UCM, "error: sequence command '%s' is ignored", cmd);
+		snd_error(UCM, "sequence command '%s' is ignored", cmd);
 
 skip:
 		list_del(&curr->list);
@@ -1289,7 +1288,7 @@ static int parse_value(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
 	int err;
 
 	if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
-		snd_error(UCM, "error: compound is expected for value definition");
+		snd_error(UCM, "compound is expected for value definition");
 		return -EINVAL;
 	}
 
@@ -1312,19 +1311,19 @@ static int parse_value(snd_use_case_mgr_t *uc_mgr ATTRIBUTE_UNUSED,
 		case SND_CONFIG_TYPE_REAL:
 			err = snd_config_get_ascii(n, &s);
 			if (err < 0) {
-				snd_error(UCM, "error: unable to parse value for id '%s': %s!", id, snd_strerror(err));
+				snd_error(UCM, "unable to parse value for id '%s': %s!", id, snd_strerror(err));
 				return err;
 			}
 			break;
 		case SND_CONFIG_TYPE_STRING:
 			err = parse_string_substitute(uc_mgr, n, &s);
 			if (err < 0) {
-				snd_error(UCM, "error: unable to parse a string for id '%s'!", id);
+				snd_error(UCM, "unable to parse a string for id '%s'!", id);
 				return err;
 			}
 			break;
 		default:
-			snd_error(UCM, "error: invalid type %i in Value compound '%s'", type, id);
+			snd_error(UCM, "invalid type %i in Value compound '%s'", type, id);
 			return -EINVAL;
 		}
 		err = uc_mgr_add_value(base, id, s);
@@ -1421,7 +1420,7 @@ static int parse_modifier(snd_use_case_mgr_t *uc_mgr,
 		if (strcmp(id, "Comment") == 0) {
 			err = parse_string_substitute3(uc_mgr, n, &modifier->comment);
 			if (err < 0) {
-				snd_error(UCM, "error: failed to get modifier comment");
+				snd_error(UCM, "failed to get modifier comment");
 				return err;
 			}
 			continue;
@@ -1431,9 +1430,7 @@ static int parse_modifier(snd_use_case_mgr_t *uc_mgr,
 			err = parse_device_list(uc_mgr, &modifier->dev_list,
 						DEVLIST_SUPPORTED, n);
 			if (err < 0) {
-				snd_error(UCM, "error: failed to parse supported"
-					      " device list");
-
+				snd_error(UCM, "failed to parse supported device list");
 				return err;
 			}
 		}
@@ -1442,9 +1439,7 @@ static int parse_modifier(snd_use_case_mgr_t *uc_mgr,
 			err = parse_device_list(uc_mgr, &modifier->dev_list,
 						DEVLIST_CONFLICTING, n);
 			if (err < 0) {
-				snd_error(UCM, "error: failed to parse conflicting"
-					      " device list");
-
+				snd_error(UCM, "failed to parse conflicting device list");
 				return err;
 			}
 		}
@@ -1452,9 +1447,7 @@ static int parse_modifier(snd_use_case_mgr_t *uc_mgr,
 		if (strcmp(id, "EnableSequence") == 0) {
 			err = parse_sequence(uc_mgr, &modifier->enable_list, n);
 			if (err < 0) {
-				snd_error(UCM, "error: failed to parse modifier"
-					      " enable sequence");
-
+				snd_error(UCM, "failed to parse modifier enable sequence");
 				return err;
 			}
 			continue;
@@ -1463,9 +1456,7 @@ static int parse_modifier(snd_use_case_mgr_t *uc_mgr,
 		if (strcmp(id, "DisableSequence") == 0) {
 			err = parse_sequence(uc_mgr, &modifier->disable_list, n);
 			if (err < 0) {
-				snd_error(UCM, "error: failed to parse modifier"
-					      " disable sequence");
-
+				snd_error(UCM, "failed to parse modifier disable sequence");
 				return err;
 			}
 			continue;
@@ -1474,9 +1465,7 @@ static int parse_modifier(snd_use_case_mgr_t *uc_mgr,
 		if (strcmp(id, "TransitionSequence") == 0) {
 			err = parse_transition(uc_mgr, &modifier->transition_list, n);
 			if (err < 0) {
-				snd_error(UCM, "error: failed to parse transition"
-					      " modifier");
-
+				snd_error(UCM, "failed to parse transition modifier");
 				return err;
 			}
 			continue;
@@ -1485,7 +1474,7 @@ static int parse_modifier(snd_use_case_mgr_t *uc_mgr,
 		if (strcmp(id, "Value") == 0) {
 			err = parse_value(uc_mgr, &modifier->value_list, n);
 			if (err < 0) {
-				snd_error(UCM, "error: failed to parse Value");
+				snd_error(UCM, "failed to parse Value");
 				return err;
 			}
 			continue;
@@ -1571,7 +1560,7 @@ static int parse_device(snd_use_case_mgr_t *uc_mgr,
 		if (strcmp(id, "Comment") == 0) {
 			err = parse_string_substitute3(uc_mgr, n, &device->comment);
 			if (err < 0) {
-				snd_error(UCM, "error: failed to get device comment");
+				snd_error(UCM, "failed to get device comment");
 				return err;
 			}
 			continue;
@@ -1581,8 +1570,7 @@ static int parse_device(snd_use_case_mgr_t *uc_mgr,
 			err = parse_device_list(uc_mgr, &device->dev_list,
 						DEVLIST_SUPPORTED, n);
 			if (err < 0) {
-				snd_error(UCM, "error: failed to parse supported"
-					      " device list");
+				snd_error(UCM, "failed to parse supported device list");
 
 				return err;
 			}
@@ -1592,8 +1580,7 @@ static int parse_device(snd_use_case_mgr_t *uc_mgr,
 			err = parse_device_list(uc_mgr, &device->dev_list,
 						DEVLIST_CONFLICTING, n);
 			if (err < 0) {
-				snd_error(UCM, "error: failed to parse conflicting"
-					      " device list");
+				snd_error(UCM, "failed to parse conflicting device list");
 
 				return err;
 			}
@@ -1602,8 +1589,7 @@ static int parse_device(snd_use_case_mgr_t *uc_mgr,
 		if (strcmp(id, "EnableSequence") == 0) {
 			err = parse_sequence(uc_mgr, &device->enable_list, n);
 			if (err < 0) {
-				snd_error(UCM, "error: failed to parse device enable"
-					       " sequence");
+				snd_error(UCM, "failed to parse device enable sequence");
 
 				return err;
 			}
@@ -1613,8 +1599,7 @@ static int parse_device(snd_use_case_mgr_t *uc_mgr,
 		if (strcmp(id, "DisableSequence") == 0) {
 			err = parse_sequence(uc_mgr, &device->disable_list, n);
 			if (err < 0) {
-				snd_error(UCM, "error: failed to parse device disable"
-					       " sequence");
+				snd_error(UCM, "failed to parse device disable sequence");
 
 				return err;
 			}
@@ -1624,8 +1609,7 @@ static int parse_device(snd_use_case_mgr_t *uc_mgr,
 		if (strcmp(id, "TransitionSequence") == 0) {
 			err = parse_transition(uc_mgr, &device->transition_list, n);
 			if (err < 0) {
-				snd_error(UCM, "error: failed to parse transition"
-					      " device");
+				snd_error(UCM, "failed to parse transition device");
 
 				return err;
 			}
@@ -1635,7 +1619,7 @@ static int parse_device(snd_use_case_mgr_t *uc_mgr,
 		if (strcmp(id, "Value") == 0) {
 			err = parse_value(uc_mgr, &device->value_list, n);
 			if (err < 0) {
-				snd_error(UCM, "error: failed to parse Value");
+				snd_error(UCM, "failed to parse Value");
 				return err;
 			}
 			continue;
@@ -1686,7 +1670,7 @@ static int parse_dev_name_list(snd_use_case_mgr_t *uc_mgr,
 		err = parse_string_substitute3(uc_mgr, n, &name2);
 		if (err < 0) {
 			free(name1s);
-			snd_error(UCM, "error: failed to get target device name for '%s'", name1);
+			snd_error(UCM, "failed to get target device name for '%s'", name1);
 			return err;
 		}
 
@@ -1798,15 +1782,13 @@ static int verb_dev_list_add(struct use_case_verb *verb,
 			if (list_empty(&device->dev_list.list)) {
 				device->dev_list.type = dst_type;
 			} else {
-				snd_error(UCM, "error: incompatible device list type ('%s', '%s')",
-					       device->name, src);
-
+				snd_error(UCM, "incompatible device list type ('%s', '%s')", device->name, src);
 				return -EINVAL;
 			}
 		}
 		return uc_mgr_put_to_dev_list(&device->dev_list, src);
 	}
-	snd_error(UCM, "error: unable to find device '%s'", dst);
+	snd_error(UCM, "unable to find device '%s'", dst);
 	return -ENOENT;
 }
 
@@ -1841,7 +1823,7 @@ static int verb_device_management(struct use_case_verb *verb)
 		dev = list_entry(pos, struct ucm_dev_name, list);
 		err = uc_mgr_rename_device(verb, dev->name1, dev->name2);
 		if (err < 0) {
-			snd_error(UCM, "error: cannot rename device '%s' to '%s'", dev->name1, dev->name2);
+			snd_error(UCM, "cannot rename device '%s' to '%s'", dev->name1, dev->name2);
 			return err;
 		}
 	}
@@ -1851,7 +1833,7 @@ static int verb_device_management(struct use_case_verb *verb)
 		dev = list_entry(pos, struct ucm_dev_name, list);
 		err = uc_mgr_remove_device(verb, dev->name2);
 		if (err < 0) {
-			snd_error(UCM, "error: cannot remove device '%s'", dev->name2);
+			snd_error(UCM, "cannot remove device '%s'", dev->name2);
 			return err;
 		}
 	}
@@ -1924,7 +1906,7 @@ static int parse_verb(snd_use_case_mgr_t *uc_mgr,
 		if (strcmp(id, "EnableSequence") == 0) {
 			err = parse_sequence(uc_mgr, &verb->enable_list, n);
 			if (err < 0) {
-				snd_error(UCM, "error: failed to parse verb enable sequence");
+				snd_error(UCM, "failed to parse verb enable sequence");
 				return err;
 			}
 			continue;
@@ -1933,7 +1915,7 @@ static int parse_verb(snd_use_case_mgr_t *uc_mgr,
 		if (strcmp(id, "DisableSequence") == 0) {
 			err = parse_sequence(uc_mgr, &verb->disable_list, n);
 			if (err < 0) {
-				snd_error(UCM, "error: failed to parse verb disable sequence");
+				snd_error(UCM, "failed to parse verb disable sequence");
 				return err;
 			}
 			continue;
@@ -1943,7 +1925,7 @@ static int parse_verb(snd_use_case_mgr_t *uc_mgr,
 			snd_debug(UCM, "Parse TransitionSequence");
 			err = parse_transition(uc_mgr, &verb->transition_list, n);
 			if (err < 0) {
-				snd_error(UCM, "error: failed to parse transition sequence");
+				snd_error(UCM, "failed to parse transition sequence");
 				return err;
 			}
 			continue;
@@ -2029,9 +2011,7 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 		if (strcmp(id, "SectionVerb") == 0) {
 			err = parse_verb(uc_mgr, verb, n);
 			if (err < 0) {
-				snd_error(UCM, "error: %s failed to parse verb",
-						      file);
-
+				snd_error(UCM, "%s failed to parse verb", file);
 				goto _err;
 			}
 			continue;
@@ -2042,9 +2022,7 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 			err = parse_compound(uc_mgr, n,
 						parse_device_name, verb, NULL);
 			if (err < 0) {
-				snd_error(UCM, "error: %s failed to parse device",
-						      file);
-
+				snd_error(UCM, "%s failed to parse device", file);
 				goto _err;
 			}
 			continue;
@@ -2055,9 +2033,7 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 			err = parse_compound(uc_mgr, n,
 					     parse_modifier_name, verb, NULL);
 			if (err < 0) {
-				snd_error(UCM, "error: %s failed to parse modifier",
-						      file);
-
+				snd_error(UCM, "%s failed to parse modifier", file);
 				goto _err;
 			}
 			continue;
@@ -2067,9 +2043,7 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 		if (strcmp(id, "RenameDevice") == 0) {
 			err = parse_dev_name_list(uc_mgr, n, &verb->rename_list);
 			if (err < 0) {
-				snd_error(UCM, "error: %s failed to parse device rename",
-						      file);
-
+				snd_error(UCM, " %s failed to parse device rename", file);
 				goto _err;
 			}
 			continue;
@@ -2079,9 +2053,7 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 		if (strcmp(id, "RemoveDevice") == 0) {
 			err = parse_dev_name_list(uc_mgr, n, &verb->remove_list);
 			if (err < 0) {
-				snd_error(UCM, "error: %s failed to parse device remove",
-						      file);
-
+				snd_error(UCM, "%s failed to parse device remove", file);
 				goto _err;
 			}
 			continue;
@@ -2091,7 +2063,7 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 		if (uc_mgr->conf_format > 3 && strcmp(id, "LibraryConfig") == 0) {
 			err = parse_libconfig(uc_mgr, n);
 			if (err < 0) {
-				snd_error(UCM, "error: failed to parse LibConfig");
+				snd_error(UCM, "failed to parse LibConfig");
 				goto _err;
 			}
 			continue;
@@ -2102,14 +2074,14 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 
 	/* use case verb must have at least 1 device */
 	if (list_empty(&verb->device_list)) {
-		snd_error(UCM, "error: no use case device defined", file);
+		snd_error(UCM, "no use case device defined", file);
 		return -EINVAL;
 	}
 
 	/* do device rename and delete */
 	err = verb_device_management(verb);
 	if (err < 0) {
-		snd_error(UCM, "error: device management error in verb '%s'", verb->name);
+		snd_error(UCM, "device management error in verb '%s'", verb->name);
 		return err;
 	}
 
@@ -2155,7 +2127,7 @@ static int parse_variant(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg,
 			if (_vcomment) {
 				err = parse_string_substitute3(uc_mgr, n, &comment);
 				if (err < 0) {
-					snd_error(UCM, "error: failed to get Comment");
+					snd_error(UCM, "failed to get Comment");
 					goto __error;
 				}
 			}
@@ -2231,7 +2203,7 @@ static int parse_master_section(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg,
 		if (strncmp(id, "Comment", 7) == 0) {
 			err = parse_string_substitute3(uc_mgr, n, &comment);
 			if (err < 0) {
-				snd_error(UCM, "error: failed to get Comment");
+				snd_error(UCM, "failed to get Comment");
 				goto __error;
 			}
 			continue;
@@ -2259,7 +2231,7 @@ static int parse_master_section(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg,
 	}
 
 	if (variant && !variant_ok) {
-		snd_error(UCM, "error: undefined variant '%s'", use_case_name);
+		snd_error(UCM, "undefined variant '%s'", use_case_name);
 		err = -EINVAL;
 		goto __error;
 	}
@@ -2269,7 +2241,7 @@ static int parse_master_section(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg,
 
 		/* do we have both use case name and file ? */
 		if (!file) {
-			snd_error(UCM, "error: use case missing file");
+			snd_error(UCM, "use case missing file");
 			err = -EINVAL;
 			goto __error;
 		}
@@ -2449,7 +2421,7 @@ static int parse_master_file(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 		if (strcmp(id, "Comment") == 0) {
 			err = parse_string_substitute3(uc_mgr, n, &uc_mgr->comment);
 			if (err < 0) {
-				snd_error(UCM, "error: failed to get master comment");
+				snd_error(UCM, "failed to get master comment");
 				return err;
 			}
 			continue;
@@ -2493,7 +2465,7 @@ static int parse_master_file(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 		if (strcmp(id, "ValueDefaults") == 0) {
 			err = parse_value(uc_mgr, &uc_mgr->value_list, n);
 			if (err < 0) {
-				snd_error(UCM, "error: failed to parse ValueDefaults");
+				snd_error(UCM, "failed to parse ValueDefaults");
 				return err;
 			}
 			continue;
@@ -2503,7 +2475,7 @@ static int parse_master_file(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 		if (uc_mgr->conf_format > 3 && strcmp(id, "LibraryConfig") == 0) {
 			err = parse_libconfig(uc_mgr, n);
 			if (err < 0) {
-				snd_error(UCM, "error: failed to parse LibraryConfig");
+				snd_error(UCM, "failed to parse LibraryConfig");
 				return err;
 			}
 			continue;
@@ -2779,7 +2751,7 @@ static int parse_toplevel_config(snd_use_case_mgr_t *uc_mgr,
 		if (uc_mgr->conf_format > 3 && strcmp(id, "LibraryConfig") == 0) {
 			err = parse_libconfig(uc_mgr, n);
 			if (err < 0) {
-				snd_error(UCM, "error: failed to parse LibConfig");
+				snd_error(UCM, "failed to parse LibConfig");
 				return err;
 			}
 			continue;
@@ -2821,9 +2793,7 @@ static int load_toplevel_config(snd_use_case_mgr_t *uc_mgr,
 
 	err = uc_mgr_config_load(uc_mgr->conf_format, filename, cfg);
 	if (err < 0) {
-		snd_error(UCM, "error: could not parse configuration for card %s",
-				      uc_mgr->card_name);
-
+		snd_error(UCM, "could not parse configuration for card %s", uc_mgr->card_name);
 		goto __error;
 	}
 
@@ -2956,9 +2926,7 @@ int uc_mgr_scan_master_configs(const char **_list[])
 	err = scandir64(filename, &namelist, filename_filter, SORTFUNC);
 	if (err < 0) {
 		err = -errno;
-		snd_error(UCM, "error: could not scan directory %s: %s",
-				      filename, strerror(-err));
-
+		snd_error(UCM, "could not scan directory %s: %s", filename, strerror(-err));
 		return err;
 	}
 	cnt = err;
