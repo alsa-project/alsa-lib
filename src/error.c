@@ -307,7 +307,7 @@ int snd_lib_log_filter(int prio, int interface, const char *configstr)
  */
 static void snd_lib_vlog_default(int prio, int interface, const char *file, int line, const char *function, int errcode, const char *fmt, va_list arg)
 {
-	const char *text;
+	const char *text1, *text2;
 
 	if (local_log) {
 		local_log(prio, interface, file, line, function, errcode, fmt, arg);
@@ -323,13 +323,10 @@ static void snd_lib_vlog_default(int prio, int interface, const char *file, int 
 
 	fprintf(stderr, "ALSA lib %s:%i:(%s) ", file, line, function);
 
-	text = snd_lib_log_priority(prio);
-	if (text)
-		fprintf(stderr, "[%s] ", text);
-
-	text = snd_lib_log_interface(interface);
-	if (text)
-		fprintf(stderr, "[%s] ", text);
+	text1 = snd_lib_log_priority(prio);
+	text2 = snd_lib_log_interface(interface);
+	if (text1 || text2)
+		fprintf(stderr, "[%s.%s] ", text1 ? text1 : "", text2 ? text2 : "");
 
 	vfprintf(stderr, fmt, arg);
 	if (errcode)
