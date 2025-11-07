@@ -32,6 +32,7 @@
 
 #include "local.h"
 #include <pthread.h>
+#include <stdbool.h>
 #include "use-case.h"
 
 #define SYNTAX_VERSION_MAX	8
