@@ -327,6 +327,8 @@ struct ctl_list *uc_mgr_get_ctl_by_name(snd_use_case_mgr_t *uc_mgr,
 snd_ctl_t *uc_mgr_get_ctl(snd_use_case_mgr_t *uc_mgr);
 void uc_mgr_free_ctl_list(snd_use_case_mgr_t *uc_mgr);
 
+void uc_mgr_free_value(struct list_head *base);
+
 int uc_mgr_add_value(struct list_head *base, const char *key, char *val);
 
 const char *uc_mgr_get_variable(snd_use_case_mgr_t *uc_mgr,
@@ -337,6 +339,8 @@ int uc_mgr_set_variable(snd_use_case_mgr_t *uc_mgr,
 			const char *val);
 
 int uc_mgr_delete_variable(snd_use_case_mgr_t *uc_mgr, const char *name);
+
+int uc_mgr_duplicate_variables(struct list_head *dst, struct list_head *src);
 
 int uc_mgr_get_substituted_value(snd_use_case_mgr_t *uc_mgr,
 				 char **_rvalue,

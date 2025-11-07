@@ -2250,15 +2250,52 @@ static int parse_master_section(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg,
 		err = parse_verb_file(uc_mgr, use_case_name, comment, file);
 	} else {
 		/* parse variants */
+		struct list_head orig_variable_list;
+		snd_config_t *orig_macros = NULL;
+		int first_iteration = 1;
+
+		/* save original variable list */
+		err = uc_mgr_duplicate_variables(&orig_variable_list, &uc_mgr->variable_list);
+		if (err < 0)
+			goto __error;
+
+		/* save original macros */
+		if (uc_mgr->macros) {
+			err = snd_config_copy(&orig_macros, uc_mgr->macros);
+			if (err < 0)
+				goto __variant_error;
+		}
+
 		snd_config_for_each(i, next, variant) {
 			char *vfile, *vcomment;
 			const char *id;
+
+			/* restore variables and macros for second and later iterations */
+			if (!first_iteration) {
+				uc_mgr_free_value(&uc_mgr->variable_list);
+
+				err = uc_mgr_duplicate_variables(&uc_mgr->variable_list, &orig_variable_list);
+				if (err < 0)
+					goto __variant_error;
+
+				if (uc_mgr->macros) {
+					snd_config_delete(uc_mgr->macros);
+					uc_mgr->macros = NULL;
+				}
+				if (orig_macros) {
+					err = snd_config_copy(&uc_mgr->macros, orig_macros);
+					if (err < 0)
+						goto __variant_error;
+				}
+			}
+			first_iteration = 0;
+
 			n = snd_config_iterator_entry(i);
 			if (snd_config_get_id(n, &id) < 0)
 				continue;
 			if (!parse_is_name_safe(id)) {
 				err = -EINVAL;
-				goto __error;
+				goto __variant_error;
 			}
 			err = parse_variant(uc_mgr, n, &vfile, &vcomment);
 			if (err < 0)
@@ -2270,7 +2307,14 @@ static int parse_master_section(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg,
 			uc_mgr->parse_variant = NULL;
 			free(vfile);
 			free(vcomment);
+			if (err < 0)
+				break;
 		}
+
+__variant_error:
+		uc_mgr_free_value(&orig_variable_list);
+		if (orig_macros)
+			snd_config_delete(orig_macros);
 	}
 
 __error:

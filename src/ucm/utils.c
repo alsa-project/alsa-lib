@@ -733,6 +733,39 @@ int uc_mgr_delete_variable(snd_use_case_mgr_t *uc_mgr, const char *name)
 	return -ENOENT;
 }
 
+int uc_mgr_duplicate_variables(struct list_head *dst, struct list_head *src)
+{
+	struct list_head *pos;
+	struct ucm_value *var, *new_var;
+	int err;
+
+	INIT_LIST_HEAD(dst);
+
+	list_for_each(pos, src) {
+		var = list_entry(pos, struct ucm_value, list);
+		new_var = calloc(1, sizeof(*new_var));
+		if (new_var == NULL) {
+			err = -ENOMEM;
+			goto __error;
+		}
+		new_var->name = strdup(var->name);
+		new_var->data = strdup(var->data);
+		if (new_var->name == NULL || new_var->data == NULL) {
+			free(new_var->name);
+			free(new_var->data);
+			free(new_var);
+			err = -ENOMEM;
+			goto __error;
+		}
+		list_add_tail(&new_var->list, dst);
+	}
+	return 0;
+
+__error:
+	uc_mgr_free_value(dst);
+	return err;
+}
+
 void uc_mgr_free_verb(snd_use_case_mgr_t *uc_mgr)
 {
 	struct list_head *pos, *npos;
