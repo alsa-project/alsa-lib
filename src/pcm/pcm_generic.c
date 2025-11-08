@@ -7,7 +7,7 @@
  */
 /*
  *  PCM - Common generic plugin code
- *  Copyright (c) 2004 by Jaroslav Kysela <perex@perex.cz> 
+ *  Copyright (c) 2004 by Jaroslav Kysela <perex@perex.cz>
  *
  *
  *   This library is free software; you can redistribute it and/or modify
@@ -125,7 +125,7 @@ int snd_pcm_generic_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info)
 }
 
 int snd_pcm_generic_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
-{ 
+{
 	snd_pcm_generic_t *generic = pcm->private_data;
 	return snd_pcm_status(generic->slave, status);
 }
@@ -256,7 +256,7 @@ snd_pcm_sframes_t snd_pcm_generic_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_ufr
 	return _snd_pcm_readn(generic->slave, bufs, size);
 }
 
-snd_pcm_sframes_t snd_pcm_generic_mmap_commit(snd_pcm_t *pcm, 
+snd_pcm_sframes_t snd_pcm_generic_mmap_commit(snd_pcm_t *pcm,
 					      snd_pcm_uframes_t offset,
 					      snd_pcm_uframes_t size)
 {

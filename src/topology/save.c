@@ -226,9 +226,14 @@ static int tplg_check_quoted(const unsigned char *p)
 	return 0;
 }
 
+static unsigned char nibble(unsigned char b)
+{
+	b &= 0x0f;
+	return b < 10 ? b + '0' : b + 'a';
+}
+
 static int tplg_save_quoted(struct tplg_buf *dst, const char *str)
 {
-	static const char nibble[16] = "0123456789abcdef";
 	unsigned char *p, *d, *t;
 	int c;
 
@@ -270,8 +275,8 @@ static int tplg_save_quoted(struct tplg_buf *dst, const char *str)
 			} else {
 				*t++ = '\\';
 				*t++ = 'x';
-				*t++ = nibble[(c >> 4) & 0x0f];
-				*t++ = nibble[(c >> 0) & 0x0f];
+				*t++ = nibble(c >> 4);
+				*t++ = nibble(c >> 0);
 			}
 			break;
 		}
@@ -441,8 +446,9 @@ static int tplg_save(snd_tplg_t *tplg, struct tplg_buf *dst,
 			if (gindex >= 0 && elem->index != gindex)
 				continue;
 			if (tptr->save == NULL && tptr->gsave == NULL) {
-				SNDERR("unable to create %s block (no callback)",
-				       tptr->id);
+				snd_error(TOPOLOGY, "unable to create %s block (no callback)",
+						    tptr->id);
+
 				err = -ENXIO;
 				goto _err;
 			}
@@ -477,8 +483,9 @@ static int tplg_save(snd_tplg_t *tplg, struct tplg_buf *dst,
 			}
 			err = tptr->save(tplg, elem, dst, count > 1 ? pfx2 : prefix);
 			if (err < 0) {
-				SNDERR("failed to save %s elements: %s",
-				       tptr->id, snd_strerror(-err));
+				snd_error(TOPOLOGY, "failed to save %s elements: %s",
+						    tptr->id, snd_strerror(-err));
+
 				goto _err;
 			}
 		}
@@ -602,7 +609,7 @@ int snd_tplg_save(snd_tplg_t *tplg, char **dst, int flags)
 	/* always load configuration - check */
 	err = snd_input_buffer_open(&in, buf.dst, strlen(buf.dst));
 	if (err < 0) {
-		SNDERR("could not create input buffer");
+		snd_error(TOPOLOGY, "could not create input buffer");
 		goto _err;
 	}
 
@@ -615,7 +622,7 @@ int snd_tplg_save(snd_tplg_t *tplg, char **dst, int flags)
 	err = snd_config_load(top, in);
 	snd_input_close(in);
 	if (err < 0) {
-		SNDERR("could not load configuration");
+		snd_error(TOPOLOGY, "could not load configuration");
 		snd_config_delete(top);
 		goto _err;
 	}
@@ -623,7 +630,7 @@ int snd_tplg_save(snd_tplg_t *tplg, char **dst, int flags)
 	if (flags & SND_TPLG_SAVE_SORT) {
 		top2 = sort_config(NULL, top);
 		if (top2 == NULL) {
-			SNDERR("could not sort configuration");
+			snd_error(TOPOLOGY, "could not sort configuration");
 			snd_config_delete(top);
 			err = -EINVAL;
 			goto _err;
@@ -636,7 +643,7 @@ int snd_tplg_save(snd_tplg_t *tplg, char **dst, int flags)
 	err = save_config(&buf2, 0, NULL, top);
 	snd_config_delete(top);
 	if (err < 0) {
-		SNDERR("could not save configuration");
+		snd_error(TOPOLOGY, "could not save configuration");
 		goto _err;
 	}
 

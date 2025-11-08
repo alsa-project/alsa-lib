@@ -25,7 +25,7 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-  
+
 #include "pcm_local.h"
 #include "pcm_plugin.h"
 #include "bswap.h"
@@ -239,8 +239,9 @@ static int snd_pcm_file_open_output_file(snd_pcm_file_t *file)
 		/* clearing */
 		pipe = popen(file->final_fname + 1, "w");
 		if (!pipe) {
-			SYSERR("running %s for writing failed",
-					file->final_fname);
+			snd_errornum(PCM, "running %s for writing failed",
+						   file->final_fname);
+
 			return -errno;
 		}
 		fd = fileno(pipe);
@@ -274,8 +275,9 @@ static int snd_pcm_file_open_output_file(snd_pcm_file_t *file)
 					}
 				}
 				if (fd < 0) {
-					SYSERR("open %s for writing failed",
-							file->final_fname);
+					snd_errornum(PCM, "open %s for writing failed",
+								   file->final_fname);
+
 					free(tmpfname);
 					return -errno;
 				}
@@ -303,7 +305,7 @@ static int snd_pcm_file_areas_read_infile(snd_pcm_t *pcm,
 		return -ENOMEM;
 
 	if (file->rbuf_size < frames) {
-		SYSERR("requested more frames than pcm buffer");
+		snd_errornum(PCM, "requested more frames than pcm buffer");
 		return -ENOMEM;
 	}
 
@@ -312,7 +314,7 @@ static int snd_pcm_file_areas_read_infile(snd_pcm_t *pcm,
 		return bytes;
 	bytes = read(file->ifd, file->rbuf, bytes);
 	if (bytes < 0) {
-		SYSERR("read from file failed, error: %d", bytes);
+		snd_errornum(PCM, "read from file failed, error: %d", bytes);
 		return bytes;
 	}
 
@@ -351,7 +353,7 @@ static int write_wav_header(snd_pcm_t *pcm)
 		'd', 'a', 't', 'a',
 		0, 0, 0, 0
 	};
-	
+
 	setup_wav_header(pcm, &file->wav_header);
 
 	res = safe_write(file->fd, header, sizeof(header));
@@ -376,9 +378,9 @@ write_error:
 	 * be used to signal XRUN on playback device
 	 */
 	if (res < 0)
-		SYSERR("%s write header failed, file data may be corrupt", file->fname);
+		snd_errornum(PCM, "%s write header failed, file data may be corrupt", file->fname);
 	else
-		SNDERR("%s write header incomplete, file data may be corrupt", file->fname);
+		snd_error(PCM, "%s write header incomplete, file data may be corrupt", file->fname);
 
 	memset(&file->wav_header, 0, sizeof(struct wav_fmt));
 
@@ -440,7 +442,7 @@ static int snd_pcm_file_write_bytes(snd_pcm_t *pcm, size_t bytes)
 		if (err < 0) {
 			file->wbuf_used_bytes = 0;
 			file->file_ptr_bytes = 0;
-			SYSERR("%s write failed, file data may be corrupt", file->fname);
+			snd_errornum(PCM, "%s write failed, file data may be corrupt", file->fname);
 			return err;
 		}
 		bytes -= err;
@@ -470,7 +472,7 @@ static int snd_pcm_file_add_frames(snd_pcm_t *pcm,
 			n = cont;
 		if (n > avail)
 			n = avail;
-		snd_pcm_areas_copy(file->wbuf_areas, file->appl_ptr, 
+		snd_pcm_areas_copy(file->wbuf_areas, file->appl_ptr,
 				   areas, offset,
 				   pcm->channels, n, pcm->format);
 		frames -= n;
@@ -562,7 +564,7 @@ static snd_pcm_sframes_t snd_pcm_file_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t f
 	snd_pcm_file_t *file = pcm->private_data;
 	snd_pcm_sframes_t err;
 	snd_pcm_uframes_t n;
-	
+
 	n = snd_pcm_frames_to_bytes(pcm, frames);
 	if (n > file->wbuf_used_bytes)
 		frames = snd_pcm_bytes_to_frames(pcm, file->wbuf_used_bytes);
@@ -590,7 +592,7 @@ static snd_pcm_sframes_t snd_pcm_file_forward(snd_pcm_t *pcm, snd_pcm_uframes_t 
 	snd_pcm_file_t *file = pcm->private_data;
 	snd_pcm_sframes_t err;
 	snd_pcm_uframes_t n;
-	
+
 	n = snd_pcm_frames_to_bytes(pcm, frames);
 	if (file->wbuf_used_bytes + n > file->wbuf_size_bytes)
 		frames = snd_pcm_bytes_to_frames(pcm, file->wbuf_size_bytes - file->wbuf_used_bytes);
@@ -688,7 +690,7 @@ static snd_pcm_sframes_t snd_pcm_file_readn(snd_pcm_t *pcm, void **bufs, snd_pcm
 }
 
 static snd_pcm_sframes_t snd_pcm_file_mmap_commit(snd_pcm_t *pcm,
-					          snd_pcm_uframes_t offset,
+						  snd_pcm_uframes_t offset,
 						  snd_pcm_uframes_t size)
 {
 	snd_pcm_file_t *file = pcm->private_data;
@@ -791,7 +793,7 @@ static int snd_pcm_file_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	if (file->fd < 0) {
 		err = snd_pcm_file_open_output_file(file);
 		if (err < 0) {
-			SYSERR("failed opening output file %s", file->fname);
+			snd_errornum(PCM, "failed opening output file %s", file->fname);
 			return err;
 		}
 	}
@@ -914,7 +916,7 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	else if (!strcmp(fmt, "wav"))
 		format = SND_PCM_FILE_FORMAT_WAV;
 	else {
-		SNDERR("file format %s is unknown", fmt);
+		snd_error(PCM, "file format %s is unknown", fmt);
 		return -EINVAL;
 	}
 	file = calloc(1, sizeof(snd_pcm_file_t));
@@ -932,7 +934,7 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	if (ifname && (stream == SND_PCM_STREAM_CAPTURE)) {
 		ifd = open(ifname, O_RDONLY);	/* TODO: mind blocking mode */
 		if (ifd < 0) {
-			SYSERR("open %s for reading failed", ifname);
+			snd_errornum(PCM, "open %s for reading failed", ifname);
 			free(file->fname);
 			free(file);
 			return -errno;
@@ -980,14 +982,14 @@ to a command, and optionally uses an existing file as an input data source
 
 \code
 pcm.name {
-        type file               # File PCM
-        slave STR               # Slave name
-        # or
-        slave {                 # Slave definition
-                pcm STR         # Slave PCM name
-                # or
-                pcm { }         # Slave PCM definition
-        }
+	type file               # File PCM
+	slave STR               # Slave name
+	# or
+	slave {                 # Slave definition
+		pcm STR         # Slave PCM name
+		# or
+		pcm { }         # Slave PCM definition
+	}
 	file STR		# Output filename (or shell command the stream
 				# will be piped to if STR starts with the pipe
 				# char).
@@ -1032,7 +1034,7 @@ pcm.name {
  *          changed in future.
  */
 int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
-		       snd_config_t *root, snd_config_t *conf, 
+		       snd_config_t *root, snd_config_t *conf,
 		       snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i, next;
@@ -1057,7 +1059,7 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 		if (strcmp(id, "format") == 0) {
 			err = snd_config_get_string(n, &format);
 			if (err < 0) {
-				SNDERR("Invalid type for %s", id);
+				snd_error(PCM, "Invalid type for %s", id);
 				return -EINVAL;
 			}
 			continue;
@@ -1067,7 +1069,7 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 			if (err < 0) {
 				err = snd_config_get_integer(n, &fd);
 				if (err < 0) {
-					SNDERR("Invalid type for %s", id);
+					snd_error(PCM, "Invalid type for %s", id);
 					return -EINVAL;
 				}
 			}
@@ -1078,7 +1080,7 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 			if (err < 0) {
 				err = snd_config_get_integer(n, &ifd);
 				if (err < 0) {
-					SNDERR("Invalid type for %s", id);
+					snd_error(PCM, "Invalid type for %s", id);
 					return -EINVAL;
 				}
 			}
@@ -1087,11 +1089,11 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 		if (strcmp(id, "perm") == 0) {
 			err = snd_config_get_integer(n, &perm);
 			if (err < 0) {
-				SNDERR("Invalid type for %s", id);
+				snd_error(PCM, "Invalid type for %s", id);
 				return err;
 			}
 			if ((perm & ~0777) != 0) {
-				SNDERR("The field perm must be a valid file permission");
+				snd_error(PCM, "The field perm must be a valid file permission");
 				return -EINVAL;
 			}
 			continue;
@@ -1103,7 +1105,7 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 			trunc = err;
 			continue;
 		}
-		SNDERR("Unknown field %s", id);
+		snd_error(PCM, "Unknown field %s", id);
 		return -EINVAL;
 	}
 	if (!format) {
@@ -1112,13 +1114,13 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 		if (snd_config_search(root, "defaults.pcm.file_format", &n) >= 0) {
 			err = snd_config_get_string(n, &format);
 			if (err < 0) {
-				SNDERR("Invalid file format");
+				snd_error(PCM, "Invalid file format");
 				return -EINVAL;
 			}
 		}
 	}
 	if (!slave) {
-		SNDERR("slave is not defined");
+		snd_error(PCM, "slave is not defined");
 		return -EINVAL;
 	}
 	err = snd_pcm_slave_conf(root, slave, &sconf, 0);
@@ -1126,7 +1128,7 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 		return err;
 	if ((!fname || strlen(fname) == 0) && fd < 0) {
 		snd_config_delete(sconf);
-		SNDERR("file is not defined");
+		snd_error(PCM, "file is not defined");
 		return -EINVAL;
 	}
 	err = snd_pcm_open_slave(&spcm, root, sconf, stream, mode, conf);

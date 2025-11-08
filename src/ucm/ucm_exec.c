@@ -191,8 +191,12 @@ int uc_mgr_exec(const char *prog)
 	sigset_t omask;
 	char **argv;
 
-	if (parse_args(&argv, 32, prog))
+	snd_debug(UCM, "executing '%s'\n", prog);
+
+	if (parse_args(&argv, 32, prog)) {
+		snd_info(UCM, "unable to parse exec arguments for '%s'", prog);
 		return -EINVAL;
+	}
 
 	prog = argv[0];
 	if (prog == NULL) {
@@ -201,6 +205,7 @@ int uc_mgr_exec(const char *prog)
 	}
 	if (prog[0] != '/' && prog[0] != '.') {
 		if (!find_exec(argv[0], bin, sizeof(bin))) {
+			snd_warn(UCM, "unable to find executable '%s'", argv[0]);
 			err = -ENOEXEC;
 			goto __error;
 		}
@@ -231,16 +236,16 @@ int uc_mgr_exec(const char *prog)
 	if (p == -1) {
 		err = -errno;
 		pthread_mutex_unlock(&fork_lock);
-		uc_error("Unable to fork() for \"%s\" -- %s", prog,
-			 strerror(errno));
+		snd_error(UCM, "Unable to fork() for \"%s\" -- %s", prog, strerror(errno));
 		goto __error;
 	}
 
 	if (p == 0) {
 		f = open("/dev/null", O_RDWR);
 		if (f == -1) {
-			uc_error("pid %d cannot open /dev/null for redirect %s -- %s",
-				 getpid(), prog, strerror(errno));
+			snd_error(UCM, "pid %d cannot open /dev/null for redirect %s -- %s",
+				       getpid(), prog, strerror(errno));
+
 			exit(1);
 		}
 
@@ -254,8 +259,12 @@ int uc_mgr_exec(const char *prog)
 
 		close(f);
 
+#if defined(_GNU_SOURCE)
+		close_range(3, maxfd, 0);
+#else
 		for (f = 3; f < maxfd; f++)
 			close(f);
+#endif
 
 		/* install default handlers for the forked process */
 		signal(SIGINT, SIG_DFL);

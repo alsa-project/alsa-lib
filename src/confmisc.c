@@ -5,7 +5,7 @@
  * \author Abramo Bagnara <abramo@alsa-project.org>
  * \author Jaroslav Kysela <perex@perex.cz>
  * \date 2000-2001
- * 
+ *
  * Configuration helper functions.
  *
  * See the \ref conffunc page for more details.
@@ -127,14 +127,14 @@ int snd_config_get_bool(const snd_config_t *conf)
 	if (err >= 0) {
 		if (v < 0 || v > 1) {
 		_invalid_value:
-			SNDERR("Invalid value for %s", id);
+			snd_error(CORE, "Invalid value for %s", id);
 			return -EINVAL;
 		}
 		return v;
 	}
 	err = snd_config_get_string(conf, &str);
 	if (err < 0) {
-		SNDERR("Invalid type for %s", id);
+		snd_error(CORE, "Invalid type for %s", id);
 		return -EINVAL;
 	}
 	err = snd_config_get_bool_ascii(str);
@@ -157,12 +157,12 @@ int snd_config_get_card(const snd_config_t *conf)
 	if (snd_config_get_integer(conf, &v) < 0) {
 		if (snd_config_get_string(conf, &str)) {
 			if (snd_config_get_id(conf, &id) >= 0)
-				SNDERR("Invalid field %s", id);
+				snd_error(CORE, "Invalid field %s", id);
 			return -EINVAL;
 		}
 		err = snd_card_get_index(str);
 		if (err < 0) {
-			SNDERR("Cannot get card index for %s", str);
+			snd_error(CORE, "Cannot get card index for %s", str);
 			return err;
 		}
 		v = err;
@@ -176,7 +176,7 @@ int snd_config_get_card(const snd_config_t *conf)
  * \brief Gets the control interface index from the given ASCII string.
  * \param ascii The string to be parsed.
  * \return The control interface index if successful, otherwise a negative error code.
- */ 
+ */
 int snd_config_get_ctl_iface_ascii(const char *ascii)
 {
 	long v;
@@ -199,7 +199,7 @@ int snd_config_get_ctl_iface_ascii(const char *ascii)
  * \brief Gets the control interface index from a configuration node.
  * \param conf Handle to the configuration node to be parsed.
  * \return The control interface index if successful, otherwise a negative error code.
- */ 
+ */
 int snd_config_get_ctl_iface(const snd_config_t *conf)
 {
 	long v;
@@ -213,14 +213,14 @@ int snd_config_get_ctl_iface(const snd_config_t *conf)
 	if (err >= 0) {
 		if (v < 0 || v > SND_CTL_ELEM_IFACE_LAST) {
 		_invalid_value:
-			SNDERR("Invalid value for %s", id);
+			snd_error(CORE, "Invalid value for %s", id);
 			return -EINVAL;
 		}
 		return v;
 	}
 	err = snd_config_get_string(conf, &str);
 	if (err < 0) {
-		SNDERR("Invalid type for %s", id);
+		snd_error(CORE, "Invalid type for %s", id);
 		return -EINVAL;
 	}
 	err = snd_config_get_ctl_iface_ascii(str);
@@ -251,7 +251,7 @@ int snd_config_get_ctl_iface(const snd_config_t *conf)
 		default 0
 	}
 \endcode
- */ 
+ */
 int snd_func_getenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 		    snd_config_t *private_data)
 {
@@ -260,30 +260,30 @@ int snd_func_getenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 	const char *res, *id;
 	char *def = NULL;
 	int idx = 0, err, hit;
-	
+
 	err = snd_config_search(src, "vars", &n);
 	if (err < 0) {
-		SNDERR("field vars not found");
+		snd_error(CORE, "field vars not found");
 		goto __error;
 	}
 	err = snd_config_evaluate(n, root, private_data, NULL);
 	if (err < 0) {
-		SNDERR("error evaluating vars");
+		snd_error(CORE, "error evaluating vars");
 		goto __error;
 	}
 	err = snd_config_search(src, "default", &d);
 	if (err < 0) {
-		SNDERR("field default not found");
+		snd_error(CORE, "field default not found");
 		goto __error;
 	}
 	err = snd_config_evaluate(d, root, private_data, NULL);
 	if (err < 0) {
-		SNDERR("error evaluating default");
+		snd_error(CORE, "error evaluating default");
 		goto __error;
 	}
 	err = snd_config_get_ascii(d, &def);
 	if (err < 0) {
-		SNDERR("error getting field default");
+		snd_error(CORE, "error getting field default");
 		goto __error;
 	}
 	do {
@@ -295,13 +295,13 @@ int snd_func_getenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 			if (snd_config_get_id(n, &id) < 0)
 				continue;
 			if (snd_config_get_type(n) != SND_CONFIG_TYPE_STRING) {
-				SNDERR("field %s is not a string", id);
+				snd_error(CORE, "field %s is not a string", id);
 				err = -EINVAL;
 				goto __error;
 			}
 			err = safe_strtol(id, &i);
 			if (err < 0) {
-				SNDERR("id of field %s is not an integer", id);
+				snd_error(CORE, "id of field %s is not an integer", id);
 				err = -EINVAL;
 				goto __error;
 			}
@@ -309,7 +309,7 @@ int snd_func_getenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 				idx++;
 				err = snd_config_get_string(n, &ptr);
 				if (err < 0) {
-					SNDERR("invalid string for id %s", id);
+					snd_error(CORE, "invalid string for id %s", id);
 					err = -EINVAL;
 					goto __error;
 				}
@@ -351,7 +351,7 @@ SND_DLSYM_BUILD_VERSION(snd_func_getenv, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 		default 0
 	}
 \endcode
- */ 
+ */
 int snd_func_igetenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 		     snd_config_t *private_data)
 {
@@ -385,7 +385,7 @@ int snd_func_igetenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 #ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(snd_func_igetenv, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 #endif
-		
+
 /**
  * \brief Merges the given strings.
  * \param dst The function puts the handle to the result configuration node
@@ -402,7 +402,7 @@ SND_DLSYM_BUILD_VERSION(snd_func_igetenv, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 		strings [ "a1" "b2" "c3" ]
 	}
 \endcode
- */ 
+ */
 int snd_func_concat(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 		    snd_config_t *private_data)
 {
@@ -411,15 +411,15 @@ int snd_func_concat(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 	const char *id;
 	char *res = NULL, *tmp;
 	int idx = 0, len = 0, len1, err, hit;
-	
+
 	err = snd_config_search(src, "strings", &n);
 	if (err < 0) {
-		SNDERR("field strings not found");
+		snd_error(CORE, "field strings not found");
 		goto __error;
 	}
 	err = snd_config_evaluate(n, root, private_data, NULL);
 	if (err < 0) {
-		SNDERR("error evaluating strings");
+		snd_error(CORE, "error evaluating strings");
 		goto __error;
 	}
 	do {
@@ -433,7 +433,7 @@ int snd_func_concat(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 				continue;
 			err = safe_strtol(id, &i);
 			if (err < 0) {
-				SNDERR("id of field %s is not an integer", id);
+				snd_error(CORE, "id of field %s is not an integer", id);
 				err = -EINVAL;
 				goto __error;
 			}
@@ -441,7 +441,7 @@ int snd_func_concat(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 				idx++;
 				err = snd_config_get_ascii(n, &ptr);
 				if (err < 0) {
-					SNDERR("invalid ascii string for id %s", id);
+					snd_error(CORE, "invalid ascii string for id %s", id);
 					err = -EINVAL;
 					goto __error;
 				}
@@ -462,7 +462,7 @@ int snd_func_concat(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 		}
 	} while (hit);
 	if (res == NULL) {
-		SNDERR("empty string is not accepted");
+		snd_error(CORE, "empty string is not accepted");
 		err = -EINVAL;
 		goto __error;
 	}
@@ -490,15 +490,15 @@ static int snd_func_iops(snd_config_t **dst,
 	char *res = NULL;
 	long result = 0, val;
 	int idx = 0, err, hit;
-	
+
 	err = snd_config_search(src, "integers", &n);
 	if (err < 0) {
-		SNDERR("field integers not found");
+		snd_error(CORE, "field integers not found");
 		goto __error;
 	}
 	err = snd_config_evaluate(n, root, private_data, NULL);
 	if (err < 0) {
-		SNDERR("error evaluating integers");
+		snd_error(CORE, "error evaluating integers");
 		goto __error;
 	}
 	do {
@@ -511,7 +511,7 @@ static int snd_func_iops(snd_config_t **dst,
 				continue;
 			err = safe_strtol(id, &i);
 			if (err < 0) {
-				SNDERR("id of field %s is not an integer", id);
+				snd_error(CORE, "id of field %s is not an integer", id);
 				err = -EINVAL;
 				goto __error;
 			}
@@ -519,7 +519,7 @@ static int snd_func_iops(snd_config_t **dst,
 				idx++;
 				err = snd_config_get_integer(n, &val);
 				if (err < 0) {
-					SNDERR("invalid integer for id %s", id);
+					snd_error(CORE, "invalid integer for id %s", id);
 					err = -EINVAL;
 					goto __error;
 				}
@@ -556,9 +556,9 @@ static int snd_func_iops(snd_config_t **dst,
 		integers [ 2 3 5 ]
 	}
 \endcode
- */ 
+ */
 int snd_func_iadd(snd_config_t **dst, snd_config_t *root,
-	          snd_config_t *src, snd_config_t *private_data)
+		  snd_config_t *src, snd_config_t *private_data)
 {
 	return snd_func_iops(dst, root, src, private_data, 0);
 }
@@ -582,7 +582,7 @@ SND_DLSYM_BUILD_VERSION(snd_func_iadd, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 		integers [ 2 3 2 ]
 	}
 \endcode
- */ 
+ */
 int snd_func_imul(snd_config_t **dst, snd_config_t *root,
 		  snd_config_t *src, snd_config_t *private_data)
 {
@@ -607,13 +607,13 @@ SND_DLSYM_BUILD_VERSION(snd_func_imul, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 		@func datadir
 	}
 \endcode
- */ 
+ */
 int snd_func_datadir(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNUSED,
 		     snd_config_t *src, snd_config_t *private_data ATTRIBUTE_UNUSED)
 {
 	int err;
 	const char *id;
-	
+
 	err = snd_config_get_id(src, &id);
 	if (err < 0)
 		return err;
@@ -660,7 +660,7 @@ static int _snd_func_private_data(snd_config_t **dst, snd_config_t *src,
 	err = snd_config_test_id(*private_data, id);
 	if (err) {
 notfound:
-		SNDERR("field %s not found", id);
+		snd_error(CORE, "field %s not found", id);
 		return -EINVAL;
 	}
 	return 0;
@@ -683,7 +683,7 @@ notfound:
 		@func private_string
 	}
 \endcode
- */ 
+ */
 int snd_func_private_string(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNUSED,
 			    snd_config_t *src, snd_config_t *private_data)
 {
@@ -695,7 +695,7 @@ int snd_func_private_string(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNU
 		return err;
 	err = snd_config_get_string(private_data, &str);
 	if (err < 0) {
-		SNDERR("field string is not a string");
+		snd_error(CORE, "field string is not a string");
 		return err;
 	}
 	err = snd_config_get_id(src, &id);
@@ -736,7 +736,7 @@ int snd_func_private_integer(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UN
 		return err;
 	err = snd_config_get_integer(private_data, &val);
 	if (err < 0) {
-		SNDERR("field integer is not a string");
+		snd_error(CORE, "field integer is not a string");
 		return err;
 	}
 	err = snd_config_get_id(src, &id);
@@ -759,12 +759,12 @@ int snd_determine_driver(int card, char **driver)
 	assert(card >= 0 && card <= SND_MAX_CARDS);
 	err = open_ctl(card, &ctl);
 	if (err < 0) {
-		SNDERR("could not open control for card %i", card);
+		snd_error(CORE, "could not open control for card %i", card);
 		goto __error;
 	}
 	err = snd_ctl_card_info(ctl, &info);
 	if (err < 0) {
-		SNDERR("snd_ctl_card_info error: %s", snd_strerror(err));
+		snd_error(CORE, "snd_ctl_card_info error: %s", snd_strerror(err));
 		goto __error;
 	}
 	res = strdup(snd_ctl_card_info_get_driver(&info));
@@ -797,7 +797,7 @@ int snd_determine_driver(int card, char **driver)
 		@func private_card_driver
 	}
 \endcode
- */ 
+ */
 int snd_func_private_card_driver(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *src,
 				 snd_config_t *private_data)
 {
@@ -808,12 +808,12 @@ int snd_func_private_card_driver(snd_config_t **dst, snd_config_t *root ATTRIBUT
 
 	err = snd_config_test_id(private_data, "card");
 	if (err) {
-		SNDERR("field card not found");
+		snd_error(CORE, "field card not found");
 		return -EINVAL;
 	}
 	err = snd_config_get_integer(private_data, &card);
 	if (err < 0) {
-		SNDERR("field card is not an integer");
+		snd_error(CORE, "field card is not an integer");
 		return err;
 	}
 	if ((err = snd_determine_driver(card, &driver)) < 0)
@@ -834,25 +834,25 @@ static int parse_card(snd_config_t *root, snd_config_t *src,
 	snd_config_t *n;
 	char *str;
 	int card, err;
-	
+
 	err = snd_config_search(src, "card", &n);
 	if (err < 0) {
-		SNDERR("field card not found");
+		snd_error(CORE, "field card not found");
 		return err;
 	}
 	err = snd_config_evaluate(n, root, private_data, NULL);
 	if (err < 0) {
-		SNDERR("error evaluating card");
+		snd_error(CORE, "error evaluating card");
 		return err;
 	}
 	err = snd_config_get_ascii(n, &str);
 	if (err < 0) {
-		SNDERR("field card is not an integer or a string");
+		snd_error(CORE, "field card is not an integer or a string");
 		return err;
 	}
 	card = snd_card_get_index(str);
 	if (card < 0)
-		SNDERR("cannot find card '%s'", str);
+		snd_error(CORE, "cannot find card '%s'", str);
 	free(str);
 	return card;
 }
@@ -873,13 +873,13 @@ static int parse_card(snd_config_t *root, snd_config_t *src,
 		card '0'
 	}
 \endcode
- */ 
+ */
 int snd_func_card_inum(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 		       snd_config_t *private_data)
 {
 	const char *id;
 	int card, err;
-	
+
 	card = parse_card(root, src, private_data);
 	if (card < 0)
 		return card;
@@ -908,13 +908,13 @@ SND_DLSYM_BUILD_VERSION(snd_func_card_inum, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 		card 0
 	}
 \endcode
- */ 
+ */
 int snd_func_card_driver(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 			 snd_config_t *private_data)
 {
 	snd_config_t *val;
 	int card, err;
-	
+
 	card = parse_card(root, src, private_data);
 	if (card < 0)
 		return card;
@@ -945,7 +945,7 @@ SND_DLSYM_BUILD_VERSION(snd_func_card_driver, SND_CONFIG_DLSYM_VERSION_EVALUATE)
 		card 0
 	}
 \endcode
- */ 
+ */
 int snd_func_card_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 		     snd_config_t *private_data)
 {
@@ -953,18 +953,18 @@ int snd_func_card_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 	snd_ctl_card_info_t info = {0};
 	const char *id;
 	int card, err;
-	
+
 	card = parse_card(root, src, private_data);
 	if (card < 0)
 		return card;
 	err = open_ctl(card, &ctl);
 	if (err < 0) {
-		SNDERR("could not open control for card %i", card);
+		snd_error(CORE, "could not open control for card %i", card);
 		goto __error;
 	}
 	err = snd_ctl_card_info(ctl, &info);
 	if (err < 0) {
-		SNDERR("snd_ctl_card_info error: %s", snd_strerror(err));
+		snd_error(CORE, "snd_ctl_card_info error: %s", snd_strerror(err));
 		goto __error;
 	}
 	err = snd_config_get_id(src, &id);
@@ -972,8 +972,8 @@ int snd_func_card_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 		err = snd_config_imake_string(dst, id,
 					      snd_ctl_card_info_get_id(&info));
       __error:
-      	if (ctl)
-      		snd_ctl_close(ctl);
+	if (ctl)
+		snd_ctl_close(ctl);
 	return err;
 }
 #ifndef DOC_HIDDEN
@@ -996,7 +996,7 @@ SND_DLSYM_BUILD_VERSION(snd_func_card_id, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 		card 0
 	}
 \endcode
- */ 
+ */
 int snd_func_card_name(snd_config_t **dst, snd_config_t *root,
 		       snd_config_t *src, snd_config_t *private_data)
 {
@@ -1004,18 +1004,18 @@ int snd_func_card_name(snd_config_t **dst, snd_config_t *root,
 	snd_ctl_card_info_t info = {0};
 	const char *id;
 	int card, err;
-	
+
 	card = parse_card(root, src, private_data);
 	if (card < 0)
 		return card;
 	err = open_ctl(card, &ctl);
 	if (err < 0) {
-		SNDERR("could not open control for card %i", card);
+		snd_error(CORE, "could not open control for card %i", card);
 		goto __error;
 	}
 	err = snd_ctl_card_info(ctl, &info);
 	if (err < 0) {
-		SNDERR("snd_ctl_card_info error: %s", snd_strerror(err));
+		snd_error(CORE, "snd_ctl_card_info error: %s", snd_strerror(err));
 		goto __error;
 	}
 	err = snd_config_get_id(src, &id);
@@ -1023,8 +1023,8 @@ int snd_func_card_name(snd_config_t **dst, snd_config_t *root,
 		err = snd_config_imake_safe_string(dst, id,
 					snd_ctl_card_info_get_name(&info));
       __error:
-      	if (ctl)
-      		snd_ctl_close(ctl);
+	if (ctl)
+		snd_ctl_close(ctl);
 	return err;
 }
 #ifndef DOC_HIDDEN
@@ -1033,7 +1033,7 @@ SND_DLSYM_BUILD_VERSION(snd_func_card_name, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 
 #ifdef DOXYGEN
 /* For consistency with the PCM Interface module, include documentation even
- * when PCM module is not included in the build. */ 
+ * when PCM module is not included in the build. */
 #ifndef BUILD_PCM
 #define BUILD_PCM
 #endif
@@ -1060,7 +1060,7 @@ SND_DLSYM_BUILD_VERSION(snd_func_card_name, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 		subdevice 0	# optional
 	}
 \endcode
- */ 
+ */
 int snd_func_pcm_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
 {
 	snd_config_t *n;
@@ -1069,47 +1069,47 @@ int snd_func_pcm_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src, v
 	const char *id;
 	long card, device, subdevice = 0;
 	int err;
-	
+
 	card = parse_card(root, src, private_data);
 	if (card < 0)
 		return card;
 	err = snd_config_search(src, "device", &n);
 	if (err < 0) {
-		SNDERR("field device not found");
+		snd_error(CORE, "field device not found");
 		goto __error;
 	}
 	err = snd_config_evaluate(n, root, private_data, NULL);
 	if (err < 0) {
-		SNDERR("error evaluating device");
+		snd_error(CORE, "error evaluating device");
 		goto __error;
 	}
 	err = snd_config_get_integer(n, &device);
 	if (err < 0) {
-		SNDERR("field device is not an integer");
+		snd_error(CORE, "field device is not an integer");
 		goto __error;
 	}
 	if (snd_config_search(src, "subdevice", &n) >= 0) {
 		err = snd_config_evaluate(n, root, private_data, NULL);
 		if (err < 0) {
-			SNDERR("error evaluating subdevice");
+			snd_error(CORE, "error evaluating subdevice");
 			goto __error;
 		}
 		err = snd_config_get_integer(n, &subdevice);
 		if (err < 0) {
-			SNDERR("field subdevice is not an integer");
+			snd_error(CORE, "field subdevice is not an integer");
 			goto __error;
 		}
 	}
 	err = open_ctl(card, &ctl);
 	if (err < 0) {
-		SNDERR("could not open control for card %li", card);
+		snd_error(CORE, "could not open control for card %li", card);
 		goto __error;
 	}
 	snd_pcm_info_set_device(&info, device);
 	snd_pcm_info_set_subdevice(&info, subdevice);
 	err = snd_ctl_pcm_info(ctl, &info);
 	if (err < 0) {
-		SNDERR("snd_ctl_pcm_info error: %s", snd_strerror(err));
+		snd_error(CORE, "snd_ctl_pcm_info error: %s", snd_strerror(err));
 		goto __error;
 	}
 	err = snd_config_get_id(src, &id);
@@ -1117,8 +1117,8 @@ int snd_func_pcm_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src, v
 		err = snd_config_imake_string(dst, id,
 						snd_pcm_info_get_id(&info));
       __error:
-      	if (ctl)
-      		snd_ctl_close(ctl);
+	if (ctl)
+		snd_ctl_close(ctl);
 	return err;
 }
 #ifndef DOC_HIDDEN
@@ -1144,7 +1144,7 @@ SND_DLSYM_BUILD_VERSION(snd_func_pcm_id, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 		index 0
 	}
 \endcode
- */ 
+ */
 int snd_func_pcm_args_by_class(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
 {
 	snd_config_t *n;
@@ -1158,53 +1158,53 @@ int snd_func_pcm_args_by_class(snd_config_t **dst, snd_config_t *root, snd_confi
 
 	err = snd_config_search(src, "class", &n);
 	if (err < 0) {
-		SNDERR("field class not found");
+		snd_error(CORE, "field class not found");
 		goto __out;
 	}
 	err = snd_config_evaluate(n, root, private_data, NULL);
 	if (err < 0) {
-		SNDERR("error evaluating class");
+		snd_error(CORE, "error evaluating class");
 		goto __out;
 	}
 	err = snd_config_get_integer(n, &class);
 	if (err < 0) {
-		SNDERR("field class is not an integer");
+		snd_error(CORE, "field class is not an integer");
 		goto __out;
 	}
 	err = snd_config_search(src, "index", &n);
 	if (err < 0) {
-		SNDERR("field index not found");
+		snd_error(CORE, "field index not found");
 		goto __out;
 	}
 	err = snd_config_evaluate(n, root, private_data, NULL);
 	if (err < 0) {
-		SNDERR("error evaluating index");
+		snd_error(CORE, "error evaluating index");
 		goto __out;
 	}
 	err = snd_config_get_integer(n, &index);
 	if (err < 0) {
-		SNDERR("field index is not an integer");
+		snd_error(CORE, "field index is not an integer");
 		goto __out;
 	}
 
 	while(1) {
 		err = snd_card_next(&card);
 		if (err < 0) {
-			SNDERR("could not get next card");
+			snd_error(CORE, "could not get next card");
 			goto __out;
 		}
 		if (card < 0)
 			break;
 		err = open_ctl(card, &ctl);
 		if (err < 0) {
-			SNDERR("could not open control for card %i", card);
+			snd_error(CORE, "could not open control for card %i", card);
 			goto __out;
 		}
 		dev = -1;
 		while(1) {
 			err = snd_ctl_pcm_next_device(ctl, &dev);
 			if (err < 0) {
-				SNDERR("could not get next pcm for card %i", card);
+				snd_error(CORE, "could not get next pcm for card %i", card);
 				goto __out;
 			}
 			if (dev < 0)
@@ -1217,14 +1217,14 @@ int snd_func_pcm_args_by_class(snd_config_t **dst, snd_config_t *root, snd_confi
 					index == idx++)
 				goto __out;
 		}
-      		snd_ctl_close(ctl);
+		snd_ctl_close(ctl);
 		ctl = NULL;
 	}
 	err = -ENODEV;
 
       __out:
-      	if (ctl)
-      		snd_ctl_close(ctl);
+	if (ctl)
+		snd_ctl_close(ctl);
 	if (err < 0)
 		return err;
 	if((err = snd_config_get_id(src, &id)) >= 0) {
@@ -1254,7 +1254,7 @@ SND_DLSYM_BUILD_VERSION(snd_func_pcm_args_by_class, SND_CONFIG_DLSYM_VERSION_EVA
 		@func private_pcm_subdevice
 	}
 \endcode
- */ 
+ */
 int snd_func_private_pcm_subdevice(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNUSED,
 				   snd_config_t *src, snd_config_t *private_data)
 {
@@ -1268,18 +1268,18 @@ int snd_func_private_pcm_subdevice(snd_config_t **dst, snd_config_t *root ATTRIB
 		return snd_config_copy(dst, src);
 	err = snd_config_test_id(private_data, "pcm_handle");
 	if (err) {
-		SNDERR("field pcm_handle not found");
+		snd_error(CORE, "field pcm_handle not found");
 		return -EINVAL;
 	}
 	err = snd_config_get_pointer(private_data, &data);
 	pcm = (snd_pcm_t *)data;
 	if (err < 0) {
-		SNDERR("field pcm_handle is not a pointer");
+		snd_error(CORE, "field pcm_handle is not a pointer");
 		return err;
 	}
 	err = snd_pcm_info(pcm, &info);
 	if (err < 0) {
-		SNDERR("snd_ctl_pcm_info error: %s", snd_strerror(err));
+		snd_error(CORE, "snd_ctl_pcm_info error: %s", snd_strerror(err));
 		return err;
 	}
 	err = snd_config_get_id(src, &id);
@@ -1314,24 +1314,24 @@ SND_DLSYM_BUILD_VERSION(snd_func_private_pcm_subdevice, SND_CONFIG_DLSYM_VERSION
 		name "id1.id2.id3"
 	}
 \endcode
- */ 
+ */
 int snd_func_refer(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 		   snd_config_t *private_data)
 {
 	snd_config_t *n;
 	const char *file = NULL, *name = NULL;
 	int err;
-	
+
 	err = snd_config_search(src, "file", &n);
 	if (err >= 0) {
 		err = snd_config_evaluate(n, root, private_data, NULL);
 		if (err < 0) {
-			SNDERR("error evaluating file");
+			snd_error(CORE, "error evaluating file");
 			goto _end;
 		}
 		err = snd_config_get_string(n, &file);
 		if (err < 0) {
-			SNDERR("file is not a string");
+			snd_error(CORE, "file is not a string");
 			goto _end;
 		}
 	}
@@ -1339,25 +1339,25 @@ int snd_func_refer(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 	if (err >= 0) {
 		err = snd_config_evaluate(n, root, private_data, NULL);
 		if (err < 0) {
-			SNDERR("error evaluating name");
+			snd_error(CORE, "error evaluating name");
 			goto _end;
 		}
 		err = snd_config_get_string(n, &name);
 		if (err < 0) {
-			SNDERR("name is not a string");
+			snd_error(CORE, "name is not a string");
 			goto _end;
 		}
 	}
 	if (!name) {
 		err = -EINVAL;
-		SNDERR("name is not specified");
+		snd_error(CORE, "name is not specified");
 		goto _end;
 	}
 	if (file) {
 		snd_input_t *input;
 		err = snd_input_stdio_open(&input, file, "r");
 		if (err < 0) {
-			SNDERR("Unable to open file %s: %s", file, snd_strerror(err));
+			snd_error(CORE, "Unable to open file %s: %s", file, snd_strerror(err));
 			goto _end;
 		}
 		err = snd_config_load(root, input);
@@ -1374,7 +1374,7 @@ int snd_func_refer(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 	} else {
 		err = snd_config_search(src, "default", &n);
 		if (err < 0)
-			SNDERR("Unable to find definition '%s'", name);
+			snd_error(CORE, "Unable to find definition '%s'", name);
 		else {
 			const char *id;
 			err = snd_config_evaluate(n, root, private_data, NULL);

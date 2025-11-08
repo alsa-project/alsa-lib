@@ -18,7 +18,7 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-  
+
 #define SND_INTERVAL_C
 #define SND_INTERVAL_INLINE
 
@@ -32,7 +32,7 @@ static inline void div64_32(uint64_t *n, uint32_t d, uint32_t *rem)
 	*n /= d;
 }
 
-static inline unsigned int div32(unsigned int a, unsigned int b, 
+static inline unsigned int div32(unsigned int a, unsigned int b,
 				 unsigned int *r)
 {
 	if (b == 0) {
@@ -378,7 +378,7 @@ void snd_interval_print(const snd_interval_t *i, snd_output_t *out)
 {
 	if (snd_interval_empty(i))
 		snd_output_printf(out, "NONE");
-	else if (i->min == 0 && i->openmin == 0 && 
+	else if (i->min == 0 && i->openmin == 0 &&
 		 i->max == UINT_MAX && i->openmax == 0)
 		snd_output_printf(out, "ALL");
 	else if (snd_interval_single(i) && i->integer)

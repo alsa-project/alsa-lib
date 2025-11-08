@@ -25,7 +25,7 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-  
+
 #include "pcm_local.h"
 #include "pcm_plugin.h"
 #include "pcm_extplug.h"
@@ -264,7 +264,7 @@ static int snd_pcm_extplug_hw_refine_schange(snd_pcm_t *pcm,
 
 	return _snd_pcm_hw_params_refine(sparams, links, params);
 }
-	
+
 static int snd_pcm_extplug_hw_refine_cchange(snd_pcm_t *pcm,
 					     snd_pcm_hw_params_t *params,
 					     snd_pcm_hw_params_t *sparams)
@@ -511,7 +511,7 @@ usually you will call the external plugin API function,
 #snd_pcm_extplug_create() or #snd_pcm_ioplug_create(), depending
 on the plugin type.  The PCM handle must be filled *pcmp in return.
 Then this function must return either a value 0 when succeeded, or a
-negative value as the error code. 
+negative value as the error code.
 
 Finally, add #SND_PCM_PLUGIN_SYMBOL() with the name of your
 plugin as the argument at the end.  This defines the proper versioned
@@ -547,12 +547,12 @@ SND_PCM_PLUGIN_DEFINE_FUNC(myplug)
 			....
 			continue;
 		}
-		SNDERR("Unknown field %s", id);
+		snd_error(PCM, "Unknown field %s", id);
 		return -EINVAL;
 	}
 
 	if (! slave) {
-		SNDERR("No slave defined for myplug");
+		snd_error(PCM, "No slave defined for myplug");
 		return -EINVAL;
 	}
 
@@ -596,7 +596,7 @@ Otherfields are optional and should be initialized with zero.
 
 The constant #SND_PCM_EXTPLUG_VERSION must be passed to the version
 field for the version check in alsa-lib.  A non-NULL ASCII string
-has to be passed to the name field.  The callback field contains the 
+has to be passed to the name field.  The callback field contains the
 table of callback functions for this plugin (defined as
 #snd_pcm_extplug_callback_t).
 
@@ -611,7 +611,7 @@ The callback functions in #snd_pcm_extplug_callback_t define the real
 behavior of the driver.
 At least, transfer callback must be given.  This callback is called
 at each time certain size of data block is transfered to the slave
-PCM.  Other callbacks are optional.  
+PCM.  Other callbacks are optional.
 
 The close callback is called when the PCM is closed.  If the plugin
 allocates private resources, this is the place to release them
@@ -640,7 +640,7 @@ either #snd_pcm_extplug_set_slave_param_minmax() and
 as former functions.
 
 To clear the parameter constraints, call #snd_pcm_extplug_params_reset()
-function. 
+function.
 
 When using snd_pcm_extplug_set_param_*() or snd_pcm_extplug_set_slave_param_*()
 for any parameter. This parameter is no longer linked between the client and
@@ -690,8 +690,9 @@ int snd_pcm_extplug_create(snd_pcm_extplug_t *extplug, const char *name,
 	/* We support 1.0.0 to current */
 	if (extplug->version < 0x010000 ||
 	    extplug->version > SND_PCM_EXTPLUG_VERSION) {
-		SNDERR("extplug: Plugin version mismatch: 0x%x",
-		       extplug->version);
+		snd_error(PCM, "extplug: Plugin version mismatch: 0x%x",
+			       extplug->version);
+
 		return -ENXIO;
 	}
 
@@ -781,7 +782,7 @@ int snd_pcm_extplug_set_slave_param_list(snd_pcm_extplug_t *extplug, int type, u
 {
 	extplug_priv_t *ext = extplug->pcm->private_data;
 	if (type < 0 || type >= SND_PCM_EXTPLUG_HW_PARAMS) {
-		SNDERR("EXTPLUG: invalid parameter type %d", type);
+		snd_error(PCM, "EXTPLUG: invalid parameter type %d", type);
 		return -EINVAL;
 	}
 	return snd_ext_parm_set_list(&ext->sparams[type], num_list, list);
@@ -803,11 +804,11 @@ int snd_pcm_extplug_set_slave_param_minmax(snd_pcm_extplug_t *extplug, int type,
 {
 	extplug_priv_t *ext = extplug->pcm->private_data;
 	if (type < 0 || type >= SND_PCM_EXTPLUG_HW_PARAMS) {
-		SNDERR("EXTPLUG: invalid parameter type %d", type);
+		snd_error(PCM, "EXTPLUG: invalid parameter type %d", type);
 		return -EINVAL;
 	}
 	if (is_mask_type(type)) {
-		SNDERR("EXTPLUG: invalid parameter type %d", type);
+		snd_error(PCM, "EXTPLUG: invalid parameter type %d", type);
 		return -EINVAL;
 	}
 	return snd_ext_parm_set_minmax(&ext->sparams[type], min, max);
@@ -829,7 +830,7 @@ int snd_pcm_extplug_set_param_list(snd_pcm_extplug_t *extplug, int type, unsigne
 {
 	extplug_priv_t *ext = extplug->pcm->private_data;
 	if (type < 0 || type >= SND_PCM_EXTPLUG_HW_PARAMS) {
-		SNDERR("EXTPLUG: invalid parameter type %d", type);
+		snd_error(PCM, "EXTPLUG: invalid parameter type %d", type);
 		return -EINVAL;
 	}
 	return snd_ext_parm_set_list(&ext->params[type], num_list, list);
@@ -851,11 +852,11 @@ int snd_pcm_extplug_set_param_minmax(snd_pcm_extplug_t *extplug, int type, unsig
 {
 	extplug_priv_t *ext = extplug->pcm->private_data;
 	if (type < 0 || type >= SND_PCM_EXTPLUG_HW_PARAMS) {
-		SNDERR("EXTPLUG: invalid parameter type %d", type);
+		snd_error(PCM, "EXTPLUG: invalid parameter type %d", type);
 		return -EINVAL;
 	}
 	if (is_mask_type(type)) {
-		SNDERR("EXTPLUG: invalid parameter type %d", type);
+		snd_error(PCM, "EXTPLUG: invalid parameter type %d", type);
 		return -EINVAL;
 	}
 	return snd_ext_parm_set_minmax(&ext->params[type], min, max);
@@ -877,7 +878,7 @@ int snd_pcm_extplug_set_param_link(snd_pcm_extplug_t *extplug, int type,
 	extplug_priv_t *ext = extplug->pcm->private_data;
 
 	if (type < 0 || type >= SND_PCM_EXTPLUG_HW_PARAMS) {
-		SNDERR("EXTPLUG: invalid parameter type %d", type);
+		snd_error(PCM, "EXTPLUG: invalid parameter type %d", type);
 		return -EINVAL;
 	}
 	ext->params[type].keep_link = keep_link ? 1 : 0;

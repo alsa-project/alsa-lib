@@ -72,7 +72,7 @@ static int snd_timer_hw_async(snd_timer_t *timer, int sig, pid_t pid)
 	assert(timer);
 	fd = timer->poll_fd;
 	if ((flags = fcntl(fd, F_GETFL)) < 0) {
-		SYSERR("F_GETFL failed");
+		snd_errornum(TIMER, "F_GETFL failed");
 		return -errno;
 	}
 	if (sig >= 0)
@@ -80,19 +80,19 @@ static int snd_timer_hw_async(snd_timer_t *timer, int sig, pid_t pid)
 	else
 		flags &= ~O_ASYNC;
 	if (fcntl(fd, F_SETFL, flags) < 0) {
-		SYSERR("F_SETFL for O_ASYNC failed");
+		snd_errornum(TIMER, "F_SETFL for O_ASYNC failed");
 		return -errno;
 	}
 	if (sig < 0)
 		return 0;
 #ifdef F_SETSIG
 	if (fcntl(fd, F_SETSIG, (long)sig) < 0) {
-		SYSERR("F_SETSIG failed");
+		snd_errornum(TIMER, "F_SETSIG failed");
 		return -errno;
 	}
 #endif
 	if (fcntl(fd, F_SETOWN, (long)pid) < 0) {
-		SYSERR("F_SETOWN failed");
+		snd_errornum(TIMER, "F_SETOWN failed");
 		return -errno;
 	}
 	return 0;
@@ -227,7 +227,7 @@ int snd_timer_hw_open(snd_timer_t **handle, const char *name, int dev_class, int
 
 	tmode = O_RDONLY;
 	if (mode & SND_TIMER_OPEN_NONBLOCK)
-		tmode |= O_NONBLOCK;	
+		tmode |= O_NONBLOCK;
 	fd = snd_open_device(SNDRV_FILE_TIMER, tmode);
 	if (fd < 0)
 		return -errno;
@@ -250,7 +250,7 @@ int snd_timer_hw_open(snd_timer_t **handle, const char *name, int dev_class, int
 			ret = -errno;
 		      __no_tread:
 			close(fd);
-			SNDMSG("extended read is not supported (SNDRV_TIMER_IOCTL_TREAD)");
+			snd_check(TIMER, "extended read is not supported (SNDRV_TIMER_IOCTL_TREAD)");
 			return ret;
 		}
 	}
@@ -327,7 +327,7 @@ int _snd_timer_hw_open(snd_timer_t **timer, char *name,
 				return err;
 			continue;
 		}
-		SNDERR("Unexpected field %s", id);
+		snd_error(TIMER, "Unexpected field %s", id);
 		return -EINVAL;
 	}
 	return snd_timer_hw_open(timer, name, dev_class, dev_sclass, card, device, subdevice, mode);

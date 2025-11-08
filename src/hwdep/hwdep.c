@@ -54,30 +54,30 @@ static int snd_hwdep_open_conf(snd_hwdep_t **hwdep,
 	void *h = NULL;
 	if (snd_config_get_type(hwdep_conf) != SND_CONFIG_TYPE_COMPOUND) {
 		if (name)
-			SNDERR("Invalid type for HWDEP %s definition", name);
+			snd_error(HWDEP, "Invalid type for HWDEP %s definition", name);
 		else
-			SNDERR("Invalid type for HWDEP definition");
+			snd_error(HWDEP, "Invalid type for HWDEP definition");
 		return -EINVAL;
 	}
 	err = snd_config_search(hwdep_conf, "type", &conf);
 	if (err < 0) {
-		SNDERR("type is not defined");
+		snd_error(HWDEP, "type is not defined");
 		return err;
 	}
 	err = snd_config_get_id(conf, &id);
 	if (err < 0) {
-		SNDERR("unable to get id");
+		snd_error(HWDEP, "unable to get id");
 		return err;
 	}
 	err = snd_config_get_string(conf, &str);
 	if (err < 0) {
-		SNDERR("Invalid type for %s", id);
+		snd_error(HWDEP, "Invalid type for %s", id);
 		return err;
 	}
 	err = snd_config_search_definition(hwdep_root, "hwdep_type", str, &type_conf);
 	if (err >= 0) {
 		if (snd_config_get_type(type_conf) != SND_CONFIG_TYPE_COMPOUND) {
-			SNDERR("Invalid type for HWDEP type %s definition", str);
+			snd_error(HWDEP, "Invalid type for HWDEP type %s definition", str);
 			err = -EINVAL;
 			goto _err;
 		}
@@ -91,7 +91,7 @@ static int snd_hwdep_open_conf(snd_hwdep_t **hwdep,
 			if (strcmp(id, "lib") == 0) {
 				err = snd_config_get_string(n, &lib);
 				if (err < 0) {
-					SNDERR("Invalid type for %s", id);
+					snd_error(HWDEP, "Invalid type for %s", id);
 					goto _err;
 				}
 				continue;
@@ -99,12 +99,12 @@ static int snd_hwdep_open_conf(snd_hwdep_t **hwdep,
 			if (strcmp(id, "open") == 0) {
 				err = snd_config_get_string(n, &open_name);
 				if (err < 0) {
-					SNDERR("Invalid type for %s", id);
+					snd_error(HWDEP, "Invalid type for %s", id);
 					goto _err;
 				}
 				continue;
 			}
-			SNDERR("Unknown field %s", id);
+			snd_error(HWDEP, "Unknown field %s", id);
 			err = -EINVAL;
 			goto _err;
 		}
@@ -121,10 +121,10 @@ static int snd_hwdep_open_conf(snd_hwdep_t **hwdep,
 		open_func = snd_dlsym(h, open_name, SND_DLSYM_VERSION(SND_HWDEP_DLSYM_VERSION));
 	err = 0;
 	if (!h) {
-		SNDERR("Cannot open shared library %s (%s)", lib, errbuf);
+		snd_error(HWDEP, "Cannot open shared library %s (%s)", lib, errbuf);
 		err = -ENOENT;
 	} else if (!open_func) {
-		SNDERR("symbol %s is not defined inside %s", open_name, lib);
+		snd_error(HWDEP, "symbol %s is not defined inside %s", open_name, lib);
 		snd_dlclose(h);
 		err = -ENXIO;
 	}
@@ -148,7 +148,7 @@ static int snd_hwdep_open_noupdate(snd_hwdep_t **hwdep, snd_config_t *root, cons
 	snd_config_t *hwdep_conf;
 	err = snd_config_search_definition(root, "hwdep", name, &hwdep_conf);
 	if (err < 0) {
-		SNDERR("Unknown HwDep %s", name);
+		snd_error(HWDEP, "Unknown HwDep %s", name);
 		return err;
 	}
 	err = snd_hwdep_open_conf(hwdep, name, root, hwdep_conf, mode);
@@ -209,7 +209,7 @@ int snd_hwdep_open_lconf(snd_hwdep_t **hwdep, const char *name,
 int snd_hwdep_close(snd_hwdep_t *hwdep)
 {
 	int err;
-  	assert(hwdep);
+	assert(hwdep);
 	err = hwdep->ops->close(hwdep);
 	if (hwdep->dl_handle)
 		snd_dlclose(hwdep->dl_handle);
@@ -296,14 +296,14 @@ int snd_hwdep_poll_descriptors(snd_hwdep_t *hwdep, struct pollfd *pfds, unsigned
  */
 int snd_hwdep_poll_descriptors_revents(snd_hwdep_t *hwdep, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
 {
-        assert(hwdep && pfds && revents);
-        if (nfds == 1) {
-                *revents = pfds->revents;
-                return 0;
-        }
-        return -EINVAL;
-}                                                                       
-                                                                       
+	assert(hwdep && pfds && revents);
+	if (nfds == 1) {
+		*revents = pfds->revents;
+		return 0;
+	}
+	return -EINVAL;
+}
+
 /**
  * \brief set nonblock mode
  * \param hwdep HwDep handle

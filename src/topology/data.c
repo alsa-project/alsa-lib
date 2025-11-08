@@ -13,8 +13,8 @@
   GNU Lesser General Public License for more details.
 
   Authors: Mengdong Lin <mengdong.lin@intel.com>
-           Yao Jin <yao.jin@intel.com>
-           Liam Girdwood <liam.r.girdwood@linux.intel.com>
+	   Yao Jin <yao.jin@intel.com>
+	   Liam Girdwood <liam.r.girdwood@linux.intel.com>
 */
 
 #include "tplg_local.h"
@@ -60,8 +60,9 @@ struct snd_soc_tplg_private *get_priv_data(struct tplg_elem *elem)
 		priv = &elem->pcm->priv;
 		break;
 	default:
-		SNDERR("'%s': no support for private data for type %d",
-			elem->id, elem->type);
+		snd_error(TOPOLOGY, "'%s': no support for private data for type %d",
+				     elem->id, elem->type);
+
 	}
 
 	return priv;
@@ -94,7 +95,7 @@ int tplg_parse_refs(snd_config_t *cfg, struct tplg_elem *elem,
 	}
 
 	if (cfg_type != SND_CONFIG_TYPE_COMPOUND) {
-		SNDERR("compound type expected for %s", elem->id);
+		snd_error(TOPOLOGY, "compound type expected for %s", elem->id);
 		return -EINVAL;
 	}
 
@@ -183,7 +184,7 @@ static int tplg_parse_data_file(snd_config_t *cfg, struct tplg_elem *elem)
 
 	fp = fopen(filename, "r");
 	if (fp == NULL) {
-		SNDERR("invalid data file path '%s'", filename);
+		snd_error(TOPOLOGY, "invalid data file path '%s'", filename);
 		return -errno;
 	}
 
@@ -191,12 +192,12 @@ static int tplg_parse_data_file(snd_config_t *cfg, struct tplg_elem *elem)
 	size = ftell(fp);
 	fseek(fp, 0L, SEEK_SET);
 	if (size <= 0) {
-		SNDERR("invalid data file size %zu", size);
+		snd_error(TOPOLOGY, "invalid data file size %zu", size);
 		ret = -EINVAL;
 		goto err;
 	}
 	if (size > TPLG_MAX_PRIV_SIZE) {
-		SNDERR("data file too big %zu", size);
+		snd_error(TOPOLOGY, "data file too big %zu", size);
 		ret = -EINVAL;
 		goto err;
 	}
@@ -218,7 +219,7 @@ static int tplg_parse_data_file(snd_config_t *cfg, struct tplg_elem *elem)
 	elem->size = sizeof(*priv) + size;
 
 	if (fclose(fp) == EOF) {
-		SNDERR("Cannot close data file.");
+		snd_error(TOPOLOGY, "Cannot close data file.");
 		return -errno;
 	}
 	return 0;
@@ -359,7 +360,7 @@ static int get_uuid(const char *str, unsigned char *uuid_le)
 		if ((errno == ERANGE && val == ULONG_MAX)
 			|| (errno != 0 && val == 0)
 			|| (val > UCHAR_MAX)) {
-			SNDERR("invalid value for uuid");
+			snd_error(TOPOLOGY, "invalid value for uuid");
 			ret = -EINVAL;
 			goto out;
 		}
@@ -383,7 +384,7 @@ data2:
 		if ((errno == ERANGE && val == ULONG_MAX)
 			|| (errno != 0 && val == 0)
 			|| (val > UCHAR_MAX)) {
-			SNDERR("invalid value for uuid");
+			snd_error(TOPOLOGY, "invalid value for uuid");
 			ret = -EINVAL;
 			goto out;
 		}
@@ -398,7 +399,7 @@ data2:
 	}
 
 	if (values < 16) {
-		SNDERR("less than 16 integers for uuid");
+		snd_error(TOPOLOGY, "less than 16 integers for uuid");
 		ret = -EINVAL;
 	}
 
@@ -412,7 +413,7 @@ static int write_hex(char *buf, char *str, int width)
 	long val;
 	void *p = &val;
 
-        errno = 0;
+	errno = 0;
 	if (safe_strtol_base(str, &val, 16) < 0)
 		return -EINVAL;
 
@@ -475,7 +476,7 @@ static int tplg_parse_data_hex(snd_config_t *cfg, struct tplg_elem *elem,
 
 	num = get_hex_num(value);
 	if (num <= 0) {
-		SNDERR("malformed hex variable list %s", value);
+		snd_error(TOPOLOGY, "malformed hex variable list %s", value);
 		return -EINVAL;
 	}
 
@@ -483,7 +484,7 @@ static int tplg_parse_data_hex(snd_config_t *cfg, struct tplg_elem *elem,
 	priv = elem->data;
 
 	if (size > TPLG_MAX_PRIV_SIZE) {
-		SNDERR("data too big %d", size);
+		snd_error(TOPOLOGY, "data too big %d", size);
 		return -EINVAL;
 	}
 
@@ -521,7 +522,7 @@ static int get_token_value(const char *token_id,
 			return tokens->token[i].value;
 	}
 
-	SNDERR("cannot find token id '%s'", token_id);
+	snd_error(TOPOLOGY, "cannot find token id '%s'", token_id);
 	return -1;
 }
 
@@ -609,7 +610,7 @@ static int copy_tuples(struct tplg_elem *elem,
 			* tuple_set->num_tuples;
 		size += set_size;
 		if (size > TPLG_MAX_PRIV_SIZE) {
-			SNDERR("data too big %d", size);
+			snd_error(TOPOLOGY, "data too big %d", size);
 			return -EINVAL;
 		}
 
@@ -693,13 +694,13 @@ static int build_tuples(snd_tplg_t *tplg, struct tplg_elem *elem)
 				ref->id, SND_TPLG_TYPE_TUPLE, elem->index);
 		tuples = ref->elem;
 		if (!tuples) {
-			SNDERR("cannot find tuples %s", ref->id);
+			snd_error(TOPOLOGY, "cannot find tuples %s", ref->id);
 			return -EINVAL;
 		}
 
 		tokens = get_tokens(tplg, tuples);
 		if (!tokens) {
-			SNDERR("cannot find token for %s", ref->id);
+			snd_error(TOPOLOGY, "cannot find token for %s", ref->id);
 			return -EINVAL;
 		}
 
@@ -795,7 +796,7 @@ static int parse_tuple_set(snd_config_t *cfg,
 
 	type = get_tuple_type(id);
 	if (type < 0) {
-		SNDERR("invalid tuple type '%s'", id);
+		snd_error(TOPOLOGY, "invalid tuple type '%s'", id);
 		return type;
 	}
 
@@ -852,7 +853,7 @@ static int parse_tuple_set(snd_config_t *cfg,
 		case SND_SOC_TPLG_TUPLE_TYPE_WORD:
 			ival = tplg_get_unsigned(n, &tuple_val, 0);
 			if (ival < 0) {
-				SNDERR("tuple %s: %s", id, snd_strerror(ival));
+				snd_error(TOPOLOGY, "tuple %s: %s", id, snd_strerror(ival));
 				goto err;
 			}
 
@@ -862,7 +863,7 @@ static int parse_tuple_set(snd_config_t *cfg,
 					&& tuple_val > USHRT_MAX) ||
 				(type == SND_SOC_TPLG_TUPLE_TYPE_BYTE
 					&& tuple_val > UCHAR_MAX)) {
-				SNDERR("tuple %s: invalid value", id);
+				snd_error(TOPOLOGY, "tuple %s: invalid value", id);
 				goto err;
 			}
 
@@ -976,7 +977,7 @@ static int parse_tuple_sets(snd_config_t *cfg,
 
 	if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
 		if (snd_config_get_id(cfg, &id) >= 0)
-			SNDERR("compound type expected for %s", id);
+			snd_error(TOPOLOGY, "compound type expected for %s", id);
 		return -EINVAL;
 	}
 
@@ -994,8 +995,9 @@ static int parse_tuple_sets(snd_config_t *cfg,
 	snd_config_for_each(i, next, cfg) {
 		n = snd_config_iterator_entry(i);
 		if (snd_config_get_type(n) != SND_CONFIG_TYPE_COMPOUND) {
-			SNDERR("compound type expected for %s, is %d",
-			       id, snd_config_get_type(n));
+			snd_error(TOPOLOGY, "compound type expected for %s, is %d",
+					    id, snd_config_get_type(n));
+
 			return -EINVAL;
 		}
 
@@ -1204,7 +1206,7 @@ int tplg_parse_manifest_data(snd_tplg_t *tplg, snd_config_t *cfg,
 	int err;
 
 	if (!list_empty(&tplg->manifest_list)) {
-		SNDERR("already has manifest data");
+		snd_error(TOPOLOGY, "already has manifest data");
 		return -EINVAL;
 	}
 
@@ -1364,7 +1366,7 @@ int tplg_parse_data(snd_tplg_t *tplg, snd_config_t *cfg,
 		if (strcmp(id, "file") == 0) {
 			err = tplg_parse_data_file(n, elem);
 			if (err < 0) {
-				SNDERR("failed to parse data file");
+				snd_error(TOPOLOGY, "failed to parse data file");
 				return err;
 			}
 			continue;
@@ -1373,7 +1375,7 @@ int tplg_parse_data(snd_tplg_t *tplg, snd_config_t *cfg,
 		if (strcmp(id, "bytes") == 0) {
 			err = tplg_parse_data_hex(n, elem, 1);
 			if (err < 0) {
-				SNDERR("failed to parse data bytes");
+				snd_error(TOPOLOGY, "failed to parse data bytes");
 				return err;
 			}
 			continue;
@@ -1382,7 +1384,7 @@ int tplg_parse_data(snd_tplg_t *tplg, snd_config_t *cfg,
 		if (strcmp(id, "shorts") == 0) {
 			err = tplg_parse_data_hex(n, elem, 2);
 			if (err < 0) {
-				SNDERR("failed to parse data shorts");
+				snd_error(TOPOLOGY, "failed to parse data shorts");
 				return err;
 			}
 			continue;
@@ -1391,7 +1393,7 @@ int tplg_parse_data(snd_tplg_t *tplg, snd_config_t *cfg,
 		if (strcmp(id, "words") == 0) {
 			err = tplg_parse_data_hex(n, elem, 4);
 			if (err < 0) {
-				SNDERR("failed to parse data words");
+				snd_error(TOPOLOGY, "failed to parse data words");
 				return err;
 			}
 			continue;
@@ -1508,8 +1510,9 @@ int tplg_copy_data(snd_tplg_t *tplg, struct tplg_elem *elem,
 	ref_elem = tplg_elem_lookup(&tplg->pdata_list,
 				     ref->id, SND_TPLG_TYPE_DATA, elem->index);
 	if (!ref_elem) {
-		SNDERR("cannot find data '%s' referenced by"
-		       " element '%s'", ref->id, elem->id);
+		snd_error(TOPOLOGY, "cannot find data '%s' referenced by"
+				    " element '%s'", ref->id, elem->id);
+
 		return -EINVAL;
 	}
 
@@ -1579,24 +1582,25 @@ int tplg_decode_manifest_data(snd_tplg_t *tplg,
 	size_t off;
 
 	if (hdr->index != 0) {
-		SNDERR("manifest - wrong index %d", hdr->index);
+		snd_error(TOPOLOGY, "manifest - wrong index %d", hdr->index);
 		return -EINVAL;
 	}
 
 	if (sizeof(*m) > size) {
-		SNDERR("manifest - wrong size %zd (minimal %zd)",
-		       size, sizeof(*m));
+		snd_error(TOPOLOGY, "manifest - wrong size %zd (minimal %zd)",
+				    size, sizeof(*m));
+
 		return -EINVAL;
 	}
 
 	if (m->size != sizeof(*m)) {
-		SNDERR("manifest - wrong sructure size %d", m->size);
+		snd_error(TOPOLOGY, "manifest - wrong sructure size %d", m->size);
 		return -EINVAL;
 	}
 
 	off = offsetof(struct snd_soc_tplg_manifest, priv);
 	if (off + m->priv.size > size) {
-		SNDERR("manifest - wrong private size %d", m->priv.size);
+		snd_error(TOPOLOGY, "manifest - wrong private size %d", m->priv.size);
 		return -EINVAL;
 	}
 
@@ -1718,7 +1722,7 @@ static int tplg_decode_tuple_set(snd_tplg_t *tplg,
 
 	va = bin;
 	if (size < sizeof(*va) || size < va->size) {
-		SNDERR("tuples: wrong size %zd", size);
+		snd_error(TOPOLOGY, "tuples: wrong size %zd", size);
 		return -EINVAL;
 	}
 
@@ -1731,20 +1735,21 @@ static int tplg_decode_tuple_set(snd_tplg_t *tplg,
 	case SND_SOC_TPLG_TUPLE_TYPE_SHORT:
 		break;
 	default:
-		SNDERR("tuples: unknown array type %d", va->type);
+		snd_error(TOPOLOGY, "tuples: unknown array type %d", va->type);
 		return -EINVAL;
 	}
 
 	j = tplg_get_tuple_size(va->type) * va->num_elems;
 	if (j + sizeof(*va) != va->size) {
-		SNDERR("tuples: wrong vendor array size %d "
-		       "(expected %d for %d count %d)",
+		snd_error(TOPOLOGY, "tuples: wrong vendor array size %d "
+				    "(expected %d for %d count %d)",
+
 		       va->size, j + sizeof(*va), va->type, va->num_elems);
 		return -EINVAL;
 	}
 
 	if (va->num_elems > 4096) {
-		SNDERR("tuples: tuples overflow %d", va->num_elems);
+		snd_error(TOPOLOGY, "tuples: tuples overflow %d", va->num_elems);
 		return -EINVAL;
 	}
 
@@ -1841,19 +1846,19 @@ static int tplg_decode_tuples(snd_tplg_t *tplg,
 	int err;
 
 	if (size < sizeof(*va)) {
-		SNDERR("tuples: small size %zd", size);
+		snd_error(TOPOLOGY, "tuples: small size %zd", size);
 		return -EINVAL;
 	}
 
 next:
 	va = bin;
 	if (size < sizeof(*va)) {
-		SNDERR("tuples: unexpected vendor arry size %zd", size);
+		snd_error(TOPOLOGY, "tuples: unexpected vendor arry size %zd", size);
 		return -EINVAL;
 	}
 
 	if (tuples->num_sets >= tuples->alloc_sets) {
-		SNDERR("tuples: index overflow (%d)", tuples->num_sets);
+		snd_error(TOPOLOGY, "tuples: index overflow (%d)", tuples->num_sets);
 		return -EINVAL;
 	}
 
@@ -1893,7 +1898,7 @@ int tplg_add_data(snd_tplg_t *tplg,
 next:
 	tp = bin;
 	if (off + size < tp->size) {
-		SNDERR("data: unexpected element size %zd", size);
+		snd_error(TOPOLOGY, "data: unexpected element size %zd", size);
 		return -EINVAL;
 	}
 
@@ -1997,6 +2002,6 @@ int tplg_decode_data(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 		     void *bin ATTRIBUTE_UNUSED,
 		     size_t size ATTRIBUTE_UNUSED)
 {
-	SNDERR("data type not expected");
+	snd_error(TOPOLOGY, "data type not expected");
 	return -EINVAL;
 }

@@ -52,7 +52,7 @@ file. The format is:
 
 \verbatim
 index [ID     ] Driver - name
-                longname
+		longname
 \endverbatim
 
 Note that the mixername and components are not listed.
@@ -279,7 +279,7 @@ int snd_ctl_new(snd_ctl_t **ctlp, snd_ctl_type_t type, const char *name, int mod
 	*ctlp = ctl;
 	return 0;
 }
-	
+
 
 /**
  * \brief set async mode
@@ -353,7 +353,7 @@ int snd_ctl_poll_descriptors_revents(snd_ctl_t *ctl, struct pollfd *pfds, unsign
 		return ctl->ops->poll_revents(ctl, pfds, nfds, revents);
 	if (nfds == 1) {
 		*revents = pfds->revents;
-                return 0;
+		return 0;
 	}
 	return -EINVAL;
 }
@@ -1039,7 +1039,7 @@ int snd_ctl_elem_write(snd_ctl_t *ctl, snd_ctl_elem_value_t *data)
 
 static int snd_ctl_tlv_do(snd_ctl_t *ctl, int op_flag,
 			  const snd_ctl_elem_id_t *id,
-		          unsigned int *tlv, unsigned int tlv_size)
+			  unsigned int *tlv, unsigned int tlv_size)
 {
 	snd_ctl_elem_info_t *info = NULL;
 	int err;
@@ -1060,8 +1060,8 @@ static int snd_ctl_tlv_do(snd_ctl_t *ctl, int op_flag,
 	}
 	err = ctl->ops->element_tlv(ctl, op_flag, id->numid, tlv, tlv_size);
       __err:
-      	if (info)
-      		free(info);
+	if (info)
+		free(info);
 	return err;
 }
 
@@ -1367,7 +1367,7 @@ int snd_ctl_wait(snd_ctl_t *ctl, int timeout)
 
 	npfds = snd_ctl_poll_descriptors_count(ctl);
 	if (npfds <= 0 || npfds >= 16) {
-		SNDERR("Invalid poll_fds %d", npfds);
+		snd_error(CONTROL, "Invalid poll_fds %d", npfds);
 		return -EIO;
 	}
 	pfd = alloca(sizeof(*pfd) * npfds);
@@ -1375,7 +1375,7 @@ int snd_ctl_wait(snd_ctl_t *ctl, int timeout)
 	if (err < 0)
 		return err;
 	if (err != npfds) {
-		SNDMSG("invalid poll descriptors %d", err);
+		snd_check(CONTROL, "invalid poll descriptors %d", err);
 		return -EIO;
 	}
 	for (;;) {
@@ -1402,7 +1402,7 @@ int snd_ctl_wait(snd_ctl_t *ctl, int timeout)
  * \param private_data Callback private data
  * \return 0 otherwise a negative error code on failure
  */
-int snd_async_add_ctl_handler(snd_async_handler_t **handler, snd_ctl_t *ctl, 
+int snd_async_add_ctl_handler(snd_async_handler_t **handler, snd_ctl_t *ctl,
 			      snd_async_callback_t callback, void *private_data)
 {
 	int err;
@@ -1458,30 +1458,30 @@ static int snd_ctl_open_conf(snd_ctl_t **ctlp, const char *name,
 #endif
 	if (snd_config_get_type(ctl_conf) != SND_CONFIG_TYPE_COMPOUND) {
 		if (name)
-			SNDERR("Invalid type for CTL %s definition", name);
+			snd_error(CONTROL, "Invalid type for CTL %s definition", name);
 		else
-			SNDERR("Invalid type for CTL definition");
+			snd_error(CONTROL, "Invalid type for CTL definition");
 		return -EINVAL;
 	}
 	err = snd_config_search(ctl_conf, "type", &conf);
 	if (err < 0) {
-		SNDERR("type is not defined");
+		snd_error(CONTROL, "type is not defined");
 		return err;
 	}
 	err = snd_config_get_id(conf, &id);
 	if (err < 0) {
-		SNDERR("unable to get id");
+		snd_error(CONTROL, "unable to get id");
 		return err;
 	}
 	err = snd_config_get_string(conf, &str);
 	if (err < 0) {
-		SNDERR("Invalid type for %s", id);
+		snd_error(CONTROL, "Invalid type for %s", id);
 		return err;
 	}
 	err = snd_config_search_definition(ctl_root, "ctl_type", str, &type_conf);
 	if (err >= 0) {
 		if (snd_config_get_type(type_conf) != SND_CONFIG_TYPE_COMPOUND) {
-			SNDERR("Invalid type for CTL type %s definition", str);
+			snd_error(CONTROL, "Invalid type for CTL type %s definition", str);
 			err = -EINVAL;
 			goto _err;
 		}
@@ -1495,7 +1495,7 @@ static int snd_ctl_open_conf(snd_ctl_t **ctlp, const char *name,
 			if (strcmp(id, "lib") == 0) {
 				err = snd_config_get_string(n, &lib);
 				if (err < 0) {
-					SNDERR("Invalid type for %s", id);
+					snd_error(CONTROL, "Invalid type for %s", id);
 					goto _err;
 				}
 				continue;
@@ -1503,12 +1503,12 @@ static int snd_ctl_open_conf(snd_ctl_t **ctlp, const char *name,
 			if (strcmp(id, "open") == 0) {
 				err = snd_config_get_string(n, &open_name);
 				if (err < 0) {
-					SNDERR("Invalid type for %s", id);
+					snd_error(CONTROL, "Invalid type for %s", id);
 					goto _err;
 				}
 				continue;
 			}
-			SNDERR("Unknown field %s", id);
+			snd_error(CONTROL, "Unknown field %s", id);
 			err = -EINVAL;
 			goto _err;
 		}
@@ -1572,7 +1572,7 @@ static int snd_ctl_open_noupdate(snd_ctl_t **ctlp, snd_config_t *root,
 
 	err = snd_config_search_definition(root, "ctl", name, &ctl_conf);
 	if (err < 0) {
-		SNDERR("Invalid CTL %s", name);
+		snd_error(CONTROL, "Invalid CTL %s", name);
 		return err;
 	}
 	if (snd_config_get_string(ctl_conf, &str) >= 0)
@@ -1752,7 +1752,7 @@ int snd_ctl_elem_list_alloc_space(snd_ctl_elem_list_t *obj, unsigned int entries
 	}
 	obj->space = entries;
 	return 0;
-}  
+}
 
 /**
  * \brief free previously allocated space for CTL element identifiers list

@@ -9,7 +9,7 @@ void show_status(void *handle)
 {
 	int err;
 	snd_timer_status_t *status;
-	
+
 	snd_timer_status_alloca(&status);
 	if ((err = snd_timer_status(handle, status)) < 0) {
 		fprintf(stderr, "timer status %i (%s)\n", err, snd_strerror(err));
@@ -27,7 +27,7 @@ void read_loop(void *handle, int master_ticks, int timeout)
 	int count, err;
 	struct pollfd *fds;
 	snd_timer_read_t tr;
-	
+
 	count = snd_timer_poll_descriptors_count(handle);
 	fds = calloc(count, sizeof(struct pollfd));
 	if (fds == NULL) {
@@ -60,7 +60,7 @@ static void async_callback(snd_async_handler_t *ahandler)
 	snd_timer_t *handle = snd_async_handler_get_timer(ahandler);
 	int *acount = snd_async_handler_get_callback_private(ahandler);
 	snd_timer_read_t tr;
-	
+
 	while (snd_timer_read(handle, &tr, sizeof(tr)) == sizeof(tr)) {
 		printf("TIMER: resolution = %uns, ticks = %u\n",
 			tr.resolution, tr.ticks);

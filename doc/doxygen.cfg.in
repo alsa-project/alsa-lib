@@ -16,6 +16,7 @@ INPUT            = @top_srcdir@/doc/index.doxygen \
 		   @top_srcdir@/include/conf.h \
 		   @top_srcdir@/include/control.h \
 		   @top_srcdir@/include/pcm.h \
+		   @top_srcdir@/include/pcm_plugin.h \
 		   @top_srcdir@/include/rawmidi.h \
 		   @top_srcdir@/include/ump.h \
 		   @top_srcdir@/include/ump_msg.h \
@@ -127,7 +128,7 @@ INHERIT_DOCS	 = YES
 ENABLED_SECTIONS = ""
 MACRO_EXPANSION  = YES
 EXPAND_ONLY_PREDEF = YES
-PREDEFINED	 = DOXYGEN PIC "DOC_HIDDEN" \
+PREDEFINED	 = DOXYGEN PIC "DOC_HIDDEN" "ALSA_LIBRARY_BUILD" \
 		   "ATTRIBUTE_UNUSED=" \
 		   ALSA_PCM_NEW_HW_PARAMS_API \
 		   _POSIX_C_SOURCE \
@@ -140,5 +141,3 @@ TYPEDEF_HIDES_STRUCT = YES	# needed in doxygen >= 1.5.4
 
 #INPUT_FILTER	 = inputfilter
 #FILTER_SOURCE_FILES = YES
-
-HTML_TIMESTAMP = NO

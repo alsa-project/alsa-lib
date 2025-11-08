@@ -13,8 +13,8 @@
   GNU Lesser General Public License for more details.
 
   Authors: Mengdong Lin <mengdong.lin@intel.com>
-           Yao Jin <yao.jin@intel.com>
-           Liam Girdwood <liam.r.girdwood@linux.intel.com>
+	   Yao Jin <yao.jin@intel.com>
+	   Liam Girdwood <liam.r.girdwood@linux.intel.com>
 
 */
 
@@ -79,7 +79,7 @@ int tplg_parse_text(snd_tplg_t *tplg, snd_config_t *cfg,
 		if (strcmp(id, "values") == 0) {
 			err = parse_text_values(n, elem);
 			if (err < 0) {
-				SNDERR("error: failed to parse text values");
+				snd_error(TOPOLOGY, "error: failed to parse text values");
 				return err;
 			}
 			continue;

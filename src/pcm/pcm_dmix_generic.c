@@ -289,12 +289,12 @@ static void generic_mix_areas_16_swap(unsigned int size,
 }
 
 static void generic_remix_areas_16_swap(unsigned int size,
-				        volatile signed short *dst,
-				        signed short *src,
-				        volatile signed int *sum,
-				        size_t dst_step,
-				        size_t src_step,
-				        size_t sum_step)
+					volatile signed short *dst,
+					signed short *src,
+					volatile signed int *sum,
+					size_t dst_step,
+					size_t src_step,
+					size_t sum_step)
 {
 	register signed int sample;
 
@@ -354,12 +354,12 @@ static void generic_mix_areas_32_swap(unsigned int size,
 }
 
 static void generic_remix_areas_32_swap(unsigned int size,
-				        volatile signed int *dst,
-				        signed int *src,
-				        volatile signed int *sum,
-				        size_t dst_step,
-				        size_t src_step,
-				        size_t sum_step)
+					volatile signed int *dst,
+					signed int *src,
+					volatile signed int *sum,
+					size_t dst_step,
+					size_t src_step,
+					size_t sum_step)
 {
 	register signed int sample;
 

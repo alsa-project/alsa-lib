@@ -10,7 +10,7 @@
  *  Lesser General Public License for more details.
  *
  *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software  
+ *  License along with this library; if not, write to the Free Software
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  *  Support for the verb/device/modifier core logic and API,
@@ -30,14 +30,9 @@
  *               Jaroslav Kysela <perex@perex.cz>
  */
 
-
-
-#if 0
-#define UC_MGR_DEBUG
-#endif
-
 #include "local.h"
 #include <pthread.h>
+#include <stdbool.h>
 #include "use-case.h"
 
 #define SYNTAX_VERSION_MAX	8
@@ -62,9 +57,9 @@
 #define SEQUENCE_ELEMENT_TYPE_DEV_DISABLE_ALL	15
 
 struct ucm_value {
-        struct list_head list;
-        char *name;
-        char *data;
+	struct list_head list;
+	char *name;
+	char *data;
 };
 
 /* sequence of a component device */
@@ -285,14 +280,6 @@ struct snd_use_case_mgr {
 	char *cdev;
 };
 
-#define uc_error SNDERR
-
-#ifdef UC_MGR_DEBUG
-#define uc_dbg SNDERR
-#else
-#define uc_dbg(fmt, arg...) do { } while (0)
-#endif
-
 void uc_mgr_error(const char *fmt, ...);
 void uc_mgr_stdout(const char *fmt, ...);
 
@@ -321,6 +308,11 @@ static inline int uc_mgr_has_local_config(snd_use_case_mgr_t *uc_mgr)
 			 snd_config_iterator_end(uc_mgr->local_config);
 }
 
+static inline const char *uc_mgr_enable_str(bool enable)
+{
+	return enable ? "enable" : "disable";
+}
+
 int uc_mgr_card_open(snd_use_case_mgr_t *uc_mgr);
 void uc_mgr_card_close(snd_use_case_mgr_t *uc_mgr);
 
@@ -336,6 +328,8 @@ struct ctl_list *uc_mgr_get_ctl_by_name(snd_use_case_mgr_t *uc_mgr,
 snd_ctl_t *uc_mgr_get_ctl(snd_use_case_mgr_t *uc_mgr);
 void uc_mgr_free_ctl_list(snd_use_case_mgr_t *uc_mgr);
 
+void uc_mgr_free_value(struct list_head *base);
+
 int uc_mgr_add_value(struct list_head *base, const char *key, char *val);
 
 const char *uc_mgr_get_variable(snd_use_case_mgr_t *uc_mgr,
@@ -346,6 +340,8 @@ int uc_mgr_set_variable(snd_use_case_mgr_t *uc_mgr,
 			const char *val);
 
 int uc_mgr_delete_variable(snd_use_case_mgr_t *uc_mgr, const char *name);
+
+int uc_mgr_duplicate_variables(struct list_head *dst, struct list_head *src);
 
 int uc_mgr_get_substituted_value(snd_use_case_mgr_t *uc_mgr,
 				 char **_rvalue,

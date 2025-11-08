@@ -89,30 +89,30 @@ static int snd_timer_open_conf(snd_timer_t **timer,
 	void *h = NULL;
 	if (snd_config_get_type(timer_conf) != SND_CONFIG_TYPE_COMPOUND) {
 		if (name)
-			SNDERR("Invalid type for TIMER %s definition", name);
+			snd_error(TIMER, "Invalid type for TIMER %s definition", name);
 		else
-			SNDERR("Invalid type for TIMER definition");
+			snd_error(TIMER, "Invalid type for TIMER definition");
 		return -EINVAL;
 	}
 	err = snd_config_search(timer_conf, "type", &conf);
 	if (err < 0) {
-		SNDERR("type is not defined");
+		snd_error(TIMER, "type is not defined");
 		return err;
 	}
 	err = snd_config_get_id(conf, &id);
 	if (err < 0) {
-		SNDERR("unable to get id");
+		snd_error(TIMER, "unable to get id");
 		return err;
 	}
 	err = snd_config_get_string(conf, &str);
 	if (err < 0) {
-		SNDERR("Invalid type for %s", id);
+		snd_error(TIMER, "Invalid type for %s", id);
 		return err;
 	}
 	err = snd_config_search_definition(timer_root, "timer_type", str, &type_conf);
 	if (err >= 0) {
 		if (snd_config_get_type(type_conf) != SND_CONFIG_TYPE_COMPOUND) {
-			SNDERR("Invalid type for TIMER type %s definition", str);
+			snd_error(TIMER, "Invalid type for TIMER type %s definition", str);
 			goto _err;
 		}
 		snd_config_for_each(i, next, type_conf) {
@@ -125,7 +125,7 @@ static int snd_timer_open_conf(snd_timer_t **timer,
 			if (strcmp(id, "lib") == 0) {
 				err = snd_config_get_string(n, &lib);
 				if (err < 0) {
-					SNDERR("Invalid type for %s", id);
+					snd_error(TIMER, "Invalid type for %s", id);
 					goto _err;
 				}
 				continue;
@@ -133,12 +133,12 @@ static int snd_timer_open_conf(snd_timer_t **timer,
 			if (strcmp(id, "open") == 0) {
 				err = snd_config_get_string(n, &open_name);
 				if (err < 0) {
-					SNDERR("Invalid type for %s", id);
+					snd_error(TIMER, "Invalid type for %s", id);
 					goto _err;
 				}
 				continue;
 			}
-			SNDERR("Unknown field %s", id);
+			snd_error(TIMER, "Unknown field %s", id);
 			err = -EINVAL;
 			goto _err;
 		}
@@ -155,10 +155,10 @@ static int snd_timer_open_conf(snd_timer_t **timer,
 		open_func = snd_dlsym(h, open_name, SND_DLSYM_VERSION(SND_TIMER_DLSYM_VERSION));
 	err = 0;
 	if (!h) {
-		SNDERR("Cannot open shared library %s (%s)", lib, errbuf);
+		snd_error(TIMER, "Cannot open shared library %s (%s)", lib, errbuf);
 		err = -ENOENT;
 	} else if (!open_func) {
-		SNDERR("symbol %s is not defined inside %s", open_name, lib);
+		snd_error(TIMER, "symbol %s is not defined inside %s", open_name, lib);
 		snd_dlclose(h);
 		err = -ENXIO;
 	}
@@ -181,7 +181,7 @@ static int snd_timer_open_noupdate(snd_timer_t **timer, snd_config_t *root, cons
 	snd_config_t *timer_conf;
 	err = snd_config_search_definition(root, "timer", name, &timer_conf);
 	if (err < 0) {
-		SNDERR("Unknown timer %s", name);
+		snd_error(TIMER, "Unknown timer %s", name);
 		return err;
 	}
 	err = snd_timer_open_conf(timer, name, root, timer_conf, mode);
@@ -248,7 +248,7 @@ int snd_timer_open_lconf(snd_timer_t **timer, const char *name,
 int snd_timer_close(snd_timer_t *timer)
 {
 	int err;
-  	assert(timer);
+	assert(timer);
 	while (!list_empty(&timer->async_handlers)) {
 		snd_async_handler_t *h = list_entry(timer->async_handlers.next, snd_async_handler_t, hlist);
 		snd_async_del_handler(h);
@@ -331,11 +331,11 @@ int snd_async_add_timer_handler(snd_async_handler_t **handler, snd_timer_t *time
 snd_timer_t *snd_async_handler_get_timer(snd_async_handler_t *handler)
 {
 	if (handler->type != SND_ASYNC_HANDLER_TIMER) {
-		SNDMSG("invalid handler type %d", handler->type);
+		snd_check(TIMER, "invalid handler type %d", handler->type);
 		return NULL;
 	}
 	return handler->u.timer;
-}                                                            
+}
 
 /**
  * \brief get count of poll descriptors for timer handle
@@ -388,12 +388,12 @@ int snd_timer_poll_descriptors(snd_timer_t *timer, struct pollfd *pfds, unsigned
  */
 int snd_timer_poll_descriptors_revents(snd_timer_t *timer, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
 {
-        assert(timer && pfds && revents);
-        if (nfds == 1) {
-                *revents = pfds->revents;
-                return 0;
-        }
-        return -EINVAL;
+	assert(timer && pfds && revents);
+	if (nfds == 1) {
+		*revents = pfds->revents;
+		return 0;
+	}
+	return -EINVAL;
 }
 
 /**
@@ -428,8 +428,8 @@ int snd_timer_nonblock(snd_timer_t *timer, int nonblock)
 int snd_timer_async(snd_timer_t *timer, int sig, pid_t pid)
 {
 	assert(timer);
-        if (sig == 0)
-                sig = SIGIO;
+	if (sig == 0)
+		sig = SIGIO;
 	if (pid == 0)
 		pid = getpid();
 	return timer->ops->async(timer, sig, pid);

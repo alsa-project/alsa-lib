@@ -25,7 +25,7 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-  
+
 #include "pcm_local.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -106,7 +106,7 @@ static void snd_pcm_dsnoop_sync_area(snd_pcm_t *pcm, snd_pcm_uframes_t slave_hw_
 	snd_pcm_uframes_t hw_ptr = dsnoop->hw_ptr;
 	snd_pcm_uframes_t transfer;
 	const snd_pcm_channel_area_t *src_areas, *dst_areas;
-	
+
 	/* add sample areas here */
 	dst_areas = snd_pcm_mmap_areas(pcm);
 	src_areas = snd_pcm_mmap_areas(dsnoop->spcm);
@@ -119,7 +119,7 @@ static void snd_pcm_dsnoop_sync_area(snd_pcm_t *pcm, snd_pcm_uframes_t slave_hw_
 		size -= transfer;
 		snoop_areas(dsnoop, src_areas, dst_areas, slave_hw_ptr, hw_ptr, transfer);
 		slave_hw_ptr += transfer;
-	 	slave_hw_ptr %= dsnoop->slave_buffer_size;
+		slave_hw_ptr %= dsnoop->slave_buffer_size;
 		hw_ptr += transfer;
 		hw_ptr %= pcm->buffer_size;
 	}
@@ -206,7 +206,7 @@ static int snd_pcm_dsnoop_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
 	snd_pcm_direct_t *dsnoop = pcm->private_data;
 	int err;
-	
+
 	switch(dsnoop->state) {
 	case SNDRV_PCM_STATE_DRAINING:
 	case SNDRV_PCM_STATE_RUNNING:
@@ -373,10 +373,10 @@ static int snd_pcm_dsnoop_close(snd_pcm_t *pcm)
 		snd_timer_close(dsnoop->timer);
 	snd_pcm_direct_semaphore_down(dsnoop, DIRECT_IPC_SEM_CLIENT);
 	snd_pcm_close(dsnoop->spcm);
- 	if (dsnoop->server)
- 		snd_pcm_direct_server_discard(dsnoop);
- 	if (dsnoop->client)
- 		snd_pcm_direct_client_discard(dsnoop);
+	if (dsnoop->server)
+		snd_pcm_direct_server_discard(dsnoop);
+	if (dsnoop->client)
+		snd_pcm_direct_client_discard(dsnoop);
 	if (snd_pcm_direct_shm_discard(dsnoop)) {
 		if (snd_pcm_direct_semaphore_discard(dsnoop))
 			snd_pcm_direct_semaphore_final(dsnoop, DIRECT_IPC_SEM_CLIENT);
@@ -414,7 +414,7 @@ static snd_pcm_sframes_t snd_pcm_dsnoop_avail_update(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dsnoop = pcm->private_data;
 	int err;
-	
+
 	if (dsnoop->state == SND_PCM_STATE_RUNNING) {
 		err = snd_pcm_dsnoop_sync_ptr(pcm);
 		if (err < 0)
@@ -433,7 +433,7 @@ static int snd_pcm_dsnoop_htimestamp(snd_pcm_t *pcm,
 	snd_pcm_direct_t *dsnoop = pcm->private_data;
 	snd_pcm_uframes_t avail1;
 	int ok = 0;
-	
+
 	while (1) {
 		if (dsnoop->state == SND_PCM_STATE_RUNNING ||
 		    dsnoop->state == SND_PCM_STATE_DRAINING)
@@ -538,7 +538,7 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 	assert(pcmp);
 
 	if (stream != SND_PCM_STREAM_CAPTURE) {
-		SNDERR("The dsnoop plugin supports only capture stream");
+		snd_error(PCM, "The dsnoop plugin supports only capture stream");
 		return -EINVAL;
 	}
 
@@ -564,27 +564,27 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 		ret = snd_pcm_open_slave(&spcm, root, sconf, stream,
 					 mode | SND_PCM_NONBLOCK, NULL);
 		if (ret < 0) {
-			SNDERR("unable to open slave");
+			snd_error(PCM, "unable to open slave");
 			goto _err;
 		}
-	
+
 		if (snd_pcm_type(spcm) != SND_PCM_TYPE_HW) {
-			SNDERR("dsnoop plugin can be only connected to hw plugin");
+			snd_error(PCM, "dsnoop plugin can be only connected to hw plugin");
 			goto _err;
 		}
-		
+
 		ret = snd_pcm_direct_initialize_slave(dsnoop, spcm, params);
 		if (ret < 0) {
-			SNDERR("unable to initialize slave");
+			snd_error(PCM, "unable to initialize slave");
 			goto _err;
 		}
 
 		dsnoop->spcm = spcm;
-		
+
 		if (dsnoop->shmptr->use_server) {
 			ret = snd_pcm_direct_server_create(dsnoop);
 			if (ret < 0) {
-				SNDERR("unable to create server");
+				snd_error(PCM, "unable to create server");
 				goto _err;
 			}
 		}
@@ -596,10 +596,10 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 			snd_pcm_direct_semaphore_up(dsnoop, DIRECT_IPC_SEM_CLIENT);
 			ret = snd_pcm_direct_client_connect(dsnoop);
 			if (ret < 0) {
-				SNDERR("unable to connect client");
+				snd_error(PCM, "unable to connect client");
 				goto _err_nosem;
 			}
-			
+
 			snd_pcm_direct_semaphore_down(dsnoop, DIRECT_IPC_SEM_CLIENT);
 
 			ret = snd_pcm_direct_open_secondary_client(&spcm, dsnoop, "dsnoop_client");
@@ -619,18 +619,18 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 					first_instance = 1;
 					goto retry;
 				}
-				SNDERR("unable to open slave");
+				snd_error(PCM, "unable to open slave");
 				goto _err;
 			}
 			if (snd_pcm_type(spcm) != SND_PCM_TYPE_HW) {
-				SNDERR("dsnoop plugin can be only connected to hw plugin");
+				snd_error(PCM, "dsnoop plugin can be only connected to hw plugin");
 				ret = -EINVAL;
 				goto _err;
 			}
-		
+
 			ret = snd_pcm_direct_initialize_secondary_slave(dsnoop, spcm, params);
 			if (ret < 0) {
-				SNDERR("unable to initialize slave");
+				snd_error(PCM, "unable to initialize slave");
 				goto _err;
 			}
 		}
@@ -640,7 +640,7 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 
 	ret = snd_pcm_direct_initialize_poll_fd(dsnoop);
 	if (ret < 0) {
-		SNDERR("unable to initialize poll_fd");
+		snd_error(PCM, "unable to initialize poll_fd");
 		goto _err;
 	}
 
@@ -650,17 +650,17 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 	pcm->mmap_rw = 1;
 	snd_pcm_set_hw_ptr(pcm, &dsnoop->hw_ptr, -1, 0);
 	snd_pcm_set_appl_ptr(pcm, &dsnoop->appl_ptr, -1, 0);
-	
+
 	if (dsnoop->channels == UINT_MAX)
 		dsnoop->channels = dsnoop->shmptr->s.channels;
-	
+
 	snd_pcm_direct_semaphore_up(dsnoop, DIRECT_IPC_SEM_CLIENT);
 
 	*pcmp = pcm;
 	return 0;
-	
+
  _err:
- 	if (dsnoop->timer)
+	if (dsnoop->timer)
 		snd_timer_close(dsnoop->timer);
 	if (dsnoop->server)
 		snd_pcm_direct_server_discard(dsnoop);
@@ -804,7 +804,7 @@ int _snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 	if (err < 0)
 		return err;
 
-	/* set a reasonable default */  
+	/* set a reasonable default */
 	if (psize == -1 && params.period_time == -1)
 		params.period_time = 125000;    /* 0.125 seconds */
 

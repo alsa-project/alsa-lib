@@ -86,7 +86,7 @@ is passed to \link ::snd_rawmidi_open() \endlink or \link ::snd_rawmidi_open_lco
 It contains two parts: device name and arguments. Devices and arguments are described
 in configuration files. The usual place for default definitions is at /usr/share/alsa/alsa.conf.
 
-\subsection rawmidi_dev_names_default 
+\subsection rawmidi_dev_names_default
 
 The default device is equal to hw device. The defaults are used:
 
@@ -143,7 +143,7 @@ This example shows open and read/write rawmidi operations.
  * \anchor example_test_rawmidi
  * Shows open and read/write rawmidi operations.
  */
- 
+
 #include "rawmidi_local.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -188,30 +188,30 @@ static int snd_rawmidi_open_conf(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp
 #endif
 	if (snd_config_get_type(rawmidi_conf) != SND_CONFIG_TYPE_COMPOUND) {
 		if (name)
-			SNDERR("Invalid type for RAWMIDI %s definition", name);
+			snd_error(RAWMIDI, "Invalid type for RAWMIDI %s definition", name);
 		else
-			SNDERR("Invalid type for RAWMIDI definition");
+			snd_error(RAWMIDI, "Invalid type for RAWMIDI definition");
 		return -EINVAL;
 	}
 	err = snd_config_search(rawmidi_conf, "type", &conf);
 	if (err < 0) {
-		SNDERR("type is not defined");
+		snd_error(RAWMIDI, "type is not defined");
 		return err;
 	}
 	err = snd_config_get_id(conf, &id);
 	if (err < 0) {
-		SNDERR("unable to get id");
+		snd_error(RAWMIDI, "unable to get id");
 		return err;
 	}
 	err = snd_config_get_string(conf, &str);
 	if (err < 0) {
-		SNDERR("Invalid type for %s", id);
+		snd_error(RAWMIDI, "Invalid type for %s", id);
 		return err;
 	}
 	err = snd_config_search_definition(rawmidi_root, "rawmidi_type", str, &type_conf);
 	if (err >= 0) {
 		if (snd_config_get_type(type_conf) != SND_CONFIG_TYPE_COMPOUND) {
-			SNDERR("Invalid type for RAWMIDI type %s definition", str);
+			snd_error(RAWMIDI, "Invalid type for RAWMIDI type %s definition", str);
 			err = -EINVAL;
 			goto _err;
 		}
@@ -225,7 +225,7 @@ static int snd_rawmidi_open_conf(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp
 			if (strcmp(id, "lib") == 0) {
 				err = snd_config_get_string(n, &lib);
 				if (err < 0) {
-					SNDERR("Invalid type for %s", id);
+					snd_error(RAWMIDI, "Invalid type for %s", id);
 					goto _err;
 				}
 				continue;
@@ -233,12 +233,12 @@ static int snd_rawmidi_open_conf(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp
 			if (strcmp(id, "open") == 0) {
 				err = snd_config_get_string(n, &open_name);
 				if (err < 0) {
-					SNDERR("Invalid type for %s", id);
+					snd_error(RAWMIDI, "Invalid type for %s", id);
 					goto _err;
 				}
 				continue;
 			}
-			SNDERR("Unknown field %s", id);
+			snd_error(RAWMIDI, "Unknown field %s", id);
 			err = -EINVAL;
 			goto _err;
 		}
@@ -290,7 +290,7 @@ static int snd_rawmidi_open_noupdate(snd_rawmidi_t **inputp, snd_rawmidi_t **out
 	snd_config_t *rawmidi_conf;
 	err = snd_config_search_definition(root, "rawmidi", name, &rawmidi_conf);
 	if (err < 0) {
-		SNDERR("Unknown RawMidi %s", name);
+		snd_error(RAWMIDI, "Unknown RawMidi %s", name);
 		return err;
 	}
 	err = snd_rawmidi_open_conf(inputp, outputp, name, root, rawmidi_conf, mode);
@@ -360,7 +360,7 @@ int snd_rawmidi_open_lconf(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 int snd_rawmidi_close(snd_rawmidi_t *rawmidi)
 {
 	int err;
-  	assert(rawmidi);
+	assert(rawmidi);
 	err = rawmidi->ops->close(rawmidi);
 	free(rawmidi->name);
 	if (rawmidi->open_func)
@@ -448,12 +448,12 @@ int snd_rawmidi_poll_descriptors(snd_rawmidi_t *rawmidi, struct pollfd *pfds, un
  */
 int snd_rawmidi_poll_descriptors_revents(snd_rawmidi_t *rawmidi, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
 {
-        assert(rawmidi && pfds && revents);
-        if (nfds == 1) {
-                *revents = pfds->revents;
-                return 0;
-        }
-        return -EINVAL;
+	assert(rawmidi && pfds && revents);
+	if (nfds == 1) {
+		*revents = pfds->revents;
+		return 0;
+	}
+	return -EINVAL;
 }
 
 /**

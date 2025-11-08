@@ -32,7 +32,7 @@
 #endif
 
 #ifndef __ALSA_SEQMID_H
-#define __ALSA_SEQMID_H
+#define __ALSA_SEQMID_H /**< header include loop protection */
 
 #ifdef __cplusplus
 extern "C" {
@@ -48,7 +48,7 @@ extern "C" {
 /**
  * \brief initialize event record
  * \param ev event record pointer
- * 
+ *
  * This macro clears the given event record pointer to the default status.
  */
 static inline void snd_seq_ev_clear(snd_seq_event_t *ev)
@@ -130,7 +130,7 @@ static inline void snd_seq_ump_ev_clear(snd_seq_ump_event_t *ev)
  *
  * This macro sets the event to the direct passing mode
  * to be delivered immediately without queueing.
- * 
+ *
  * \sa snd_seq_ev_schedule_tick(), snd_seq_ev_schedule_real()
  */
 #define snd_seq_ev_set_direct(ev) \

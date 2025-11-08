@@ -25,7 +25,7 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-  
+
 #include "pcm_local.h"
 #include "pcm_plugin.h"
 #include "plugin_ops.h"
@@ -295,7 +295,7 @@ static int snd_pcm_iec958_hw_refine_schange(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd
 		return err;
 	return 0;
 }
-	
+
 static int snd_pcm_iec958_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params,
 					    snd_pcm_hw_params_t *sparams)
 {
@@ -454,7 +454,7 @@ snd_pcm_iec958_write_areas(snd_pcm_t *pcm,
 	if (size > *slave_sizep)
 		size = *slave_sizep;
 	iec->func(iec, slave_areas, slave_offset,
-		  areas, offset, 
+		  areas, offset,
 		  pcm->channels, size);
 	*slave_sizep = size;
 	return size;
@@ -472,7 +472,7 @@ snd_pcm_iec958_read_areas(snd_pcm_t *pcm,
 	snd_pcm_iec958_t *iec = pcm->private_data;
 	if (size > *slave_sizep)
 		size = *slave_sizep;
-	iec->func(iec, areas, offset, 
+	iec->func(iec, areas, offset,
 		  slave_areas, slave_offset,
 		  pcm->channels, size);
 	*slave_sizep = size;
@@ -489,7 +489,7 @@ static int snd_pcm_iec958_init(snd_pcm_t *pcm)
 static void snd_pcm_iec958_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_pcm_iec958_t *iec = pcm->private_data;
-	snd_output_printf(out, "IEC958 subframe conversion PCM (%s)\n", 
+	snd_output_printf(out, "IEC958 subframe conversion PCM (%s)\n",
 			  snd_pcm_format_name(iec->sformat));
 	if (pcm->setup) {
 		snd_output_printf(out, "Its setup is:\n");
@@ -560,12 +560,12 @@ static const snd_pcm_ops_t snd_pcm_iec958_ops = {
  * \warning Using of this function might be dangerous in the sense
  *          of compatibility reasons. The prototype might be freely
  *          changed in future.
- */           
+ */
 int snd_pcm_iec958_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sformat,
 			snd_pcm_t *slave, int close_slave,
 			const unsigned char *status_bits,
 			const unsigned char *preamble_vals,
-		        int hdmi_mode)
+			int hdmi_mode)
 {
 	snd_pcm_t *pcm;
 	snd_pcm_iec958_t *iec;
@@ -638,14 +638,14 @@ This plugin converts 32bit IEC958 subframe samples to linear, or linear to
 
 \code
 pcm.name {
-        type iec958             # IEC958 subframe conversion PCM
-        slave STR               # Slave name
-        # or
-        slave {                 # Slave definition
-                pcm STR         # Slave PCM name
-                # or
-                pcm { }         # Slave PCM definition
-        }
+	type iec958             # IEC958 subframe conversion PCM
+	slave STR               # Slave name
+	# or
+	slave {                 # Slave definition
+		pcm STR         # Slave PCM name
+		# or
+		pcm { }         # Slave PCM definition
+	}
 	[status status-bytes]	# IEC958 status bits (given in byte array)
 	# IEC958 preamble bits definitions
 	# B/M/W or Z/X/Y, B = block start, M = even subframe, W = odd subframe
@@ -684,7 +684,7 @@ by the HDMI HBR specification.
  *          changed in future.
  */
 int _snd_pcm_iec958_open(snd_pcm_t **pcmp, const char *name,
-			 snd_config_t *root, snd_config_t *conf, 
+			 snd_config_t *root, snd_config_t *conf,
 			 snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i, next;
@@ -712,7 +712,7 @@ int _snd_pcm_iec958_open(snd_pcm_t **pcmp, const char *name,
 		}
 		if (strcmp(id, "status") == 0) {
 			if (snd_config_get_type(n) != SND_CONFIG_TYPE_COMPOUND) {
-				SNDERR("Invalid type for %s", id);
+				snd_error(PCM, "Invalid type for %s", id);
 				return -EINVAL;
 			}
 			status = n;
@@ -720,7 +720,7 @@ int _snd_pcm_iec958_open(snd_pcm_t **pcmp, const char *name,
 		}
 		if (strcmp(id, "preamble") == 0) {
 			if (snd_config_get_type(n) != SND_CONFIG_TYPE_COMPOUND) {
-				SNDERR("Invalid type for %s", id);
+				snd_error(PCM, "Invalid type for %s", id);
 				return -EINVAL;
 			}
 			preamble = n;
@@ -733,7 +733,7 @@ int _snd_pcm_iec958_open(snd_pcm_t **pcmp, const char *name,
 			hdmi_mode = err;
 			continue;
 		}
-		SNDERR("Unknown field %s", id);
+		snd_error(PCM, "Unknown field %s", id);
 		return -EINVAL;
 	}
 	memset(status_bits, 0, sizeof(status_bits));
@@ -744,12 +744,12 @@ int _snd_pcm_iec958_open(snd_pcm_t **pcmp, const char *name,
 			long val;
 			snd_config_t *n = snd_config_iterator_entry(i);
 			if (snd_config_get_type(n) != SND_CONFIG_TYPE_INTEGER) {
-				SNDERR("invalid IEC958 status bits");
+				snd_error(PCM, "invalid IEC958 status bits");
 				return -EINVAL;
 			}
 			err = snd_config_get_integer(n, &val);
 			if (err < 0) {
-				SNDERR("invalid IEC958 status bits");
+				snd_error(PCM, "invalid IEC958 status bits");
 				return err;
 			}
 			status_bits[bytes] = val;
@@ -775,19 +775,19 @@ int _snd_pcm_iec958_open(snd_pcm_t **pcmp, const char *name,
 			else if (strcmp(id, "w") == 0 || strcmp(id, "y") == 0)
 				idx = PREAMBLE_Y;
 			else {
-				SNDERR("invalid IEC958 preamble type %s", id);
+				snd_error(PCM, "invalid IEC958 preamble type %s", id);
 				return -EINVAL;
 			}
 			err = snd_config_get_integer(n, &val);
 			if (err < 0) {
-				SNDERR("invalid IEC958 preamble value");
+				snd_error(PCM, "invalid IEC958 preamble value");
 				return err;
 			}
 			preamble_vals[idx] = val;
 		}
 	}
 	if (!slave) {
-		SNDERR("slave is not defined");
+		snd_error(PCM, "slave is not defined");
 		return -EINVAL;
 	}
 	err = snd_pcm_slave_conf(root, slave, &sconf, 1,
@@ -797,8 +797,8 @@ int _snd_pcm_iec958_open(snd_pcm_t **pcmp, const char *name,
 	if (snd_pcm_format_linear(sformat) != 1 &&
 	    sformat != SND_PCM_FORMAT_IEC958_SUBFRAME_LE &&
 	    sformat != SND_PCM_FORMAT_IEC958_SUBFRAME_BE) {
-	    	snd_config_delete(sconf);
-		SNDERR("invalid slave format");
+		snd_config_delete(sconf);
+		snd_error(PCM, "invalid slave format");
 		return -EINVAL;
 	}
 	err = snd_pcm_open_slave(&spcm, root, sconf, stream, mode, conf);

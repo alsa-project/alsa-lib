@@ -58,7 +58,7 @@ static int set_hw_params(snd_pcm_t *pcm,
 
 	/*
 	 * hardware parameters
-	 */	
+	 */
 	err = snd_pcm_hw_params_any(pcm, hw_params);
 	if (err < 0)
 		return err;
@@ -93,7 +93,7 @@ static int set_hw_params(snd_pcm_t *pcm,
 			err = INTERNAL(snd_pcm_hw_params_get_period_time)(hw_params, period_time, NULL);
 			if (err < 0)
 				return err;
-		}			
+		}
 	} else {
 		err = snd_pcm_hw_params_set_period_time(pcm, hw_params, *period_time, 0);
 		if (err < 0)
@@ -105,15 +105,15 @@ static int set_hw_params(snd_pcm_t *pcm,
 	if (err < 0)
 		return err;
 	return 0;
-}		
+}
 
 static int set_sw_params(snd_pcm_t *pcm,
 			 snd_pcm_sw_params_t *sw_params,
-		         snd_spcm_xrun_type_t xrun_type)
+			 snd_spcm_xrun_type_t xrun_type)
 {
 	int err;
 
-	err = snd_pcm_sw_params_current(pcm, sw_params);		
+	err = snd_pcm_sw_params_current(pcm, sw_params);
 	if (err < 0)
 		return err;
 	err = snd_pcm_sw_params_set_start_threshold(pcm, sw_params, (pcm->buffer_size / pcm->period_size) * pcm->period_size);
@@ -236,10 +236,10 @@ int snd_spcm_init_duplex(snd_pcm_t *playback_pcm,
 	/*
 	 * hardware parameters
 	 */
-	err = set_buffer_time(latency, &xbuffer_time);	
+	err = set_buffer_time(latency, &xbuffer_time);
 	if (err < 0)
 		return err;
-	
+
 	for (i = 0; i < 2; i++) {
 		buffer_time[i] = xbuffer_time;
 		period_time[i] = i > 0 ? period_time[0] : 0;

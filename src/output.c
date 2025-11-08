@@ -100,7 +100,7 @@ int snd_output_puts(snd_output_t *output, const char *str)
 {
 	return output->ops->puts(output, str);
 }
-			
+
 /**
  * \brief Writes a character to an output handle (like \c putc(3)).
  * \param output The output handle.
@@ -152,7 +152,7 @@ static int snd_output_stdio_puts(snd_output_t *output, const char *str)
 	snd_output_stdio_t *stdio = output->private_data;
 	return fputs(str, stdio->fp);
 }
-			
+
 static int snd_output_stdio_putc(snd_output_t *output, int c)
 {
 	snd_output_stdio_t *stdio = output->private_data;
@@ -206,7 +206,7 @@ int snd_output_stdio_attach(snd_output_t **outputp, FILE *fp, int _close)
 	*outputp = output;
 	return 0;
 }
-	
+
 /**
  * \brief Creates a new output object writing to a file.
  * \param outputp The function puts the pointer to the new output object
@@ -307,7 +307,7 @@ static int snd_output_buffer_puts(snd_output_t *output, const char *str)
 	buffer->size += size;
 	return size;
 }
-			
+
 static int snd_output_buffer_putc(snd_output_t *output, int c)
 {
 	snd_output_buffer_t *buffer = output->private_data;

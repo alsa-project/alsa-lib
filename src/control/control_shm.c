@@ -18,7 +18,7 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-  
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
@@ -60,7 +60,7 @@ static int snd_ctl_shm_action(snd_ctl_t *ctl)
 	if (err != 1)
 		return -EBADFD;
 	if (ctrl->cmd) {
-		SNDERR("Server has not done the cmd");
+		snd_error(CONTROL, "Server has not done the cmd");
 		return -EBADFD;
 	}
 	return ctrl->result;
@@ -79,7 +79,7 @@ static int snd_ctl_shm_action_fd(snd_ctl_t *ctl, int *fd)
 	if (err != 1)
 		return -EBADFD;
 	if (ctrl->cmd) {
-		SNDERR("Server has not done the cmd");
+		snd_error(CONTROL, "Server has not done the cmd");
 		return -EBADFD;
 	}
 	return ctrl->result;
@@ -420,7 +420,7 @@ static int make_local_socket(const char *filename)
 	sock = socket(PF_LOCAL, SOCK_STREAM, 0);
 	if (sock < 0)
 		return -errno;
-	
+
 	addr->sun_family = AF_LOCAL;
 	memcpy(addr->sun_path, filename, l);
 
@@ -448,7 +448,7 @@ int snd_ctl_shm_open(snd_ctl_t **handlep, const char *name, const char *sockname
 
 	result = make_local_socket(sockname);
 	if (result < 0) {
-		SNDERR("server for socket %s is not running", sockname);
+		snd_error(CONTROL, "server for socket %s is not running", sockname);
 		goto _err;
 	}
 	sock = result;
@@ -463,23 +463,23 @@ int snd_ctl_shm_open(snd_ctl_t **handlep, const char *name, const char *sockname
 	req->namelen = snamelen;
 	err = write(sock, req, reqlen);
 	if (err < 0) {
-		SNDERR("write error");
+		snd_error(CONTROL, "write error");
 		result = -errno;
 		goto _err;
 	}
 	if ((size_t) err != reqlen) {
-		SNDERR("write size error");
+		snd_error(CONTROL, "write size error");
 		result = -EINVAL;
 		goto _err;
 	}
 	err = read(sock, &ans, sizeof(ans));
 	if (err < 0) {
-		SNDERR("read error");
+		snd_error(CONTROL, "read error");
 		result = -errno;
 		goto _err;
 	}
 	if (err != sizeof(ans)) {
-		SNDERR("read size error");
+		snd_error(CONTROL, "read size error");
 		result = -EINVAL;
 		goto _err;
 	}
@@ -492,7 +492,7 @@ int snd_ctl_shm_open(snd_ctl_t **handlep, const char *name, const char *sockname
 		result = -errno;
 		goto _err;
 	}
-		
+
 	shm = calloc(1, sizeof(snd_ctl_shm_t));
 	if (!shm) {
 		result = -ENOMEM;
@@ -546,7 +546,7 @@ int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *root, snd_c
 		if (strcmp(id, "server") == 0) {
 			err = snd_config_get_string(n, &server);
 			if (err < 0) {
-				SNDERR("Invalid type for %s", id);
+				snd_error(CONTROL, "Invalid type for %s", id);
 				return -EINVAL;
 			}
 			continue;
@@ -554,29 +554,29 @@ int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *root, snd_c
 		if (strcmp(id, "ctl") == 0) {
 			err = snd_config_get_string(n, &ctl_name);
 			if (err < 0) {
-				SNDERR("Invalid type for %s", id);
+				snd_error(CONTROL, "Invalid type for %s", id);
 				return -EINVAL;
 			}
 			continue;
 		}
-		SNDERR("Unknown field %s", id);
+		snd_error(CONTROL, "Unknown field %s", id);
 		return -EINVAL;
 	}
 	if (!ctl_name) {
-		SNDERR("ctl is not defined");
+		snd_error(CONTROL, "ctl is not defined");
 		return -EINVAL;
 	}
 	if (!server) {
-		SNDERR("server is not defined");
+		snd_error(CONTROL, "server is not defined");
 		return -EINVAL;
 	}
 	err = snd_config_search_definition(root, "server", server, &sconfig);
 	if (err < 0) {
-		SNDERR("Unknown server %s", server);
+		snd_error(CONTROL, "Unknown server %s", server);
 		return -EINVAL;
 	}
 	if (snd_config_get_type(sconfig) != SND_CONFIG_TYPE_COMPOUND) {
-		SNDERR("Invalid type for server %s definition", server);
+		snd_error(CONTROL, "Invalid type for server %s definition", server);
 		err = -EINVAL;
 		goto _err;
 	}
@@ -592,7 +592,7 @@ int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *root, snd_c
 		if (strcmp(id, "socket") == 0) {
 			err = snd_config_get_string(n, &sockname);
 			if (err < 0) {
-				SNDERR("Invalid type for %s", id);
+				snd_error(CONTROL, "Invalid type for %s", id);
 				goto _err;
 			}
 			continue;
@@ -600,18 +600,18 @@ int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *root, snd_c
 		if (strcmp(id, "port") == 0) {
 			err = snd_config_get_integer(n, &port);
 			if (err < 0) {
-				SNDERR("Invalid type for %s", id);
+				snd_error(CONTROL, "Invalid type for %s", id);
 				goto _err;
 			}
 			continue;
 		}
-		SNDERR("Unknown field %s", id);
+		snd_error(CONTROL, "Unknown field %s", id);
 		err = -EINVAL;
 		goto _err;
 	}
 
 	if (!sockname) {
-		SNDERR("socket is not defined");
+		snd_error(CONTROL, "socket is not defined");
 		goto _err;
 	}
 	err = snd_ctl_shm_open(handlep, name, sockname, ctl_name, mode);

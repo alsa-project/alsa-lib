@@ -74,7 +74,7 @@ int main(int argc, char** argv)
 	struct timeval start, end;
 	long long diff;
 	snd_rawmidi_status_t *istat, *ostat;
-	
+
 	for (i = 1 ; i<argc ; i++) {
 		if (argv[i][0]=='-') {
 			if (!strcmp(argv[i], "--help")) {
@@ -96,7 +96,7 @@ int main(int argc, char** argv)
 					if (i + 1 < argc)
 						oname = argv[++i];
 					break;
-			}			
+			}
 		}
 	}
 
@@ -109,7 +109,7 @@ int main(int argc, char** argv)
 		fprintf(stderr, "Using: \n");
 		fprintf(stderr, "  Input: %s  Output: %s\n", iname, oname);
 	}
-	
+
 	err = snd_rawmidi_open(&handle_in, NULL, iname, SND_RAWMIDI_NONBLOCK);
 	if (err) {
 		fprintf(stderr,"snd_rawmidi_open %s failed: %d\n",iname,err);
@@ -180,11 +180,11 @@ int main(int argc, char** argv)
 	if (verbose) {
 		fprintf(stderr,"Closing\n");
 	}
-	
-	snd_rawmidi_drain(handle_in); 
-	snd_rawmidi_close(handle_in);	
-	snd_rawmidi_drain(handle_out); 
-	snd_rawmidi_close(handle_out);	
+
+	snd_rawmidi_drain(handle_in);
+	snd_rawmidi_close(handle_in);
+	snd_rawmidi_drain(handle_out);
+	snd_rawmidi_close(handle_out);
 
 	return 0;
 }

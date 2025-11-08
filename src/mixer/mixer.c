@@ -752,7 +752,7 @@ int snd_mixer_poll_descriptors_revents(snd_mixer_t *mixer, struct pollfd *pfds, 
 {
 	unsigned int idx;
 	unsigned short res;
-        assert(mixer && pfds && revents);
+	assert(mixer && pfds && revents);
 	if (nfds == 0)
 		return -EINVAL;
 	res = 0;
@@ -781,7 +781,7 @@ int snd_mixer_wait(snd_mixer_t *mixer, int timeout)
 		pfds = alloca(count * sizeof(*pfds));
 		if (!pfds)
 			return -ENOMEM;
-		err = snd_mixer_poll_descriptors(mixer, pfds, 
+		err = snd_mixer_poll_descriptors(mixer, pfds,
 						 (unsigned int) count);
 		assert(err == count);
 	}

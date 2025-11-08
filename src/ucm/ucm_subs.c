@@ -178,11 +178,11 @@ static struct ctl_list *get_ctl_list_by_name(snd_use_case_mgr_t *uc_mgr, const c
 static char *rval_card_number_by_name(snd_use_case_mgr_t *uc_mgr, const char *id)
 {
 	if (uc_mgr->conf_format < 3) {
-		uc_error("CardNumberByName substitution is supported in v3+ syntax");
+		snd_error(UCM, "CardNumberByName substitution is supported in v3+ syntax");
 		return NULL;
 	}
 
-	uc_error("${CardNumberByName} substitution is obsolete - use ${find-card}!");
+	snd_error(UCM, "${CardNumberByName} substitution is obsolete - use ${find-card}!");
 
 	return get_card_number(get_ctl_list_by_name(uc_mgr, id));
 }
@@ -192,11 +192,11 @@ static char *rval_card_id_by_name(snd_use_case_mgr_t *uc_mgr, const char *id)
 	struct ctl_list *ctl_list;
 
 	if (uc_mgr->conf_format < 3) {
-		uc_error("CardIdByName substitution is supported in v3+ syntax");
+		snd_error(UCM, "CardIdByName substitution is supported in v3+ syntax");
 		return NULL;
 	}
 
-	uc_error("${CardIdByName} substitution is obsolete - use ${find-card}!");
+	snd_error(UCM, "${CardIdByName} substitution is obsolete - use ${find-card}!");
 
 	ctl_list = get_ctl_list_by_name(uc_mgr, id);
 	if (ctl_list == NULL)
@@ -242,19 +242,19 @@ static char *rval_lookup_main(snd_use_case_mgr_t *uc_mgr,
 	int err;
 
 	if (uc_mgr->conf_format < 4) {
-		uc_error("Lookups are supported in v4+ syntax");
+		snd_error(UCM, "Lookups are supported in v4+ syntax");
 		return NULL;
 	}
 
 	err = snd_config_load_string(&config, query, 0);
 	if (err < 0) {
-		uc_error("The lookup arguments '%s' are invalid", query);
+		snd_error(UCM, "The lookup arguments '%s' are invalid", query);
 		return NULL;
 	}
 	if (iter->init && iter->init(uc_mgr, iter, config))
 		goto null;
 	if (snd_config_search(config, "field", &d)) {
-		uc_error("Lookups require field!");
+		snd_error(UCM, "Lookups require field!");
 		goto null;
 	}
 	if (snd_config_get_string(d, &s))
@@ -266,18 +266,18 @@ static char *rval_lookup_main(snd_use_case_mgr_t *uc_mgr,
 		}
 	}
 	if (iter->fcn == NULL) {
-		uc_error("Unknown field value '%s'", s);
+		snd_error(UCM, "Unknown field value '%s'", s);
 		goto null;
 	}
 	if (snd_config_search(config, "regex", &d)) {
-		uc_error("Lookups require regex!");
+		snd_error(UCM, "Lookups require regex!");
 		goto null;
 	}
 	if (snd_config_get_string(d, &s))
 		goto null;
 	err = regcomp(&re, s, REG_EXTENDED | REG_ICASE);
 	if (err) {
-		uc_error("Regex '%s' compilation failed (code %d)", s, err);
+		snd_error(UCM, "Regex '%s' compilation failed (code %d)", s, err);
 		goto null;
 	}
 
@@ -343,7 +343,7 @@ static char *rval_card_lookup_return(struct lookup_iterate *iter, snd_config_t *
 		snprintf(num, sizeof(num), "%d", snd_ctl_card_info_get_card(iter->info));
 		return strdup(num);
 	} else {
-		uc_error("Unknown return type '%s'", s);
+		snd_error(UCM, "Unknown return type '%s'", s);
 		return NULL;
 	}
 }
@@ -384,7 +384,7 @@ next:
 	if (err < 0) {
 		if (err == -ENOENT)
 			goto next;
-		uc_error("Unable to obtain PCM info (device %d)", device);
+		snd_error(UCM, "Unable to obtain PCM info (device %d)", device);
 		return NULL;
 	}
 	return iter;
@@ -431,7 +431,7 @@ static int rval_pcm_lookup_init(struct lookup_iterate *iter,
 		else if (strcasecmp(s, "capture") == 0)
 			stream = SND_PCM_STREAM_CAPTURE;
 		else {
-			uc_error("Unknown stream type '%s'", s);
+			snd_error(UCM, "Unknown stream type '%s'", s);
 			return -EINVAL;
 		}
 	}
@@ -466,24 +466,24 @@ static int rval_device_lookup_init(snd_use_case_mgr_t *uc_mgr,
 	if (snd_config_search(config, "ctl", &d) || snd_config_get_string(d, &s)) {
 		iter->ctl_list = uc_mgr_get_master_ctl(uc_mgr);
 		if (iter->ctl_list == NULL) {
-			uc_error("Control device is not defined!");
+			snd_error(UCM, "Control device is not defined!");
 			return -EINVAL;
 		}
 	} else {
 		err = uc_mgr_open_ctl(uc_mgr, &iter->ctl_list, s, 1);
 		if (err < 0) {
-			uc_error("Control device '%s' not found", s);
+			snd_error(UCM, "Control device '%s' not found", s);
 			return -EINVAL;
 		}
 	}
 	if (snd_config_search(config, "type", &d) || snd_config_get_string(d, &s)) {
-		uc_error("Missing device type!");
+		snd_error(UCM, "Missing device type!");
 		return -EINVAL;
 	}
 	for (t = types; t->name; t++)
 		if (strcasecmp(t->name, s) == 0)
 			return t->init(iter, config);
-	uc_error("Device type '%s' is invalid", s);
+	snd_error(UCM, "Device type '%s' is invalid", s);
 	return -EINVAL;
 }
 
@@ -531,7 +531,7 @@ static int parse_position(snd_config_t *config, const char *name, ssize_t *pos, 
 			*pos = -1;
 			return 0;
 		}
-		uc_error("Unable to find field '%s'", name);
+		snd_error(UCM, "Unable to find field '%s'", name);
 		return -1;
 	}
 	if (!snd_config_get_integer(d, &v))
@@ -539,7 +539,7 @@ static int parse_position(snd_config_t *config, const char *name, ssize_t *pos, 
 	if (snd_config_get_string(d, &s))
 		return -1;
 	if (safe_strtol(s, &v)) {
-		uc_error("Unable to parse position '%s'", s);
+		snd_error(UCM, "Unable to parse position '%s'", s);
 		return -1;
 	}
 fin:
@@ -555,7 +555,7 @@ static int parse_range(const char *cfg, int *type, ssize_t *pos, ssize_t *size)
 
 	err = snd_config_load_string(&config, cfg, 0);
 	if (err < 0) {
-		uc_error("The range arguments '%s' are invalid", cfg);
+		snd_error(UCM, "The range arguments '%s' are invalid", cfg);
 		return -1;
 	}
 	if (snd_config_search(config, "type", &d)) {
@@ -568,7 +568,7 @@ static int parse_range(const char *cfg, int *type, ssize_t *pos, ssize_t *size)
 		} else if (strcasecmp(s, "hex") == 0) {
 			*type = RANGE_TYPE_HEX;
 		} else {
-			uc_error("Unknown range type '%s'", s);
+			snd_error(UCM, "Unknown range type '%s'", s);
 		}
 	}
 	*pos = 0;
@@ -582,7 +582,7 @@ static int parse_range(const char *cfg, int *type, ssize_t *pos, ssize_t *size)
 	if (*size <= 0)
 		*size = 1;
 	if (*pos < 0) {
-		uc_error("Invalid start position");
+		snd_error(UCM, "Invalid start position");
 		retval = -1;
 		goto null;
 	}
@@ -605,7 +605,7 @@ static char *rval_sysfs_main(snd_use_case_mgr_t *uc_mgr, const char *top_path, c
 		return NULL;
 	if (id[0] == '[') {
 		if (uc_mgr->conf_format < 8) {
-			uc_error("Sysfs ranges are supported in v8+ syntax");
+			snd_error(UCM, "Sysfs ranges are supported in v8+ syntax");
 			return NULL;
 		}
 		s = strchr(id, ']');
@@ -617,7 +617,7 @@ static char *rval_sysfs_main(snd_use_case_mgr_t *uc_mgr, const char *top_path, c
 		strncpy(link, id + 1, len);
 		link[len] = '\0';
 		if (parse_range(link, &type, &range_start, &range_size)) {
-			uc_error("sysfs: cannot parse hex range '%s'", link);
+			snd_error(UCM, "sysfs: cannot parse hex range '%s'", link);
 			return NULL;
 		}
 		id = s + 1;
@@ -633,7 +633,7 @@ static char *rval_sysfs_main(snd_use_case_mgr_t *uc_mgr, const char *top_path, c
 	if (S_ISLNK(sb.st_mode)) {
 		len = readlink(path, link, sizeof(link) - 1);
 		if (len <= 0) {
-			uc_error("sysfs: cannot read link '%s' (%d)", path, errno);
+			snd_error(UCM, "sysfs: cannot read link '%s' (%d)", path, errno);
 			return NULL;
 		}
 		link[len] = '\0';
@@ -649,18 +649,18 @@ static char *rval_sysfs_main(snd_use_case_mgr_t *uc_mgr, const char *top_path, c
 
 	fd = open(path, O_RDONLY);
 	if (fd < 0) {
-		uc_error("sysfs open failed for '%s' (%d)", path, errno);
+		snd_error(UCM, "sysfs open failed for '%s' (%d)", path, errno);
 		return NULL;
 	}
 	len = sizeof(path) - 1;
 	if (range_start > 0 && lseek(fd, range_start, SEEK_SET) != range_start) {
-		uc_error("sysfs seek failed (%d)", errno);
+		snd_error(UCM, "sysfs seek failed (%d)", errno);
 		close(fd);
 		return NULL;
 	}
 	if (range_size > 0) {
 		if (range_size > len) {
-			uc_error("sysfs EOB for '%s'", path);
+			snd_error(UCM, "sysfs EOB for '%s'", path);
 			close(fd);
 			return NULL;
 		} else {
@@ -670,7 +670,7 @@ static char *rval_sysfs_main(snd_use_case_mgr_t *uc_mgr, const char *top_path, c
 	len = read(fd, path, len);
 	close(fd);
 	if (len < 0) {
-		uc_error("sysfs unable to read value '%s' (%d)", path, errno);
+		snd_error(UCM, "sysfs unable to read value '%s' (%d)", path, errno);
 		return NULL;
 	}
 	if (type == RANGE_TYPE_HEX && range_start >= 0) {
@@ -701,7 +701,7 @@ static char *rval_sysfs_card(snd_use_case_mgr_t *uc_mgr, const char *id)
 	char top_path[32], *s;
 
 	if (uc_mgr->conf_format < 8) {
-		uc_error("sys-card is supported in v8+ syntax");
+		snd_error(UCM, "sys-card is supported in v8+ syntax");
 		return NULL;
 	}
 	s = get_card_number(uc_mgr_get_master_ctl(uc_mgr));
@@ -716,7 +716,7 @@ static char *rval_var(snd_use_case_mgr_t *uc_mgr, const char *id)
 	bool ignore_not_found = false;
 
 	if (uc_mgr->conf_format < 3) {
-		uc_error("variable substitution is supported in v3+ syntax");
+		snd_error(UCM, "variable substitution is supported in v3+ syntax");
 		return NULL;
 	}
 
@@ -755,12 +755,12 @@ static char *rval_eval(snd_use_case_mgr_t *uc_mgr, const char *e)
 	int err;
 
 	if (uc_mgr->conf_format < 5) {
-		uc_error("variable evaluation is supported in v5+ syntax");
+		snd_error(UCM, "variable evaluation is supported in v5+ syntax");
 		return NULL;
 	}
 	err = _snd_eval_string(&dst, e, rval_eval_var_cb, uc_mgr);
 	if (err < 0) {
-		uc_error("unable to evaluate '%s'", e);
+		snd_error(UCM, "unable to evaluate '%s'", e);
 		return NULL;
 	}
 	err = snd_config_get_ascii(dst, &r);
@@ -779,7 +779,7 @@ static int rval_evali(snd_use_case_mgr_t *uc_mgr, snd_config_t *node, const char
 	int err;
 
 	if (uc_mgr->conf_format < 6) {
-		uc_error("variable evaluation is supported in v6+ syntax");
+		snd_error(UCM, "variable evaluation is supported in v6+ syntax");
 		return -EINVAL;
 	}
 	err = snd_config_get_id(node, &id);
@@ -796,7 +796,7 @@ static int rval_evali(snd_use_case_mgr_t *uc_mgr, snd_config_t *node, const char
 	err = _snd_eval_string(&dst, s + 8, rval_eval_var_cb, uc_mgr);
 	free(s);
 	if (err < 0) {
-		uc_error("unable to evaluate '%s'", e);
+		snd_error(UCM, "unable to evaluate '%s'", e);
 		return err;
 	}
 	err = snd_config_set_id(dst, id);
@@ -921,9 +921,9 @@ __merr:
 		if (tmp) {
 			strncpy(r, value, tmp + 1 - value);
 			r[tmp + 1 - value] = '\0';
-			uc_error("variable '%s' is not known!", r);
+			snd_error(UCM, "variable '%s' is not known!", r);
 		} else {
-			uc_error("variable reference '%s' is not complete", value);
+			snd_error(UCM, "variable reference '%s' is not complete", value);
 		}
 		goto __error;
 __match2:
@@ -941,7 +941,7 @@ __match2:
 					goto __direct_fcn2;
 				tmp = uc_mgr_get_variable(uc_mgr, v2 + 1);
 				if (tmp == NULL) {
-					uc_error("define '%s' is not reachable in this context!", v2 + 1);
+					snd_error(UCM, "define '%s' is not reachable in this context!", v2 + 1);
 					rval = NULL;
 				} else {
 					rval = fcn2(uc_mgr, tmp);
@@ -962,8 +962,9 @@ __rval:
 			}
 			strncpy(r, value, idsize);
 			r[idsize] = '\0';
-			uc_error("variable '%s' is %s in this context!", r,
-				 rval ? "empty" : "not defined");
+			snd_error(UCM, "variable '%s' is %s in this context!", r,
+				       rval ? "empty" : "not defined");
+
 			err = -EINVAL;
 			goto __error;
 		}
@@ -1016,7 +1017,7 @@ int uc_mgr_substitute_tree(snd_use_case_mgr_t *uc_mgr, snd_config_t *node)
 			return err;
 		err = snd_config_set_id(node, s);
 		if (err < 0) {
-			uc_error("unable to set substituted id '%s' (old id '%s')", s, id);
+			snd_error(UCM, "unable to set substituted id '%s' (old id '%s')", s, id);
 			free(s);
 			return err;
 		}

@@ -401,9 +401,9 @@ snd_pcm_sframes_t snd_pcm_mmap_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_ufram
 snd_pcm_sframes_t snd_pcm_mmap_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size);
 snd_pcm_sframes_t snd_pcm_mmap_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size);
 
-typedef snd_pcm_sframes_t (*snd_pcm_xfer_areas_func_t)(snd_pcm_t *pcm, 
+typedef snd_pcm_sframes_t (*snd_pcm_xfer_areas_func_t)(snd_pcm_t *pcm,
 						       const snd_pcm_channel_area_t *areas,
-						       snd_pcm_uframes_t offset, 
+						       snd_pcm_uframes_t offset,
 						       snd_pcm_uframes_t size);
 
 snd_pcm_sframes_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_t *areas,
@@ -606,13 +606,13 @@ static inline const snd_pcm_channel_area_t *snd_pcm_mmap_areas(snd_pcm_t *pcm)
 
 static inline snd_pcm_uframes_t snd_pcm_mmap_offset(snd_pcm_t *pcm)
 {
-        assert(pcm);
+	assert(pcm);
 	return *pcm->appl.ptr % pcm->buffer_size;
 }
 
 static inline snd_pcm_uframes_t snd_pcm_mmap_hw_offset(snd_pcm_t *pcm)
 {
-        assert(pcm);
+	assert(pcm);
 	return *pcm->hw.ptr % pcm->buffer_size;
 }
 
@@ -1079,7 +1079,7 @@ const snd_config_t *snd_pcm_rate_get_default_converter(snd_config_t *root);
 	 (1U << (SND_PCM_FORMAT_U18_3LE - 32)) | \
 	 (1U << (SND_PCM_FORMAT_S18_3BE - 32)) | \
 	 (1U << (SND_PCM_FORMAT_U18_3BE - 32))) }
-	
+
 
 #define SND_PCM_FMTBIT_FLOAT \
 	{ ((1U << SND_PCM_FORMAT_FLOAT_LE) | \

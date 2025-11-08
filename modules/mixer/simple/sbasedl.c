@@ -65,27 +65,27 @@ int mixer_simple_basic_dlopen(snd_mixer_class_t *class,
 	strcat(xlib, lib);
 	h = snd_dlopen(xlib, RTLD_NOW, errbuf, sizeof(errbuf));
 	if (h == NULL) {
-		SNDERR("Unable to open library '%s': %s", xlib, errbuf);
+		snd_error(MIXER, "Unable to open library '%s': %s", xlib, errbuf);
 		goto __error;
 	}
 	initpriv = dlsym(h, "alsa_mixer_sbasic_initpriv");
 	if (initpriv == NULL) {
-		SNDERR("Symbol 'alsa_mixer_sbasic_initpriv' was not found in '%s'", xlib);
+		snd_error(MIXER, "Symbol 'alsa_mixer_sbasic_initpriv' was not found in '%s'", xlib);
 		goto __error;
 	}
 	priv->ops.event = dlsym(h, "alsa_mixer_sbasic_event");
 	if (priv->ops.event == NULL) {
-		SNDERR("Symbol 'alsa_mixer_sbasic_event' was not found in '%s'", xlib);
+		snd_error(MIXER, "Symbol 'alsa_mixer_sbasic_event' was not found in '%s'", xlib);
 		goto __error;
 	}
 	priv->ops.selreg = dlsym(h, "alsa_mixer_sbasic_selreg");
 	if (priv->ops.selreg == NULL) {
-		SNDERR("Symbol 'alsa_mixer_sbasic_selreg' was not found in '%s'", xlib);
+		snd_error(MIXER, "Symbol 'alsa_mixer_sbasic_selreg' was not found in '%s'", xlib);
 		goto __error;
 	}
 	priv->ops.sidreg = dlsym(h, "alsa_mixer_sbasic_sidreg");
 	if (priv->ops.sidreg == NULL) {
-		SNDERR("Symbol 'alsa_mixer_sbasic_sidreg' was not found in '%s'", xlib);
+		snd_error(MIXER, "Symbol 'alsa_mixer_sbasic_sidreg' was not found in '%s'", xlib);
 		goto __error;
 	}
 	free(xlib);
@@ -97,8 +97,8 @@ int mixer_simple_basic_dlopen(snd_mixer_class_t *class,
 	return 1;
 
       __error:
-      	if (initflag)
-      		free(priv);
+	if (initflag)
+		free(priv);
 	if (h)
 		snd_dlclose(h);
 	free(xlib);

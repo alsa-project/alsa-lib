@@ -25,7 +25,7 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-  
+
 #include "pcm_local.h"
 #include "pcm_ioplug.h"
 #include "pcm_ext_parm.h"
@@ -482,7 +482,7 @@ static int snd_pcm_ioplug_start(snd_pcm_t *pcm)
 {
 	ioplug_priv_t *io = pcm->private_data;
 	int err;
-	
+
 	if (io->data->state != SND_PCM_STATE_PREPARED)
 		return -EBADFD;
 
@@ -637,7 +637,7 @@ static snd_pcm_sframes_t ioplug_priv_transfer_areas(snd_pcm_t *pcm,
 {
 	ioplug_priv_t *io = pcm->private_data;
 	snd_pcm_sframes_t result;
-		
+
 	if (! size)
 		return 0;
 	if (io->data->callback->transfer)
@@ -656,7 +656,7 @@ static snd_pcm_sframes_t snd_pcm_ioplug_writei(snd_pcm_t *pcm, const void *buffe
 	else {
 		snd_pcm_channel_area_t areas[pcm->channels];
 		snd_pcm_areas_from_buf(pcm, areas, (void*)buffer);
-		return snd_pcm_write_areas(pcm, areas, 0, size, 
+		return snd_pcm_write_areas(pcm, areas, 0, size,
 					   ioplug_priv_transfer_areas);
 	}
 }
@@ -982,7 +982,7 @@ Otherfields are optional and should be initialized with zero.
 
 The constant #SND_PCM_IOPLUG_VERSION must be passed to the version
 field for the version check in alsa-lib.  A non-NULL ASCII string
-has to be passed to the name field.  The callback field contains the 
+has to be passed to the name field.  The callback field contains the
 table of callback functions for this plugin (defined as
 #snd_pcm_ioplug_callback_t).
 
@@ -1086,8 +1086,9 @@ int snd_pcm_ioplug_create(snd_pcm_ioplug_t *ioplug, const char *name,
 	/* We support 1.0.0 to current */
 	if (ioplug->version < 0x010000 ||
 	    ioplug->version > SND_PCM_IOPLUG_VERSION) {
-		SNDERR("ioplug: Plugin version mismatch: 0x%x",
-		       ioplug->version);
+		snd_error(PCM, "ioplug: Plugin version mismatch: 0x%x",
+			       ioplug->version);
+
 		return -ENXIO;
 	}
 
@@ -1156,7 +1157,7 @@ int snd_pcm_ioplug_set_param_list(snd_pcm_ioplug_t *ioplug, int type, unsigned i
 {
 	ioplug_priv_t *io = ioplug->pcm->private_data;
 	if (type < 0 || type >= SND_PCM_IOPLUG_HW_PARAMS) {
-		SNDERR("IOPLUG: invalid parameter type %d", type);
+		snd_error(PCM, "IOPLUG: invalid parameter type %d", type);
 		return -EINVAL;
 	}
 	if (type == SND_PCM_IOPLUG_HW_PERIODS)
@@ -1180,11 +1181,11 @@ int snd_pcm_ioplug_set_param_minmax(snd_pcm_ioplug_t *ioplug, int type, unsigned
 {
 	ioplug_priv_t *io = ioplug->pcm->private_data;
 	if (type < 0 || type >= SND_PCM_IOPLUG_HW_PARAMS) {
-		SNDERR("IOPLUG: invalid parameter type %d", type);
+		snd_error(PCM, "IOPLUG: invalid parameter type %d", type);
 		return -EINVAL;
 	}
 	if (type == SND_PCM_IOPLUG_HW_ACCESS || type == SND_PCM_IOPLUG_HW_FORMAT) {
-		SNDERR("IOPLUG: invalid parameter type %d", type);
+		snd_error(PCM, "IOPLUG: invalid parameter type %d", type);
 		return -EINVAL;
 	}
 	if (type == SND_PCM_IOPLUG_HW_PERIODS)

@@ -42,7 +42,7 @@ const char *_snd_module_control_ext = "";
 static int snd_ctl_ext_close(snd_ctl_t *handle)
 {
 	snd_ctl_ext_t *ext = handle->private_data;
-	
+
 	if (ext->callback->close)
 		ext->callback->close(ext);
 	return 0;
@@ -458,7 +458,7 @@ static int snd_ctl_ext_poll_revents(snd_ctl_t *handle, struct pollfd *pfds, unsi
 		return ext->callback->poll_revents(ext, pfds, nfds, revents);
 	if (nfds == 1) {
 		*revents = pfds->revents;
-                return 0;
+		return 0;
 	}
 	return -EINVAL;
 }
@@ -529,7 +529,7 @@ usually you will call the external plugin API function
 #snd_ctl_ext_create().
 The control handle must be filled *phandle in return.
 Then this function must return either a value 0 when succeeded, or a
-negative value as the error code. 
+negative value as the error code.
 
 Finally, add #SND_CTL_PLUGIN_SYMBOL() with the name of your
 plugin as the argument at the end.  This defines the proper versioned
@@ -560,7 +560,7 @@ SND_CTL_PLUGIN_DEFINE_FUNC(myctl)
 			....
 			continue;
 		}
-		SNDERR("Unknown field %s", id);
+		snd_error(CONTROL, "Unknown field %s", id);
 		return -EINVAL;
 	}
 
@@ -625,7 +625,7 @@ PCM.
 \section ctl_ext_impl_cb Callback Functions of External Control Plugins
 
 The callback functions in #snd_ctl_ext_callback_t define the real
-behavior of the driver.  There are many callbacks but many of them are optional. 
+behavior of the driver.  There are many callbacks but many of them are optional.
 
 The close callback is called when the PCM is closed.  If the plugin
 allocates private resources, this is the place to release them
@@ -650,7 +650,7 @@ if you use get, read and write callbacks as follows.
 If you need to create a record dynamically (e.g. via malloc) at each find_elem call,
 the allocated record can be released with the optional free_key callback.
 
-The get_attribute is a mandatory callback, which returns the attribute of the 
+The get_attribute is a mandatory callback, which returns the attribute of the
 control element given via a key value (converted with find_elem callback).
 It must fill the control element type (#snd_ctl_elem_type_t), the access type
 (#snd_ctl_ext_access_t), and the count (element array size).  The callback returns
@@ -712,7 +712,7 @@ int snd_ctl_ext_create(snd_ctl_ext_t *ext, const char *name, int mode)
 
 	if (ext->version < SNDRV_PROTOCOL_VERSION(1, 0, 0) ||
 	    ext->version > SND_CTL_EXT_VERSION) {
-		SNDERR("ctl_ext: Plugin version mismatch");
+		snd_error(CONTROL, "ctl_ext: Plugin version mismatch");
 		return -ENXIO;
 	}
 

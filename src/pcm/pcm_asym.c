@@ -22,21 +22,21 @@ Slave PCMs can be defined asymmetrically for both directions.
 
 \code
 pcm.name {
-        type asym               # Asym PCM
-        playback STR            # Playback slave name
-        # or
-        playback {              # Playback slave definition
-                pcm STR         # Slave PCM name
-                # or
-                pcm { }         # Slave PCM definition
-        }
-        capture STR             # Capture slave name
-        # or
-        capture {               # Capture slave definition
-                pcm STR         # Slave PCM name
-                # or
-                pcm { }         # Slave PCM definition
-        }
+	type asym               # Asym PCM
+	playback STR            # Playback slave name
+	# or
+	playback {              # Playback slave definition
+		pcm STR         # Slave PCM name
+		# or
+		pcm { }         # Slave PCM definition
+	}
+	capture STR             # Capture slave name
+	# or
+	capture {               # Capture slave definition
+		pcm STR         # Slave PCM name
+		# or
+		pcm { }         # Slave PCM definition
+	}
 }
 \endcode
 
@@ -98,12 +98,13 @@ int _snd_pcm_asym_open(snd_pcm_t **pcmp, const char *name ATTRIBUTE_UNUSED,
 				slave = n;
 			continue;
 		}
-		SNDERR("Unknown field %s", id);
+		snd_error(PCM, "Unknown field %s", id);
 		return -EINVAL;
 	}
 	if (! slave) {
-		SNDERR("%s slave is not defined",
-		       stream == SND_PCM_STREAM_PLAYBACK ? "playback" : "capture");
+		snd_error(PCM, "%s slave is not defined",
+			       stream == SND_PCM_STREAM_PLAYBACK ? "playback" : "capture");
+
 		return -EINVAL;
 	}
 	err = snd_pcm_slave_conf(root, slave, &sconf, 0);

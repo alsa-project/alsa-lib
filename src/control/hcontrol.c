@@ -71,7 +71,7 @@ int snd_hctl_open(snd_hctl_t **hctlp, const char *name, int mode)
 {
 	snd_ctl_t *ctl;
 	int err;
-	
+
 	if ((err = snd_ctl_open(&ctl, name, mode)) < 0)
 		return err;
 	err = snd_hctl_open_ctl(hctlp, ctl);
@@ -294,7 +294,7 @@ static int get_compare_weight(const snd_ctl_elem_id_t *id)
 	};
 	const char *name = (char *)id->name, *name1;
 	int res, res1;
-	
+
 	if ((res = snd_hctl_compare_mixer_priority_lookup((const char **)&name, names, 1000000)) == NOT_FOUND)
 		return NOT_FOUND;
 	if (*name == '\0')
@@ -346,7 +346,7 @@ static int _snd_hctl_find_elem(snd_hctl_t *hctl, const snd_ctl_elem_id_t *id, in
 static int snd_hctl_elem_add(snd_hctl_t *hctl, snd_hctl_elem_t *elem)
 {
 	int dir;
-	int idx; 
+	int idx;
 	elem->compare_weight = get_compare_weight(&elem->id);
 	if (hctl->count == hctl->alloc) {
 		snd_hctl_elem_t **h;
@@ -677,10 +677,10 @@ int snd_hctl_wait(snd_hctl_t *hctl, int timeout)
 	struct pollfd *pfd;
 	unsigned short *revents;
 	int i, npfds, pollio, err, err_poll;
-	
+
 	npfds = snd_hctl_poll_descriptors_count(hctl);
 	if (npfds <= 0 || npfds >= 16) {
-		SNDERR("Invalid poll_fds %d", npfds);
+		snd_error(CONTROL, "Invalid poll_fds %d", npfds);
 		return -EIO;
 	}
 	pfd = alloca(sizeof(*pfd) * npfds);
@@ -689,7 +689,7 @@ int snd_hctl_wait(snd_hctl_t *hctl, int timeout)
 	if (err < 0)
 		return err;
 	if (err != npfds) {
-		SNDMSG("invalid poll descriptors %d", err);
+		snd_check(CONTROL, "invalid poll descriptors %d", err);
 		return -EIO;
 	}
 	do {
@@ -781,7 +781,7 @@ int snd_hctl_handle_events(snd_hctl_t *hctl)
 	snd_ctl_event_t event;
 	int res;
 	unsigned int count = 0;
-	
+
 	assert(hctl);
 	assert(hctl->ctl);
 	while ((res = snd_ctl_read(hctl->ctl, &event)) != 0 &&

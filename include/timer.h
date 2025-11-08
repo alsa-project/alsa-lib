@@ -32,7 +32,7 @@
 #endif
 
 #ifndef __ALSA_TIMER_H
-#define __ALSA_TIMER_H
+#define __ALSA_TIMER_H /**< header include loop protection */
 
 #ifdef __cplusplus
 extern "C" {
@@ -99,13 +99,13 @@ typedef enum _snd_timer_event {
 	SND_TIMER_EVENT_MCONTINUE = SND_TIMER_EVENT_CONTINUE + 10,
 	SND_TIMER_EVENT_MPAUSE = SND_TIMER_EVENT_PAUSE + 10,
 	SND_TIMER_EVENT_MSUSPEND = SND_TIMER_EVENT_SUSPEND + 10,
-	SND_TIMER_EVENT_MRESUME = SND_TIMER_EVENT_RESUME + 10	
+	SND_TIMER_EVENT_MRESUME = SND_TIMER_EVENT_RESUME + 10
 } snd_timer_event_t;
 
 /** timer read structure */
 typedef struct _snd_timer_read {
 	unsigned int resolution;	/**< tick resolution in nanoseconds */
-        unsigned int ticks;		/**< count of happened ticks */
+	unsigned int ticks;		/**< count of happened ticks */
 } snd_timer_read_t;
 
 /** timer tstamp + event read structure */

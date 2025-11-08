@@ -214,3 +214,17 @@ ALSA_1.2.13 {
     @SYMBOL_PREFIX@snd_ump_packet_length;
 #endif
 } ALSA_1.2.10;
+
+
+ALSA_1.2.15 {
+  global:
+
+    @SYMBOL_PREFIX@snd_lib_vlog;
+    @SYMBOL_PREFIX@snd_lib_log;
+    @SYMBOL_PREFIX@snd_lib_log_set_handler;
+    @SYMBOL_PREFIX@snd_lib_log_set_local;
+    @SYMBOL_PREFIX@snd_lib_log_priority;
+    @SYMBOL_PREFIX@snd_lib_log_interface;
+    @SYMBOL_PREFIX@snd_lib_log_filter;
+    @SYMBOL_PREFIX@snd_lib_check;
+} ALSA_1.2.13;

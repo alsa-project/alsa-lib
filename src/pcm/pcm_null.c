@@ -25,7 +25,7 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-  
+
 #include "pcm_local.h"
 #include "pcm_plugin.h"
 #include "bswap.h"
@@ -82,11 +82,11 @@ static int snd_pcm_null_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 static snd_pcm_sframes_t snd_pcm_null_avail_update(snd_pcm_t *pcm)
 {
 	snd_pcm_null_t *null = pcm->private_data;
-        if (null->state == SND_PCM_STATE_PREPARED) {
-                /* it is required to return the correct avail count for */
-                /* the prepared stream, otherwise the start is not called */
-                return snd_pcm_mmap_avail(pcm);
-        }
+	if (null->state == SND_PCM_STATE_PREPARED) {
+		/* it is required to return the correct avail count for */
+		/* the prepared stream, otherwise the start is not called */
+		return snd_pcm_mmap_avail(pcm);
+	}
 	return pcm->buffer_size;
 }
 
@@ -386,13 +386,13 @@ int snd_pcm_null_open(snd_pcm_t **pcmp, const char *name, snd_pcm_stream_t strea
 	if (stream == SND_PCM_STREAM_PLAYBACK) {
 		fd = open("/dev/null", O_WRONLY);
 		if (fd < 0) {
-			SYSERR("Cannot open /dev/null");
+			snd_errornum(PCM, "Cannot open /dev/null");
 			return -errno;
 		}
 	} else {
 		fd = open("/dev/full", O_RDONLY);
 		if (fd < 0) {
-			SYSERR("Cannot open /dev/full");
+			snd_errornum(PCM, "Cannot open /dev/full");
 			return -errno;
 		}
 	}
@@ -403,7 +403,7 @@ int snd_pcm_null_open(snd_pcm_t **pcmp, const char *name, snd_pcm_stream_t strea
 	}
 	null->poll_fd = fd;
 	null->state = SND_PCM_STATE_OPEN;
-	
+
 	err = snd_pcm_new(&pcm, SND_PCM_TYPE_NULL, name, stream, mode);
 	if (err < 0) {
 		close(fd);
@@ -434,7 +434,7 @@ and /dev/full (capture, must be readable).
 
 \code
 pcm.name {
-        type null               # Null PCM
+	type null               # Null PCM
 	[chmap MAP]		# Provide channel maps; MAP is a string array
 }
 \endcode
@@ -462,7 +462,7 @@ pcm.name {
  *          changed in future.
  */
 int _snd_pcm_null_open(snd_pcm_t **pcmp, const char *name,
-		       snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *conf, 
+		       snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *conf,
 		       snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i, next;
@@ -481,12 +481,12 @@ int _snd_pcm_null_open(snd_pcm_t **pcmp, const char *name,
 			snd_pcm_free_chmaps(chmap);
 			chmap = _snd_pcm_parse_config_chmaps(n);
 			if (!chmap) {
-				SNDERR("Invalid channel map for %s", id);
+				snd_error(PCM, "Invalid channel map for %s", id);
 				return -EINVAL;
 			}
 			continue;
 		}
-		SNDERR("Unknown field %s", id);
+		snd_error(PCM, "Unknown field %s", id);
 		snd_pcm_free_chmaps(chmap);
 		return -EINVAL;
 	}

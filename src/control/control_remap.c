@@ -1242,27 +1242,27 @@ static int parse_remap(snd_ctl_remap_t *priv, snd_config_t *conf)
 		if (snd_config_get_id(n, &id) < 0)
 			continue;
 		if (snd_config_get_string(n, &str) < 0) {
-			SNDERR("expected string with the target control id!");
+			snd_error(CONTROL, "expected string with the target control id!");
 			return -EINVAL;
 		}
 		snd_ctl_elem_id_clear(&app);
 		err = snd_ctl_ascii_elem_id_parse(&app, str);
 		if (err < 0) {
-			SNDERR("unable to parse target id '%s'!", str);
+			snd_error(CONTROL, "unable to parse target id '%s'!", str);
 			return -EINVAL;
 		}
 		if (remap_find_id_app(priv, &app)) {
-			SNDERR("duplicate target id '%s'!", id);
+			snd_error(CONTROL, "duplicate target id '%s'!", id);
 			return -EINVAL;
 		}
 		snd_ctl_elem_id_clear(&child);
 		err = snd_ctl_ascii_elem_id_parse(&child, id);
 		if (err < 0) {
-			SNDERR("unable to parse source id '%s'!", id);
+			snd_error(CONTROL, "unable to parse source id '%s'!", id);
 			return -EINVAL;
 		}
 		if (remap_find_id_child(priv, &app)) {
-			SNDERR("duplicate source id '%s'!", id);
+			snd_error(CONTROL, "duplicate source id '%s'!", id);
 			return -EINVAL;
 		}
 		err = add_to_remap(priv, &child, &app);
@@ -1321,7 +1321,7 @@ static int add_chn_to_map(struct snd_ctl_map_ctl *mctl, long idx, long src_idx, 
 	long *map;
 
 	if (src_idx >= mctl->src_channels) {
-		SNDERR("Wrong channel mapping (extra source channel?)");
+		snd_error(CONTROL, "Wrong channel mapping (extra source channel?)");
 		return -EINVAL;
 	}
 	if (mctl->channel_map_alloc <= (size_t)idx) {
@@ -1350,7 +1350,7 @@ static int add_chn_to_map_array(struct snd_ctl_map_ctl *mctl, const char *dst_id
 		snd_config_t *n = snd_config_iterator_entry(i);
 		long idx = -1, chn = -1;
 		if (safe_strtol(dst_id, &idx) || snd_config_get_integer(n, &chn)) {
-			SNDERR("Wrong channel mapping (%ld -> %ld)", idx, chn);
+			snd_error(CONTROL, "Wrong channel mapping (%ld -> %ld)", idx, chn);
 			return -EINVAL;
 		}
 		err = add_chn_to_map(mctl, idx, src_idx, chn);
@@ -1383,7 +1383,7 @@ static int parse_map_vindex(struct snd_ctl_map_ctl *mctl, snd_config_t *conf)
 			err = add_chn_to_map_array(mctl, id, n);
 		} else {
 			if (safe_strtol(id, &idx) || snd_config_get_integer(n, &chn)) {
-				SNDERR("Wrong channel mapping (%ld -> %ld)", idx, chn);
+				snd_error(CONTROL, "Wrong channel mapping (%ld -> %ld)", idx, chn);
 				return -EINVAL;
 			}
 			err = add_chn_to_map(mctl, idx, 0, chn);
@@ -1430,7 +1430,7 @@ static int parse_map1(snd_ctl_map_t *map, snd_config_t *conf)
 		snd_ctl_elem_id_clear(&cid);
 		err = snd_ctl_ascii_elem_id_parse(&cid, id);
 		if (err < 0) {
-			SNDERR("unable to parse control id '%s'!", id);
+			snd_error(CONTROL, "unable to parse control id '%s'!", id);
 			return -EINVAL;
 		}
 		err = add_ctl_to_map(map, &mctl, &cid);
@@ -1461,7 +1461,7 @@ static int parse_map(snd_ctl_remap_t *priv, snd_config_t *conf)
 		snd_ctl_elem_id_clear(&eid);
 		err = snd_ctl_ascii_elem_id_parse(&eid, id);
 		if (err < 0) {
-			SNDERR("unable to parse id '%s'!", id);
+			snd_error(CONTROL, "unable to parse id '%s'!", id);
 			return -EINVAL;
 		}
 		err = new_map(priv, &map, &eid);
@@ -1508,14 +1508,14 @@ static int parse_sync1(snd_ctl_remap_t *priv, unsigned int count, snd_config_t *
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		if (snd_config_get_string(n, &str) < 0) {
-			SNDERR("strings are expected in sync array");
+			snd_error(CONTROL, "strings are expected in sync array");
 			return -EINVAL;
 		}
 		eid = &sync->control_ids[index];
 		snd_ctl_elem_id_clear(eid);
 		err = snd_ctl_ascii_elem_id_parse(eid, str);
 		if (err < 0) {
-			SNDERR("unable to parse control id '%s'!", str);
+			snd_error(CONTROL, "unable to parse control id '%s'!", str);
 			return -EINVAL;
 		}
 		sync->control_items++;
@@ -1542,12 +1542,12 @@ static int parse_sync_compound(snd_ctl_remap_t *priv, snd_config_t *conf)
 			continue;
 		if (strcmp(id, "switch") == 0) {
 			if (snd_config_get_string(n, &str) < 0) {
-				SNDERR("String is expected for switch");
+				snd_error(CONTROL, "String is expected for switch");
 				return -EINVAL;
 			}
 			err = snd_ctl_ascii_elem_id_parse(&eid, str);
 			if (err < 0) {
-				SNDERR("unable to parse id '%s'!", str);
+				snd_error(CONTROL, "unable to parse id '%s'!", str);
 				return -EINVAL;
 			}
 			eid_found = true;
@@ -1555,7 +1555,7 @@ static int parse_sync_compound(snd_ctl_remap_t *priv, snd_config_t *conf)
 		if (strcmp(id, "controls") == 0) {
 			count = snd_config_is_array(n);
 			if (count <= 0) {
-				SNDERR("Array is expected for sync!");
+				snd_error(CONTROL, "Array is expected for sync!");
 				return -EINVAL;
 			}
 			err = parse_sync1(priv, count, n);
@@ -1591,7 +1591,7 @@ static int parse_sync(snd_ctl_remap_t *priv, snd_config_t *conf)
 		} else {
 			count = snd_config_is_array(n);
 			if (count <= 0) {
-				SNDERR("Array is expected for sync!");
+				snd_error(CONTROL, "Array is expected for sync!");
 				return -EINVAL;
 			}
 			err = parse_sync1(priv, count, n);
@@ -1817,11 +1817,11 @@ int _snd_ctl_remap_open(snd_ctl_t **handlep, char *name, snd_config_t *root, snd
 			child = n;
 			continue;
 		}
-		SNDERR("Unknown field %s", id);
+		snd_error(CONTROL, "Unknown field %s", id);
 		return -EINVAL;
 	}
 	if (!child) {
-		SNDERR("child is not defined");
+		snd_error(CONTROL, "child is not defined");
 		return -EINVAL;
 	}
 	err = _snd_ctl_open_child(&cctl, root, child, mode, conf);

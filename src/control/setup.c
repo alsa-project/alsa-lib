@@ -93,13 +93,13 @@ int snd_sctl_install(snd_sctl_t *h)
 		if (elem->lock) {
 			err = snd_ctl_elem_lock(h->ctl, elem->id);
 			if (err < 0) {
-				SNDERR("Cannot lock ctl elem");
+				snd_error(CONTROL, "Cannot lock ctl elem");
 				return err;
 			}
 		}
 		err = snd_ctl_elem_read(h->ctl, elem->old);
 		if (err < 0) {
-			SNDERR("Cannot read ctl elem");
+			snd_error(CONTROL, "Cannot read ctl elem");
 			return err;
 		}
 		count = snd_ctl_elem_info_get_count(elem->info);
@@ -166,7 +166,7 @@ int snd_sctl_install(snd_sctl_t *h)
 		}
 		err = snd_ctl_elem_write(h->ctl, elem->val);
 		if (err < 0) {
-			SNDERR("Cannot write ctl elem");
+			snd_error(CONTROL, "Cannot write ctl elem");
 			return err;
 		}
 	}
@@ -188,7 +188,7 @@ int snd_sctl_remove(snd_sctl_t *h)
 		if (elem->lock) {
 			err = snd_ctl_elem_unlock(h->ctl, elem->id);
 			if (err < 0) {
-				SNDERR("Cannot unlock ctl elem");
+				snd_error(CONTROL, "Cannot unlock ctl elem");
 				return err;
 			}
 		}
@@ -205,7 +205,7 @@ int snd_sctl_remove(snd_sctl_t *h)
 		if (elem->preserve && snd_ctl_elem_value_compare(elem->val, elem->old)) {
 			err = snd_ctl_elem_write(h->ctl, elem->old);
 			if (err < 0) {
-				SNDERR("Cannot restore ctl elem");
+				snd_error(CONTROL, "Cannot restore ctl elem");
 				return err;
 			}
 		}
@@ -235,7 +235,7 @@ static int snd_config_get_ctl_elem_enumerated(snd_config_t *n, snd_ctl_t *ctl,
 		snd_ctl_elem_info_set_item(info, idx);
 		err = snd_ctl_elem_info(ctl, info);
 		if (err < 0) {
-			SNDERR("Cannot obtain info for CTL elem");
+			snd_error(CONTROL, "Cannot obtain info for CTL elem");
 			return err;
 		}
 		if (strcmp(str, snd_ctl_elem_info_get_item_name(info)) == 0)
@@ -293,7 +293,7 @@ static int snd_config_get_ctl_elem_value(snd_config_t *conf,
 		case SND_CTL_ELEM_TYPE_IEC958:
 			break;
 		default:
-			SNDERR("Unknown control type: %d", type);
+			snd_error(CONTROL, "Unknown control type: %d", type);
 			return -EINVAL;
 		}
 	}
@@ -311,7 +311,7 @@ static int snd_config_get_ctl_elem_value(snd_config_t *conf,
 			unsigned int idx = 0;
 			if (len % 2 != 0 || len > count * 2) {
 			_bad_content:
-				SNDERR("bad value content");
+				snd_error(CONTROL, "bad value content");
 				return -EINVAL;
 			}
 			while (*buf) {
@@ -340,7 +340,7 @@ static int snd_config_get_ctl_elem_value(snd_config_t *conf,
 		break;
 	}
 	if (snd_config_get_type(conf) != SND_CONFIG_TYPE_COMPOUND) {
-		SNDERR("bad value type");
+		snd_error(CONTROL, "bad value type");
 		return -EINVAL;
 	}
 
@@ -351,7 +351,7 @@ static int snd_config_get_ctl_elem_value(snd_config_t *conf,
 			continue;
 		err = safe_strtol(id, &idx);
 		if (err < 0 || idx < 0 || (unsigned int) idx >= count) {
-			SNDERR("bad value index");
+			snd_error(CONTROL, "bad value index");
 			return -EINVAL;
 		}
 		switch (type) {
@@ -424,11 +424,11 @@ static int add_elem(snd_sctl_t *h, snd_config_t *_conf, snd_config_t *private_da
 		if (strcmp(id, "iface") == 0 || strcmp(id, "interface") == 0) {
 			const char *ptr;
 			if ((err = snd_config_get_string(n, &ptr)) < 0) {
-				SNDERR("field %s is not a string", id);
+				snd_error(CONTROL, "field %s is not a string", id);
 				goto _err;
 			}
 			if ((err = snd_config_get_ctl_iface_ascii(ptr)) < 0) {
-				SNDERR("Invalid value for '%s'", id);
+				snd_error(CONTROL, "Invalid value for '%s'", id);
 				goto _err;
 			}
 			iface = err;
@@ -436,28 +436,28 @@ static int add_elem(snd_sctl_t *h, snd_config_t *_conf, snd_config_t *private_da
 		}
 		if (strcmp(id, "name") == 0) {
 			if ((err = snd_config_get_string(n, &name)) < 0) {
-				SNDERR("field %s is not a string", id);
+				snd_error(CONTROL, "field %s is not a string", id);
 				goto _err;
 			}
 			continue;
 		}
 		if (strcmp(id, "index") == 0) {
 			if ((err = snd_config_get_integer(n, &index)) < 0) {
-				SNDERR("field %s is not an integer", id);
+				snd_error(CONTROL, "field %s is not an integer", id);
 				goto _err;
 			}
 			continue;
 		}
 		if (strcmp(id, "device") == 0) {
 			if ((err = snd_config_get_integer(n, &device)) < 0) {
-				SNDERR("field %s is not an integer", id);
+				snd_error(CONTROL, "field %s is not an integer", id);
 				goto _err;
 			}
 			continue;
 		}
 		if (strcmp(id, "subdevice") == 0) {
 			if ((err = snd_config_get_integer(n, &subdevice)) < 0) {
-				SNDERR("field %s is not an integer", id);
+				snd_error(CONTROL, "field %s is not an integer", id);
 				goto _err;
 			}
 			continue;
@@ -498,16 +498,16 @@ static int add_elem(snd_sctl_t *h, snd_config_t *_conf, snd_config_t *private_da
 			skip_rest = err;
 			continue;
 		}
-		SNDERR("Unknown field %s", id);
+		snd_error(CONTROL, "Unknown field %s", id);
 		return -EINVAL;
 	}
 	if (name == NULL) {
-		SNDERR("Missing control name");
+		snd_error(CONTROL, "Missing control name");
 		err = -EINVAL;
 		goto _err;
 	}
 	if (value == NULL) {
-		SNDERR("Missing control value");
+		snd_error(CONTROL, "Missing control value");
 		err = -EINVAL;
 		goto _err;
 	}
@@ -544,7 +544,7 @@ static int add_elem(snd_sctl_t *h, snd_config_t *_conf, snd_config_t *private_da
 	err = snd_ctl_elem_info(h->ctl, elem->info);
 	if (err < 0) {
 		if (! optional)
-			SNDERR("Cannot obtain info for CTL elem (%s,'%s',%li,%li,%li): %s", snd_ctl_elem_iface_name(iface), name, index, device, subdevice, snd_strerror(err));
+			snd_error(CONTROL, "Cannot obtain info for CTL elem (%s,'%s',%li,%li,%li): %s", snd_ctl_elem_iface_name(iface), name, index, device, subdevice, snd_strerror(err));
 		goto _err;
 	} else {
 		if (skip_rest)
@@ -564,14 +564,14 @@ static int add_elem(snd_sctl_t *h, snd_config_t *_conf, snd_config_t *private_da
 		if (err < 0)
 			goto _err;
 	}
-		
+
 	err = snd_config_get_ctl_elem_value(value, h->ctl, elem->val, elem->mask, elem->info);
 	if (err < 0)
 		goto _err;
 	list_add_tail(&elem->list, &h->elems);
 
  _err:
- 	if (err < 0 && elem) {
+	if (err < 0 && elem) {
 		if (elem->id)
 			snd_ctl_elem_id_free(elem->id);
 		if (elem->info)

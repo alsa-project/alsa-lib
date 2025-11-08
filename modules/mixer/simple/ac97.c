@@ -75,7 +75,7 @@ int alsa_mixer_simple_init(snd_mixer_class_t *class)
 {
 	struct bclass_base_ops *ops;
 	int err;
-	
+
 	err = mixer_simple_basic_dlopen(class, &ops);
 	if (err < 0)
 		return 0;

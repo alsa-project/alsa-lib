@@ -25,7 +25,7 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-  
+
 #include "pcm_local.h"
 #include "pcm_plugin.h"
 
@@ -77,8 +77,8 @@ pcm.name {
  *          changed in future.
  */
 int _snd_pcm_empty_open(snd_pcm_t **pcmp, const char *name ATTRIBUTE_UNUSED,
-		        snd_config_t *root, snd_config_t *conf, 
-		        snd_pcm_stream_t stream, int mode)
+			snd_config_t *root, snd_config_t *conf,
+			snd_pcm_stream_t stream, int mode)
 {
 	snd_config_t *slave = NULL, *sconf;
 	snd_config_iterator_t i, next;
@@ -95,11 +95,11 @@ int _snd_pcm_empty_open(snd_pcm_t **pcmp, const char *name ATTRIBUTE_UNUSED,
 			slave = n;
 			continue;
 		}
-		SNDERR("Unknown field %s", id);
+		snd_error(PCM, "Unknown field %s", id);
 		return -EINVAL;
 	}
 	if (!slave) {
-		SNDERR("slave is not defined");
+		snd_error(PCM, "slave is not defined");
 		return -EINVAL;
 	}
 	err = snd_pcm_slave_conf(root, slave, &sconf, 0);

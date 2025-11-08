@@ -25,7 +25,7 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-  
+
 #include "pcm_local.h"
 #include "bswap.h"
 #include "pcm_plugin.h"
@@ -232,7 +232,7 @@ static int snd_pcm_alaw_hw_refine_cprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t *
 		err = _snd_pcm_hw_param_set_mask(params, SND_PCM_HW_PARAM_FORMAT,
 						 &format_mask);
 	} else {
-		err = _snd_pcm_hw_params_set_format(params, 
+		err = _snd_pcm_hw_params_set_format(params,
 						   SND_PCM_FORMAT_A_LAW);
 	}
 	if (err < 0)
@@ -273,7 +273,7 @@ static int snd_pcm_alaw_hw_refine_schange(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_p
 		return err;
 	return 0;
 }
-	
+
 static int snd_pcm_alaw_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params,
 					    snd_pcm_hw_params_t *sparams)
 {
@@ -317,7 +317,7 @@ static int snd_pcm_alaw_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	err = INTERNAL(snd_pcm_hw_params_get_format)(params, &format);
 	if (err < 0)
 		return err;
-		
+
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 		if (alaw->sformat == SND_PCM_FORMAT_A_LAW) {
 			alaw->getput_idx = snd_pcm_linear_get_index(format, SND_PCM_FORMAT_S16);
@@ -351,7 +351,7 @@ snd_pcm_alaw_write_areas(snd_pcm_t *pcm,
 	if (size > *slave_sizep)
 		size = *slave_sizep;
 	alaw->func(slave_areas, slave_offset,
-		   areas, offset, 
+		   areas, offset,
 		   pcm->channels, size,
 		   alaw->getput_idx);
 	*slave_sizep = size;
@@ -370,7 +370,7 @@ snd_pcm_alaw_read_areas(snd_pcm_t *pcm,
 	snd_pcm_alaw_t *alaw = pcm->private_data;
 	if (size > *slave_sizep)
 		size = *slave_sizep;
-	alaw->func(areas, offset, 
+	alaw->func(areas, offset,
 		   slave_areas, slave_offset,
 		   pcm->channels, size,
 		   alaw->getput_idx);
@@ -381,7 +381,7 @@ snd_pcm_alaw_read_areas(snd_pcm_t *pcm,
 static void snd_pcm_alaw_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_pcm_alaw_t *alaw = pcm->private_data;
-	snd_output_printf(out, "A-Law conversion PCM (%s)\n", 
+	snd_output_printf(out, "A-Law conversion PCM (%s)\n",
 		snd_pcm_format_name(alaw->sformat));
 	if (pcm->setup) {
 		snd_output_printf(out, "Its setup is:\n");
@@ -420,7 +420,7 @@ static const snd_pcm_ops_t snd_pcm_alaw_ops = {
  * \warning Using of this function might be dangerous in the sense
  *          of compatibility reasons. The prototype might be freely
  *          changed in future.
- */           
+ */
 int snd_pcm_alaw_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sformat, snd_pcm_t *slave, int close_slave)
 {
 	snd_pcm_t *pcm;
@@ -471,15 +471,15 @@ format and rate must match for both of them.
 
 \code
 pcm.name {
-        type alaw               # A-Law conversion PCM
-        slave STR               # Slave name
-        # or
-        slave {                 # Slave definition
-                pcm STR         # Slave PCM name
-                # or
-                pcm { }         # Slave PCM definition
-                format STR      # Slave format
-        }
+	type alaw               # A-Law conversion PCM
+	slave STR               # Slave name
+	# or
+	slave {                 # Slave definition
+		pcm STR         # Slave PCM name
+		# or
+		pcm { }         # Slave PCM definition
+		format STR      # Slave format
+	}
 }
 \endcode
 
@@ -506,7 +506,7 @@ pcm.name {
  *          changed in future.
  */
 int _snd_pcm_alaw_open(snd_pcm_t **pcmp, const char *name,
-		       snd_config_t *root, snd_config_t *conf, 
+		       snd_config_t *root, snd_config_t *conf,
 		       snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i, next;
@@ -525,11 +525,11 @@ int _snd_pcm_alaw_open(snd_pcm_t **pcmp, const char *name,
 			slave = n;
 			continue;
 		}
-		SNDERR("Unknown field %s", id);
+		snd_error(PCM, "Unknown field %s", id);
 		return -EINVAL;
 	}
 	if (!slave) {
-		SNDERR("slave is not defined");
+		snd_error(PCM, "slave is not defined");
 		return -EINVAL;
 	}
 	err = snd_pcm_slave_conf(root, slave, &sconf, 1,
@@ -538,8 +538,8 @@ int _snd_pcm_alaw_open(snd_pcm_t **pcmp, const char *name,
 		return err;
 	if (snd_pcm_format_linear(sformat) != 1 &&
 	    sformat != SND_PCM_FORMAT_A_LAW) {
-	    	snd_config_delete(sconf);
-		SNDERR("invalid slave format");
+		snd_config_delete(sconf);
+		snd_error(PCM, "invalid slave format");
 		return -EINVAL;
 	}
 	err = snd_pcm_open_slave(&spcm, root, sconf, stream, mode, conf);

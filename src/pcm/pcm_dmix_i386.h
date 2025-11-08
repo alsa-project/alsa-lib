@@ -244,7 +244,7 @@ static void MIX_AREAS_16_MMX(unsigned int size,
 		"\tdecl %[size]\n"
 		"\tjnz 1b\n"
 		"\temms\n"
-                "5:"
+		"5:"
 #ifdef BOUNDED_EBX
 		"\tmovl %[old_ebx], %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
 #endif

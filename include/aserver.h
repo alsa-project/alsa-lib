@@ -17,7 +17,7 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-  
+
 #include "../src/pcm/pcm_local.h"
 #include "../src/control/control_local.h"
 #include <netdb.h>
@@ -106,7 +106,7 @@ typedef struct {
 } snd_pcm_shm_ctrl_t;
 
 #define PCM_SHM_SIZE sizeof(snd_pcm_shm_ctrl_t)
-		
+
 #define SND_CTL_IOCTL_READ		_IOR('U', 0xf1, snd_ctl_event_t)
 #define SND_CTL_IOCTL_CLOSE		_IO ('U', 0xf2)
 #define SND_CTL_IOCTL_POLL_DESCRIPTOR	_IO ('U', 0xf3)

@@ -13,8 +13,8 @@
   GNU Lesser General Public License for more details.
 
   Authors: Mengdong Lin <mengdong.lin@intel.com>
-           Yao Jin <yao.jin@intel.com>
-           Liam Girdwood <liam.r.girdwood@linux.intel.com>
+	   Yao Jin <yao.jin@intel.com>
+	   Liam Girdwood <liam.r.girdwood@linux.intel.com>
 */
 
 #include "tplg_local.h"
@@ -94,7 +94,7 @@ int parse_access(snd_config_t *cfg,
 		if (strcmp(id, "access") == 0) {
 			err = parse_access_values(n, hdr);
 			if (err < 0) {
-				SNDERR("failed to parse access");
+				snd_error(TOPOLOGY, "failed to parse access");
 				return err;
 			}
 			continue;
@@ -187,8 +187,9 @@ static int tplg_build_mixer_control(snd_tplg_t *tplg,
 		}
 
 		if (!ref->elem) {
-			SNDERR("cannot find '%s' referenced by"
-				" control '%s'", ref->id, elem->id);
+			snd_error(TOPOLOGY, "cannot find '%s' referenced by"
+					     " control '%s'", ref->id, elem->id);
+
 			return -EINVAL;
 		} else if (err < 0)
 			return err;
@@ -236,8 +237,9 @@ static int tplg_build_enum_control(snd_tplg_t *tplg,
 				return err;
 		}
 		if (!ref->elem) {
-			SNDERR("cannot find '%s' referenced by"
-				" control '%s'", ref->id, elem->id);
+			snd_error(TOPOLOGY, "cannot find '%s' referenced by"
+					     " control '%s'", ref->id, elem->id);
+
 			return -EINVAL;
 		}
 	}
@@ -358,7 +360,7 @@ static int tplg_parse_tlv_dbscale(snd_config_t *cfg, struct tplg_elem *elem)
 		else if (strcmp(id, "mute") == 0)
 			scale->mute = val;
 		else
-			SNDERR("unknown id '%s'", id);
+			snd_error(TOPOLOGY, "unknown id '%s'", id);
 	}
 
 	return 0;
@@ -387,7 +389,7 @@ int tplg_parse_tlv(snd_tplg_t *tplg, snd_config_t *cfg,
 		if (strcmp(id, "scale") == 0) {
 			err = tplg_parse_tlv_dbscale(n, elem);
 			if (err < 0) {
-				SNDERR("failed to DBScale");
+				snd_error(TOPOLOGY, "failed to DBScale");
 				return err;
 			}
 			continue;
@@ -407,7 +409,7 @@ int tplg_save_tlv(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 	int err;
 
 	if (tlv->type != SNDRV_CTL_TLVT_DB_SCALE) {
-		SNDERR("unknown TLV type");
+		snd_error(TOPOLOGY, "unknown TLV type");
 		return -EINVAL;
 	}
 
@@ -650,7 +652,7 @@ int tplg_parse_control_enum(snd_tplg_t *tplg, snd_config_t *cfg,
 
 		if (strcmp(id, "channel") == 0) {
 			if (ec->num_channels >= SND_SOC_TPLG_MAX_CHAN) {
-				SNDERR("too many channels %s", elem->id);
+				snd_error(TOPOLOGY, "too many channels %s", elem->id);
 				return -EINVAL;
 			}
 
@@ -778,7 +780,7 @@ int tplg_parse_control_mixer(snd_tplg_t *tplg,
 
 		if (strcmp(id, "channel") == 0) {
 			if (mc->num_channels >= SND_SOC_TPLG_MAX_CHAN) {
-				SNDERR("too many channels %s", elem->id);
+				snd_error(TOPOLOGY, "too many channels %s", elem->id);
 				return -EINVAL;
 			}
 
@@ -936,7 +938,7 @@ static int init_ctl_hdr(snd_tplg_t *tplg,
 		struct snd_soc_tplg_tlv_dbscale *scale;
 
 		if (!tlvt) {
-			SNDERR("missing TLV data");
+			snd_error(TOPOLOGY, "missing TLV data");
 			return -EINVAL;
 		}
 
@@ -966,7 +968,7 @@ static int init_ctl_hdr(snd_tplg_t *tplg,
 
 		/* TODO: add support for other TLV types */
 		default:
-			SNDERR("unsupported TLV type %d", tlv->type);
+			snd_error(TOPOLOGY, "unsupported TLV type %d", tlv->type);
 			break;
 		}
 	}
@@ -985,7 +987,7 @@ int tplg_add_mixer(snd_tplg_t *tplg, struct snd_tplg_mixer_template *mixer,
 	tplg_dbg(" Control Mixer: %s", mixer->hdr.name);
 
 	if (mixer->hdr.type != SND_SOC_TPLG_TYPE_MIXER) {
-		SNDERR("invalid mixer type %d", mixer->hdr.type);
+		snd_error(TOPOLOGY, "invalid mixer type %d", mixer->hdr.type);
 		return -EINVAL;
 	}
 
@@ -1049,7 +1051,7 @@ int tplg_add_enum(snd_tplg_t *tplg, struct snd_tplg_enum_template *enum_ctl,
 	tplg_dbg(" Control Enum: %s", enum_ctl->hdr.name);
 
 	if (enum_ctl->hdr.type != SND_SOC_TPLG_TYPE_ENUM) {
-		SNDERR("invalid enum type %d", enum_ctl->hdr.type);
+		snd_error(TOPOLOGY, "invalid enum type %d", enum_ctl->hdr.type);
 		return -EINVAL;
 	}
 
@@ -1140,7 +1142,7 @@ int tplg_add_bytes(snd_tplg_t *tplg, struct snd_tplg_bytes_template *bytes_ctl,
 	tplg_dbg(" Control Bytes: %s", bytes_ctl->hdr.name);
 
 	if (bytes_ctl->hdr.type != SND_SOC_TPLG_TYPE_BYTES) {
-		SNDERR("invalid bytes type %d", bytes_ctl->hdr.type);
+		snd_error(TOPOLOGY, "invalid bytes type %d", bytes_ctl->hdr.type);
 		return -EINVAL;
 	}
 
@@ -1177,8 +1179,9 @@ int tplg_add_bytes(snd_tplg_t *tplg, struct snd_tplg_bytes_template *bytes_ctl,
 	if (be->hdr.access & SNDRV_CTL_ELEM_ACCESS_TLV_CALLBACK) {
 		if ((be->hdr.access & SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE)
 			!= SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE) {
-			SNDERR("Invalid TLV bytes control access 0x%x",
-				be->hdr.access);
+			snd_error(TOPOLOGY, "Invalid TLV bytes control access 0x%x",
+					     be->hdr.access);
+
 			tplg_elem_free(elem);
 			return -EINVAL;
 		}
@@ -1221,14 +1224,14 @@ int tplg_decode_control_mixer1(snd_tplg_t *tplg,
 	int i;
 
 	if (size < sizeof(*mc)) {
-		SNDERR("mixer: small size %d", size);
+		snd_error(TOPOLOGY, "mixer: small size %d", size);
 		return -EINVAL;
 	}
 
 	tplg_log(tplg, 'D', pos, "mixer: size %d TLV size %d private size %d",
 		 mc->size, mc->hdr.tlv.size, mc->priv.size);
 	if (size != mc->size + mc->priv.size) {
-		SNDERR("mixer: unexpected element size %d", size);
+		snd_error(TOPOLOGY, "mixer: unexpected element size %d", size);
 		return -EINVAL;
 	}
 
@@ -1258,8 +1261,9 @@ int tplg_decode_control_mixer1(snd_tplg_t *tplg,
 		/* nothing */
 	} else if (mc->hdr.tlv.size == sizeof(struct snd_soc_tplg_ctl_tlv)) {
 		if (mc->hdr.tlv.type != SNDRV_CTL_TLVT_DB_SCALE) {
-			SNDERR("mixer: unknown TLV type %d",
-			       mc->hdr.tlv.type);
+			snd_error(TOPOLOGY, "mixer: unknown TLV type %d",
+					    mc->hdr.tlv.type);
+
 			return -EINVAL;
 		}
 		db = tplg_calloc(heap, sizeof(*db));
@@ -1273,7 +1277,7 @@ int tplg_decode_control_mixer1(snd_tplg_t *tplg,
 		tplg_log(tplg, 'D', pos, "mixer: dB scale TLV: min %d step %d mute %d",
 			 db->min, db->step, db->mute);
 	} else {
-		SNDERR("mixer: wrong TLV size %d", mc->hdr.tlv.size);
+		snd_error(TOPOLOGY, "mixer: wrong TLV size %d", mc->hdr.tlv.size);
 		return -EINVAL;
 	}
 
@@ -1301,15 +1305,16 @@ int tplg_decode_control_mixer(snd_tplg_t *tplg,
 
 next:
 	if (size < sizeof(*mc)) {
-		SNDERR("mixer: small size %d", size);
+		snd_error(TOPOLOGY, "mixer: small size %d", size);
 		return -EINVAL;
 	}
 	INIT_LIST_HEAD(&heap);
 	mc = bin;
 	size2 = mc->size + mc->priv.size;
 	if (size2 > size) {
-		SNDERR("mixer: wrong element size (%d, priv %d)",
-		       mc->size, mc->priv.size);
+		snd_error(TOPOLOGY, "mixer: wrong element size (%d, priv %d)",
+				    mc->size, mc->priv.size);
+
 		return -EINVAL;
 	}
 
@@ -1342,11 +1347,11 @@ int tplg_decode_control_enum1(snd_tplg_t *tplg,
 
 	if (ec->num_channels > SND_TPLG_MAX_CHAN ||
 	    ec->num_channels > SND_SOC_TPLG_MAX_CHAN) {
-		SNDERR("enum: unexpected channel count %d", ec->num_channels);
+		snd_error(TOPOLOGY, "enum: unexpected channel count %d", ec->num_channels);
 		return -EINVAL;
 	}
 	if (ec->items > SND_SOC_TPLG_NUM_TEXTS) {
-		SNDERR("enum: unexpected texts count %d", ec->items);
+		snd_error(TOPOLOGY, "enum: unexpected texts count %d", ec->items);
 		return -EINVAL;
 	}
 
@@ -1404,15 +1409,16 @@ int tplg_decode_control_enum(snd_tplg_t *tplg,
 
 next:
 	if (size < sizeof(*ec)) {
-		SNDERR("enum: small size %d", size);
+		snd_error(TOPOLOGY, "enum: small size %d", size);
 		return -EINVAL;
 	}
 	INIT_LIST_HEAD(&heap);
 	ec = bin;
 	size2 = ec->size + ec->priv.size;
 	if (size2 > size) {
-		SNDERR("enum: wrong element size (%d, priv %d)",
-		       ec->size, ec->priv.size);
+		snd_error(TOPOLOGY, "enum: wrong element size (%d, priv %d)",
+				    ec->size, ec->priv.size);
+
 		return -EINVAL;
 	}
 
@@ -1446,14 +1452,14 @@ int tplg_decode_control_bytes1(snd_tplg_t *tplg,
 	struct snd_soc_tplg_bytes_control *bc = bin;
 
 	if (size < sizeof(*bc)) {
-		SNDERR("bytes: small size %d", size);
+		snd_error(TOPOLOGY, "bytes: small size %d", size);
 		return -EINVAL;
 	}
 
 	tplg_log(tplg, 'D', pos, "control bytes: size %d private size %d",
 		 bc->size, bc->priv.size);
 	if (size != bc->size + bc->priv.size) {
-		SNDERR("bytes: unexpected element size %d", size);
+		snd_error(TOPOLOGY, "bytes: unexpected element size %d", size);
 		return -EINVAL;
 	}
 
@@ -1495,14 +1501,15 @@ int tplg_decode_control_bytes(snd_tplg_t *tplg,
 
 next:
 	if (size < sizeof(*bc)) {
-		SNDERR("bytes: small size %d", size);
+		snd_error(TOPOLOGY, "bytes: small size %d", size);
 		return -EINVAL;
 	}
 	bc = bin;
 	size2 = bc->size + bc->priv.size;
 	if (size2 > size) {
-		SNDERR("bytes: wrong element size (%d, priv %d)",
-		       bc->size, bc->priv.size);
+		snd_error(TOPOLOGY, "bytes: wrong element size (%d, priv %d)",
+				    bc->size, bc->priv.size);
+
 		return -EINVAL;
 	}
 

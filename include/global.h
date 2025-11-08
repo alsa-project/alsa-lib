@@ -32,7 +32,7 @@
 #endif
 
 #ifndef __ALSA_GLOBAL_H_
-#define __ALSA_GLOBAL_H_
+#define __ALSA_GLOBAL_H_ /**< header include loop protection */
 
 #ifdef __cplusplus
 extern "C" {
@@ -124,7 +124,7 @@ typedef struct _snd_async_handler snd_async_handler_t;
  */
 typedef void (*snd_async_callback_t)(snd_async_handler_t *handler);
 
-int snd_async_add_handler(snd_async_handler_t **handler, int fd, 
+int snd_async_add_handler(snd_async_handler_t **handler, int fd,
 			  snd_async_callback_t callback, void *private_data);
 int snd_async_del_handler(snd_async_handler_t *handler);
 int snd_async_handler_get_fd(snd_async_handler_t *handler);

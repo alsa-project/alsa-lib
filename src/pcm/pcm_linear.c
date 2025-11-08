@@ -25,7 +25,7 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-  
+
 #include "pcm_local.h"
 #include "pcm_plugin.h"
 #include "plugin_ops.h"
@@ -78,7 +78,7 @@ int snd_pcm_linear_convert_index(snd_pcm_format_t src_format,
 int snd_pcm_linear_get_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format)
 {
 	int sign, width, pwidth, endian;
-	sign = (snd_pcm_format_signed(src_format) != 
+	sign = (snd_pcm_format_signed(src_format) !=
 		snd_pcm_format_signed(dst_format));
 #ifdef SND_LITTLE_ENDIAN
 	endian = snd_pcm_format_big_endian(src_format);
@@ -112,7 +112,7 @@ int snd_pcm_linear_get_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_f
 int snd_pcm_linear_put_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format)
 {
 	int sign, width, pwidth, endian;
-	sign = (snd_pcm_format_signed(src_format) != 
+	sign = (snd_pcm_format_signed(src_format) !=
 		snd_pcm_format_signed(dst_format));
 #ifdef SND_LITTLE_ENDIAN
 	endian = snd_pcm_format_big_endian(dst_format);
@@ -264,7 +264,7 @@ static int snd_pcm_linear_hw_refine_schange(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd
 		return err;
 	return 0;
 }
-	
+
 static int snd_pcm_linear_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params,
 					    snd_pcm_hw_params_t *sparams)
 {
@@ -344,12 +344,12 @@ snd_pcm_linear_write_areas(snd_pcm_t *pcm,
 		size = *slave_sizep;
 	if (linear->use_getput)
 		snd_pcm_linear_getput(slave_areas, slave_offset,
-				      areas, offset, 
+				      areas, offset,
 				      pcm->channels, size,
 				      linear->get_idx, linear->put_idx);
 	else
 		snd_pcm_linear_convert(slave_areas, slave_offset,
-				       areas, offset, 
+				       areas, offset,
 				       pcm->channels, size, linear->conv_idx);
 	*slave_sizep = size;
 	return size;
@@ -368,12 +368,12 @@ snd_pcm_linear_read_areas(snd_pcm_t *pcm,
 	if (size > *slave_sizep)
 		size = *slave_sizep;
 	if (linear->use_getput)
-		snd_pcm_linear_getput(areas, offset, 
+		snd_pcm_linear_getput(areas, offset,
 				      slave_areas, slave_offset,
 				      pcm->channels, size,
 				      linear->get_idx, linear->put_idx);
 	else
-		snd_pcm_linear_convert(areas, offset, 
+		snd_pcm_linear_convert(areas, offset,
 				       slave_areas, slave_offset,
 				       pcm->channels, size, linear->conv_idx);
 	*slave_sizep = size;
@@ -383,7 +383,7 @@ snd_pcm_linear_read_areas(snd_pcm_t *pcm,
 static void snd_pcm_linear_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_pcm_linear_t *linear = pcm->private_data;
-	snd_output_printf(out, "Linear conversion PCM (%s)\n", 
+	snd_output_printf(out, "Linear conversion PCM (%s)\n",
 		snd_pcm_format_name(linear->sformat));
 	if (pcm->setup) {
 		snd_output_printf(out, "Its setup is:\n");
@@ -472,15 +472,15 @@ slave PCM. The channel count, format and rate must match for both of them.
 
 \code
 pcm.name {
-        type linear             # Linear conversion PCM
-        slave STR               # Slave name
-        # or
-        slave {                 # Slave definition
-                pcm STR         # Slave PCM name
-                # or
-                pcm { }         # Slave PCM definition
-                format STR      # Slave format
-        }
+	type linear             # Linear conversion PCM
+	slave STR               # Slave name
+	# or
+	slave {                 # Slave definition
+		pcm STR         # Slave PCM name
+		# or
+		pcm { }         # Slave PCM definition
+		format STR      # Slave format
+	}
 }
 \endcode
 
@@ -507,7 +507,7 @@ pcm.name {
  *          changed in future.
  */
 int _snd_pcm_linear_open(snd_pcm_t **pcmp, const char *name,
-			 snd_config_t *root, snd_config_t *conf, 
+			 snd_config_t *root, snd_config_t *conf,
 			 snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i, next;
@@ -526,11 +526,11 @@ int _snd_pcm_linear_open(snd_pcm_t **pcmp, const char *name,
 			slave = n;
 			continue;
 		}
-		SNDERR("Unknown field %s", id);
+		snd_error(PCM, "Unknown field %s", id);
 		return -EINVAL;
 	}
 	if (!slave) {
-		SNDERR("slave is not defined");
+		snd_error(PCM, "slave is not defined");
 		return -EINVAL;
 	}
 	err = snd_pcm_slave_conf(root, slave, &sconf, 1,
@@ -539,7 +539,7 @@ int _snd_pcm_linear_open(snd_pcm_t **pcmp, const char *name,
 		return err;
 	if (snd_pcm_format_linear(sformat) != 1) {
 		snd_config_delete(sconf);
-		SNDERR("slave format is not linear");
+		snd_error(PCM, "slave format is not linear");
 		return -EINVAL;
 	}
 	err = snd_pcm_open_slave(&spcm, root, sconf, stream, mode, conf);

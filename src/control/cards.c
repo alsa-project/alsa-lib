@@ -108,7 +108,7 @@ int snd_card_load(int card)
 int snd_card_next(int *rcard)
 {
 	int card;
-	
+
 	if (rcard == NULL)
 		return -EINVAL;
 	card = *rcard;
@@ -194,7 +194,7 @@ int snd_card_get_name(int card, char **name)
 	snd_ctl_t *handle;
 	snd_ctl_card_info_t info;
 	int err;
-	
+
 	if (name == NULL)
 		return -EINVAL;
 	if ((err = snd_ctl_hw_open(&handle, NULL, card, 0)) < 0)
@@ -224,7 +224,7 @@ int snd_card_get_longname(int card, char **name)
 	snd_ctl_t *handle;
 	snd_ctl_card_info_t info;
 	int err;
-	
+
 	if (name == NULL)
 		return -EINVAL;
 	if ((err = snd_ctl_hw_open(&handle, NULL, card, 0)) < 0)

@@ -53,7 +53,7 @@ int __snd_pcm_info_eld_fixup(snd_pcm_info_t * info)
 
 	ret = snd_ctl_hw_open(&ctl, NULL, info->card, 0);
 	if (ret < 0) {
-		SYSMSG("Cannot open the associated CTL");
+		snd_checknum(CONTROL, "Cannot open the associated CTL");
 		return ret;
 	}
 
@@ -66,7 +66,7 @@ int __snd_pcm_info_eld_fixup(snd_pcm_info_t * info)
 	if (ret == -ENOENT || cinfo.type != SND_CTL_ELEM_TYPE_BYTES || cinfo.count == 0)
 		return 0;
 	if (ret < 0) {
-		SYSMSG("Cannot read ELD");
+		snd_checknum(CONTROL, "Cannot read ELD");
 		return ret;
 	}
 	/* decode connected HDMI device name */
@@ -78,7 +78,7 @@ int __snd_pcm_info_eld_fixup(snd_pcm_info_t * info)
 		/* no monitor name detected */
 		goto __present;
 	if (l > 16 || 20 + l > cinfo.count) {
-		SNDERR("ELD decode failed, using old HDMI output names");
+		snd_error(CONTROL, "ELD decode failed, using old HDMI output names");
 		return 0;
 	}
 	s = alloca(l + 1);

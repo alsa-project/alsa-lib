@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 
-	if (strcmp(pname, "-")) { 
+	if (strcmp(pname, "-")) {
 		err = snd_pcm_open(&phandle, pname, SND_PCM_STREAM_PLAYBACK, 0);
 		if (err < 0) {
 			fprintf(stderr, "Playback PCM open error: %s\n", snd_strerror(err));

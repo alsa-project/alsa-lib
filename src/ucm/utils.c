@@ -10,7 +10,7 @@
  *  Lesser General Public License for more details.
  *
  *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software  
+ *  License along with this library; if not, write to the Free Software
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  *  Support for the verb/device/modifier core logic and API,
@@ -55,7 +55,7 @@ const char *uc_mgr_sysfs_root(void)
 	if (e == NULL)
 		return "/sys";
 	if (*e == '\0')
-		uc_error("no sysfs root!");
+		snd_error(UCM, "no sysfs root!");
 	return e;
 }
 
@@ -69,7 +69,7 @@ struct ctl_list *uc_mgr_get_master_ctl(snd_use_case_mgr_t *uc_mgr)
 		if (ctl_list2->slave)
 			continue;
 		if (ctl_list) {
-			uc_error("multiple control device names were found!");
+			snd_error(UCM, "multiple control device names were found!");
 			return NULL;
 		}
 		ctl_list = ctl_list2;
@@ -298,7 +298,7 @@ int uc_mgr_open_ctl(snd_use_case_mgr_t *uc_mgr,
 	if (err == 0)
 		id = snd_ctl_card_info_get_id(info);
 	if (err < 0 || id == NULL || id[0] == '\0') {
-		uc_error("control hardware info (%s): %s", device, snd_strerror(err));
+		snd_error(UCM, "control hardware info (%s): %s", device, snd_strerror(err));
 		snd_ctl_close(ctl);
 		return err >= 0 ? -EINVAL : err;
 	}
@@ -361,7 +361,7 @@ int uc_mgr_config_load_into(int format, const char *file, snd_config_t *top)
 	if (!fp) {
 		err = -errno;
   __err_open:
-		uc_error("could not open configuration file %s", file);
+		snd_error(UCM, "could not open configuration file %s", file);
 		return err;
 	}
 	err = snd_input_stdio_attach(&in, fp, 1);
@@ -372,7 +372,7 @@ int uc_mgr_config_load_into(int format, const char *file, snd_config_t *top)
 	default_paths[1] = NULL;
 	err = _snd_config_load_with_include(top, in, 0, default_paths);
 	if (err < 0) {
-		uc_error("could not load configuration file %s", file);
+		snd_error(UCM, "could not load configuration file %s", file);
 		if (in)
 			snd_input_close(in);
 		return err;
@@ -412,7 +412,7 @@ void uc_mgr_free_value(struct list_head *base)
 {
 	struct list_head *pos, *npos;
 	struct ucm_value *val;
-	
+
 	list_for_each_safe(pos, npos, base) {
 		val = list_entry(pos, struct ucm_value, list);
 		uc_mgr_free_value1(val);
@@ -423,7 +423,7 @@ void uc_mgr_free_dev_list(struct dev_list *dev_list)
 {
 	struct list_head *pos, *npos;
 	struct dev_list_node *dlist;
-	
+
 	list_for_each_safe(pos, npos, &dev_list->list) {
 		dlist = list_entry(pos, struct dev_list_node, list);
 		free(dlist->name);
@@ -534,7 +534,7 @@ void uc_mgr_free_sequence(struct list_head *base)
 {
 	struct list_head *pos, *npos;
 	struct sequence_element *seq;
-	
+
 	list_for_each_safe(pos, npos, base) {
 		seq = list_entry(pos, struct sequence_element, list);
 		list_del(&seq->list);
@@ -553,7 +553,7 @@ void uc_mgr_free_transition(struct list_head *base)
 {
 	struct list_head *pos, *npos;
 	struct transition_sequence *tseq;
-	
+
 	list_for_each_safe(pos, npos, base) {
 		tseq = list_entry(pos, struct transition_sequence, list);
 		list_del(&tseq->list);
@@ -579,7 +579,7 @@ void uc_mgr_free_modifier(struct list_head *base)
 {
 	struct list_head *pos, *npos;
 	struct use_case_modifier *mod;
-	
+
 	list_for_each_safe(pos, npos, base) {
 		mod = list_entry(pos, struct use_case_modifier, list);
 		free(mod->name);
@@ -611,7 +611,7 @@ void uc_mgr_free_device_list(struct list_head *base)
 {
 	struct list_head *pos, *npos;
 	struct use_case_device *dev;
-	
+
 	list_for_each_safe(pos, npos, base) {
 		dev = list_entry(pos, struct use_case_device, list);
 		uc_mgr_free_device(dev);
@@ -683,6 +683,8 @@ int uc_mgr_set_variable(snd_use_case_mgr_t *uc_mgr, const char *name,
 	struct ucm_value *curr;
 	char *val2;
 
+	snd_trace(UCM, "set variable '%s'='%s'", name, val);
+
 	list_for_each(pos, &uc_mgr->variable_list) {
 		curr = list_entry(pos, struct ucm_value, list);
 		if (strcmp(curr->name, name) == 0) {
@@ -718,6 +720,8 @@ int uc_mgr_delete_variable(snd_use_case_mgr_t *uc_mgr, const char *name)
 	struct list_head *pos;
 	struct ucm_value *curr;
 
+	snd_trace(UCM, "delete variable '%s'", name);
+
 	list_for_each(pos, &uc_mgr->variable_list) {
 		curr = list_entry(pos, struct ucm_value, list);
 		if (strcmp(curr->name, name) == 0) {
@@ -727,6 +731,39 @@ int uc_mgr_delete_variable(snd_use_case_mgr_t *uc_mgr, const char *name)
 	}
 
 	return -ENOENT;
+}
+
+int uc_mgr_duplicate_variables(struct list_head *dst, struct list_head *src)
+{
+	struct list_head *pos;
+	struct ucm_value *var, *new_var;
+	int err;
+
+	INIT_LIST_HEAD(dst);
+
+	list_for_each(pos, src) {
+		var = list_entry(pos, struct ucm_value, list);
+		new_var = calloc(1, sizeof(*new_var));
+		if (new_var == NULL) {
+			err = -ENOMEM;
+			goto __error;
+		}
+		new_var->name = strdup(var->name);
+		new_var->data = strdup(var->data);
+		if (new_var->name == NULL || new_var->data == NULL) {
+			free(new_var->name);
+			free(new_var->data);
+			free(new_var);
+			err = -ENOMEM;
+			goto __error;
+		}
+		list_add_tail(&new_var->list, dst);
+	}
+	return 0;
+
+__error:
+	uc_mgr_free_value(dst);
+	return err;
 }
 
 void uc_mgr_free_verb(snd_use_case_mgr_t *uc_mgr)

@@ -13,7 +13,7 @@
 #endif
 
 #ifndef __ALSA_UMP_H
-#define __ALSA_UMP_H
+#define __ALSA_UMP_H /**< header include loop protection */
 
 #ifdef __cplusplus
 extern "C" {

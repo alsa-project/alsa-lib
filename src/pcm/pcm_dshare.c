@@ -25,7 +25,7 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-  
+
 #include "pcm_local.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -111,7 +111,7 @@ static void snd_pcm_dshare_sync_area(snd_pcm_t *pcm)
 	snd_pcm_uframes_t slave_hw_ptr, slave_appl_ptr, slave_size;
 	snd_pcm_uframes_t appl_ptr, size;
 	const snd_pcm_channel_area_t *src_areas, *dst_areas;
-	
+
 	/* calculate the size to transfer */
 	size = pcm_frame_diff(dshare->appl_ptr, dshare->last_appl_ptr, pcm->boundary);
 	if (! size)
@@ -259,7 +259,7 @@ static int snd_pcm_dshare_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
 	snd_pcm_direct_t *dshare = pcm->private_data;
 	int err;
-	
+
 	switch (dshare->state) {
 	case SNDRV_PCM_STATE_DRAINING:
 	case SNDRV_PCM_STATE_RUNNING:
@@ -328,7 +328,7 @@ static int snd_pcm_dshare_start(snd_pcm_t *pcm)
 	snd_pcm_direct_t *dshare = pcm->private_data;
 	snd_pcm_sframes_t avail;
 	int err;
-	
+
 	if (dshare->state != SND_PCM_STATE_PREPARED)
 		return -EBADFD;
 	avail = snd_pcm_mmap_playback_hw_avail(pcm);
@@ -484,10 +484,10 @@ static int snd_pcm_dshare_close(snd_pcm_t *pcm)
 	snd_pcm_direct_semaphore_down(dshare, DIRECT_IPC_SEM_CLIENT);
 	dshare->shmptr->u.dshare.chn_mask &= ~dshare->u.dshare.chn_mask;
 	snd_pcm_close(dshare->spcm);
- 	if (dshare->server)
- 		snd_pcm_direct_server_discard(dshare);
- 	if (dshare->client)
- 		snd_pcm_direct_client_discard(dshare);
+	if (dshare->server)
+		snd_pcm_direct_server_discard(dshare);
+	if (dshare->client)
+		snd_pcm_direct_client_discard(dshare);
 	if (snd_pcm_direct_shm_discard(dshare)) {
 		if (snd_pcm_direct_semaphore_discard(dshare))
 			snd_pcm_direct_semaphore_final(dshare, DIRECT_IPC_SEM_CLIENT);
@@ -537,7 +537,7 @@ static snd_pcm_sframes_t snd_pcm_dshare_avail_update(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dshare = pcm->private_data;
 	int err;
-	
+
 	if (dshare->state == SND_PCM_STATE_RUNNING ||
 	    dshare->state == SND_PCM_STATE_DRAINING) {
 		if ((err = snd_pcm_dshare_sync_ptr(pcm)) < 0)
@@ -556,7 +556,7 @@ static int snd_pcm_dshare_htimestamp(snd_pcm_t *pcm,
 	snd_pcm_direct_t *dshare = pcm->private_data;
 	snd_pcm_uframes_t avail1;
 	int ok = 0;
-	
+
 	while (1) {
 		if (dshare->state == SND_PCM_STATE_RUNNING ||
 		    dshare->state == SND_PCM_STATE_DRAINING)
@@ -667,7 +667,7 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 	assert(pcmp);
 
 	if (stream != SND_PCM_STREAM_PLAYBACK) {
-		SNDERR("The dshare plugin supports only playback stream");
+		snd_error(PCM, "The dshare plugin supports only playback stream");
 		return -EINVAL;
 	}
 
@@ -698,27 +698,27 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 		ret = snd_pcm_open_slave(&spcm, root, sconf, stream,
 					 mode | SND_PCM_NONBLOCK, NULL);
 		if (ret < 0) {
-			SNDERR("unable to open slave");
+			snd_error(PCM, "unable to open slave");
 			goto _err;
 		}
-	
+
 		if (snd_pcm_type(spcm) != SND_PCM_TYPE_HW) {
-			SNDERR("dshare plugin can be only connected to hw plugin");
+			snd_error(PCM, "dshare plugin can be only connected to hw plugin");
 			goto _err;
 		}
-		
+
 		ret = snd_pcm_direct_initialize_slave(dshare, spcm, params);
 		if (ret < 0) {
-			SNDERR("unable to initialize slave");
+			snd_error(PCM, "unable to initialize slave");
 			goto _err;
 		}
 
 		dshare->spcm = spcm;
-		
+
 		if (dshare->shmptr->use_server) {
 			ret = snd_pcm_direct_server_create(dshare);
 			if (ret < 0) {
-				SNDERR("unable to create server");
+				snd_error(PCM, "unable to create server");
 				goto _err;
 			}
 		}
@@ -730,10 +730,10 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 			snd_pcm_direct_semaphore_up(dshare, DIRECT_IPC_SEM_CLIENT);
 			ret = snd_pcm_direct_client_connect(dshare);
 			if (ret < 0) {
-				SNDERR("unable to connect client");
+				snd_error(PCM, "unable to connect client");
 				goto _err_nosem;
 			}
-			
+
 			snd_pcm_direct_semaphore_down(dshare, DIRECT_IPC_SEM_CLIENT);
 			ret = snd_pcm_direct_open_secondary_client(&spcm, dshare, "dshare_client");
 			if (ret < 0)
@@ -753,18 +753,18 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 					first_instance = 1;
 					goto retry;
 				}
-				SNDERR("unable to open slave");
+				snd_error(PCM, "unable to open slave");
 				goto _err;
 			}
 			if (snd_pcm_type(spcm) != SND_PCM_TYPE_HW) {
-				SNDERR("dshare plugin can be only connected to hw plugin");
+				snd_error(PCM, "dshare plugin can be only connected to hw plugin");
 				ret = -EINVAL;
 				goto _err;
 			}
-		
+
 			ret = snd_pcm_direct_initialize_secondary_slave(dshare, spcm, params);
 			if (ret < 0) {
-				SNDERR("unable to initialize slave");
+				snd_error(PCM, "unable to initialize slave");
 				goto _err;
 			}
 		}
@@ -778,16 +778,16 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 			dshare->u.dshare.chn_mask |= (1ULL << dchn);
 	}
 	if (dshare->shmptr->u.dshare.chn_mask & dshare->u.dshare.chn_mask) {
-		SNDERR("destination channel specified in bindings is already used");
+		snd_error(PCM, "destination channel specified in bindings is already used");
 		dshare->u.dshare.chn_mask = 0;
 		ret = -EINVAL;
 		goto _err;
 	}
 	dshare->shmptr->u.dshare.chn_mask |= dshare->u.dshare.chn_mask;
-		
+
 	ret = snd_pcm_direct_initialize_poll_fd(dshare);
 	if (ret < 0) {
-		SNDERR("unable to initialize poll_fd");
+		snd_error(PCM, "unable to initialize poll_fd");
 		goto _err;
 	}
 
@@ -797,12 +797,12 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 	pcm->mmap_rw = 1;
 	snd_pcm_set_hw_ptr(pcm, &dshare->hw_ptr, -1, 0);
 	snd_pcm_set_appl_ptr(pcm, &dshare->appl_ptr, -1, 0);
-	
+
 	snd_pcm_direct_semaphore_up(dshare, DIRECT_IPC_SEM_CLIENT);
 
 	*pcmp = pcm;
 	return 0;
-	
+
  _err:
 	if (dshare->shmptr != (void *) -1)
 		dshare->shmptr->u.dshare.chn_mask &= ~dshare->u.dshare.chn_mask;

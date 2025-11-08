@@ -35,7 +35,7 @@
 #include <limits.h>
 #include <sys/stat.h>
 
-/** 
+/**
  * \brief This function is unimplemented.
  * \deprecated Since 1.0.14
  */

@@ -111,7 +111,7 @@ int snd_hwdep_hw_open(snd_hwdep_t **handle, const char *name, int card, int devi
 	assert(handle);
 
 	*handle = NULL;
-	
+
 	if (card < 0 || card >= SND_MAX_CARDS)
 		return -EINVAL;
 	sprintf(filename, SNDRV_FILE_HWDEP, card, device);
@@ -172,7 +172,7 @@ int _snd_hwdep_hw_open(snd_hwdep_t **hwdep, char *name,
 				return err;
 			continue;
 		}
-		SNDERR("Unexpected field %s", id);
+		snd_error(HWDEP, "Unexpected field %s", id);
 		return -EINVAL;
 	}
 	if (card < 0)

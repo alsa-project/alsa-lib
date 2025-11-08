@@ -46,7 +46,7 @@ static int snd_seq_hw_close(snd_seq_t *seq)
 
 	if (close(hw->fd)) {
 		err = -errno;
-		SYSERR("close failed\n");
+		snd_errornum(SEQUENCER, "close failed\n");
 	}
 	free(hw);
 	return err;
@@ -58,7 +58,7 @@ static int snd_seq_hw_nonblock(snd_seq_t *seq, int nonblock)
 	long flags;
 
 	if ((flags = fcntl(hw->fd, F_GETFL)) < 0) {
-		SYSERR("F_GETFL failed");
+		snd_errornum(SEQUENCER, "F_GETFL failed");
 		return -errno;
 	}
 	if (nonblock)
@@ -66,7 +66,7 @@ static int snd_seq_hw_nonblock(snd_seq_t *seq, int nonblock)
 	else
 		flags &= ~O_NONBLOCK;
 	if (fcntl(hw->fd, F_SETFL, flags) < 0) {
-		SYSERR("F_SETFL for O_NONBLOCK failed");
+		snd_errornum(SEQUENCER, "F_SETFL for O_NONBLOCK failed");
 		return -errno;
 	}
 	return 0;
@@ -77,7 +77,7 @@ static int snd_seq_hw_client_id(snd_seq_t *seq)
 	snd_seq_hw_t *hw = seq->private_data;
 	int client;
 	if (ioctl(hw->fd, SNDRV_SEQ_IOCTL_CLIENT_ID, &client) < 0) {
-		SYSERR("SNDRV_SEQ_IOCTL_CLIENT_ID failed");
+		snd_errornum(SEQUENCER, "SNDRV_SEQ_IOCTL_CLIENT_ID failed");
 		return -errno;
 	}
 	return client;
@@ -87,7 +87,7 @@ static int snd_seq_hw_system_info(snd_seq_t *seq, snd_seq_system_info_t * info)
 {
 	snd_seq_hw_t *hw = seq->private_data;
 	if (ioctl(hw->fd, SNDRV_SEQ_IOCTL_SYSTEM_INFO, info) < 0) {
-		SYSERR("SNDRV_SEQ_IOCTL_SYSTEM_INFO failed");
+		snd_errornum(SEQUENCER, "SNDRV_SEQ_IOCTL_SYSTEM_INFO failed");
 		return -errno;
 	}
 	return 0;
@@ -522,7 +522,7 @@ int snd_seq_hw_open(snd_seq_t **handle, const char *name, int streams, int mode)
 		assert(0);
 		return -EINVAL;
 	}
-	
+
 	if (mode & SND_SEQ_NONBLOCK)
 		fmode |= O_NONBLOCK;
 
@@ -537,11 +537,11 @@ int snd_seq_hw_open(snd_seq_t **handle, const char *name, int streams, int mode)
 	}
 #endif
 	if (fd < 0) {
-		SYSERR("open %s failed", filename);
+		snd_errornum(SEQUENCER, "open %s failed", filename);
 		return -errno;
 	}
 	if (ioctl(fd, SNDRV_SEQ_IOCTL_PVERSION, &ver) < 0) {
-		SYSERR("SNDRV_SEQ_IOCTL_PVERSION failed");
+		snd_errornum(SEQUENCER, "SNDRV_SEQ_IOCTL_PVERSION failed");
 		ret = -errno;
 		close(fd);
 		return ret;

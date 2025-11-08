@@ -46,30 +46,30 @@ static int snd_timer_query_open_conf(snd_timer_query_t **timer,
 	void *h = NULL;
 	if (snd_config_get_type(timer_conf) != SND_CONFIG_TYPE_COMPOUND) {
 		if (name)
-			SNDERR("Invalid type for TIMER %s definition", name);
+			snd_error(TIMER, "Invalid type for TIMER %s definition", name);
 		else
-			SNDERR("Invalid type for TIMER definition");
+			snd_error(TIMER, "Invalid type for TIMER definition");
 		return -EINVAL;
 	}
 	err = snd_config_search(timer_conf, "type", &conf);
 	if (err < 0) {
-		SNDERR("type is not defined");
+		snd_error(TIMER, "type is not defined");
 		return err;
 	}
 	err = snd_config_get_id(conf, &id);
 	if (err < 0) {
-		SNDERR("unable to get id");
+		snd_error(TIMER, "unable to get id");
 		return err;
 	}
 	err = snd_config_get_string(conf, &str);
 	if (err < 0) {
-		SNDERR("Invalid type for %s", id);
+		snd_error(TIMER, "Invalid type for %s", id);
 		return err;
 	}
 	err = snd_config_search_definition(timer_root, "timer_query_type", str, &type_conf);
 	if (err >= 0) {
 		if (snd_config_get_type(type_conf) != SND_CONFIG_TYPE_COMPOUND) {
-			SNDERR("Invalid type for TIMER type %s definition", str);
+			snd_error(TIMER, "Invalid type for TIMER type %s definition", str);
 			err = -EINVAL;
 			goto _err;
 		}
@@ -83,7 +83,7 @@ static int snd_timer_query_open_conf(snd_timer_query_t **timer,
 			if (strcmp(id, "lib") == 0) {
 				err = snd_config_get_string(n, &lib);
 				if (err < 0) {
-					SNDERR("Invalid type for %s", id);
+					snd_error(TIMER, "Invalid type for %s", id);
 					goto _err;
 				}
 				continue;
@@ -91,12 +91,12 @@ static int snd_timer_query_open_conf(snd_timer_query_t **timer,
 			if (strcmp(id, "open") == 0) {
 				err = snd_config_get_string(n, &open_name);
 				if (err < 0) {
-					SNDERR("Invalid type for %s", id);
+					snd_error(TIMER, "Invalid type for %s", id);
 					goto _err;
 				}
 				continue;
 			}
-			SNDERR("Unknown field %s", id);
+			snd_error(TIMER, "Unknown field %s", id);
 			err = -EINVAL;
 			goto _err;
 		}
@@ -113,10 +113,10 @@ static int snd_timer_query_open_conf(snd_timer_query_t **timer,
 		open_func = snd_dlsym(h, open_name, SND_DLSYM_VERSION(SND_TIMER_QUERY_DLSYM_VERSION));
 	err = 0;
 	if (!h) {
-		SNDERR("Cannot open shared library %s (%s)", lib, errbuf);
+		snd_error(TIMER, "Cannot open shared library %s (%s)", lib, errbuf);
 		err = -ENOENT;
 	} else if (!open_func) {
-		SNDERR("symbol %s is not defined inside %s", open_name, lib);
+		snd_error(TIMER, "symbol %s is not defined inside %s", open_name, lib);
 		snd_dlclose(h);
 		err = -ENXIO;
 	}
@@ -139,7 +139,7 @@ static int snd_timer_query_open_noupdate(snd_timer_query_t **timer, snd_config_t
 	snd_config_t *timer_conf;
 	err = snd_config_search_definition(root, "timer_query", name, &timer_conf);
 	if (err < 0) {
-		SNDERR("Unknown timer %s", name);
+		snd_error(TIMER, "Unknown timer %s", name);
 		return err;
 	}
 	err = snd_timer_query_open_conf(timer, name, root, timer_conf, mode);
@@ -200,7 +200,7 @@ int snd_timer_query_open_lconf(snd_timer_query_t **timer, const char *name,
 int snd_timer_query_close(snd_timer_query_t *timer)
 {
 	int err;
-  	assert(timer);
+	assert(timer);
 	err = timer->ops->close(timer);
 	if (timer->dl_handle)
 		snd_dlclose(timer->dl_handle);
@@ -220,8 +220,8 @@ int snd_timer_query_close(snd_timer_query_t *timer)
  */
 int snd_timer_query_next_device(snd_timer_query_t *timer, snd_timer_id_t *tid)
 {
-  	assert(timer);
-  	assert(tid);
+	assert(timer);
+	assert(tid);
 	return timer->ops->next_device(timer, tid);
 }
 
@@ -261,9 +261,9 @@ int snd_timer_ginfo_malloc(snd_timer_ginfo_t **info)
 void snd_timer_ginfo_free(snd_timer_ginfo_t *info)
 {
 	assert(info);
-	free(info);  
+	free(info);
 }
-  
+
 /**
  * \brief copy one snd_timer_info_t structure to another
  * \param dst destination snd_timer_info_t structure
@@ -389,8 +389,8 @@ EXPORT_SYMBOL int INTERNAL(snd_timer_query_info)(snd_timer_query_t *timer, snd_t
 int snd_timer_query_info(snd_timer_query_t *timer, snd_timer_ginfo_t *info)
 #endif
 {
-  	assert(timer);
-  	assert(info);
+	assert(timer);
+	assert(info);
 	return timer->ops->info(timer, info);
 }
 use_default_symbol_version(__snd_timer_query_info, snd_timer_query_info, ALSA_0.9.0);
@@ -407,8 +407,8 @@ EXPORT_SYMBOL int INTERNAL(snd_timer_query_params)(snd_timer_query_t *timer, snd
 int snd_timer_query_params(snd_timer_query_t *timer, snd_timer_gparams_t *params)
 #endif
 {
-  	assert(timer);
-  	assert(params);
+	assert(timer);
+	assert(params);
 	return timer->ops->params(timer, params);
 }
 use_default_symbol_version(__snd_timer_query_params, snd_timer_query_params, ALSA_0.9.0);
@@ -425,8 +425,8 @@ EXPORT_SYMBOL int INTERNAL(snd_timer_query_status)(snd_timer_query_t *timer, snd
 int snd_timer_query_status(snd_timer_query_t *timer, snd_timer_gstatus_t *status)
 #endif
 {
-  	assert(timer);
-  	assert(status);
+	assert(timer);
+	assert(status);
 	return timer->ops->status(timer, status);
 }
 use_default_symbol_version(__snd_timer_query_status, snd_timer_query_status, ALSA_0.9.0);

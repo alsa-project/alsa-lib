@@ -85,7 +85,7 @@ struct _snd_hctl_elem {
 struct _snd_hctl {
 	snd_ctl_t *ctl;
 	struct list_head elems;		/* list of all controls */
-	unsigned int alloc;	
+	unsigned int alloc;
 	unsigned int count;
 	snd_hctl_elem_t **pelems;
 	snd_hctl_compare_t compare;

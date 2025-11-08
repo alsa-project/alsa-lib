@@ -18,7 +18,7 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-  
+
 typedef struct _snd_mask snd_mask_t;
 
 #define SND_MASK_MAX 64

@@ -153,7 +153,7 @@ using #snd_pcm_state() call. There are these states:
 \par SND_PCM_STATE_OPEN
 The PCM device is in the open state. After the #snd_pcm_open() open call,
 the device is in this state. Also, when #snd_pcm_hw_params() call fails,
-then this state is entered to force application calling 
+then this state is entered to force application calling
 #snd_pcm_hw_params() function to set right communication
 parameters.
 
@@ -799,7 +799,7 @@ int snd_pcm_close(snd_pcm_t *pcm)
 	if (err < 0)
 		res = err;
 	return res;
-}	
+}
 
 /**
  * \brief set nonblock mode
@@ -925,7 +925,7 @@ int snd_pcm_hw_params_current(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	params->rate_den = pcm->rate_den;
 	params->fifo_size = pcm->fifo_size;
 	return 0;
-} 
+}
 
 /** \brief Install one PCM hardware configuration chosen from a configuration space and #snd_pcm_prepare it
  * \param pcm PCM handle
@@ -933,7 +933,7 @@ int snd_pcm_hw_params_current(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
  * \return 0 on success otherwise a negative error code
  *
  * The configuration is chosen fixing single parameters in this order:
- * first access, first format, first subformat, min channels, min rate, 
+ * first access, first format, first subformat, min channels, min rate,
  * min period time, max buffer size, min tick time. If no mutually
  * compatible set of parameters can be chosen, a negative error code
  * will be returned.
@@ -1003,11 +1003,11 @@ int snd_pcm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 	int err;
 	/* the hw_params must be set at first!!! */
 	if (CHECK_SANITY(! pcm->setup)) {
-		SNDMSG("PCM not set up");
+		snd_check(PCM, "PCM not set up");
 		return -EIO;
 	}
 	if (! params->avail_min) {
-		SNDMSG("params->avail_min is 0");
+		snd_check(PCM, "params->avail_min is 0");
 		return -EINVAL;
 	}
 #if 0
@@ -1016,7 +1016,7 @@ int snd_pcm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 	 */
 	if (params->start_threshold <= pcm->buffer_size &&
 	    params->start_threshold > (pcm->buffer_size / params->avail_min) * params->avail_min) {
-		SNDMSG("params->avail_min problem for start_threshold");
+		snd_check(PCM, "params->avail_min problem for start_threshold");
 		return -EINVAL;
 	}
 #endif
@@ -1110,7 +1110,7 @@ int snd_pcm_hwsync(snd_pcm_t *pcm)
 
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
-		SNDMSG("PCM not set up");
+		snd_check(PCM, "PCM not set up");
 		return -EIO;
 	}
 	snd_pcm_lock(pcm->fast_op_arg);
@@ -1155,7 +1155,7 @@ int snd_pcm_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
-		SNDMSG("PCM not set up");
+		snd_check(PCM, "PCM not set up");
 		return -EIO;
 	}
 	snd_pcm_lock(pcm->fast_op_arg);
@@ -1184,7 +1184,7 @@ int snd_pcm_resume(snd_pcm_t *pcm)
 
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
-		SNDMSG("PCM not set up");
+		snd_check(PCM, "PCM not set up");
 		return -EIO;
 	}
 	/* lock handled in the callback */
@@ -1213,7 +1213,7 @@ int snd_pcm_htimestamp(snd_pcm_t *pcm, snd_pcm_uframes_t *avail, snd_htimestamp_
 
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
-		SNDMSG("PCM not set up");
+		snd_check(PCM, "PCM not set up");
 		return -EIO;
 	}
 	snd_pcm_lock(pcm->fast_op_arg);
@@ -1238,7 +1238,7 @@ int snd_pcm_prepare(snd_pcm_t *pcm)
 
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
-		SNDMSG("PCM not set up");
+		snd_check(PCM, "PCM not set up");
 		return -EIO;
 	}
 	err = bad_pcm_state(pcm, ~P_STATE(DISCONNECTED), 0);
@@ -1268,7 +1268,7 @@ int snd_pcm_reset(snd_pcm_t *pcm)
 
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
-		SNDMSG("PCM not set up");
+		snd_check(PCM, "PCM not set up");
 		return -EIO;
 	}
 	snd_pcm_lock(pcm->fast_op_arg);
@@ -1293,7 +1293,7 @@ int snd_pcm_start(snd_pcm_t *pcm)
 
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
-		SNDMSG("PCM not set up");
+		snd_check(PCM, "PCM not set up");
 		return -EIO;
 	}
 	err = bad_pcm_state(pcm, P_STATE(PREPARED), 0);
@@ -1324,7 +1324,7 @@ int snd_pcm_drop(snd_pcm_t *pcm)
 
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
-		SNDMSG("PCM not set up");
+		snd_check(PCM, "PCM not set up");
 		return -EIO;
 	}
 	err = bad_pcm_state(pcm, P_STATE_RUNNABLE | P_STATE(SETUP) |
@@ -1361,7 +1361,7 @@ int snd_pcm_drain(snd_pcm_t *pcm)
 
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
-		SNDMSG("PCM not set up");
+		snd_check(PCM, "PCM not set up");
 		return -EIO;
 	}
 	err = bad_pcm_state(pcm, P_STATE_RUNNABLE | P_STATE(SETUP), P_STATE(SETUP));
@@ -1395,7 +1395,7 @@ int snd_pcm_pause(snd_pcm_t *pcm, int enable)
 
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
-		SNDMSG("PCM not set up");
+		snd_check(PCM, "PCM not set up");
 		return -EIO;
 	}
 	err = bad_pcm_state(pcm, P_STATE_RUNNABLE, 0);
@@ -1428,7 +1428,7 @@ snd_pcm_sframes_t snd_pcm_rewindable(snd_pcm_t *pcm)
 
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
-		SNDMSG("PCM not set up");
+		snd_check(PCM, "PCM not set up");
 		return -EIO;
 	}
 	err = bad_pcm_state(pcm, P_STATE_RUNNABLE, 0);
@@ -1459,7 +1459,7 @@ snd_pcm_sframes_t snd_pcm_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
-		SNDMSG("PCM not set up");
+		snd_check(PCM, "PCM not set up");
 		return -EIO;
 	}
 	if (frames == 0)
@@ -1494,7 +1494,7 @@ snd_pcm_sframes_t snd_pcm_forwardable(snd_pcm_t *pcm)
 
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
-		SNDMSG("PCM not set up");
+		snd_check(PCM, "PCM not set up");
 		return -EIO;
 	}
 	err = bad_pcm_state(pcm, P_STATE_RUNNABLE, 0);
@@ -1529,7 +1529,7 @@ snd_pcm_sframes_t snd_pcm_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
-		SNDMSG("PCM not set up");
+		snd_check(PCM, "PCM not set up");
 		return -EIO;
 	}
 	if (frames == 0)
@@ -1565,7 +1565,7 @@ use_default_symbol_version(__snd_pcm_forward, snd_pcm_forward, ALSA_0.9.0rc8);
  * If the non-blocking behaviour is selected, then routine doesn't wait at all.
  *
  * The function is thread-safe when built with the proper option.
- */ 
+ */
 snd_pcm_sframes_t snd_pcm_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size)
 {
 	int err;
@@ -1573,11 +1573,11 @@ snd_pcm_sframes_t snd_pcm_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_ufr
 	assert(pcm);
 	assert(size == 0 || buffer);
 	if (CHECK_SANITY(! pcm->setup)) {
-		SNDMSG("PCM not set up");
+		snd_check(PCM, "PCM not set up");
 		return -EIO;
 	}
 	if (pcm->access != SND_PCM_ACCESS_RW_INTERLEAVED) {
-		SNDMSG("invalid access type %s", snd_pcm_access_name(pcm->access));
+		snd_check(PCM, "invalid access type %s", snd_pcm_access_name(pcm->access));
 		return -EINVAL;
 	}
 	err = bad_pcm_state(pcm, P_STATE_RUNNABLE, 0);
@@ -1604,7 +1604,7 @@ snd_pcm_sframes_t snd_pcm_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_ufr
  * If the non-blocking behaviour is selected, then routine doesn't wait at all.
  *
  * The function is thread-safe when built with the proper option.
- */ 
+ */
 snd_pcm_sframes_t snd_pcm_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
 	int err;
@@ -1612,11 +1612,11 @@ snd_pcm_sframes_t snd_pcm_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t 
 	assert(pcm);
 	assert(size == 0 || bufs);
 	if (CHECK_SANITY(! pcm->setup)) {
-		SNDMSG("PCM not set up");
+		snd_check(PCM, "PCM not set up");
 		return -EIO;
 	}
 	if (pcm->access != SND_PCM_ACCESS_RW_NONINTERLEAVED) {
-		SNDMSG("invalid access type %s", snd_pcm_access_name(pcm->access));
+		snd_check(PCM, "invalid access type %s", snd_pcm_access_name(pcm->access));
 		return -EINVAL;
 	}
 	err = bad_pcm_state(pcm, P_STATE_RUNNABLE, 0);
@@ -1643,7 +1643,7 @@ snd_pcm_sframes_t snd_pcm_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t 
  * If the non-blocking behaviour is selected, then routine doesn't wait at all.
  *
  * The function is thread-safe when built with the proper option.
- */ 
+ */
 snd_pcm_sframes_t snd_pcm_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t size)
 {
 	int err;
@@ -1651,11 +1651,11 @@ snd_pcm_sframes_t snd_pcm_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t 
 	assert(pcm);
 	assert(size == 0 || buffer);
 	if (CHECK_SANITY(! pcm->setup)) {
-		SNDMSG("PCM not set up");
+		snd_check(PCM, "PCM not set up");
 		return -EIO;
 	}
 	if (pcm->access != SND_PCM_ACCESS_RW_INTERLEAVED) {
-		SNDMSG("invalid access type %s", snd_pcm_access_name(pcm->access));
+		snd_check(PCM, "invalid access type %s", snd_pcm_access_name(pcm->access));
 		return -EINVAL;
 	}
 	err = bad_pcm_state(pcm, P_STATE_RUNNABLE, 0);
@@ -1682,7 +1682,7 @@ snd_pcm_sframes_t snd_pcm_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t 
  * If the non-blocking behaviour is selected, then routine doesn't wait at all.
  *
  * The function is thread-safe when built with the proper option.
- */ 
+ */
 snd_pcm_sframes_t snd_pcm_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
 	int err;
@@ -1690,11 +1690,11 @@ snd_pcm_sframes_t snd_pcm_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t s
 	assert(pcm);
 	assert(size == 0 || bufs);
 	if (CHECK_SANITY(! pcm->setup)) {
-		SNDMSG("PCM not set up");
+		snd_check(PCM, "PCM not set up");
 		return -EIO;
 	}
 	if (pcm->access != SND_PCM_ACCESS_RW_NONINTERLEAVED) {
-		SNDMSG("invalid access type %s", snd_pcm_access_name(pcm->access));
+		snd_check(PCM, "invalid access type %s", snd_pcm_access_name(pcm->access));
 		return -EINVAL;
 	}
 	err = bad_pcm_state(pcm, P_STATE_RUNNABLE, 0);
@@ -1710,7 +1710,7 @@ snd_pcm_sframes_t snd_pcm_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t s
  * \return 0 on success otherwise a negative error code
  *
  * The two PCMs will start/stop/prepare in sync.
- */ 
+ */
 int snd_pcm_link(snd_pcm_t *pcm1, snd_pcm_t *pcm2)
 {
 	int err = 0;
@@ -1774,7 +1774,7 @@ static int __snd_pcm_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds,
 	if (pcm->fast_ops->poll_descriptors)
 		return pcm->fast_ops->poll_descriptors(pcm->fast_op_arg, pfds, space);
 	if (pcm->poll_fd < 0) {
-		SNDMSG("poll_fd < 0");
+		snd_check(PCM, "poll_fd < 0");
 		return -EIO;
 	}
 	if (space >= 1 && pfds) {
@@ -1899,10 +1899,10 @@ static int __snd_pcm_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds,
 #define HW_PARAM(v) [SND_PCM_HW_PARAM_##v] = #v
 #define SW_PARAM(v) [SND_PCM_SW_PARAM_##v] = #v
 #define FORMAT(v) [SND_PCM_FORMAT_##v] = #v
-#define SUBFORMAT(v) [SND_PCM_SUBFORMAT_##v] = #v 
+#define SUBFORMAT(v) [SND_PCM_SUBFORMAT_##v] = #v
 
 #define FORMATD(v, d) [SND_PCM_FORMAT_##v] = d
-#define SUBFORMATD(v, d) [SND_PCM_SUBFORMAT_##v] = d 
+#define SUBFORMATD(v, d) [SND_PCM_SUBFORMAT_##v] = d
 
 
 static const char *const snd_pcm_stream_names[] = {
@@ -1923,7 +1923,7 @@ static const char *const snd_pcm_state_names[] = {
 };
 
 static const char *const snd_pcm_access_names[] = {
-	ACCESS(MMAP_INTERLEAVED), 
+	ACCESS(MMAP_INTERLEAVED),
 	ACCESS(MMAP_NONINTERLEAVED),
 	ACCESS(MMAP_COMPLEX),
 	ACCESS(RW_INTERLEAVED),
@@ -1999,7 +1999,7 @@ static const char *const snd_pcm_format_aliases[SND_PCM_FORMAT_LAST+1] = {
 };
 
 static const char *const snd_pcm_format_descriptions[] = {
-	FORMATD(S8, "Signed 8 bit"), 
+	FORMATD(S8, "Signed 8 bit"),
 	FORMATD(U8, "Unsigned 8 bit"),
 	FORMATD(S16_LE, "Signed 16 bit Little Endian"),
 	FORMATD(S16_BE, "Signed 16 bit Big Endian"),
@@ -2053,29 +2053,29 @@ static const char *const snd_pcm_format_descriptions[] = {
 };
 
 static const char *const snd_pcm_type_names[] = {
-	PCMTYPE(HW), 
-	PCMTYPE(HOOKS), 
-	PCMTYPE(MULTI), 
-	PCMTYPE(FILE), 
-	PCMTYPE(NULL), 
-	PCMTYPE(SHM), 
-	PCMTYPE(INET), 
-	PCMTYPE(COPY), 
-	PCMTYPE(LINEAR), 
-	PCMTYPE(ALAW), 
-	PCMTYPE(MULAW), 
-	PCMTYPE(ADPCM), 
-	PCMTYPE(RATE), 
-	PCMTYPE(ROUTE), 
-	PCMTYPE(PLUG), 
-	PCMTYPE(SHARE), 
-	PCMTYPE(METER), 
-	PCMTYPE(MIX), 
-	PCMTYPE(DROUTE), 
-	PCMTYPE(LBSERVER), 
-	PCMTYPE(LINEAR_FLOAT), 
-	PCMTYPE(LADSPA), 
-	PCMTYPE(DMIX), 
+	PCMTYPE(HW),
+	PCMTYPE(HOOKS),
+	PCMTYPE(MULTI),
+	PCMTYPE(FILE),
+	PCMTYPE(NULL),
+	PCMTYPE(SHM),
+	PCMTYPE(INET),
+	PCMTYPE(COPY),
+	PCMTYPE(LINEAR),
+	PCMTYPE(ALAW),
+	PCMTYPE(MULAW),
+	PCMTYPE(ADPCM),
+	PCMTYPE(RATE),
+	PCMTYPE(ROUTE),
+	PCMTYPE(PLUG),
+	PCMTYPE(SHARE),
+	PCMTYPE(METER),
+	PCMTYPE(MIX),
+	PCMTYPE(DROUTE),
+	PCMTYPE(LBSERVER),
+	PCMTYPE(LINEAR_FLOAT),
+	PCMTYPE(LADSPA),
+	PCMTYPE(DMIX),
 	PCMTYPE(JACK),
 	PCMTYPE(DSNOOP),
 	PCMTYPE(IEC958),
@@ -2086,14 +2086,14 @@ static const char *const snd_pcm_type_names[] = {
 };
 
 static const char *const snd_pcm_subformat_names[] = {
-	SUBFORMAT(STD), 
+	SUBFORMAT(STD),
 	SUBFORMAT(MSBITS_MAX),
 	SUBFORMAT(MSBITS_20),
 	SUBFORMAT(MSBITS_24),
 };
 
 static const char *const snd_pcm_subformat_descriptions[] = {
-	SUBFORMATD(STD, "Standard"), 
+	SUBFORMATD(STD, "Standard"),
 	SUBFORMATD(MSBITS_MAX, "Maximum based on PCM format"),
 	SUBFORMATD(MSBITS_20, "20 most significant bits"),
 	SUBFORMATD(MSBITS_24, "24 most significant bits"),
@@ -2340,10 +2340,10 @@ int snd_pcm_dump_hw_setup(snd_pcm_t *pcm, snd_output_t *out)
 	assert(pcm);
 	assert(out);
 	if (CHECK_SANITY(! pcm->setup)) {
-		SNDMSG("PCM not set up");
+		snd_check(PCM, "PCM not set up");
 		return -EIO;
 	}
-        snd_output_printf(out, "  stream       : %s\n", snd_pcm_stream_name(pcm->stream));
+	snd_output_printf(out, "  stream       : %s\n", snd_pcm_stream_name(pcm->stream));
 	snd_output_printf(out, "  access       : %s\n", snd_pcm_access_name(pcm->access));
 	snd_output_printf(out, "  format       : %s\n", snd_pcm_format_name(pcm->format));
 	snd_output_printf(out, "  subformat    : %s\n", snd_pcm_subformat_name(pcm->subformat));
@@ -2370,7 +2370,7 @@ int snd_pcm_dump_sw_setup(snd_pcm_t *pcm, snd_output_t *out)
 	assert(pcm);
 	assert(out);
 	if (CHECK_SANITY(! pcm->setup)) {
-		SNDMSG("PCM not set up");
+		snd_check(PCM, "PCM not set up");
 		return -EIO;
 	}
 	snd_output_printf(out, "  tstamp_mode  : %s\n", snd_pcm_tstamp_mode_name(pcm->tstamp_mode));
@@ -2449,7 +2449,7 @@ snd_pcm_sframes_t snd_pcm_bytes_to_frames(snd_pcm_t *pcm, ssize_t bytes)
 {
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
-		SNDMSG("PCM not set up");
+		snd_check(PCM, "PCM not set up");
 		return -EIO;
 	}
 	return bytes * 8 / pcm->frame_bits;
@@ -2465,7 +2465,7 @@ ssize_t snd_pcm_frames_to_bytes(snd_pcm_t *pcm, snd_pcm_sframes_t frames)
 {
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
-		SNDMSG("PCM not set up");
+		snd_check(PCM, "PCM not set up");
 		return -EIO;
 	}
 	return frames * pcm->frame_bits / 8;
@@ -2481,7 +2481,7 @@ long snd_pcm_bytes_to_samples(snd_pcm_t *pcm, ssize_t bytes)
 {
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
-		SNDMSG("PCM not set up");
+		snd_check(PCM, "PCM not set up");
 		return -EIO;
 	}
 	return bytes * 8 / pcm->sample_bits;
@@ -2497,7 +2497,7 @@ ssize_t snd_pcm_samples_to_bytes(snd_pcm_t *pcm, long samples)
 {
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
-		SNDMSG("PCM not set up");
+		snd_check(PCM, "PCM not set up");
 		return -EIO;
 	}
 	return samples * pcm->sample_bits / 8;
@@ -2513,7 +2513,7 @@ ssize_t snd_pcm_samples_to_bytes(snd_pcm_t *pcm, long samples)
  *
  * The asynchronous callback is called when period boundary elapses.
  */
-int snd_async_add_pcm_handler(snd_async_handler_t **handler, snd_pcm_t *pcm, 
+int snd_async_add_pcm_handler(snd_async_handler_t **handler, snd_pcm_t *pcm,
 			      snd_async_callback_t callback, void *private_data)
 {
 	int err;
@@ -2546,7 +2546,7 @@ int snd_async_add_pcm_handler(snd_async_handler_t **handler, snd_pcm_t *pcm,
 snd_pcm_t *snd_async_handler_get_pcm(snd_async_handler_t *handler)
 {
 	if (handler->type != SND_ASYNC_HANDLER_PCM) {
-		SNDMSG("invalid handler type %d", handler->type);
+		snd_check(PCM, "invalid handler type %d", handler->type);
 		return NULL;
 	}
 	return handler->u.pcm;
@@ -2570,8 +2570,8 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 	snd_config_iterator_t i, next;
 	const char *id;
 	const char *lib = NULL, *open_name = NULL;
-	int (*open_func)(snd_pcm_t **, const char *, 
-			 snd_config_t *, snd_config_t *, 
+	int (*open_func)(snd_pcm_t **, const char *,
+			 snd_config_t *, snd_config_t *,
 			 snd_pcm_stream_t, int) = NULL;
 #ifndef PIC
 	extern void *snd_pcm_open_symbols(void);
@@ -2582,29 +2582,29 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 		snd_config_get_id(pcm_conf, &id);
 		val = NULL;
 		snd_config_get_ascii(pcm_conf, &val);
-		SNDERR("Invalid type for PCM %s%sdefinition (id: %s, value: %s)", name ? name : "", name ? " " : "", id, val);
+		snd_error(PCM, "Invalid type for PCM %s%sdefinition (id: %s, value: %s)", name ? name : "", name ? " " : "", id, val);
 		free(val);
 		return -EINVAL;
 	}
 	err = snd_config_search(pcm_conf, "type", &conf);
 	if (err < 0) {
-		SNDERR("type is not defined");
+		snd_error(PCM, "type is not defined");
 		return err;
 	}
 	err = snd_config_get_id(conf, &id);
 	if (err < 0) {
-		SNDERR("unable to get id");
+		snd_error(PCM, "unable to get id");
 		return err;
 	}
 	err = snd_config_get_string(conf, &str);
 	if (err < 0) {
-		SNDERR("Invalid type for %s", id);
+		snd_error(PCM, "Invalid type for %s", id);
 		return err;
 	}
 	err = snd_config_search_definition(pcm_root, "pcm_type", str, &type_conf);
 	if (err >= 0) {
 		if (snd_config_get_type(type_conf) != SND_CONFIG_TYPE_COMPOUND) {
-			SNDERR("Invalid type for PCM type %s definition", str);
+			snd_error(PCM, "Invalid type for PCM type %s definition", str);
 			err = -EINVAL;
 			goto _err;
 		}
@@ -2618,7 +2618,7 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 			if (strcmp(id, "lib") == 0) {
 				err = snd_config_get_string(n, &lib);
 				if (err < 0) {
-					SNDERR("Invalid type for %s", id);
+					snd_error(PCM, "Invalid type for %s", id);
 					goto _err;
 				}
 				continue;
@@ -2626,12 +2626,12 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 			if (strcmp(id, "open") == 0) {
 				err = snd_config_get_string(n, &open_name);
 				if (err < 0) {
-					SNDERR("Invalid type for %s", id);
+					snd_error(PCM, "Invalid type for %s", id);
 					goto _err;
 				}
 				continue;
 			}
-			SNDERR("Unknown field %s", id);
+			snd_error(PCM, "Unknown field %s", id);
 			err = -EINVAL;
 			goto _err;
 		}
@@ -2719,7 +2719,7 @@ static int snd_pcm_open_noupdate(snd_pcm_t **pcmp, snd_config_t *root,
 
 	err = snd_config_search_definition(root, "pcm", name, &pcm_conf);
 	if (err < 0) {
-		SNDERR("Unknown PCM %s", name);
+		snd_error(PCM, "Unknown PCM %s", name);
 		return err;
 	}
 	if (snd_config_get_string(pcm_conf, &str) >= 0)
@@ -2741,7 +2741,7 @@ static int snd_pcm_open_noupdate(snd_pcm_t **pcmp, snd_config_t *root,
  * \param mode Open mode (see #SND_PCM_NONBLOCK, #SND_PCM_ASYNC)
  * \return 0 on success otherwise a negative error code
  */
-int snd_pcm_open(snd_pcm_t **pcmp, const char *name, 
+int snd_pcm_open(snd_pcm_t **pcmp, const char *name,
 		 snd_pcm_stream_t stream, int mode)
 {
 	snd_config_t *top;
@@ -2771,7 +2771,7 @@ int snd_pcm_open(snd_pcm_t **pcmp, const char *name,
  * \param lconf Local configuration
  * \return 0 on success otherwise a negative error code
  */
-int snd_pcm_open_lconf(snd_pcm_t **pcmp, const char *name, 
+int snd_pcm_open_lconf(snd_pcm_t **pcmp, const char *name,
 		       snd_pcm_stream_t stream, int mode,
 		       snd_config_t *lconf)
 {
@@ -2894,7 +2894,7 @@ int snd_pcm_open_named_slave(snd_pcm_t **pcmp, const char *name,
  *	       see also SND_PCM_WAIT_IO and SND_PCM_WAIT_DRAIN
  * \return a positive value on success otherwise a negative error code
  *         (-EPIPE for the xrun and -ESTRPIPE for the suspended status,
- *          others for general errors) 
+ *          others for general errors)
  * \retval 0 timeout occurred
  * \retval 1 PCM stream is ready for I/O
  *
@@ -2957,7 +2957,7 @@ static int __snd_pcm_wait_drain_timeout(snd_pcm_t *pcm)
 	return timeout;
 }
 
-/* 
+/*
  * like snd_pcm_wait() but doesn't check mmap_avail before calling poll()
  *
  * used in drain code in some plugins
@@ -2969,10 +2969,10 @@ int snd_pcm_wait_nocheck(snd_pcm_t *pcm, int timeout)
 	struct pollfd *pfd;
 	unsigned short revents = 0;
 	int npfds, err, err_poll;
-	
+
 	npfds = __snd_pcm_poll_descriptors_count(pcm);
 	if (npfds <= 0 || npfds >= 16) {
-		SNDERR("Invalid poll_fds %d", npfds);
+		snd_error(PCM, "Invalid poll_fds %d", npfds);
 		return -EIO;
 	}
 	pfd = alloca(sizeof(*pfd) * npfds);
@@ -2980,7 +2980,7 @@ int snd_pcm_wait_nocheck(snd_pcm_t *pcm, int timeout)
 	if (err < 0)
 		return err;
 	if (err != npfds) {
-		SNDMSG("invalid poll descriptors %d", err);
+		snd_check(PCM, "invalid poll descriptors %d", err);
 		return -EIO;
 	}
 	if (timeout == SND_PCM_WAIT_IO)
@@ -2988,16 +2988,16 @@ int snd_pcm_wait_nocheck(snd_pcm_t *pcm, int timeout)
 	else if (timeout == SND_PCM_WAIT_DRAIN)
 		timeout = __snd_pcm_wait_drain_timeout(pcm);
 	else if (timeout < -1)
-		SNDMSG("invalid snd_pcm_wait timeout argument %d", timeout);
+		snd_check(PCM, "invalid snd_pcm_wait timeout argument %d", timeout);
 	do {
 		__snd_pcm_unlock(pcm->fast_op_arg);
 		err_poll = poll(pfd, npfds, timeout);
 		__snd_pcm_lock(pcm->fast_op_arg);
 		if (err_poll < 0) {
 			if (errno == EINTR && !PCMINABORT(pcm) && !(pcm->mode & SND_PCM_EINTR))
-		                continue;
+				continue;
 			return -errno;
-                }
+		}
 		if (! err_poll)
 			break;
 		err = __snd_pcm_poll_revents(pcm, pfd, npfds, &revents);
@@ -3078,7 +3078,7 @@ snd_pcm_sframes_t snd_pcm_avail(snd_pcm_t *pcm)
 
 	assert(pcm);
 	if (CHECK_SANITY(! pcm->setup)) {
-		SNDMSG("PCM not set up");
+		snd_check(PCM, "PCM not set up");
 		return -EIO;
 	}
 	snd_pcm_lock(pcm->fast_op_arg);
@@ -3107,26 +3107,36 @@ int snd_pcm_avail_delay(snd_pcm_t *pcm,
 			snd_pcm_sframes_t *delayp)
 {
 	snd_pcm_sframes_t sf;
-	int err;
+	int err, ok = 0;
 
 	assert(pcm && availp && delayp);
 	if (CHECK_SANITY(! pcm->setup)) {
-		SNDMSG("PCM not set up");
+		snd_check(PCM, "PCM not set up");
 		return -EIO;
 	}
 	snd_pcm_lock(pcm->fast_op_arg);
 	err = __snd_pcm_hwsync(pcm);
 	if (err < 0)
 		goto unlock;
-	sf = __snd_pcm_avail_update(pcm);
-	if (sf < 0) {
-		err = (int)sf;
-		goto unlock;
+
+	/*
+	 * Delay value is relative to avail, so we have to
+	 * loop to avoid reporting stale delay data.
+	 */
+	while (1) {
+		sf = __snd_pcm_avail_update(pcm);
+		if (sf < 0) {
+			err = (int)sf;
+			goto unlock;
+		}
+		if (ok && sf == *availp)
+			break;
+		*availp = sf;
+		err = __snd_pcm_delay(pcm, delayp);
+		if (err < 0)
+			goto unlock;
+		ok = 1;
 	}
-	err = __snd_pcm_delay(pcm, delayp);
-	if (err < 0)
-		goto unlock;
-	*availp = sf;
 	err = 0;
  unlock:
 	snd_pcm_unlock(pcm->fast_op_arg);
@@ -3154,13 +3164,13 @@ int snd_pcm_area_silence(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes
 	dst = snd_pcm_channel_area_addr(dst_area, dst_offset);
 	width = snd_pcm_format_physical_width(format);
 	silence = snd_pcm_format_silence_64(format);
-        /*
-         * Iterate copying silent sample for sample data aligned to 64 bit.
-         * This is a fast path.
-         */
-        if (dst_area->step == (unsigned int) width &&
-            width != 24 &&
-            ((intptr_t)dst & 7) == 0) {
+	/*
+	 * Iterate copying silent sample for sample data aligned to 64 bit.
+	 * This is a fast path.
+	 */
+	if (dst_area->step == (unsigned int) width &&
+	    width != 24 &&
+	    ((intptr_t)dst & 7) == 0) {
 		unsigned int dwords = samples * width / 64;
 		uint64_t *dstp = (uint64_t *)dst;
 		samples -= dwords * 64 / width;
@@ -3241,7 +3251,7 @@ int snd_pcm_area_silence(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes
 		break;
 	}
 	default:
-		SNDMSG("invalid format width %d", width);
+		snd_check(PCM, "invalid format width %d", width);
 		return -EINVAL;
 	}
 	return 0;
@@ -3411,7 +3421,7 @@ int snd_pcm_area_copy(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes_t 
 		break;
 	}
 	default:
-		SNDMSG("invalid format width %d", width);
+		snd_check(PCM, "invalid format width %d", width);
 		return -EINVAL;
 	}
 	return 0;
@@ -3436,11 +3446,11 @@ int snd_pcm_areas_copy(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_
 	assert(dst_areas);
 	assert(src_areas);
 	if (! channels) {
-		SNDMSG("invalid channels %d", channels);
+		snd_check(PCM, "invalid channels %d", channels);
 		return -EINVAL;
 	}
 	if (! frames) {
-		SNDMSG("invalid frames %ld", frames);
+		snd_check(PCM, "invalid frames %ld", frames);
 		return -EINVAL;
 	}
 	while (channels > 0) {
@@ -3477,7 +3487,7 @@ int snd_pcm_areas_copy(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_
 				d.first = dst_start->first;
 				d.step = width;
 				snd_pcm_area_copy(&d, dst_offset * chns,
-						  &s, src_offset * chns, 
+						  &s, src_offset * chns,
 						  frames * chns, format);
 			}
 			channels -= chns;
@@ -3579,7 +3589,7 @@ int snd_pcm_hw_params_can_mmap_sample_resolution(const snd_pcm_hw_params_t *para
 {
 	assert(params);
 	if (CHECK_SANITY(params->info == ~0U)) {
-		SNDMSG("invalid PCM info field");
+		snd_check(PCM, "invalid PCM info field");
 		return 0; /* FIXME: should be a negative error? */
 	}
 	return !!(params->info & SNDRV_PCM_INFO_MMAP_VALID);
@@ -3599,7 +3609,7 @@ int snd_pcm_hw_params_is_double(const snd_pcm_hw_params_t *params)
 {
 	assert(params);
 	if (CHECK_SANITY(params->info == ~0U)) {
-		SNDMSG("invalid PCM info field");
+		snd_check(PCM, "invalid PCM info field");
 		return 0; /* FIXME: should be a negative error? */
 	}
 	return !!(params->info & SNDRV_PCM_INFO_DOUBLE);
@@ -3619,7 +3629,7 @@ int snd_pcm_hw_params_is_batch(const snd_pcm_hw_params_t *params)
 {
 	assert(params);
 	if (CHECK_SANITY(params->info == ~0U)) {
-		SNDMSG("invalid PCM info field");
+		snd_check(PCM, "invalid PCM info field");
 		return 0; /* FIXME: should be a negative error? */
 	}
 	return !!(params->info & SNDRV_PCM_INFO_BATCH);
@@ -3639,7 +3649,7 @@ int snd_pcm_hw_params_is_block_transfer(const snd_pcm_hw_params_t *params)
 {
 	assert(params);
 	if (CHECK_SANITY(params->info == ~0U)) {
-		SNDMSG("invalid PCM info field");
+		snd_check(PCM, "invalid PCM info field");
 		return 0; /* FIXME: should be a negative error? */
 	}
 	return !!(params->info & SNDRV_PCM_INFO_BLOCK_TRANSFER);
@@ -3659,7 +3669,7 @@ int snd_pcm_hw_params_is_monotonic(const snd_pcm_hw_params_t *params)
 {
 	assert(params);
 	if (CHECK_SANITY(params->info == ~0U)) {
-		SNDMSG("invalid PCM info field");
+		snd_check(PCM, "invalid PCM info field");
 		return 0; /* FIXME: should be a negative error? */
 	}
 	return !!(params->info & SND_PCM_INFO_MONOTONIC);
@@ -3679,7 +3689,7 @@ int snd_pcm_hw_params_can_overrange(const snd_pcm_hw_params_t *params)
 {
 	assert(params);
 	if (CHECK_SANITY(params->info == ~0U)) {
-		SNDMSG("invalid PCM info field");
+		snd_check(PCM, "invalid PCM info field");
 		return 0; /* FIXME: should be a negative error? */
 	}
 	return !!(params->info & SNDRV_PCM_INFO_OVERRANGE);
@@ -3699,7 +3709,7 @@ int snd_pcm_hw_params_can_pause(const snd_pcm_hw_params_t *params)
 {
 	assert(params);
 	if (CHECK_SANITY(params->info == ~0U)) {
-		SNDMSG("invalid PCM info field");
+		snd_check(PCM, "invalid PCM info field");
 		return 0; /* FIXME: should be a negative error? */
 	}
 	return !!(params->info & SNDRV_PCM_INFO_PAUSE);
@@ -3719,7 +3729,7 @@ int snd_pcm_hw_params_can_resume(const snd_pcm_hw_params_t *params)
 {
 	assert(params);
 	if (CHECK_SANITY(params->info == ~0U)) {
-		SNDMSG("invalid PCM info field");
+		snd_check(PCM, "invalid PCM info field");
 		return 0; /* FIXME: should be a negative error? */
 	}
 	return !!(params->info & SNDRV_PCM_INFO_RESUME);
@@ -3739,7 +3749,7 @@ int snd_pcm_hw_params_is_half_duplex(const snd_pcm_hw_params_t *params)
 {
 	assert(params);
 	if (CHECK_SANITY(params->info == ~0U)) {
-		SNDMSG("invalid PCM info field");
+		snd_check(PCM, "invalid PCM info field");
 		return 0; /* FIXME: should be a negative error? */
 	}
 	return !!(params->info & SNDRV_PCM_INFO_HALF_DUPLEX);
@@ -3759,7 +3769,7 @@ int snd_pcm_hw_params_is_joint_duplex(const snd_pcm_hw_params_t *params)
 {
 	assert(params);
 	if (CHECK_SANITY(params->info == ~0U)) {
-		SNDMSG("invalid PCM info field");
+		snd_check(PCM, "invalid PCM info field");
 		return 0; /* FIXME: should be a negative error? */
 	}
 	return !!(params->info & SNDRV_PCM_INFO_JOINT_DUPLEX);
@@ -3779,7 +3789,7 @@ int snd_pcm_hw_params_can_sync_start(const snd_pcm_hw_params_t *params)
 {
 	assert(params);
 	if (CHECK_SANITY(params->info == ~0U)) {
-		SNDMSG("invalid PCM info field");
+		snd_check(PCM, "invalid PCM info field");
 		return 0; /* FIXME: should be a negative error? */
 	}
 	return !!(params->info & SNDRV_PCM_INFO_SYNC_START);
@@ -3795,7 +3805,7 @@ int snd_pcm_hw_params_can_disable_period_wakeup(const snd_pcm_hw_params_t *param
 {
 	assert(params);
 	if (CHECK_SANITY(params->info == ~0U)) {
-		SNDMSG("invalid PCM info field");
+		snd_check(PCM, "invalid PCM info field");
 		return 0; /* FIXME: should be a negative error? */
 	}
 	return !!(params->info & SNDRV_PCM_INFO_NO_PERIOD_WAKEUP);
@@ -3818,7 +3828,7 @@ int snd_pcm_hw_params_is_perfect_drain(const snd_pcm_hw_params_t *params)
 {
 	assert(params);
 	if (CHECK_SANITY(params->info == ~0U)) {
-		SNDMSG("invalid PCM info field");
+		snd_check(PCM, "invalid PCM info field");
 		return 0; /* FIXME: should be a negative error? */
 	}
 	return !!(params->info & SNDRV_PCM_INFO_PERFECT_DRAIN);
@@ -3856,7 +3866,7 @@ int snd_pcm_hw_params_supports_audio_ts_type(const snd_pcm_hw_params_t *params, 
 {
 	assert(params);
 	if (CHECK_SANITY(params->info == ~0U)) {
-		SNDMSG("invalid PCM info field");
+		snd_check(PCM, "invalid PCM info field");
 		return 0; /* FIXME: should be a negative error? */
 	}
 	switch (type) {
@@ -3893,7 +3903,7 @@ int snd_pcm_hw_params_get_rate_numden(const snd_pcm_hw_params_t *params,
 {
 	assert(params);
 	if (CHECK_SANITY(params->rate_den == 0)) {
-		SNDMSG("invalid rate_den value");
+		snd_check(PCM, "invalid rate_den value");
 		return -EINVAL;
 	}
 	*rate_num = params->rate_num;
@@ -3923,7 +3933,7 @@ int snd_pcm_hw_params_get_sbits(const snd_pcm_hw_params_t *params)
 {
 	assert(params);
 	if (CHECK_SANITY(params->msbits == 0)) {
-		SNDMSG("invalid msbits value");
+		snd_check(PCM, "invalid msbits value");
 		return -EINVAL;
 	}
 	return params->msbits;
@@ -3942,7 +3952,7 @@ int snd_pcm_hw_params_get_fifo_size(const snd_pcm_hw_params_t *params)
 {
 	assert(params);
 	if (CHECK_SANITY(params->info == ~0U)) {
-		SNDMSG("invalid PCM info field");
+		snd_check(PCM, "invalid PCM info field");
 		return -EINVAL;
 	}
 	return params->fifo_size;
@@ -6344,10 +6354,10 @@ int snd_pcm_hw_params_get_min_align(const snd_pcm_hw_params_t *params, snd_pcm_u
 		return err;
 	// compute frame bits
 	fb = snd_pcm_format_physical_width((snd_pcm_format_t)format) * channels;
-        min_align = 1;
+	min_align = 1;
 	while (fb % 8) {
 		fb *= 2;
-                min_align *= 2;
+		min_align *= 2;
 	}
 	if (val)
 		*val = min_align;
@@ -6385,7 +6395,7 @@ int snd_pcm_sw_params_current(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 {
 	assert(pcm && params);
 	if (CHECK_SANITY(! pcm->setup)) {
-		SNDMSG("PCM not set up");
+		snd_check(PCM, "PCM not set up");
 		return -EIO;
 	}
 	__snd_pcm_lock(pcm); /* forced lock due to pcm field changes */
@@ -6488,7 +6498,7 @@ int snd_pcm_sw_params_set_start_mode(snd_pcm_t *pcm, snd_pcm_sw_params_t *params
 		params->start_threshold = pcm->boundary;
 		break;
 	default:
-		SNDMSG("invalid start mode value %d", val);
+		snd_check(PCM, "invalid start mode value %d", val);
 		return -EINVAL;
 	}
 	return 0;
@@ -6536,7 +6546,7 @@ int snd_pcm_sw_params_set_xrun_mode(snd_pcm_t *pcm, snd_pcm_sw_params_t *params,
 		params->stop_threshold = pcm->boundary;
 		break;
 	default:
-		SNDMSG("invalid xrun mode value %d", val);
+		snd_check(PCM, "invalid xrun mode value %d", val);
 		return -EINVAL;
 	}
 	return 0;
@@ -6577,7 +6587,7 @@ int snd_pcm_sw_params_set_tstamp_mode(snd_pcm_t *pcm, snd_pcm_sw_params_t *param
 {
 	assert(pcm && params);
 	if (CHECK_SANITY(val > SND_PCM_TSTAMP_LAST)) {
-		SNDMSG("invalid tstamp_mode value %d", val);
+		snd_check(PCM, "invalid tstamp_mode value %d", val);
 		return -EINVAL;
 	}
 	params->tstamp_mode = val;
@@ -6612,7 +6622,7 @@ int snd_pcm_sw_params_set_tstamp_type(snd_pcm_t *pcm, snd_pcm_sw_params_t *param
 {
 	assert(pcm && params);
 	if (CHECK_SANITY(val > SND_PCM_TSTAMP_TYPE_LAST)) {
-		SNDMSG("invalid tstamp_type value %d", val);
+		snd_check(PCM, "invalid tstamp_type value %d", val);
 		return -EINVAL;
 	}
 	params->tstamp_type = val;
@@ -6783,7 +6793,7 @@ int snd_pcm_sw_params_get_xfer_align(const snd_pcm_sw_params_t *params, snd_pcm_
  * \param val Start threshold in frames
  * \return 0 otherwise a negative error code
  *
- * PCM is automatically started when playback frames available to PCM 
+ * PCM is automatically started when playback frames available to PCM
  * are >= threshold or when requested capture frames are >= threshold
  */
 #ifndef DOXYGEN
@@ -6803,7 +6813,7 @@ int snd_pcm_sw_params_set_start_threshold(snd_pcm_t *pcm, snd_pcm_sw_params_t *p
  * \param val Returned start threshold in frames
  * \return 0 otherwise a negative error code
  *
- * PCM is automatically started when playback frames available to PCM 
+ * PCM is automatically started when playback frames available to PCM
  * are >= threshold or when requested capture frames are >= threshold
  */
 #ifndef DOXYGEN
@@ -6868,10 +6878,10 @@ int snd_pcm_sw_params_get_stop_threshold(const snd_pcm_sw_params_t *params, snd_
  * \brief Set silence threshold inside a software configuration container
  * \param pcm PCM handle
  * \param params Software configuration container
- * \param val Silence threshold in frames 
+ * \param val Silence threshold in frames
  * \return 0 otherwise a negative error code
  *
- * A portion of playback buffer is overwritten with silence (see 
+ * A portion of playback buffer is overwritten with silence (see
  * #snd_pcm_sw_params_set_silence_size) when playback underrun is nearer
  * than silence threshold.
  */
@@ -6883,8 +6893,9 @@ int snd_pcm_sw_params_set_silence_threshold(snd_pcm_t *pcm, snd_pcm_sw_params_t 
 {
 	assert(pcm && params);
 	if (CHECK_SANITY(val >= pcm->buffer_size)) {
-		SNDMSG("invalid silent_threshold value %ld (buffer_size = %ld)",
-		       val, pcm->buffer_size);
+		snd_check(PCM, "invalid silent_threshold value %ld (buffer_size = %ld)",
+			       val, pcm->buffer_size);
+
 		return -EINVAL;
 	}
 	params->silence_threshold = val;
@@ -6897,7 +6908,7 @@ int snd_pcm_sw_params_set_silence_threshold(snd_pcm_t *pcm, snd_pcm_sw_params_t 
  * \param val Returned silence threshold in frames
  * \return 0 otherwise a negative error value
  *
- * A portion of playback buffer is overwritten with silence (see 
+ * A portion of playback buffer is overwritten with silence (see
  * #snd_pcm_sw_params_set_silence_size) when playback underrun is nearer
  * than silence threshold.
  */
@@ -6921,7 +6932,7 @@ int snd_pcm_sw_params_get_silence_threshold(const snd_pcm_sw_params_t *params, s
  * \return 0 otherwise a negative error code
  *
  * A portion of playback buffer is overwritten with silence when playback
- * underrun is nearer than silence threshold (see 
+ * underrun is nearer than silence threshold (see
  * #snd_pcm_sw_params_set_silence_threshold)
  *
  * When drain silence (see #snd_pcm_hw_params_get_drain_silence) is disabled,
@@ -6941,8 +6952,9 @@ int snd_pcm_sw_params_set_silence_size(snd_pcm_t *pcm, snd_pcm_sw_params_t *para
 {
 	assert(pcm && params);
 	if (CHECK_SANITY(val < pcm->boundary && val > pcm->buffer_size)) {
-		SNDMSG("invalid silence_size %ld (boundary %ld, buffer_size %ld)",
-		       val, pcm->boundary, pcm->buffer_size);
+		snd_check(PCM, "invalid silence_size %ld (boundary %ld, buffer_size %ld)",
+			       val, pcm->boundary, pcm->buffer_size);
+
 		return -EINVAL;
 	}
 	params->silence_size = val;
@@ -6956,7 +6968,7 @@ int snd_pcm_sw_params_set_silence_size(snd_pcm_t *pcm, snd_pcm_sw_params_t *para
  * \return 0 otherwise a negative error code
  *
  * A portion of playback buffer is overwritten with silence when playback
- * underrun is nearer than silence threshold (see 
+ * underrun is nearer than silence threshold (see
  * #snd_pcm_sw_params_set_silence_threshold)
  */
 #ifndef DOXYGEN
@@ -7014,7 +7026,7 @@ void snd_pcm_status_copy(snd_pcm_status_t *dst, const snd_pcm_status_t *src)
 	*dst = *src;
 }
 
-/** 
+/**
  * \brief Get state from a PCM status container (see #snd_pcm_state)
  * \param obj #snd_pcm_status_t pointer
  * \return PCM state
@@ -7025,7 +7037,7 @@ snd_pcm_state_t snd_pcm_status_get_state(const snd_pcm_status_t *obj)
 	return obj->state;
 }
 
-/** 
+/**
  * \brief Get trigger timestamp from a PCM status container
  * \param obj #snd_pcm_status_t pointer
  * \param ptr Pointer to returned timestamp
@@ -7041,7 +7053,7 @@ void snd_pcm_status_get_trigger_tstamp(const snd_pcm_status_t *obj, snd_timestam
 	ptr->tv_usec = obj->trigger_tstamp.tv_nsec / 1000L;
 }
 
-/** 
+/**
  * \brief Get trigger hi-res timestamp from a PCM status container
  * \param obj #snd_pcm_status_t pointer
  * \param ptr Pointer to returned timestamp
@@ -7061,7 +7073,7 @@ void snd_pcm_status_get_trigger_htstamp(const snd_pcm_status_t *obj, snd_htimest
 }
 use_default_symbol_version(__snd_pcm_status_get_trigger_htstamp, snd_pcm_status_get_trigger_htstamp, ALSA_0.9.0rc8);
 
-/** 
+/**
  * \brief Get "now" timestamp from a PCM status container
  * \param obj #snd_pcm_status_t pointer
  * \param ptr Pointer to returned timestamp
@@ -7073,7 +7085,7 @@ void snd_pcm_status_get_tstamp(const snd_pcm_status_t *obj, snd_timestamp_t *ptr
 	ptr->tv_usec = obj->tstamp.tv_nsec / 1000L;
 }
 
-/** 
+/**
  * \brief Get "now" hi-res timestamp from a PCM status container
  * \param obj pointer to #snd_pcm_status_t
  * \param ptr Pointer to returned timestamp
@@ -7089,7 +7101,7 @@ void snd_pcm_status_get_htstamp(const snd_pcm_status_t *obj, snd_htimestamp_t *p
 }
 use_default_symbol_version(__snd_pcm_status_get_htstamp, snd_pcm_status_get_htstamp, ALSA_0.9.0rc8);
 
-/** 
+/**
  * \brief Get "now" hi-res audio timestamp from a PCM status container
  * \param obj pointer to #snd_pcm_status_t
  * \param ptr Pointer to returned timestamp
@@ -7154,7 +7166,7 @@ snd_pcm_sframes_t snd_pcm_status_get_delay(const snd_pcm_status_t *obj)
 	return obj->delay;
 }
 
-/** 
+/**
  * \brief Get number of frames available from a PCM status container (see #snd_pcm_avail_update)
  * \return Number of frames ready to be read/written
  */
@@ -7164,7 +7176,7 @@ snd_pcm_uframes_t snd_pcm_status_get_avail(const snd_pcm_status_t *obj)
 	return obj->avail;
 }
 
-/** 
+/**
  * \brief Get maximum number of frames available from a PCM status container after last #snd_pcm_status call
  * \return Maximum number of frames ready to be read/written
  *
@@ -7176,7 +7188,7 @@ snd_pcm_uframes_t snd_pcm_status_get_avail_max(const snd_pcm_status_t *obj)
 	return obj->avail_max;
 }
 
-/** 
+/**
  * \brief Get count of ADC overrange detections since last call
  * \return Count of ADC overrange detections
  */
@@ -7401,7 +7413,7 @@ void snd_pcm_info_set_stream(snd_pcm_info_t *obj, snd_pcm_stream_t val)
 
 /**
  * \brief Application request to access a portion of direct (mmap) area
- * \param pcm PCM handle 
+ * \param pcm PCM handle
  * \param areas Returned mmap channel areas
  * \param offset Returned mmap area offset in area steps (== frames)
  * \param frames mmap area portion size in frames (wanted on entry, contiguous available on exit)
@@ -7504,7 +7516,7 @@ int __snd_pcm_mmap_begin(snd_pcm_t *pcm, const snd_pcm_channel_area_t **areas,
   if (avail < 0)
     error(avail);
   // at this point, we can transfer at least 'avail' frames
-  
+
   // we want to process frames in chunks (period_size)
   if (avail < period_size)
     goto _skip;
@@ -7521,7 +7533,7 @@ int __snd_pcm_mmap_begin(snd_pcm_t *pcm, const snd_pcm_channel_area_t **areas,
     commitres = snd_pcm_mmap_commit(pcm_handle, offset, frames);
     if (commitres < 0 || commitres != frames)
       error(commitres >= 0 ? -EPIPE : commitres);
-      
+
     size -= frames;
   }
  _skip:
@@ -7556,13 +7568,15 @@ snd_pcm_sframes_t __snd_pcm_mmap_commit(snd_pcm_t *pcm,
 {
 	assert(pcm);
 	if (CHECK_SANITY(offset != *pcm->appl.ptr % pcm->buffer_size)) {
-		SNDMSG("commit offset (%ld) doesn't match with appl_ptr (%ld) %% buf_size (%ld)",
-		       offset, *pcm->appl.ptr, pcm->buffer_size);
+		snd_check(PCM, "commit offset (%ld) doesn't match with appl_ptr (%ld) %% buf_size (%ld)",
+			       offset, *pcm->appl.ptr, pcm->buffer_size);
+
 		return -EPIPE;
 	}
 	if (CHECK_SANITY(frames > snd_pcm_mmap_avail(pcm))) {
-		SNDMSG("commit frames (%ld) overflow (avail = %ld)", frames,
-		       snd_pcm_mmap_avail(pcm));
+		snd_check(PCM, "commit frames (%ld) overflow (avail = %ld)", frames,
+			       snd_pcm_mmap_avail(pcm));
+
 		return -EPIPE;
 	}
 	if (pcm->fast_ops->mmap_commit)
@@ -7577,7 +7591,7 @@ int _snd_pcm_poll_descriptor(snd_pcm_t *pcm)
 	return pcm->poll_fd;
 }
 
-void snd_pcm_areas_from_buf(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas, 
+void snd_pcm_areas_from_buf(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas,
 			    void *buf)
 {
 	unsigned int channel;
@@ -7593,7 +7607,7 @@ void snd_pcm_areas_from_buf(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas,
 	snd_pcm_unlock(pcm);
 }
 
-void snd_pcm_areas_from_bufs(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas, 
+void snd_pcm_areas_from_bufs(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas,
 			     void **bufs)
 {
 	unsigned int channel;
@@ -7663,7 +7677,7 @@ snd_pcm_sframes_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_
 			if (err < 0)
 				break;
 			goto _again;
-			
+
 		}
 		frames = size;
 		if (frames > (snd_pcm_uframes_t) avail)
@@ -7821,13 +7835,13 @@ int snd_pcm_slave_conf(snd_config_t *root, snd_config_t *conf,
 	if (snd_config_get_string(conf, &str) >= 0) {
 		err = snd_config_search_definition(root, "pcm_slave", str, &conf);
 		if (err < 0) {
-			SNDERR("Invalid slave definition");
+			snd_error(PCM, "Invalid slave definition");
 			return -EINVAL;
 		}
 		to_free = 1;
 	}
 	if (snd_config_get_type(conf) != SND_CONFIG_TYPE_COMPOUND) {
-		SNDERR("Invalid slave definition");
+		snd_error(PCM, "Invalid slave definition");
 		err = -EINVAL;
 		goto _err;
 	}
@@ -7867,7 +7881,7 @@ int snd_pcm_slave_conf(snd_config_t *root, snd_config_t *conf,
 				err = snd_config_get_string(n, &str);
 				if (err < 0) {
 				_invalid:
-					SNDERR("invalid type for %s", id);
+					snd_error(PCM, "invalid type for %s", id);
 					goto _err;
 				}
 				if ((fields[k].flags & SCONF_UNCHANGED) &&
@@ -7877,7 +7891,7 @@ int snd_pcm_slave_conf(snd_config_t *root, snd_config_t *conf,
 				}
 				f = snd_pcm_format_value(str);
 				if (f == SND_PCM_FORMAT_UNKNOWN) {
-					SNDERR("unknown format %s", str);
+					snd_error(PCM, "unknown format %s", str);
 					err = -EINVAL;
 					goto _err;
 				}
@@ -7904,18 +7918,18 @@ int snd_pcm_slave_conf(snd_config_t *root, snd_config_t *conf,
 		}
 		if (k < count)
 			continue;
-		SNDERR("Unknown field %s", id);
+		snd_error(PCM, "Unknown field %s", id);
 		err = -EINVAL;
 		goto _err;
 	}
 	if (!pcm_conf) {
-		SNDERR("missing field pcm");
+		snd_error(PCM, "missing field pcm");
 		err = -EINVAL;
 		goto _err;
 	}
 	for (k = 0; k < count; ++k) {
 		if ((fields[k].flags & SCONF_MANDATORY) && !fields[k].present) {
-			SNDERR("missing field %s", names[fields[k].index]);
+			snd_error(PCM, "missing field %s", names[fields[k].index]);
 			err = -EINVAL;
 			goto _err;
 		}
@@ -7924,13 +7938,13 @@ int snd_pcm_slave_conf(snd_config_t *root, snd_config_t *conf,
 	pcm_conf = NULL;
 	err = 0;
  _err:
- 	if (pcm_conf)
- 		snd_config_delete(pcm_conf);
+	if (pcm_conf)
+		snd_config_delete(pcm_conf);
 	if (to_free)
 		snd_config_delete(conf);
 	return err;
 }
-		
+
 static void snd_pcm_set_ptr(snd_pcm_t *pcm, snd_pcm_rbptr_t *rbptr,
 			    volatile snd_pcm_uframes_t *hw_ptr, int fd, off_t offset)
 {
@@ -7961,7 +7975,7 @@ static void snd_pcm_link_ptr(snd_pcm_t *pcm, snd_pcm_rbptr_t *pcm_rbptr,
 {
 	snd_pcm_t **a;
 	int idx;
-	
+
 	a = slave_rbptr->link_dst;
 	for (idx = 0; idx < slave_rbptr->link_dst_count; idx++)
 		if (a[idx] == NULL) {
@@ -8003,7 +8017,7 @@ static void snd_pcm_unlink_ptr(snd_pcm_t *pcm, snd_pcm_rbptr_t *pcm_rbptr,
 	return;
 
       __found:
-      	pcm_rbptr->master = NULL;
+	pcm_rbptr->master = NULL;
 	pcm_rbptr->ptr = NULL;
 	pcm_rbptr->fd = -1;
 	pcm_rbptr->offset = 0UL;
@@ -8738,8 +8752,8 @@ _snd_pcm_parse_config_chmaps(snd_config_t *conf)
 /*
  * basic helpers
  */
- 
- 
+
+
 /**
  * \brief Recover the stream state from an error or suspend
  * \param pcm PCM handle
@@ -8758,39 +8772,39 @@ _snd_pcm_parse_config_chmaps(snd_config_t *conf)
  */
 int snd_pcm_recover(snd_pcm_t *pcm, int err, int silent)
 {
-        if (err > 0)
-                err = -err;
-        if (err == -EINTR)	/* nothing to do, continue */
-                return 0;
-        if (err == -EPIPE) {
-                const char *s;
-                if (snd_pcm_stream(pcm) == SND_PCM_STREAM_PLAYBACK)
-                        s = "underrun";
-                else
-                        s = "overrun";
-                if (!silent)
-                        SNDERR("%s occurred", s);
-                err = snd_pcm_prepare(pcm);
-                if (err < 0) {
-                        SNDERR("cannot recovery from %s, prepare failed: %s", s, snd_strerror(err));
-                        return err;
-                }
-                return 0;
-        }
-        if (err == -ESTRPIPE) {
-                while ((err = snd_pcm_resume(pcm)) == -EAGAIN)
-                        /* wait until suspend flag is released */
-                        poll(NULL, 0, 1000);
-                if (err < 0) {
-                        err = snd_pcm_prepare(pcm);
-                        if (err < 0) {
-                                SNDERR("cannot recovery from suspend, prepare failed: %s", snd_strerror(err));
-                                return err;
-                        }
-                }
-                return 0;
-        }
-        return err;
+	if (err > 0)
+		err = -err;
+	if (err == -EINTR)	/* nothing to do, continue */
+		return 0;
+	if (err == -EPIPE) {
+		const char *s;
+		if (snd_pcm_stream(pcm) == SND_PCM_STREAM_PLAYBACK)
+			s = "underrun";
+		else
+			s = "overrun";
+		if (!silent)
+			snd_error(PCM, "%s occurred", s);
+		err = snd_pcm_prepare(pcm);
+		if (err < 0) {
+			snd_error(PCM, "cannot recovery from %s, prepare failed: %s", s, snd_strerror(err));
+			return err;
+		}
+		return 0;
+	}
+	if (err == -ESTRPIPE) {
+		while ((err = snd_pcm_resume(pcm)) == -EAGAIN)
+			/* wait until suspend flag is released */
+			poll(NULL, 0, 1000);
+		if (err < 0) {
+			err = snd_pcm_prepare(pcm);
+			if (err < 0) {
+				snd_error(PCM, "cannot recovery from suspend, prepare failed: %s", snd_strerror(err));
+				return err;
+			}
+		}
+		return 0;
+	}
+	return err;
 }
 
 /**
@@ -8805,12 +8819,12 @@ int snd_pcm_recover(snd_pcm_t *pcm, int err, int silent)
  * \return 0 on success otherwise a negative error code
  */
 int snd_pcm_set_params(snd_pcm_t *pcm,
-                       snd_pcm_format_t format,
-                       snd_pcm_access_t access,
-                       unsigned int channels,
-                       unsigned int rate,
-                       int soft_resample,
-                       unsigned int latency)
+		       snd_pcm_format_t format,
+		       snd_pcm_access_t access,
+		       unsigned int channels,
+		       unsigned int rate,
+		       int soft_resample,
+		       unsigned int latency)
 {
 	snd_pcm_hw_params_t params_saved, params = {0};
 	snd_pcm_sw_params_t swparams = {0};
@@ -8823,36 +8837,41 @@ int snd_pcm_set_params(snd_pcm_t *pcm,
 	/* choose all parameters */
 	err = snd_pcm_hw_params_any(pcm, &params);
 	if (err < 0) {
-		SNDERR("Broken configuration for %s: no configurations available",
-		       s);
+		snd_error(PCM, "Broken configuration for %s: no configurations available",
+			       s);
+
 		return err;
-        }
+	}
 	/* set software resampling */
 	err = snd_pcm_hw_params_set_rate_resample(pcm, &params, soft_resample);
 	if (err < 0) {
-		SNDERR("Resampling setup failed for %s: %s",
-		       s, snd_strerror(err));
+		snd_error(PCM, "Resampling setup failed for %s: %s",
+			       s, snd_strerror(err));
+
 		return err;
 	}
 	/* set the selected read/write format */
 	err = snd_pcm_hw_params_set_access(pcm, &params, access);
 	if (err < 0) {
-		SNDERR("Access type not available for %s: %s",
-		       s, snd_strerror(err));
+		snd_error(PCM, "Access type not available for %s: %s",
+			       s, snd_strerror(err));
+
 		return err;
 	}
 	/* set the sample format */
 	err = snd_pcm_hw_params_set_format(pcm, &params, format);
 	if (err < 0) {
-		SNDERR("Sample format not available for %s: %s",
-		       s, snd_strerror(err));
+		snd_error(PCM, "Sample format not available for %s: %s",
+			       s, snd_strerror(err));
+
 		return err;
 	}
 	/* set the count of channels */
 	err = snd_pcm_hw_params_set_channels(pcm, &params, channels);
 	if (err < 0) {
-		SNDERR("Channels count (%i) not available for %s: %s",
-		       channels, s, snd_strerror(err));
+		snd_error(PCM, "Channels count (%i) not available for %s: %s",
+			       channels, s, snd_strerror(err));
+
 		return err;
 	}
 	/* set the stream rate */
@@ -8860,13 +8879,15 @@ int snd_pcm_set_params(snd_pcm_t *pcm,
 	err = INTERNAL(snd_pcm_hw_params_set_rate_near)(pcm, &params, &rrate,
 							0);
 	if (err < 0) {
-		SNDERR("Rate %iHz not available for playback: %s",
-		       rate, snd_strerror(err));
+		snd_error(PCM, "Rate %iHz not available for playback: %s",
+			       rate, snd_strerror(err));
+
 		return err;
 	}
 	if (rrate != rate) {
-		SNDERR("Rate doesn't match (requested %iHz, get %iHz)",
-		       rate, rrate);
+		snd_error(PCM, "Rate doesn't match (requested %iHz, get %iHz)",
+			       rate, rrate);
+
 		return -EINVAL;
 	}
 	/* set the buffer time */
@@ -8881,30 +8902,34 @@ int snd_pcm_set_params(snd_pcm_t *pcm,
 		err = INTERNAL(snd_pcm_hw_params_set_period_time_near)(pcm,
 						&params, &period_time, NULL);
 		if (err < 0) {
-			SNDERR("Unable to set period time %i for %s: %s",
-			       period_time, s, snd_strerror(err));
+			snd_error(PCM, "Unable to set period time %i for %s: %s",
+				       period_time, s, snd_strerror(err));
+
 			return err;
 		}
 		err = INTERNAL(snd_pcm_hw_params_get_period_size)(&params,
 							&period_size, NULL);
 		if (err < 0) {
-			SNDERR("Unable to get period size for %s: %s",
-							s, snd_strerror(err));
+			snd_error(PCM, "Unable to get period size for %s: %s",
+								s, snd_strerror(err));
+
 			return err;
 		}
 		buffer_size = period_size * 4;
 		err = INTERNAL(snd_pcm_hw_params_set_buffer_size_near)(pcm,
 							&params, &buffer_size);
 		if (err < 0) {
-			SNDERR("Unable to set buffer size %lu %s: %s",
-					buffer_size, s, snd_strerror(err));
+			snd_error(PCM, "Unable to set buffer size %lu %s: %s",
+						buffer_size, s, snd_strerror(err));
+
 			return err;
 		}
 		err = INTERNAL(snd_pcm_hw_params_get_buffer_size)(&params,
 								&buffer_size);
 		if (err < 0) {
-			SNDERR("Unable to get buffer size for %s: %s",
-			       s, snd_strerror(err));
+			snd_error(PCM, "Unable to get buffer size for %s: %s",
+				       s, snd_strerror(err));
+
 			return err;
 		}
 	} else {
@@ -8912,15 +8937,17 @@ int snd_pcm_set_params(snd_pcm_t *pcm,
 		err = INTERNAL(snd_pcm_hw_params_get_buffer_size)(&params,
 								&buffer_size);
 		if (err < 0) {
-			SNDERR("Unable to get buffer size for %s: %s",
-							s, snd_strerror(err));
+			snd_error(PCM, "Unable to get buffer size for %s: %s",
+								s, snd_strerror(err));
+
 			return err;
 		}
 		err = INTERNAL(snd_pcm_hw_params_get_buffer_time)(&params,
 							&latency, NULL);
 		if (err < 0) {
-			SNDERR("Unable to get buffer time (latency) for %s: %s",
-			       s, snd_strerror(err));
+			snd_error(PCM, "Unable to get buffer time (latency) for %s: %s",
+				       s, snd_strerror(err));
+
 			return err;
 		}
 		/* set the period time */
@@ -8928,31 +8955,35 @@ int snd_pcm_set_params(snd_pcm_t *pcm,
 		err = INTERNAL(snd_pcm_hw_params_set_period_time_near)(pcm,
 						&params, &period_time, NULL);
 		if (err < 0) {
-			SNDERR("Unable to set period time %i for %s: %s",
-			       period_time, s, snd_strerror(err));
+			snd_error(PCM, "Unable to set period time %i for %s: %s",
+				       period_time, s, snd_strerror(err));
+
 			return err;
 		}
 		err = INTERNAL(snd_pcm_hw_params_get_period_size)(&params,
 							&period_size, NULL);
 		if (err < 0) {
-			SNDERR("Unable to get period size for %s: %s",
-			       s, snd_strerror(err));
+			snd_error(PCM, "Unable to get period size for %s: %s",
+				       s, snd_strerror(err));
+
 			return err;
 		}
 	}
 	/* write the parameters to device */
 	err = snd_pcm_hw_params(pcm, &params);
 	if (err < 0) {
-		SNDERR("Unable to set hw params for %s: %s",
-		       s, snd_strerror(err));
+		snd_error(PCM, "Unable to set hw params for %s: %s",
+			       s, snd_strerror(err));
+
 		return err;
 	}
 
 	/* get the current swparams */
 	err = snd_pcm_sw_params_current(pcm, &swparams);
 	if (err < 0) {
-		SNDERR("Unable to determine current swparams for %s: %s",
-		       s, snd_strerror(err));
+		snd_error(PCM, "Unable to determine current swparams for %s: %s",
+			       s, snd_strerror(err));
+
 		return err;
 	}
 	/*
@@ -8962,8 +8993,9 @@ int snd_pcm_set_params(snd_pcm_t *pcm,
 	err = snd_pcm_sw_params_set_start_threshold(pcm, &swparams,
 				(buffer_size / period_size) * period_size);
 	if (err < 0) {
-		SNDERR("Unable to set start threshold mode for %s: %s",
-		       s, snd_strerror(err));
+		snd_error(PCM, "Unable to set start threshold mode for %s: %s",
+			       s, snd_strerror(err));
+
 		return err;
 	}
 	/*
@@ -8972,15 +9004,17 @@ int snd_pcm_set_params(snd_pcm_t *pcm,
 	 */
 	err = snd_pcm_sw_params_set_avail_min(pcm, &swparams, period_size);
 	if (err < 0) {
-		SNDERR("Unable to set avail min for %s: %s",
-		       s, snd_strerror(err));
+		snd_error(PCM, "Unable to set avail min for %s: %s",
+			       s, snd_strerror(err));
+
 		return err;
 	}
 	/* write the parameters to the playback device */
 	err = snd_pcm_sw_params(pcm, &swparams);
 	if (err < 0) {
-		SNDERR("Unable to set sw params for %s: %s",
-		       s, snd_strerror(err));
+		snd_error(PCM, "Unable to set sw params for %s: %s",
+			       s, snd_strerror(err));
+
 		return err;
 	}
 	return 0;
@@ -8994,8 +9028,8 @@ int snd_pcm_set_params(snd_pcm_t *pcm,
  * \return 0 on success otherwise a negative error code
  */
 int snd_pcm_get_params(snd_pcm_t *pcm,
-                       snd_pcm_uframes_t *buffer_size,
-                       snd_pcm_uframes_t *period_size)
+		       snd_pcm_uframes_t *buffer_size,
+		       snd_pcm_uframes_t *period_size)
 {
 	snd_pcm_hw_params_t params = {0};
 	int err;
@@ -9003,7 +9037,7 @@ int snd_pcm_get_params(snd_pcm_t *pcm,
 	assert(pcm);
 	err = snd_pcm_hw_params_current(pcm, &params);
 	if (err < 0)
-	        return err;
+		return err;
 	err = INTERNAL(snd_pcm_hw_params_get_buffer_size)(&params, buffer_size);
 	if (err < 0)
 		return err;

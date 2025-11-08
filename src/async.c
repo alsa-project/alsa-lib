@@ -43,7 +43,7 @@ void snd_async_init(void)
 {
 	snd_async_signo = __libc_allocate_rtsig(0);
 	if (snd_async_signo < 0) {
-		SNDERR("Unable to find a RT signal to use for snd_async");
+		snd_error(CORE, "Unable to find a RT signal to use for snd_async");
 		exit(1);
 	}
 }
@@ -109,7 +109,7 @@ static void snd_async_handler(int signo ATTRIBUTE_UNUSED, siginfo_t *siginfo, vo
  *
  * \see snd_async_add_pcm_handler, snd_async_add_ctl_handler
  */
-int snd_async_add_handler(snd_async_handler_t **handler, int fd, 
+int snd_async_add_handler(snd_async_handler_t **handler, int fd,
 			  snd_async_callback_t callback, void *private_data)
 {
 	snd_async_handler_t *h;
@@ -135,7 +135,7 @@ int snd_async_add_handler(snd_async_handler_t **handler, int fd,
 		assert(!previous_action.sa_sigaction);
 		err = sigaction(snd_async_signo, &act, &previous_action);
 		if (err < 0) {
-			SYSERR("sigaction");
+			snd_errornum(CORE, "sigaction");
 			return -errno;
 		}
 	}
@@ -189,7 +189,7 @@ int snd_async_del_handler(snd_async_handler_t *handler)
 	if (!was_empty && list_empty(&snd_async_handlers)) {
 		err = sigaction(snd_async_signo, &previous_action, NULL);
 		if (err < 0) {
-			SYSERR("sigaction");
+			snd_errornum(CORE, "sigaction");
 			return -errno;
 		}
 		memset(&previous_action, 0, sizeof(previous_action));

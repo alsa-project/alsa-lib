@@ -18,7 +18,7 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-  
+
 #include "pcm_local.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,7 +44,7 @@
 /*
  *
  */
- 
+
 #if !defined(__OpenBSD__) && !defined(__DragonFly__) && !defined(__ANDROID__)
 union semun {
 	int              val;    /* Value for SETVAL */
@@ -55,7 +55,7 @@ union semun {
 #endif
 };
 #endif
- 
+
 /*
  * FIXME:
  *  add possibility to use futexes here
@@ -96,14 +96,14 @@ static unsigned int snd_pcm_direct_magic(snd_pcm_direct_t *dmix)
 }
 
 /*
- *  global shared memory area 
+ *  global shared memory area
  */
 
 int snd_pcm_direct_shm_create_or_connect(snd_pcm_direct_t *dmix)
 {
 	struct shmid_ds buf;
 	int tmpid, err, first_instance = 0;
-	
+
 retryget:
 	dmix->shmid = shmget(dmix->ipc_key, sizeof(snd_pcm_direct_share_t),
 			     dmix->ipc_perm);
@@ -120,7 +120,7 @@ retryget:
 		if ((tmpid = shmget(dmix->ipc_key, 0, dmix->ipc_perm)) != -1)
 		if (!shmctl(tmpid, IPC_STAT, &buf))
 		if (!buf.shm_nattch)
-	    	/* no users so destroy the segment */
+		/* no users so destroy the segment */
 		if (!shmctl(tmpid, IPC_RMID, NULL))
 		    goto retryget;
 		return err;
@@ -212,7 +212,7 @@ static int make_local_socket(const char *filename, int server, mode_t ipc_perm, 
 	sock = socket(PF_LOCAL, SOCK_STREAM, 0);
 	if (sock < 0) {
 		int result = -errno;
-		SYSERR("socket failed");
+		snd_errornum(PCM, "socket failed");
 		return result;
 	}
 
@@ -221,17 +221,17 @@ static int make_local_socket(const char *filename, int server, mode_t ipc_perm, 
 	memset(addr, 0, size); /* make valgrind happy */
 	addr->sun_family = AF_LOCAL;
 	memcpy(addr->sun_path, filename, l);
-	
+
 	if (server) {
 		if (bind(sock, (struct sockaddr *) addr, size) < 0) {
 			int result = -errno;
-			SYSERR("bind failed: %s", filename);
+			snd_errornum(PCM, "bind failed: %s", filename);
 			close(sock);
 			return result;
 		} else {
 			if (chmod(filename, ipc_perm) < 0) {
 				int result = -errno;
-				SYSERR("chmod failed: %s", filename);
+				snd_errornum(PCM, "chmod failed: %s", filename);
 				close(sock);
 				unlink(filename);
 				return result;
@@ -239,7 +239,7 @@ static int make_local_socket(const char *filename, int server, mode_t ipc_perm, 
 			if (chown(filename, -1, ipc_gid) < 0) {
 #if 0 /* it's not fatal */
 				int result = -errno;
-				SYSERR("chown failed: %s", filename);
+				snd_errornum(PCM, "chown failed: %s", filename);
 				close(sock);
 				unlink(filename);
 				return result;
@@ -249,7 +249,7 @@ static int make_local_socket(const char *filename, int server, mode_t ipc_perm, 
 	} else {
 		if (connect(sock, (struct sockaddr *) addr, size) < 0) {
 			int result = -errno;
-			SYSERR("connect failed: %s", filename);
+			snd_errornum(PCM, "connect failed: %s", filename);
 			close(sock);
 			return result;
 		}
@@ -309,7 +309,7 @@ static int _snd_send_fd(int sock, void *data, size_t len, int fd)
 	msghdr.msg_name = NULL;
 	msghdr.msg_namelen = 0;
 	msghdr.msg_iov = &vec;
- 	msghdr.msg_iovlen = 1;
+	msghdr.msg_iovlen = 1;
 	msghdr.msg_control = cmsg;
 	msghdr.msg_controllen = cmsg_len;
 	msghdr.msg_flags = 0;
@@ -342,7 +342,7 @@ static void server_job(snd_pcm_direct_t *dmix)
 		if (i != dmix->server_fd && i != dmix->hw_fd)
 			close(i);
 	}
-	
+
 	/* detach from parent */
 	setsid();
 
@@ -431,7 +431,7 @@ int snd_pcm_direct_server_create(snd_pcm_direct_t *dmix)
 	ret = get_tmp_name(dmix->shmptr->socket_name, sizeof(dmix->shmptr->socket_name));
 	if (ret < 0)
 		return ret;
-	
+
 	ret = make_local_socket(dmix->shmptr->socket_name, 1, dmix->ipc_perm, dmix->ipc_gid);
 	if (ret < 0)
 		return ret;
@@ -442,7 +442,7 @@ int snd_pcm_direct_server_create(snd_pcm_direct_t *dmix)
 		close(dmix->server_fd);
 		return ret;
 	}
-	
+
 	ret = fork();
 	if (ret < 0) {
 		close(dmix->server_fd);
@@ -585,7 +585,7 @@ int snd_pcm_direct_slave_recover(snd_pcm_direct_t *direct)
 	semerr = snd_pcm_direct_semaphore_down(direct,
 						   DIRECT_IPC_SEM_CLIENT);
 	if (semerr < 0) {
-		SNDERR("SEMDOWN FAILED with err %d", semerr);
+		snd_error(PCM, "SEMDOWN FAILED with err %d", semerr);
 		return semerr;
 	}
 
@@ -595,7 +595,7 @@ int snd_pcm_direct_slave_recover(snd_pcm_direct_t *direct)
 		semerr = snd_pcm_direct_semaphore_up(direct,
 						     DIRECT_IPC_SEM_CLIENT);
 		if (semerr < 0) {
-			SNDERR("SEMUP FAILED with err %d", semerr);
+			snd_error(PCM, "SEMUP FAILED with err %d", semerr);
 			return semerr;
 		}
 		return 0;
@@ -621,11 +621,11 @@ int snd_pcm_direct_slave_recover(snd_pcm_direct_t *direct)
 
 	ret = snd_pcm_prepare(direct->spcm);
 	if (ret < 0) {
-		SNDERR("recover: unable to prepare slave");
+		snd_error(PCM, "recover: unable to prepare slave");
 		semerr = snd_pcm_direct_semaphore_up(direct,
 						     DIRECT_IPC_SEM_CLIENT);
 		if (semerr < 0) {
-			SNDERR("SEMUP FAILED with err %d", semerr);
+			snd_error(PCM, "SEMUP FAILED with err %d", semerr);
 			return semerr;
 		}
 		return ret;
@@ -641,11 +641,11 @@ int snd_pcm_direct_slave_recover(snd_pcm_direct_t *direct)
 
 	ret = snd_pcm_start(direct->spcm);
 	if (ret < 0) {
-		SNDERR("recover: unable to start slave");
+		snd_error(PCM, "recover: unable to start slave");
 		semerr = snd_pcm_direct_semaphore_up(direct,
 						     DIRECT_IPC_SEM_CLIENT);
 		if (semerr < 0) {
-			SNDERR("SEMUP FAILED with err %d", semerr);
+			snd_error(PCM, "SEMUP FAILED with err %d", semerr);
 			return semerr;
 		}
 		return ret;
@@ -653,7 +653,7 @@ int snd_pcm_direct_slave_recover(snd_pcm_direct_t *direct)
 	semerr = snd_pcm_direct_semaphore_up(direct,
 						 DIRECT_IPC_SEM_CLIENT);
 	if (semerr < 0) {
-		SNDERR("SEMUP FAILED with err %d", semerr);
+		snd_error(PCM, "SEMUP FAILED with err %d", semerr);
 		return semerr;
 	}
 	return 0;
@@ -727,7 +727,7 @@ int snd_pcm_direct_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds,
 				    unsigned int space)
 {
 	if (pcm->poll_fd < 0) {
-		SNDMSG("poll_fd < 0");
+		snd_check(PCM, "poll_fd < 0");
 		return -EIO;
 	}
 	if (space >= 1 && pfds) {
@@ -845,7 +845,7 @@ static int hw_param_interval_refine_one(snd_pcm_hw_params_t *params,
 		return 0;
 	i = hw_param_interval(params, var);
 	if (snd_interval_empty(i)) {
-		SNDERR("dshare interval %i empty?", (int)var);
+		snd_error(PCM, "dshare interval %i empty?", (int)var);
 		return -EINVAL;
 	}
 	if (snd_interval_refine(i, src))
@@ -894,7 +894,7 @@ static int snd_interval_step(struct snd_interval *i, unsigned int min,
 int snd_pcm_direct_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_direct_t *dshare = pcm->private_data;
-	static const snd_mask_t access = { .bits = { 
+	static const snd_mask_t access = { .bits = {
 					(1<<SNDRV_PCM_ACCESS_MMAP_INTERLEAVED) |
 					(1<<SNDRV_PCM_ACCESS_MMAP_NONINTERLEAVED) |
 					(1<<SNDRV_PCM_ACCESS_RW_INTERLEAVED) |
@@ -910,7 +910,7 @@ int snd_pcm_direct_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 #endif
 	if (params->rmask & (1<<SND_PCM_HW_PARAM_ACCESS)) {
 		if (snd_mask_empty(hw_param_mask(params, SND_PCM_HW_PARAM_ACCESS))) {
-			SNDERR("dshare access mask empty?");
+			snd_error(PCM, "dshare access mask empty?");
 			return -EINVAL;
 		}
 		if (snd_mask_refine(hw_param_mask(params, SND_PCM_HW_PARAM_ACCESS), &access))
@@ -918,7 +918,7 @@ int snd_pcm_direct_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	}
 	if (params->rmask & (1<<SND_PCM_HW_PARAM_FORMAT)) {
 		if (snd_mask_empty(hw_param_mask(params, SND_PCM_HW_PARAM_FORMAT))) {
-			SNDERR("dshare format mask empty?");
+			snd_error(PCM, "dshare format mask empty?");
 			return -EINVAL;
 		}
 		if (snd_mask_refine_set(hw_param_mask(params, SND_PCM_HW_PARAM_FORMAT),
@@ -928,7 +928,7 @@ int snd_pcm_direct_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	//snd_mask_none(hw_param_mask(params, SND_PCM_HW_PARAM_SUBFORMAT));
 	if (params->rmask & (1<<SND_PCM_HW_PARAM_CHANNELS)) {
 		if (snd_interval_empty(hw_param_interval(params, SND_PCM_HW_PARAM_CHANNELS))) {
-			SNDERR("dshare channels mask empty?");
+			snd_error(PCM, "dshare channels mask empty?");
 			return -EINVAL;
 		}
 		err = snd_interval_refine_set(hw_param_interval(params, SND_PCM_HW_PARAM_CHANNELS), dshare->channels);
@@ -1057,14 +1057,14 @@ int snd_pcm_direct_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 
 int snd_pcm_direct_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info)
 {
-        return snd_pcm_channel_info_shm(pcm, info, -1);
+	return snd_pcm_channel_info_shm(pcm, info, -1);
 }
 
 int snd_pcm_direct_mmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 {
 	return 0;
 }
-        
+
 int snd_pcm_direct_munmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 {
 	return 0;
@@ -1202,13 +1202,13 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 	int loops = 10;
 
       __again:
-      	if (loops-- <= 0) {
-      		SNDERR("unable to find a valid configuration for slave");
-      		return -EINVAL;
-      	}
+	if (loops-- <= 0) {
+		snd_error(PCM, "unable to find a valid configuration for slave");
+		return -EINVAL;
+	}
 	ret = snd_pcm_hw_params_any(spcm, &hw_params);
 	if (ret < 0) {
-		SNDERR("snd_pcm_hw_params_any failed");
+		snd_error(PCM, "snd_pcm_hw_params_any failed");
 		return ret;
 	}
 	ret = snd_pcm_hw_params_set_access(spcm, &hw_params,
@@ -1217,7 +1217,7 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 		ret = snd_pcm_hw_params_set_access(spcm, &hw_params,
 					SND_PCM_ACCESS_MMAP_NONINTERLEAVED);
 		if (ret < 0) {
-			SNDERR("slave plugin does not support mmap interleaved or mmap noninterleaved access");
+			snd_error(PCM, "slave plugin does not support mmap interleaved or mmap noninterleaved access");
 			return ret;
 		}
 	}
@@ -1254,7 +1254,7 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 							&hw_params, &format);
 		}
 		if (ret < 0) {
-			SNDERR("requested or auto-format is not available");
+			snd_error(PCM, "requested or auto-format is not available");
 			return ret;
 		}
 		params->format = format;
@@ -1262,13 +1262,13 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 	ret = INTERNAL(snd_pcm_hw_params_set_channels_near)(spcm, &hw_params,
 					(unsigned int *)&params->channels);
 	if (ret < 0) {
-		SNDERR("requested count of channels is not available");
+		snd_error(PCM, "requested count of channels is not available");
 		return ret;
 	}
 	ret = INTERNAL(snd_pcm_hw_params_set_rate_near)(spcm, &hw_params,
 					(unsigned int *)&params->rate, 0);
 	if (ret < 0) {
-		SNDERR("requested rate is not available");
+		snd_error(PCM, "requested rate is not available");
 		return ret;
 	}
 
@@ -1277,14 +1277,14 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 		ret = INTERNAL(snd_pcm_hw_params_set_buffer_time_near)(spcm,
 			&hw_params, (unsigned int *)&params->buffer_time, 0);
 		if (ret < 0) {
-			SNDERR("unable to set buffer time");
+			snd_error(PCM, "unable to set buffer time");
 			return ret;
 		}
 	} else if (params->buffer_size > 0) {
 		ret = INTERNAL(snd_pcm_hw_params_set_buffer_size_near)(spcm,
 			&hw_params, (snd_pcm_uframes_t *)&params->buffer_size);
 		if (ret < 0) {
-			SNDERR("unable to set buffer size");
+			snd_error(PCM, "unable to set buffer size");
 			return ret;
 		}
 	} else {
@@ -1295,7 +1295,7 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 		ret = INTERNAL(snd_pcm_hw_params_set_period_time_near)(spcm,
 			&hw_params, (unsigned int *)&params->period_time, 0);
 		if (ret < 0) {
-			SNDERR("unable to set period_time");
+			snd_error(PCM, "unable to set period_time");
 			return ret;
 		}
 	} else if (params->period_size > 0) {
@@ -1303,17 +1303,17 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 			&hw_params, (snd_pcm_uframes_t *)&params->period_size,
 			0);
 		if (ret < 0) {
-			SNDERR("unable to set period_size");
+			snd_error(PCM, "unable to set period_size");
 			return ret;
 		}
-	}		
-	
+	}
+
 	if (buffer_is_not_initialized && params->periods > 0) {
 		unsigned int periods = params->periods;
 		ret = INTERNAL(snd_pcm_hw_params_set_periods_near)(spcm,
 					&hw_params, &params->periods, 0);
 		if (ret < 0) {
-			SNDERR("unable to set requested periods");
+			snd_error(PCM, "unable to set requested periods");
 			return ret;
 		}
 		if (params->periods == 1) {
@@ -1325,14 +1325,14 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 				params->period_size /= 2;
 				goto __again;
 			}
-			SNDERR("unable to use stream with periods == 1");
+			snd_error(PCM, "unable to use stream with periods == 1");
 			return ret;
 		}
 	}
-	
+
 	ret = snd_pcm_hw_params(spcm, &hw_params);
 	if (ret < 0) {
-		SNDERR("unable to install hw params");
+		snd_error(PCM, "unable to install hw params");
 		return ret;
 	}
 
@@ -1356,18 +1356,18 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 
 	ret = snd_pcm_sw_params_current(spcm, &sw_params);
 	if (ret < 0) {
-		SNDERR("unable to get current sw_params");
+		snd_error(PCM, "unable to get current sw_params");
 		return ret;
 	}
 
 	ret = snd_pcm_sw_params_get_boundary(&sw_params, &boundary);
 	if (ret < 0) {
-		SNDERR("unable to get boundary");
+		snd_error(PCM, "unable to get boundary");
 		return ret;
 	}
 	ret = snd_pcm_sw_params_set_stop_threshold(spcm, &sw_params, boundary);
 	if (ret < 0) {
-		SNDERR("unable to set stop threshold");
+		snd_error(PCM, "unable to set stop threshold");
 		return ret;
 	}
 
@@ -1378,7 +1378,7 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 	ret = snd_pcm_sw_params_set_tstamp_mode(spcm, &sw_params,
 						SND_PCM_TSTAMP_ENABLE);
 	if (ret < 0) {
-		SNDERR("unable to tstamp mode MMAP");
+		snd_error(PCM, "unable to tstamp mode MMAP");
 		return ret;
 	}
 
@@ -1386,7 +1386,7 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 		ret = snd_pcm_sw_params_set_tstamp_type(spcm, &sw_params,
 							dmix->tstamp_type);
 		if (ret < 0) {
-			SNDERR("unable to set tstamp type");
+			snd_error(PCM, "unable to set tstamp type");
 			return ret;
 		}
 	}
@@ -1397,12 +1397,12 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 
 	ret = snd_pcm_sw_params_set_silence_threshold(spcm, &sw_params, 0);
 	if (ret < 0) {
-		SNDERR("unable to set silence threshold");
+		snd_error(PCM, "unable to set silence threshold");
 		return ret;
 	}
 	ret = snd_pcm_sw_params_set_silence_size(spcm, &sw_params, boundary);
 	if (ret < 0) {
-		SNDERR("unable to set silence threshold (please upgrade to 0.9.0rc8+ driver)");
+		snd_error(PCM, "unable to set silence threshold (please upgrade to 0.9.0rc8+ driver)");
 		return ret;
 	}
 
@@ -1410,7 +1410,7 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 
 	ret = snd_pcm_sw_params(spcm, &sw_params);
 	if (ret < 0) {
-		SNDERR("unable to install sw params (please upgrade to 0.9.0rc8+ driver)");
+		snd_error(PCM, "unable to install sw params (please upgrade to 0.9.0rc8+ driver)");
 		return ret;
 	}
 
@@ -1420,20 +1420,20 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 		snd_pcm_areas_silence(dst_areas, 0, spcm->channels,
 				      spcm->buffer_size, spcm->format);
 	}
-	
+
 	ret = snd_pcm_start(spcm);
 	if (ret < 0) {
-		SNDERR("unable to start PCM stream");
+		snd_error(PCM, "unable to start PCM stream");
 		return ret;
 	}
 
 	if (snd_pcm_poll_descriptors_count(spcm) != 1) {
-		SNDERR("unable to use hardware pcm with fd more than one!!!");
+		snd_error(PCM, "unable to use hardware pcm with fd more than one!!!");
 		return ret;
 	}
 	snd_pcm_poll_descriptors(spcm, &fd, 1);
 	dmix->hw_fd = fd.fd;
-	
+
 	save_slave_setting(dmix, spcm);
 
 	/* Currently, we assume that each dmix client has the same
@@ -1476,7 +1476,7 @@ int snd_pcm_direct_initialize_poll_fd(snd_pcm_direct_t *dmix)
 	dmix->timer_ticks = 1;
 	ret = snd_pcm_info(dmix->spcm, &info);
 	if (ret < 0) {
-		SNDERR("unable to info for slave pcm");
+		snd_error(PCM, "unable to info for slave pcm");
 		return ret;
 	}
 	sprintf(name, "hw:CLASS=%i,SCLASS=0,CARD=%i,DEV=%i,SUBDEV=%i",
@@ -1491,13 +1491,13 @@ int snd_pcm_direct_initialize_poll_fd(snd_pcm_direct_t *dmix)
 		ret = snd_timer_open(&dmix->timer, name,
 				     SND_TIMER_OPEN_NONBLOCK);
 		if (ret < 0) {
-			SNDERR("unable to open timer '%s'", name);
+			snd_error(PCM, "unable to open timer '%s'", name);
 			return ret;
 		}
 	}
 
 	if (snd_timer_poll_descriptors_count(dmix->timer) != 1) {
-		SNDERR("unable to use timer '%s' with more than one fd!", name);
+		snd_error(PCM, "unable to use timer '%s' with more than one fd!", name);
 		return ret;
 	}
 	snd_timer_poll_descriptors(dmix->timer, &dmix->timer_fd, 1);
@@ -1598,10 +1598,10 @@ int snd_pcm_direct_open_secondary_client(snd_pcm_t **spcmp, snd_pcm_direct_t *dm
 
 	ret = snd_pcm_hw_open_fd(spcmp, client_name, dmix->hw_fd, 0);
 	if (ret < 0) {
-		SNDERR("unable to open hardware");
+		snd_error(PCM, "unable to open hardware");
 		return ret;
 	}
-		
+
 	spcm = *spcmp;
 	spcm->donot_close = 1;
 	spcm->setup = 1;
@@ -1616,7 +1616,7 @@ int snd_pcm_direct_open_secondary_client(snd_pcm_t **spcmp, snd_pcm_direct_t *dm
 
 	ret = snd_pcm_mmap(spcm);
 	if (ret < 0) {
-		SNDERR("unable to mmap channels");
+		snd_error(PCM, "unable to mmap channels");
 		return ret;
 	}
 	return 0;
@@ -1643,7 +1643,7 @@ int snd_pcm_direct_initialize_secondary_slave(snd_pcm_direct_t *dmix,
 
 	ret = snd_pcm_mmap(spcm);
 	if (ret < 0) {
-		SNDERR("unable to mmap channels");
+		snd_error(PCM, "unable to mmap channels");
 		return ret;
 	}
 	return 0;
@@ -1666,7 +1666,7 @@ int snd_pcm_direct_set_timer_params(snd_pcm_direct_t *dmix)
 	}
 	ret = snd_timer_params(dmix->timer, &params);
 	if (ret < 0) {
-		SNDERR("unable to set timer parameters");
+		snd_error(PCM, "unable to set timer parameters");
 		return ret;
 	}
 	return 0;
@@ -1729,7 +1729,7 @@ int snd_pcm_direct_parse_bindings(snd_pcm_direct_t *dmix,
 	if (cfg == NULL)
 		return 0;
 	if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
-		SNDERR("invalid type for bindings");
+		snd_error(PCM, "invalid type for bindings");
 		return -EINVAL;
 	}
 	snd_config_for_each(i, next, cfg) {
@@ -1740,7 +1740,7 @@ int snd_pcm_direct_parse_bindings(snd_pcm_direct_t *dmix,
 			continue;
 		err = safe_strtol(id, &cchannel);
 		if (err < 0 || cchannel < 0) {
-			SNDERR("invalid client channel in binding: %s", id);
+			snd_error(PCM, "invalid client channel in binding: %s", id);
 			return -EINVAL;
 		}
 		if ((unsigned)cchannel >= count)
@@ -1749,7 +1749,7 @@ int snd_pcm_direct_parse_bindings(snd_pcm_direct_t *dmix,
 	if (count == 0)
 		return 0;
 	if (count > 1024) {
-		SNDERR("client channel out of range");
+		snd_error(PCM, "client channel out of range");
 		return -EINVAL;
 	}
 	bindings = malloc(count * sizeof(unsigned int));
@@ -1765,13 +1765,14 @@ int snd_pcm_direct_parse_bindings(snd_pcm_direct_t *dmix,
 			continue;
 		safe_strtol(id, &cchannel);
 		if (snd_config_get_integer(n, &schannel) < 0) {
-			SNDERR("unable to get slave channel (should be integer type) in binding: %s", id);
+			snd_error(PCM, "unable to get slave channel (should be integer type) in binding: %s", id);
 			free(bindings);
 			return -EINVAL;
 		}
 		if (schannel < 0 || schannel >= params->channels) {
-			SNDERR("invalid slave channel number %ld in binding to %ld",
-			       schannel, cchannel);
+			snd_error(PCM, "invalid slave channel number %ld in binding to %ld",
+				       schannel, cchannel);
+
 			free(bindings);
 			return -EINVAL;
 		}
@@ -1785,7 +1786,7 @@ int snd_pcm_direct_parse_bindings(snd_pcm_direct_t *dmix,
 			if (chn == chn1)
 				continue;
 			if (bindings[chn] == dmix->bindings[chn1]) {
-				SNDERR("unable to route channels %d,%d to same destination %d", chn, chn1, bindings[chn]);
+				snd_error(PCM, "unable to route channels %d,%d to same destination %d", chn, chn1, bindings[chn]);
 				free(bindings);
 				return -EINVAL;
 			}
@@ -1814,12 +1815,12 @@ static int _snd_pcm_direct_get_slave_ipc_offset(snd_config_t *root,
 
 	if (snd_config_get_string(sconf, &str) >= 0) {
 		if (hop > SND_CONF_MAX_HOPS) {
-			SNDERR("Too many definition levels (looped?)");
+			snd_error(PCM, "Too many definition levels (looped?)");
 			return -EINVAL;
 		}
 		err = snd_config_search_definition(root, "pcm", str, &pcm_conf);
 		if (err < 0) {
-			SNDERR("Unknown slave PCM %s", str);
+			snd_error(PCM, "Unknown slave PCM %s", str);
 			return err;
 		}
 		err = _snd_pcm_direct_get_slave_ipc_offset(root, pcm_conf,
@@ -1869,11 +1870,11 @@ static int _snd_pcm_direct_get_slave_ipc_offset(snd_config_t *root,
 		if (strcmp(id, "type") == 0) {
 			err = snd_config_get_string(n, &str);
 			if (err < 0) {
-				SNDERR("Invalid value for PCM type definition");
+				snd_error(PCM, "Invalid value for PCM type definition");
 				return -EINVAL;
 			}
 			if (strcmp(str, "hw")) {
-				SNDERR("Invalid type '%s' for slave PCM", str);
+				snd_error(PCM, "Invalid type '%s' for slave PCM", str);
 				return -EINVAL;
 			}
 			continue;
@@ -1888,7 +1889,7 @@ static int _snd_pcm_direct_get_slave_ipc_offset(snd_config_t *root,
 		if (strcmp(id, "device") == 0) {
 			err = snd_config_get_integer(n, &device);
 			if (err < 0) {
-				SNDERR("Invalid type for %s", id);
+				snd_error(PCM, "Invalid type for %s", id);
 				return err;
 			}
 			continue;
@@ -1896,7 +1897,7 @@ static int _snd_pcm_direct_get_slave_ipc_offset(snd_config_t *root,
 		if (strcmp(id, "subdevice") == 0) {
 			err = snd_config_get_integer(n, &subdevice);
 			if (err < 0) {
-				SNDERR("Invalid type for %s", id);
+				snd_error(PCM, "Invalid type for %s", id);
 				return err;
 			}
 			continue;
@@ -1959,7 +1960,7 @@ int snd_pcm_direct_parse_open_conf(snd_config_t *root, snd_config_t *conf,
 			long key;
 			err = snd_config_get_integer(n, &key);
 			if (err < 0) {
-				SNDERR("The field ipc_key must be an integer type");
+				snd_error(PCM, "The field ipc_key must be an integer type");
 
 				return err;
 			}
@@ -1970,11 +1971,11 @@ int snd_pcm_direct_parse_open_conf(snd_config_t *root, snd_config_t *conf,
 			long perm;
 			err = snd_config_get_integer(n, &perm);
 			if (err < 0) {
-				SNDERR("Invalid type for %s", id);
+				snd_error(PCM, "Invalid type for %s", id);
 				return err;
 			}
 			if ((perm & ~0777) != 0) {
-				SNDERR("The field ipc_perm must be a valid file permission");
+				snd_error(PCM, "The field ipc_perm must be a valid file permission");
 				return -EINVAL;
 			}
 			rec->ipc_perm = perm;
@@ -1984,7 +1985,7 @@ int snd_pcm_direct_parse_open_conf(snd_config_t *root, snd_config_t *conf,
 			const char *str;
 			err = snd_config_get_string(n, &str);
 			if (err < 0) {
-				SNDERR("Invalid type for %s", id);
+				snd_error(PCM, "Invalid type for %s", id);
 				return -EINVAL;
 			}
 			if (strcmp(str, "no") == 0 || strcmp(str, "off") == 0)
@@ -1996,7 +1997,7 @@ int snd_pcm_direct_parse_open_conf(snd_config_t *root, snd_config_t *conf,
 			else if (strcmp(str, "auto") == 0)
 				rec->hw_ptr_alignment = SND_PCM_HW_PTR_ALIGNMENT_AUTO;
 			else {
-				SNDERR("The field hw_ptr_alignment is invalid : %s", str);
+				snd_error(PCM, "The field hw_ptr_alignment is invalid : %s", str);
 				return -EINVAL;
 			}
 
@@ -2006,7 +2007,7 @@ int snd_pcm_direct_parse_open_conf(snd_config_t *root, snd_config_t *conf,
 			const char *str;
 			err = snd_config_get_string(n, &str);
 			if (err < 0) {
-				SNDERR("Invalid type for %s", id);
+				snd_error(PCM, "Invalid type for %s", id);
 				return -EINVAL;
 			}
 			if (strcmp(str, "default") == 0)
@@ -2018,7 +2019,7 @@ int snd_pcm_direct_parse_open_conf(snd_config_t *root, snd_config_t *conf,
 			else if (strcmp(str, "monotonic_raw") == 0)
 				rec->tstamp_type = SND_PCM_TSTAMP_TYPE_MONOTONIC_RAW;
 			else {
-				SNDERR("The field tstamp_type is invalid : %s", str);
+				snd_error(PCM, "The field tstamp_type is invalid : %s", str);
 				return -EINVAL;
 			}
 			continue;
@@ -2028,7 +2029,7 @@ int snd_pcm_direct_parse_open_conf(snd_config_t *root, snd_config_t *conf,
 			char *endp;
 			err = snd_config_get_ascii(n, &group);
 			if (err < 0) {
-				SNDERR("The field ipc_gid must be a valid group");
+				snd_error(PCM, "The field ipc_gid must be a valid group");
 				return err;
 			}
 			if (! *group) {
@@ -2045,7 +2046,7 @@ int snd_pcm_direct_parse_open_conf(snd_config_t *root, snd_config_t *conf,
 					return -ENOMEM;
 				int st = getgrnam_r(group, &grp, buffer, len, &pgrp);
 				if (st != 0 || !pgrp) {
-					SNDERR("The field ipc_gid must be a valid group (create group %s)", group);
+					snd_error(PCM, "The field ipc_gid must be a valid group (create group %s)", group);
 					free(buffer);
 					return -EINVAL;
 				}
@@ -2059,7 +2060,7 @@ int snd_pcm_direct_parse_open_conf(snd_config_t *root, snd_config_t *conf,
 		}
 		if (strcmp(id, "ipc_key_add_uid") == 0) {
 			if ((err = snd_config_get_bool(n)) < 0) {
-				SNDERR("The field ipc_key_add_uid must be a boolean type");
+				snd_error(PCM, "The field ipc_key_add_uid must be a boolean type");
 				return err;
 			}
 			ipc_key_add_uid = err;
@@ -2102,15 +2103,15 @@ int snd_pcm_direct_parse_open_conf(snd_config_t *root, snd_config_t *conf,
 			rec->direct_memory_access = err;
 			continue;
 		}
-		SNDERR("Unknown field %s", id);
+		snd_error(PCM, "Unknown field %s", id);
 		return -EINVAL;
 	}
 	if (!rec->slave) {
-		SNDERR("slave is not defined");
+		snd_error(PCM, "slave is not defined");
 		return -EINVAL;
 	}
 	if (!rec->ipc_key) {
-		SNDERR("Unique IPC key is not defined");
+		snd_error(PCM, "Unique IPC key is not defined");
 		return -EINVAL;
 	}
 	if (ipc_key_add_uid)
@@ -2175,7 +2176,7 @@ int _snd_pcm_direct_new(snd_pcm_t **pcmp, snd_pcm_direct_t **_dmix, int type,
 	while (1) {
 		ret = snd_pcm_direct_semaphore_create_or_connect(dmix);
 		if (ret < 0) {
-			SNDERR("unable to create IPC semaphore");
+			snd_error(PCM, "unable to create IPC semaphore");
 			goto _err_nosem_free;
 		}
 		ret = snd_pcm_direct_semaphore_down(dmix, DIRECT_IPC_SEM_CLIENT);
@@ -2190,7 +2191,7 @@ int _snd_pcm_direct_new(snd_pcm_t **pcmp, snd_pcm_direct_t **_dmix, int type,
 
 	ret = snd_pcm_direct_shm_create_or_connect(dmix);
 	if (ret < 0) {
-		SNDERR("unable to create IPC shm instance");
+		snd_error(PCM, "unable to create IPC shm instance");
 		snd_pcm_direct_semaphore_up(dmix, DIRECT_IPC_SEM_CLIENT);
 		goto _err_nosem_free;
 	} else {

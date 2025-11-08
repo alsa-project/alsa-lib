@@ -294,7 +294,7 @@ static inline short MULTI_DIV_short(short a, unsigned int b, int swap)
 		}							\
 	}								\
 } while (0)
-		
+
 #define GET_VOL_SCALE \
 	switch (ch) { \
 	case 0: \
@@ -349,7 +349,7 @@ static void softvol_convert_stereo_vol(snd_pcm_softvol_t *svol,
 	case SND_PCM_FORMAT_S16_LE:
 	case SND_PCM_FORMAT_S16_BE:
 		/* 16bit samples */
-		CONVERT_AREA(short, 
+		CONVERT_AREA(short,
 			     !snd_pcm_format_cpu_endian(svol->sformat));
 		break;
 	case SND_PCM_FORMAT_S32_LE:
@@ -404,7 +404,7 @@ static void softvol_convert_mono_vol(snd_pcm_softvol_t *svol,
 	case SND_PCM_FORMAT_S16_LE:
 	case SND_PCM_FORMAT_S16_BE:
 		/* 16bit samples */
-		CONVERT_AREA(short, 
+		CONVERT_AREA(short,
 			     !snd_pcm_format_cpu_endian(svol->sformat));
 		break;
 	case SND_PCM_FORMAT_S32_LE:
@@ -475,7 +475,7 @@ static int snd_pcm_softvol_hw_refine_cprepare(snd_pcm_t *pcm,
 			(1ULL << SND_PCM_FORMAT_S16_BE) |
 			(1ULL << SND_PCM_FORMAT_S24_LE) |
 			(1ULL << SND_PCM_FORMAT_S32_LE) |
- 			(1ULL << SND_PCM_FORMAT_S32_BE),
+			(1ULL << SND_PCM_FORMAT_S32_BE),
 			(1ULL << (SND_PCM_FORMAT_S24_3LE - 32))
 		}
 	};
@@ -562,7 +562,7 @@ static int snd_pcm_softvol_hw_refine_schange(snd_pcm_t *pcm,
 			      SND_PCM_HW_PARBIT_BUFFER_TIME |
 			      SND_PCM_HW_PARBIT_TICK_TIME);
 	if (svol->sformat == SND_PCM_FORMAT_UNKNOWN)
-		links |= (SND_PCM_HW_PARBIT_FORMAT | 
+		links |= (SND_PCM_HW_PARBIT_FORMAT |
 			  SND_PCM_HW_PARBIT_SUBFORMAT |
 			  SND_PCM_HW_PARBIT_SAMPLE_BITS);
 	err = _snd_pcm_hw_params_refine(sparams, links, params);
@@ -575,7 +575,7 @@ static int snd_pcm_softvol_hw_refine_schange(snd_pcm_t *pcm,
 
 	return 0;
 }
-	
+
 static int snd_pcm_softvol_hw_refine_cchange(snd_pcm_t *pcm,
 					     snd_pcm_hw_params_t *params,
 					    snd_pcm_hw_params_t *sparams)
@@ -591,7 +591,7 @@ static int snd_pcm_softvol_hw_refine_cchange(snd_pcm_t *pcm,
 			      SND_PCM_HW_PARBIT_BUFFER_TIME |
 			      SND_PCM_HW_PARBIT_TICK_TIME);
 	if (svol->sformat == SND_PCM_FORMAT_UNKNOWN)
-		links |= (SND_PCM_HW_PARBIT_FORMAT | 
+		links |= (SND_PCM_HW_PARBIT_FORMAT |
 			  SND_PCM_HW_PARBIT_SUBFORMAT |
 			  SND_PCM_HW_PARBIT_SAMPLE_BITS);
 	err = _snd_pcm_hw_params_refine(params, links, sparams);
@@ -628,12 +628,13 @@ static int snd_pcm_softvol_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * param
 		return err;
 	if (slave->format != SND_PCM_FORMAT_S16_LE &&
 	    slave->format != SND_PCM_FORMAT_S16_BE &&
-	    slave->format != SND_PCM_FORMAT_S24_3LE && 
+	    slave->format != SND_PCM_FORMAT_S24_3LE &&
 	    slave->format != SND_PCM_FORMAT_S24_LE &&
 	    slave->format != SND_PCM_FORMAT_S32_LE &&
 	    slave->format != SND_PCM_FORMAT_S32_BE) {
-		SNDERR("softvol supports only S16_LE, S16_BE, S24_LE, S24_3LE, "
-		       "S32_LE or S32_BE");
+		snd_error(PCM, "softvol supports only S16_LE, S16_BE, S24_LE, S24_3LE, "
+			       "S32_LE or S32_BE");
+
 		return -EINVAL;
 	}
 	svol->sformat = slave->format;
@@ -726,7 +727,7 @@ static int add_user_ctl(snd_pcm_softvol_t *svol, snd_ctl_elem_info_t *cinfo,
 	int err;
 	int i;
 	unsigned int def_val;
-	
+
 	if (svol->max_val == 1) {
 		snd_ctl_elem_info_set_read_write(cinfo, 1, 1);
 		err = snd_ctl_add_boolean_elem_set(svol->ctl, cinfo, 1, count);
@@ -772,14 +773,14 @@ static int softvol_load_control(snd_pcm_t *pcm, snd_pcm_softvol_t *svol,
 			return err;
 		ctl_card = snd_pcm_info_get_card(&info);
 		if (ctl_card < 0) {
-			SNDERR("No card defined for softvol control");
+			snd_error(PCM, "No card defined for softvol control");
 			return -EINVAL;
 		}
 	}
 	sprintf(tmp_name, "hw:%d", ctl_card);
 	err = snd_ctl_open(&svol->ctl, tmp_name, 0);
 	if (err < 0) {
-		SNDERR("Cannot open CTL %s", tmp_name);
+		snd_error(PCM, "Cannot open CTL %s", tmp_name);
 		return err;
 	}
 
@@ -794,16 +795,16 @@ static int softvol_load_control(snd_pcm_t *pcm, snd_pcm_softvol_t *svol,
 	else
 		svol->zero_dB_val = (min_dB / (min_dB - max_dB)) *
 								svol->max_val;
-		
+
 	snd_ctl_elem_info_set_id(&cinfo, ctl_id);
 	if ((err = snd_ctl_elem_info(svol->ctl, &cinfo)) < 0) {
 		if (err != -ENOENT) {
-			SNDERR("Cannot get info for CTL %s", tmp_name);
+			snd_error(PCM, "Cannot get info for CTL %s", tmp_name);
 			return err;
 		}
 		err = add_user_ctl(svol, &cinfo, cchannels);
 		if (err < 0) {
-			SNDERR("Cannot add a control");
+			snd_error(PCM, "Cannot add a control");
 			return err;
 		}
 	} else {
@@ -822,14 +823,14 @@ static int softvol_load_control(snd_pcm_t *pcm, snd_pcm_softvol_t *svol,
 			    (cinfo.access & SNDRV_CTL_ELEM_ACCESS_TLV_READ) != 0)) {
 			err = snd_ctl_elem_remove(svol->ctl, &cinfo.id);
 			if (err < 0) {
-				SNDERR("Control %s mismatch", tmp_name);
+				snd_error(PCM, "Control %s mismatch", tmp_name);
 				return err;
 			}
 			/* clear cinfo including numid */
 			snd_ctl_elem_info_clear(&cinfo);
 			snd_ctl_elem_info_set_id(&cinfo, ctl_id);
 			if ((err = add_user_ctl(svol, &cinfo, cchannels)) < 0) {
-				SNDERR("Cannot add a control");
+				snd_error(PCM, "Cannot add a control");
 				return err;
 			}
 		} else if (svol->max_val > 1) {
@@ -852,7 +853,7 @@ static int softvol_load_control(snd_pcm_t *pcm, snd_pcm_softvol_t *svol,
 #ifndef HAVE_SOFT_FLOAT
 		svol->dB_value = calloc(resolution, sizeof(unsigned int));
 		if (! svol->dB_value) {
-			SNDERR("cannot allocate dB table");
+			snd_error(PCM, "cannot allocate dB table");
 			return -ENOMEM;
 		}
 		svol->min_dB = min_dB;
@@ -868,7 +869,7 @@ static int softvol_load_control(snd_pcm_t *pcm, snd_pcm_softvol_t *svol,
 		if (svol->zero_dB_val)
 			svol->dB_value[svol->zero_dB_val] = 65535;
 #else
-		SNDERR("Cannot handle the given dB range and resolution");
+		snd_error(PCM, "Cannot handle the given dB range and resolution");
 		return -EINVAL;
 #endif
 	}
@@ -925,7 +926,7 @@ int snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 	if (sformat != SND_PCM_FORMAT_UNKNOWN &&
 	    sformat != SND_PCM_FORMAT_S16_LE &&
 	    sformat != SND_PCM_FORMAT_S16_BE &&
-	    sformat != SND_PCM_FORMAT_S24_3LE && 
+	    sformat != SND_PCM_FORMAT_S24_3LE &&
 	    sformat != SND_PCM_FORMAT_S24_LE &&
 	    sformat != SND_PCM_FORMAT_S32_LE &&
 	    sformat != SND_PCM_FORMAT_S32_BE)
@@ -1020,28 +1021,28 @@ static int _snd_pcm_parse_control_id(snd_config_t *conf, snd_ctl_elem_id_t *ctl_
 		}
 		if (strcmp(id, "name") == 0) {
 			if ((err = snd_config_get_string(n, &name)) < 0) {
-				SNDERR("field %s is not a string", id);
+				snd_error(PCM, "field %s is not a string", id);
 				goto _err;
 			}
 			continue;
 		}
 		if (strcmp(id, "index") == 0) {
 			if ((err = snd_config_get_integer(n, &index)) < 0) {
-				SNDERR("field %s is not an integer", id);
+				snd_error(PCM, "field %s is not an integer", id);
 				goto _err;
 			}
 			continue;
 		}
 		if (strcmp(id, "device") == 0) {
 			if ((err = snd_config_get_integer(n, &device)) < 0) {
-				SNDERR("field %s is not an integer", id);
+				snd_error(PCM, "field %s is not an integer", id);
 				goto _err;
 			}
 			continue;
 		}
 		if (strcmp(id, "subdevice") == 0) {
 			if ((err = snd_config_get_integer(n, &subdevice)) < 0) {
-				SNDERR("field %s is not an integer", id);
+				snd_error(PCM, "field %s is not an integer", id);
 				goto _err;
 			}
 			continue;
@@ -1049,21 +1050,21 @@ static int _snd_pcm_parse_control_id(snd_config_t *conf, snd_ctl_elem_id_t *ctl_
 		if (strcmp(id, "count") == 0) {
 			long v;
 			if ((err = snd_config_get_integer(n, &v)) < 0) {
-				SNDERR("field %s is not an integer", id);
+				snd_error(PCM, "field %s is not an integer", id);
 				goto _err;
 			}
 			if (v < 1 || v > 2) {
-				SNDERR("Invalid count %ld", v);
+				snd_error(PCM, "Invalid count %ld", v);
 				goto _err;
 			}
 			*cchannels = v;
 			continue;
 		}
-		SNDERR("Unknown field %s", id);
+		snd_error(PCM, "Unknown field %s", id);
 		return -EINVAL;
 	}
 	if (name == NULL) {
-		SNDERR("Missing control name");
+		snd_error(PCM, "Missing control name");
 		err = -EINVAL;
 		goto _err;
 	}
@@ -1100,17 +1101,17 @@ any changes.
 
 \code
 pcm.name {
-        type softvol            # Soft Volume conversion PCM
-        slave STR               # Slave name
-        # or
-        slave {                 # Slave definition
-                pcm STR         # Slave PCM name
-                # or
-                pcm { }         # Slave PCM definition
-                [format STR]    # Slave format
-        }
-        control {
-	        name STR        # control element id string
+	type softvol            # Soft Volume conversion PCM
+	slave STR               # Slave name
+	# or
+	slave {                 # Slave definition
+		pcm STR         # Slave PCM name
+		# or
+		pcm { }         # Slave PCM definition
+		[format STR]    # Slave format
+	}
+	control {
+		name STR        # control element id string
 		[card STR]      # control card index
 		[iface STR]     # interface of the element
 		[index INT]     # index of the element
@@ -1148,7 +1149,7 @@ pcm.name {
  *          changed in future.
  */
 int _snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
-			  snd_config_t *root, snd_config_t *conf, 
+			  snd_config_t *root, snd_config_t *conf,
 			  snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i, next;
@@ -1182,7 +1183,7 @@ int _snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 			long v;
 			err = snd_config_get_integer(n, &v);
 			if (err < 0) {
-				SNDERR("Invalid resolution value");
+				snd_error(PCM, "Invalid resolution value");
 				return err;
 			}
 			resolution = v;
@@ -1191,7 +1192,7 @@ int _snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 		if (strcmp(id, "min_dB") == 0) {
 			err = snd_config_get_ireal(n, &min_dB);
 			if (err < 0) {
-				SNDERR("Invalid min_dB value");
+				snd_error(PCM, "Invalid min_dB value");
 				return err;
 			}
 			continue;
@@ -1199,33 +1200,34 @@ int _snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 		if (strcmp(id, "max_dB") == 0) {
 			err = snd_config_get_ireal(n, &max_dB);
 			if (err < 0) {
-				SNDERR("Invalid max_dB value");
+				snd_error(PCM, "Invalid max_dB value");
 				return err;
 			}
 			continue;
 		}
-		SNDERR("Unknown field %s", id);
+		snd_error(PCM, "Unknown field %s", id);
 		return -EINVAL;
 	}
 	if (!slave) {
-		SNDERR("slave is not defined");
+		snd_error(PCM, "slave is not defined");
 		return -EINVAL;
 	}
 	if (!control) {
-		SNDERR("control is not defined");
+		snd_error(PCM, "control is not defined");
 		return -EINVAL;
 	}
 	if (min_dB >= 0) {
-		SNDERR("min_dB must be a negative value");
+		snd_error(PCM, "min_dB must be a negative value");
 		return -EINVAL;
 	}
 	if (max_dB <= min_dB || max_dB > MAX_DB_UPPER_LIMIT) {
-		SNDERR("max_dB must be larger than min_dB and less than %d dB",
-		       MAX_DB_UPPER_LIMIT);
+		snd_error(PCM, "max_dB must be larger than min_dB and less than %d dB",
+			       MAX_DB_UPPER_LIMIT);
+
 		return -EINVAL;
 	}
 	if (resolution <= 1 || resolution > 1024) {
-		SNDERR("Invalid resolution value %d", resolution);
+		snd_error(PCM, "Invalid resolution value %d", resolution);
 		return -EINVAL;
 	}
 	if (mode & SND_PCM_NO_SOFTVOL) {
@@ -1243,11 +1245,11 @@ int _snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 		if (sformat != SND_PCM_FORMAT_UNKNOWN &&
 		    sformat != SND_PCM_FORMAT_S16_LE &&
 		    sformat != SND_PCM_FORMAT_S16_BE &&
-		    sformat != SND_PCM_FORMAT_S24_3LE && 
+		    sformat != SND_PCM_FORMAT_S24_3LE &&
 		    sformat != SND_PCM_FORMAT_S24_LE &&
 		    sformat != SND_PCM_FORMAT_S32_LE &&
 		    sformat != SND_PCM_FORMAT_S32_BE) {
-			SNDERR("only S16_LE, S16_BE, S24_LE, S24_3LE, S32_LE or S32_BE format is supported");
+			snd_error(PCM, "only S16_LE, S16_BE, S24_LE, S24_3LE, S32_LE or S32_BE format is supported");
 			snd_config_delete(sconf);
 			return -EINVAL;
 		}

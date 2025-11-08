@@ -32,7 +32,7 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-  
+
 /*
 These routines convert 16 bit linear PCM samples to 4 bit ADPCM code
 and vice versa. The ADPCM code used is the Intel/DVI ADPCM code which
@@ -376,7 +376,7 @@ static int snd_pcm_adpcm_hw_refine_schange(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_
 		return err;
 	return 0;
 }
-	
+
 static int snd_pcm_adpcm_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params,
 					    snd_pcm_hw_params_t *sparams)
 {
@@ -477,7 +477,7 @@ snd_pcm_adpcm_write_areas(snd_pcm_t *pcm,
 	if (size > *slave_sizep)
 		size = *slave_sizep;
 	adpcm->func(slave_areas, slave_offset,
-		    areas, offset, 
+		    areas, offset,
 		    pcm->channels, size,
 		    adpcm->getput_idx, adpcm->states);
 	*slave_sizep = size;
@@ -496,7 +496,7 @@ snd_pcm_adpcm_read_areas(snd_pcm_t *pcm,
 	snd_pcm_adpcm_t *adpcm = pcm->private_data;
 	if (size > *slave_sizep)
 		size = *slave_sizep;
-	adpcm->func(areas, offset, 
+	adpcm->func(areas, offset,
 		    slave_areas, slave_offset,
 		    pcm->channels, size,
 		    adpcm->getput_idx, adpcm->states);
@@ -507,7 +507,7 @@ snd_pcm_adpcm_read_areas(snd_pcm_t *pcm,
 static void snd_pcm_adpcm_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_pcm_adpcm_t *adpcm = pcm->private_data;
-	snd_output_printf(out, "Ima-ADPCM conversion PCM (%s)\n", 
+	snd_output_printf(out, "Ima-ADPCM conversion PCM (%s)\n",
 		snd_pcm_format_name(adpcm->sformat));
 	if (pcm->setup) {
 		snd_output_printf(out, "Its setup is:\n");
@@ -596,15 +596,15 @@ format and rate must match for both of them.
 
 \code
 pcm.name {
-        type adpcm              # Ima-ADPCM conversion PCM
-        slave STR               # Slave name
-        # or
-        slave {                 # Slave definition
-                pcm STR         # Slave PCM name
-                # or
-                pcm { }         # Slave PCM definition
-                format STR      # Slave format
-        }
+	type adpcm              # Ima-ADPCM conversion PCM
+	slave STR               # Slave name
+	# or
+	slave {                 # Slave definition
+		pcm STR         # Slave PCM name
+		# or
+		pcm { }         # Slave PCM definition
+		format STR      # Slave format
+	}
 }
 \endcode
 
@@ -631,7 +631,7 @@ pcm.name {
  *          changed in future.
  */
 int _snd_pcm_adpcm_open(snd_pcm_t **pcmp, const char *name,
-			snd_config_t *root, snd_config_t *conf, 
+			snd_config_t *root, snd_config_t *conf,
 			snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i, next;
@@ -650,11 +650,11 @@ int _snd_pcm_adpcm_open(snd_pcm_t **pcmp, const char *name,
 			slave = n;
 			continue;
 		}
-		SNDERR("Unknown field %s", id);
+		snd_error(PCM, "Unknown field %s", id);
 		return -EINVAL;
 	}
 	if (!slave) {
-		SNDERR("slave is not defined");
+		snd_error(PCM, "slave is not defined");
 		return -EINVAL;
 	}
 	err = snd_pcm_slave_conf(root, slave, &sconf, 1,
@@ -663,8 +663,8 @@ int _snd_pcm_adpcm_open(snd_pcm_t **pcmp, const char *name,
 		return err;
 	if (snd_pcm_format_linear(sformat) != 1 &&
 	    sformat != SND_PCM_FORMAT_IMA_ADPCM) {
-	    	snd_config_delete(sconf);
-		SNDERR("invalid slave format");
+		snd_config_delete(sconf);
+		snd_error(PCM, "invalid slave format");
 		return -EINVAL;
 	}
 	err = snd_pcm_open_slave(&spcm, root, sconf, stream, mode, conf);

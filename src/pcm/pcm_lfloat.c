@@ -25,7 +25,7 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-  
+
 #include "pcm_local.h"
 #include "pcm_plugin.h"
 #include "plugin_ops.h"
@@ -236,7 +236,7 @@ static int snd_pcm_lfloat_hw_refine_schange(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd
 		return err;
 	return 0;
 }
-	
+
 static int snd_pcm_lfloat_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params,
 					    snd_pcm_hw_params_t *sparams)
 {
@@ -309,7 +309,7 @@ snd_pcm_lfloat_write_areas(snd_pcm_t *pcm,
 	if (size > *slave_sizep)
 		size = *slave_sizep;
 	lfloat->func(slave_areas, slave_offset,
-		     areas, offset, 
+		     areas, offset,
 		     pcm->channels, size,
 		     lfloat->int32_idx, lfloat->float32_idx);
 	*slave_sizep = size;
@@ -328,7 +328,7 @@ snd_pcm_lfloat_read_areas(snd_pcm_t *pcm,
 	snd_pcm_lfloat_t *lfloat = pcm->private_data;
 	if (size > *slave_sizep)
 		size = *slave_sizep;
-	lfloat->func(areas, offset, 
+	lfloat->func(areas, offset,
 		     slave_areas, slave_offset,
 		     pcm->channels, size,
 		     lfloat->int32_idx, lfloat->float32_idx);
@@ -339,7 +339,7 @@ snd_pcm_lfloat_read_areas(snd_pcm_t *pcm,
 static void snd_pcm_lfloat_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_pcm_lfloat_t *lfloat = pcm->private_data;
-	snd_output_printf(out, "Linear Integer <-> Linear Float conversion PCM (%s)\n", 
+	snd_output_printf(out, "Linear Integer <-> Linear Float conversion PCM (%s)\n",
 		snd_pcm_format_name(lfloat->sformat));
 	if (pcm->setup) {
 		snd_output_printf(out, "Its setup is:\n");
@@ -415,7 +415,7 @@ int snd_pcm_lfloat_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sfo
 	snd_pcm_set_hw_ptr(pcm, &lfloat->plug.hw_ptr, -1, 0);
 	snd_pcm_set_appl_ptr(pcm, &lfloat->plug.appl_ptr, -1, 0);
 	*pcmp = pcm;
-	
+
 	return 0;
 }
 
@@ -429,15 +429,15 @@ match for both of them.
 
 \code
 pcm.name {
-        type lfloat             # Linear<->Float conversion PCM
-        slave STR               # Slave name
-        # or
-        slave {                 # Slave definition
-                pcm STR         # Slave PCM name
-                # or
-                pcm { }         # Slave PCM definition
-                format STR      # Slave format
-        }
+	type lfloat             # Linear<->Float conversion PCM
+	slave STR               # Slave name
+	# or
+	slave {                 # Slave definition
+		pcm STR         # Slave PCM name
+		# or
+		pcm { }         # Slave PCM definition
+		format STR      # Slave format
+	}
 }
 \endcode
 
@@ -464,7 +464,7 @@ pcm.name {
  *          changed in future.
  */
 int _snd_pcm_lfloat_open(snd_pcm_t **pcmp, const char *name,
-			 snd_config_t *root, snd_config_t *conf, 
+			 snd_config_t *root, snd_config_t *conf,
 			 snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i, next;
@@ -483,11 +483,11 @@ int _snd_pcm_lfloat_open(snd_pcm_t **pcmp, const char *name,
 			slave = n;
 			continue;
 		}
-		SNDERR("Unknown field %s", id);
+		snd_error(PCM, "Unknown field %s", id);
 		return -EINVAL;
 	}
 	if (!slave) {
-		SNDERR("slave is not defined");
+		snd_error(PCM, "slave is not defined");
 		return -EINVAL;
 	}
 	err = snd_pcm_slave_conf(root, slave, &sconf, 1,
@@ -497,7 +497,7 @@ int _snd_pcm_lfloat_open(snd_pcm_t **pcmp, const char *name,
 	if (snd_pcm_format_linear(sformat) != 1 &&
 	    snd_pcm_format_float(sformat) != 1) {
 		snd_config_delete(sconf);
-		SNDERR("slave format is not linear integer or linear float");
+		snd_error(PCM, "slave format is not linear integer or linear float");
 		return -EINVAL;
 	}
 	err = snd_pcm_open_slave(&spcm, root, sconf, stream, mode, conf);
@@ -521,18 +521,18 @@ int snd_pcm_lfloat_open(snd_pcm_t **pcmp ATTRIBUTE_UNUSED,
 			snd_pcm_t *slave ATTRIBUTE_UNUSED,
 			int close_slave ATTRIBUTE_UNUSED)
 {
-	SNDERR("please, upgrade your GCC to use lfloat plugin");
+	snd_error(PCM, "please, upgrade your GCC to use lfloat plugin");
 	return -EINVAL;
 }
 
 int _snd_pcm_lfloat_open(snd_pcm_t **pcmp ATTRIBUTE_UNUSED,
 			 const char *name ATTRIBUTE_UNUSED,
 			 snd_config_t *root ATTRIBUTE_UNUSED,
-			 snd_config_t *conf ATTRIBUTE_UNUSED, 
+			 snd_config_t *conf ATTRIBUTE_UNUSED,
 			 snd_pcm_stream_t stream ATTRIBUTE_UNUSED,
 			 int mode ATTRIBUTE_UNUSED)
 {
-	SNDERR("please, upgrade your GCC to use lfloat plugin");
+	snd_error(PCM, "please, upgrade your GCC to use lfloat plugin");
 	return -EINVAL;
 }
 

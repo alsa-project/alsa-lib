@@ -13,8 +13,8 @@
   GNU Lesser General Public License for more details.
 
   Authors: Mengdong Lin <mengdong.lin@intel.com>
-           Yao Jin <yao.jin@intel.com>
-           Liam Girdwood <liam.r.girdwood@linux.intel.com>
+	   Yao Jin <yao.jin@intel.com>
+	   Liam Girdwood <liam.r.girdwood@linux.intel.com>
 */
 
 #include "tplg_local.h"
@@ -103,7 +103,7 @@ int tplg_parse_channel(snd_tplg_t *tplg, snd_config_t *cfg,
 
 	channel_id = lookup_channel(id);
 	if (channel_id < 0) {
-		SNDERR("invalid channel %s", id);
+		snd_error(TOPOLOGY, "invalid channel %s", id);
 		return -EINVAL;
 	}
 

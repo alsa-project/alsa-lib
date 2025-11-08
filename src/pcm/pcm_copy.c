@@ -25,7 +25,7 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-  
+
 #include "pcm_local.h"
 #include "pcm_plugin.h"
 #include "bswap.h"
@@ -73,7 +73,7 @@ static int snd_pcm_copy_hw_refine_schange(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_p
 		return err;
 	return 0;
 }
-	
+
 static int snd_pcm_copy_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params,
 					  snd_pcm_hw_params_t *sparams)
 {
@@ -133,7 +133,7 @@ snd_pcm_copy_read_areas(snd_pcm_t *pcm,
 {
 	if (size > *slave_sizep)
 		size = *slave_sizep;
-	snd_pcm_areas_copy(areas, offset, 
+	snd_pcm_areas_copy(areas, offset,
 			   slave_areas, slave_offset,
 			   pcm->channels, size, pcm->format);
 	*slave_sizep = size;
@@ -222,7 +222,7 @@ int snd_pcm_copy_open(snd_pcm_t **pcmp, const char *name, snd_pcm_t *slave, int 
 \section pcm_plugins_copy Plugin: copy
 
 This plugin copies samples from master copy PCM to given slave PCM.
-The channel count, format and rate must match for both of them. 
+The channel count, format and rate must match for both of them.
 
 \code
 pcm.name {
@@ -260,7 +260,7 @@ pcm.name {
  *          changed in future.
  */
 int _snd_pcm_copy_open(snd_pcm_t **pcmp, const char *name,
-		       snd_config_t *root, snd_config_t *conf, 
+		       snd_config_t *root, snd_config_t *conf,
 		       snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i, next;
@@ -278,11 +278,11 @@ int _snd_pcm_copy_open(snd_pcm_t **pcmp, const char *name,
 			slave = n;
 			continue;
 		}
-		SNDERR("Unknown field %s", id);
+		snd_error(PCM, "Unknown field %s", id);
 		return -EINVAL;
 	}
 	if (!slave) {
-		SNDERR("slave is not defined");
+		snd_error(PCM, "slave is not defined");
 		return -EINVAL;
 	}
 	err = snd_pcm_slave_conf(root, slave, &sconf, 0);

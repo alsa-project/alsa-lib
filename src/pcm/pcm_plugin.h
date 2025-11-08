@@ -18,16 +18,16 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-  
+
 #include "pcm_generic.h"
 
 typedef snd_pcm_uframes_t (*snd_pcm_slave_xfer_areas_func_t)
-     (snd_pcm_t *pcm, 
+     (snd_pcm_t *pcm,
       const snd_pcm_channel_area_t *areas,
-      snd_pcm_uframes_t offset, 
+      snd_pcm_uframes_t offset,
       snd_pcm_uframes_t size,
       const snd_pcm_channel_area_t *slave_areas,
-      snd_pcm_uframes_t slave_offset, 
+      snd_pcm_uframes_t slave_offset,
       snd_pcm_uframes_t *slave_sizep);
 
 typedef snd_pcm_sframes_t (*snd_pcm_slave_xfer_areas_undo_func_t)
@@ -45,7 +45,7 @@ typedef struct {
 	snd_pcm_slave_xfer_areas_undo_func_t undo_write;
 	int (*init)(snd_pcm_t *pcm);
 	snd_pcm_uframes_t appl_ptr, hw_ptr;
-} snd_pcm_plugin_t;	
+} snd_pcm_plugin_t;
 
 /* make local functions really local */
 #define snd_pcm_plugin_init \

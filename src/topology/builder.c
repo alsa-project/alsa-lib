@@ -13,8 +13,8 @@
   GNU Lesser General Public License for more details.
 
   Authors: Mengdong Lin <mengdong.lin@intel.com>
-           Yao Jin <yao.jin@intel.com>
-           Liam Girdwood <liam.r.girdwood@linux.intel.com>
+	   Yao Jin <yao.jin@intel.com>
+	   Liam Girdwood <liam.r.girdwood@linux.intel.com>
 */
 
 #include "tplg_local.h"
@@ -50,11 +50,15 @@ static ssize_t write_block_header(snd_tplg_t *tplg, unsigned int type,
 
 	/* make sure file offset is aligned with the calculated HDR offset */
 	if (tplg->bin_pos != tplg->next_hdr_pos) {
-		SNDERR("New header is at offset 0x%zx but file"
-			" offset 0x%zx is %s by %ld bytes",
-			tplg->next_hdr_pos, tplg->bin_pos,
-			tplg->bin_pos > tplg->next_hdr_pos ? "ahead" : "behind",
-			tplg->bin_pos - tplg->next_hdr_pos);
+		snd_error(TOPOLOGY, "New header is at offset 0x%zx but file"
+				     " offset 0x%zx is %s by %ld bytes",
+
+				     tplg->next_hdr_pos, tplg->bin_pos,
+
+				     tplg->bin_pos > tplg->next_hdr_pos ? "ahead" : "behind",
+
+				     tplg->bin_pos - tplg->next_hdr_pos);
+
 		return -EINVAL;
 	}
 
@@ -95,8 +99,9 @@ static int write_elem_block(snd_tplg_t *tplg,
 			ret = write_block_header(tplg, tplg_type, elem->vendor_type,
 				tplg->version, elem->index, block_size, count);
 			if (ret < 0) {
-				SNDERR("failed to write %s block %d",
-					obj_name, ret);
+				snd_error(TOPOLOGY, "failed to write %s block %d",
+						     obj_name, ret);
+
 				return ret;
 			}
 
@@ -127,7 +132,7 @@ static int write_elem_block(snd_tplg_t *tplg,
 				if (sub_pos == pos)
 					break;
 			}
-			/* the last elem of the current sub list as the head of 
+			/* the last elem of the current sub list as the head of
 			next sub list*/
 			sub_base = pos;
 			count = 0;
@@ -137,8 +142,9 @@ static int write_elem_block(snd_tplg_t *tplg,
 
 	/* make sure we have written the correct size */
 	if (total_size != size) {
-		SNDERR("size mismatch. Expected %zu wrote %zu",
-			size, total_size);
+		snd_error(TOPOLOGY, "size mismatch. Expected %zu wrote %zu",
+				     size, total_size);
+
 		return -EIO;
 	}
 
@@ -210,7 +216,7 @@ static ssize_t write_manifest_data(snd_tplg_t *tplg)
 		tplg->version, 0,
 		sizeof(tplg->manifest) + tplg->manifest.priv.size, 1);
 	if (ret < 0) {
-		SNDERR("failed to write manifest block");
+		snd_error(TOPOLOGY, "failed to write manifest block");
 		return ret;
 	}
 
@@ -258,7 +264,7 @@ int tplg_write_data(snd_tplg_t *tplg)
 	/* write manifest */
 	ret = write_manifest_data(tplg);
 	if (ret < 0) {
-		SNDERR("failed to write manifest %d", ret);
+		snd_error(TOPOLOGY, "failed to write manifest %d", ret);
 		return ret;
 	}
 
@@ -279,8 +285,9 @@ int tplg_write_data(snd_tplg_t *tplg)
 		ret = write_elem_block(tplg, list, size,
 				       tptr->tsoc, tptr->name);
 		if (ret < 0) {
-			SNDERR("failed to write %s elements: %s",
-						tptr->name, snd_strerror(-ret));
+			snd_error(TOPOLOGY, "failed to write %s elements: %s",
+							     tptr->name, snd_strerror(-ret));
+
 			return ret;
 		}
 	}
@@ -289,8 +296,9 @@ int tplg_write_data(snd_tplg_t *tplg)
 		 tplg->bin_pos, tplg->bin_pos);
 
 	if (total_size != tplg->bin_pos) {
-		SNDERR("total size mismatch (%zd != %zd)",
-		       total_size, tplg->bin_pos);
+		snd_error(TOPOLOGY, "total size mismatch (%zd != %zd)",
+				    total_size, tplg->bin_pos);
+
 		return -EINVAL;
 	}
 

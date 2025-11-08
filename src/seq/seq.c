@@ -9,7 +9,7 @@
  * See \ref seq page for more details.
  */
 
-/* 
+/*
  *  Sequencer Interface - main file
  *
  *   This library is free software; you can redistribute it and/or modify
@@ -58,12 +58,12 @@ A typical code would be like below:
 // create a new client
 snd_seq_t *open_client()
 {
-        snd_seq_t *handle;
-        int err;
-        err = snd_seq_open(&handle, "default", SND_SEQ_OPEN_INPUT, 0);
-        if (err < 0)
-                return NULL;
-        snd_seq_set_client_name(handle, "My Client");
+	snd_seq_t *handle;
+	int err;
+	err = snd_seq_open(&handle, "default", SND_SEQ_OPEN_INPUT, 0);
+	if (err < 0)
+		return NULL;
+	snd_seq_set_client_name(handle, "My Client");
 	return handle;
 }
 \endcode
@@ -138,13 +138,13 @@ Then, a connection from MIDI input port to this program is established.
 From this time, events from keyboard are automatically sent to this program.
 Timestamps will be updated according to the subscribed queue.
 \code
-        MIDI input port (keyboard)
-            |
-            V
-        ALSA sequencer - update timestamp
-            |
-            V
-        application port
+	MIDI input port (keyboard)
+	    |
+	    V
+	ALSA sequencer - update timestamp
+	    |
+	    V
+	application port
 \endcode
 
 There is another subscription type for opposite direction:
@@ -155,13 +155,13 @@ to MIDI port for write.
 After this connection is established, events will be properly sent
 to MIDI output device.
 \code
-        application port
-            |
-            V
-        ALSA sequencer - events are scheduled
-            |
-            V
-        MIDI output port (WaveTable etc.)
+	application port
+	    |
+	    V
+	ALSA sequencer - events are scheduled
+	    |
+	    V
+	MIDI output port (WaveTable etc.)
 \endcode
 
 From the viewpoint of subscription, the examples above are special cases.
@@ -178,13 +178,13 @@ The connection between ports can be done also by the "third" client.
 Thus, filter applications have to manage
 only input and output events regardless of receiver/sender addresses.
 \code
-        sequencer port #1
-            |
-            V
-        ALSA sequencer (scheduled or real-time)
-            |
-            V
-        sequencer port #2
+	sequencer port #1
+	    |
+	    V
+	ALSA sequencer (scheduled or real-time)
+	    |
+	    V
+	sequencer port #2
 \endcode
 
 For the detail about subscription, see the section \ref seq_subs_more.
@@ -315,7 +315,7 @@ contains a combination of client id and port id numbers, defined as
 When an event is passed to sequencer from a client, sequencer fills
 source.client field
 with the sender's id automatically.
-It is the responsibility of sender client to 
+It is the responsibility of sender client to
 fill the port id of source.port and
 both client and port of dest field.
 
@@ -335,7 +335,7 @@ queue-control event
 like start, stop and continue queue, change tempo, etc.
 to the system timer port.
 Then the sequencer system handles the queue according to the received event.
-This port supports subscription. The received timer events are 
+This port supports subscription. The received timer events are
 broadcasted to all subscribed clients.
 
 The latter port does not receive messages but supports subscription.
@@ -454,11 +454,11 @@ For example, to set the tempo of the queue <code>q</code> to
 \code
 void set_tempo(snd_seq_t *handle, int queue)
 {
-        snd_seq_queue_tempo_t *tempo;
-        snd_seq_queue_tempo_alloca(&tempo);
-        snd_seq_queue_tempo_set_tempo(tempo, 1000000); // 60 BPM
-        snd_seq_queue_tempo_set_ppq(tempo, 48); // 48 PPQ
-        snd_seq_set_queue_tempo(handle, queue, tempo);
+	snd_seq_queue_tempo_t *tempo;
+	snd_seq_queue_tempo_alloca(&tempo);
+	snd_seq_queue_tempo_set_tempo(tempo, 1000000); // 60 BPM
+	snd_seq_queue_tempo_set_ppq(tempo, 48); // 48 PPQ
+	snd_seq_set_queue_tempo(handle, queue, tempo);
 }
 \endcode
 
@@ -629,19 +629,19 @@ The application port must have capability #SND_SEQ_PORT_CAP_WRITE.
 \code
 void capture_keyboard(snd_seq_t *seq)
 {
-        snd_seq_addr_t sender, dest;
-        snd_seq_port_subscribe_t *subs;
-        sender.client = 64;
-        sender.port = 0;
-        dest.client = 128;
-        dest.port = 0;
-        snd_seq_port_subscribe_alloca(&subs);
-        snd_seq_port_subscribe_set_sender(subs, &sender);
-        snd_seq_port_subscribe_set_dest(subs, &dest);
-        snd_seq_port_subscribe_set_queue(subs, 1);
-        snd_seq_port_subscribe_set_time_update(subs, 1);
-        snd_seq_port_subscribe_set_time_real(subs, 1);
-        snd_seq_subscribe_port(seq, subs);
+	snd_seq_addr_t sender, dest;
+	snd_seq_port_subscribe_t *subs;
+	sender.client = 64;
+	sender.port = 0;
+	dest.client = 128;
+	dest.port = 0;
+	snd_seq_port_subscribe_alloca(&subs);
+	snd_seq_port_subscribe_set_sender(subs, &sender);
+	snd_seq_port_subscribe_set_dest(subs, &dest);
+	snd_seq_port_subscribe_set_queue(subs, 1);
+	snd_seq_port_subscribe_set_time_update(subs, 1);
+	snd_seq_port_subscribe_set_time_real(subs, 1);
+	snd_seq_subscribe_port(seq, subs);
 }
 \endcode
 
@@ -652,23 +652,23 @@ The application port must have capability #SND_SEQ_PORT_CAP_READ.
 \code
 void subscribe_output(snd_seq_t *seq)
 {
-        snd_seq_addr_t sender, dest;
-        snd_seq_port_subscribe_t *subs;
-        sender.client = 128;
-        sender.port = 0;
-        dest.client = 65;
-        dest.port = 1;
-        snd_seq_port_subscribe_alloca(&subs);
-        snd_seq_port_subscribe_set_sender(subs, &sender);
-        snd_seq_port_subscribe_set_dest(subs, &dest);
-        snd_seq_subscribe_port(seq, subs);
+	snd_seq_addr_t sender, dest;
+	snd_seq_port_subscribe_t *subs;
+	sender.client = 128;
+	sender.port = 0;
+	dest.client = 65;
+	dest.port = 1;
+	snd_seq_port_subscribe_alloca(&subs);
+	snd_seq_port_subscribe_set_sender(subs, &sender);
+	snd_seq_port_subscribe_set_dest(subs, &dest);
+	snd_seq_subscribe_port(seq, subs);
 }
 \endcode
 This example can be simplified by using #snd_seq_connect_to() function.
 \code
 void subscribe_output(snd_seq_t *seq)
 {
-        snd_seq_connect_to(seq, 0, 65, 1);
+	snd_seq_connect_to(seq, 0, 65, 1);
 }
 \endcode
 
@@ -686,16 +686,16 @@ and the receiver
 // ..in the third application (130:0) ..
 void coupling(snd_seq_t *seq)
 {
-        snd_seq_addr_t sender, dest;
-        snd_seq_port_subscribe_t *subs;
-        sender.client = 128;
-        sender.port = 0;
-        dest.client = 129;
-        dest.port = 0;
-        snd_seq_port_subscribe_alloca(&subs);
-        snd_seq_port_subscribe_set_sender(subs, &sender);
-        snd_seq_port_subscribe_set_dest(subs, &dest);
-        snd_seq_subscribe_port(seq, subs);
+	snd_seq_addr_t sender, dest;
+	snd_seq_port_subscribe_t *subs;
+	sender.client = 128;
+	sender.port = 0;
+	dest.client = 129;
+	dest.port = 0;
+	snd_seq_port_subscribe_alloca(&subs);
+	snd_seq_port_subscribe_set_sender(subs, &sender);
+	snd_seq_port_subscribe_set_dest(subs, &dest);
+	snd_seq_subscribe_port(seq, subs);
 }
 \endcode
 
@@ -729,17 +729,17 @@ The program appears like this:
 \code
 void schedule_event(snd_seq_t *seq)
 {
-        snd_seq_event_t ev;
+	snd_seq_event_t ev;
 
-        snd_seq_ev_clear(&ev);
-        snd_seq_ev_set_source(&ev, my_port);
-        snd_seq_ev_set_subs(&ev);
-        snd_seq_ev_schedule_tick(&ev, Q, 0, t);
-        ... // set event type, data, so on..
+	snd_seq_ev_clear(&ev);
+	snd_seq_ev_set_source(&ev, my_port);
+	snd_seq_ev_set_subs(&ev);
+	snd_seq_ev_schedule_tick(&ev, Q, 0, t);
+	... // set event type, data, so on..
 
-        snd_seq_event_output(seq, &ev);
-        ...
-        snd_seq_drain_output(seq);  // if necessary
+	snd_seq_event_output(seq, &ev);
+	...
+	snd_seq_drain_output(seq);  // if necessary
 }
 \endcode
 Of course, you can use realtime stamp, too.
@@ -754,16 +754,16 @@ The program can be more simplified as follows:
 \code
 void direct_delivery(snd_seq_t *seq)
 {
-        snd_seq_event_t ev;
+	snd_seq_event_t ev;
 
-        snd_seq_ev_clear(&ev);
-        snd_seq_ev_set_source(&ev, port);
-        snd_seq_ev_set_subs(&ev);
-        snd_seq_ev_set_direct(&ev);
-        ... // set event type, data, so on..
+	snd_seq_ev_clear(&ev);
+	snd_seq_ev_set_source(&ev, port);
+	snd_seq_ev_set_subs(&ev);
+	snd_seq_ev_set_direct(&ev);
+	... // set event type, data, so on..
 
-        snd_seq_event_output(seq, &ev);
-        snd_seq_drain_output(seq);
+	snd_seq_event_output(seq, &ev);
+	snd_seq_drain_output(seq);
 }
 \endcode
 You should flush event soon after output event.
@@ -778,15 +778,15 @@ after some modification, will appear as following:
 \code
 void event_filter(snd_seq_t *seq, snd_seq_event_t *ev)
 {
-        while (snd_seq_event_input(seq, &ev) >= 0) {
-                //.. modify input event ..
+	while (snd_seq_event_input(seq, &ev) >= 0) {
+		//.. modify input event ..
 
-                snd_seq_ev_set_source(ev, my_port);
-                snd_seq_ev_set_subs(ev);
-                snd_seq_ev_set_direct(ev);
-                snd_seq_event_output(seq, ev);
-                snd_seq_drain_output(seq);
-        }
+		snd_seq_ev_set_source(ev, my_port);
+		snd_seq_ev_set_subs(ev);
+		snd_seq_ev_set_direct(ev);
+		snd_seq_event_output(seq, ev);
+		snd_seq_drain_output(seq);
+	}
 }
 \endcode
 
@@ -906,7 +906,7 @@ static int snd_seq_open_conf(snd_seq_t **seqp, const char *name,
 	const char *id;
 	const char *lib = NULL, *open_name = NULL;
 	int (*open_func)(snd_seq_t **, const char *,
-			 snd_config_t *, snd_config_t *, 
+			 snd_config_t *, snd_config_t *,
 			 int, int) = NULL;
 #ifndef PIC
 	extern void *snd_seq_open_symbols(void);
@@ -914,30 +914,30 @@ static int snd_seq_open_conf(snd_seq_t **seqp, const char *name,
 	void *h = NULL;
 	if (snd_config_get_type(seq_conf) != SND_CONFIG_TYPE_COMPOUND) {
 		if (name)
-			SNDERR("Invalid type for SEQ %s definition", name);
+			snd_error(SEQUENCER, "Invalid type for SEQ %s definition", name);
 		else
-			SNDERR("Invalid type for SEQ definition");
+			snd_error(SEQUENCER, "Invalid type for SEQ definition");
 		return -EINVAL;
 	}
 	err = snd_config_search(seq_conf, "type", &conf);
 	if (err < 0) {
-		SNDERR("type is not defined");
+		snd_error(SEQUENCER, "type is not defined");
 		return err;
 	}
 	err = snd_config_get_id(conf, &id);
 	if (err < 0) {
-		SNDERR("unable to get id");
+		snd_error(SEQUENCER, "unable to get id");
 		return err;
 	}
 	err = snd_config_get_string(conf, &str);
 	if (err < 0) {
-		SNDERR("Invalid type for %s", id);
+		snd_error(SEQUENCER, "Invalid type for %s", id);
 		return err;
 	}
 	err = snd_config_search_definition(seq_root, "seq_type", str, &type_conf);
 	if (err >= 0) {
 		if (snd_config_get_type(type_conf) != SND_CONFIG_TYPE_COMPOUND) {
-			SNDERR("Invalid type for SEQ type %s definition", str);
+			snd_error(SEQUENCER, "Invalid type for SEQ type %s definition", str);
 			goto _err;
 		}
 		snd_config_for_each(i, next, type_conf) {
@@ -950,7 +950,7 @@ static int snd_seq_open_conf(snd_seq_t **seqp, const char *name,
 			if (strcmp(id, "lib") == 0) {
 				err = snd_config_get_string(n, &lib);
 				if (err < 0) {
-					SNDERR("Invalid type for %s", id);
+					snd_error(SEQUENCER, "Invalid type for %s", id);
 					goto _err;
 				}
 				continue;
@@ -958,12 +958,12 @@ static int snd_seq_open_conf(snd_seq_t **seqp, const char *name,
 			if (strcmp(id, "open") == 0) {
 				err = snd_config_get_string(n, &open_name);
 				if (err < 0) {
-					SNDERR("Invalid type for %s", id);
+					snd_error(SEQUENCER, "Invalid type for %s", id);
 					goto _err;
 				}
 				continue;
 			}
-			SNDERR("Unknown field %s", id);
+			snd_error(SEQUENCER, "Unknown field %s", id);
 			err = -EINVAL;
 			goto _err;
 		}
@@ -980,10 +980,10 @@ static int snd_seq_open_conf(snd_seq_t **seqp, const char *name,
 		open_func = snd_dlsym(h, open_name, SND_DLSYM_VERSION(SND_SEQ_DLSYM_VERSION));
 	err = 0;
 	if (!h) {
-		SNDERR("Cannot open shared library %s (%s)", lib, errbuf);
+		snd_error(SEQUENCER, "Cannot open shared library %s (%s)", lib, errbuf);
 		err = -ENOENT;
 	} else if (!open_func) {
-		SNDERR("symbol %s is not defined inside %s", open_name, lib);
+		snd_error(SEQUENCER, "symbol %s is not defined inside %s", open_name, lib);
 		snd_dlclose(h);
 		err = -ENXIO;
 	}
@@ -1008,7 +1008,7 @@ static int snd_seq_open_noupdate(snd_seq_t **seqp, snd_config_t *root,
 	snd_config_t *seq_conf;
 	err = snd_config_search_definition(root, "seq", name, &seq_conf);
 	if (err < 0) {
-		SNDERR("Unknown SEQ %s", name);
+		snd_error(SEQUENCER, "Unknown SEQ %s", name);
 		return err;
 	}
 	snd_config_set_hop(seq_conf, hop);
@@ -1047,7 +1047,7 @@ static int snd_seq_open_noupdate(snd_seq_t **seqp, snd_config_t *root,
  * \sa snd_seq_open_lconf(), snd_seq_close(), snd_seq_type(), snd_seq_name(),
  *     snd_seq_nonblock(), snd_seq_client_id()
  */
-int snd_seq_open(snd_seq_t **seqp, const char *name, 
+int snd_seq_open(snd_seq_t **seqp, const char *name,
 		 int streams, int mode)
 {
 	snd_config_t *top;
@@ -1083,7 +1083,7 @@ int snd_seq_open(snd_seq_t **seqp, const char *name,
  *
  * \sa snd_seq_open()
  */
-int snd_seq_open_lconf(snd_seq_t **seqp, const char *name, 
+int snd_seq_open_lconf(snd_seq_t **seqp, const char *name,
 		       int streams, int mode, snd_config_t *lconf)
 {
 	assert(seqp && name && lconf);
@@ -1091,7 +1091,7 @@ int snd_seq_open_lconf(snd_seq_t **seqp, const char *name,
 }
 
 #ifndef DOC_HIDDEN
-int _snd_seq_open_lconf(snd_seq_t **seqp, const char *name, 
+int _snd_seq_open_lconf(snd_seq_t **seqp, const char *name,
 			int streams, int mode, snd_config_t *lconf,
 			snd_config_t *parent_conf)
 {
@@ -1212,12 +1212,12 @@ int snd_seq_poll_descriptors(snd_seq_t *seq, struct pollfd *pfds, unsigned int s
  */
 int snd_seq_poll_descriptors_revents(snd_seq_t *seq, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
 {
-        assert(seq && pfds && revents);
-        if (nfds == 1) {
-                *revents = pfds->revents;
-                return 0;
-        }
-        return -EINVAL;
+	assert(seq && pfds && revents);
+	if (nfds == 1) {
+		*revents = pfds->revents;
+		return 0;
+	}
+	return -EINVAL;
 }
 
 /**
@@ -1714,7 +1714,7 @@ const unsigned char *snd_seq_client_info_get_event_filter(const snd_seq_client_i
  *
  * Remove all event types added with #snd_seq_client_info_event_filter_add and clear
  * the event filtering flag of this client_info container.
- * 
+ *
  * \sa snd_seq_client_info_event_filter_add(),
  *     snd_seq_client_info_event_filter_del(),
  *     snd_seq_client_info_event_filter_check(),
@@ -1732,8 +1732,8 @@ void snd_seq_client_info_event_filter_clear(snd_seq_client_info_t *info)
  * \brief Add an event type to the event filtering of a client_info container
  * \param info client_info container
  * \param event_type event type to be added
- * 
- * Set the event filtering flag of this client_info and add the specified event type to the 
+ *
+ * Set the event filtering flag of this client_info and add the specified event type to the
  * filter bitmap of this client_info container.
  *
  * \sa snd_seq_get_client_info(),
@@ -1787,7 +1787,7 @@ int snd_seq_client_info_event_filter_check(snd_seq_client_info_t *info, int even
 {
        assert(info);
        return snd_seq_get_bit(event_type, info->event_filter);
-} 
+}
 
 /**
  * \brief Get the number of opened ports of a client_info container
@@ -2028,7 +2028,7 @@ void snd_seq_client_info_set_event_filter(snd_seq_client_info_t *info, unsigned 
  * \param client client id
  * \param info the pointer to be stored
  * \return 0 on success otherwise a negative error code
- * 
+ *
  * Obtains the information of the client with a client id specified by
  * info argument.
  * The obtained information is written on info parameter.
@@ -2950,7 +2950,7 @@ void snd_seq_port_subscribe_set_sender(snd_seq_port_subscribe_t *info, const snd
 	assert(info);
 	memcpy(&info->sender, addr, sizeof(*addr));
 }
-      
+
 /**
  * \brief Set destination address of a port_subscribe container
  * \param info port_subscribe container
@@ -3196,7 +3196,7 @@ int snd_seq_query_subscribe_get_num_subs(const snd_seq_query_subscribe_t *info)
 {
 	assert(info);
 	return info->num_subs;
-}	
+}
 
 /**
  * \brief Get the address of subscriber of a query_subscribe container
@@ -3548,7 +3548,7 @@ int snd_seq_create_queue(snd_seq_t *seq, snd_seq_queue_info_t *info)
  * \return the queue id (zero or positive) on success otherwise a negative error code
  *
  * \sa snd_seq_alloc_queue()
- */ 
+ */
 int snd_seq_alloc_named_queue(snd_seq_t *seq, const char *name)
 {
 	snd_seq_queue_info_t info;
@@ -3566,7 +3566,7 @@ int snd_seq_alloc_named_queue(snd_seq_t *seq, const char *name)
  *
  * \sa snd_seq_alloc_named_queue(), snd_seq_create_queue(), snd_seq_free_queue(),
  *     snd_seq_get_queue_info()
- */ 
+ */
 int snd_seq_alloc_queue(snd_seq_t *seq)
 {
 	return snd_seq_alloc_named_queue(seq, NULL);
@@ -3647,7 +3647,7 @@ int snd_seq_query_named_queue(snd_seq_t *seq, const char *name)
  * \brief Get the queue usage flag to the client
  * \param seq sequencer handle
  * \param q queue id
- * \return 1 = client is allowed to access the queue, 0 = not allowed, 
+ * \return 1 = client is allowed to access the queue, 0 = not allowed,
  *     otherwise a negative error code
  *
  * \sa snd_seq_get_queue_info(), snd_seq_set_queue_usage()
@@ -4164,7 +4164,7 @@ void snd_seq_queue_timer_set_type(snd_seq_queue_timer_t *info, snd_seq_queue_tim
 	assert(info);
 	info->type = (int)type;
 }
-	
+
 /**
  * \brief Set the timer id of a queue_timer container
  * \param info queue_timer container
@@ -4544,7 +4544,7 @@ static int snd_seq_event_retrieve_buffer(snd_seq_t *seq, snd_seq_event_t **retp)
  * \brief retrieve an event from sequencer
  * \param seq sequencer handle
  * \param ev event pointer to be stored
- * \return 
+ * \return
  *
  * Obtains an input event from sequencer.
  * The event is created via snd_seq_create_event(), and its pointer is stored on
@@ -4594,10 +4594,10 @@ static int snd_seq_event_input_feed(snd_seq_t *seq, int timeout)
 	pfd.events = POLLIN;
 	err = poll(&pfd, 1, timeout);
 	if (err < 0) {
-		SYSERR("poll");
+		snd_errornum(SEQUENCER, "poll");
 		return -errno;
 	}
-	if (pfd.revents & POLLIN) 
+	if (pfd.revents & POLLIN)
 		return snd_seq_event_read_buffer(seq);
 	return seq->ibuflen;
 }

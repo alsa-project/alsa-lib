@@ -13,8 +13,8 @@
   GNU Lesser General Public License for more details.
 
   Authors: Mengdong Lin <mengdong.lin@intel.com>
-           Yao Jin <yao.jin@intel.com>
-           Liam Girdwood <liam.r.girdwood@linux.intel.com>
+	   Yao Jin <yao.jin@intel.com>
+	   Liam Girdwood <liam.r.girdwood@linux.intel.com>
 */
 
 #include "tplg_local.h"
@@ -154,8 +154,9 @@ static int tplg_build_widget(snd_tplg_t *tplg, struct tplg_elem *elem)
 		}
 
 		if (!ref->elem) {
-			SNDERR("cannot find '%s' referenced by widget '%s'",
-				ref->id, elem->id);
+			snd_error(TOPOLOGY, "cannot find '%s' referenced by widget '%s'",
+					     ref->id, elem->id);
+
 			return -EINVAL;
 		}
 
@@ -178,7 +179,7 @@ int tplg_build_widgets(snd_tplg_t *tplg)
 
 		elem = list_entry(pos, struct tplg_elem, list);
 		if (!elem->widget || elem->type != SND_TPLG_TYPE_DAPM_WIDGET) {
-			SNDERR("invalid widget '%s'", elem->id);
+			snd_error(TOPOLOGY, "invalid widget '%s'", elem->id);
 			return -EINVAL;
 		}
 
@@ -205,7 +206,7 @@ int tplg_build_routes(snd_tplg_t *tplg)
 		elem = list_entry(pos, struct tplg_elem, list);
 
 		if (!elem->route || elem->type != SND_TPLG_TYPE_DAPM_GRAPH) {
-			SNDERR("invalid route '%s'", elem->id);
+			snd_error(TOPOLOGY, "invalid route '%s'", elem->id);
 			return -EINVAL;
 		}
 
@@ -215,13 +216,13 @@ int tplg_build_routes(snd_tplg_t *tplg)
 
 		/* validate sink */
 		if (strlen(route->sink) <= 0) {
-			SNDERR("no sink");
+			snd_error(TOPOLOGY, "no sink");
 			return -EINVAL;
 
 		}
 		if (!tplg_elem_lookup(&tplg->widget_list, route->sink,
 			SND_TPLG_TYPE_DAPM_WIDGET, SND_TPLG_INDEX_ALL)) {
-			SNDERR("undefined sink widget/stream '%s'", route->sink);
+			snd_error(TOPOLOGY, "undefined sink widget/stream '%s'", route->sink);
 		}
 
 		/* validate control name */
@@ -230,21 +231,23 @@ int tplg_build_routes(snd_tplg_t *tplg)
 					SND_TPLG_TYPE_MIXER, elem->index) &&
 			!tplg_elem_lookup(&tplg->enum_list, route->control,
 					SND_TPLG_TYPE_ENUM, elem->index)) {
-				SNDERR("undefined mixer/enum control '%s'",
-				       route->control);
+				snd_error(TOPOLOGY, "undefined mixer/enum control '%s'",
+						    route->control);
+
 			}
 		}
 
 		/* validate source */
 		if (strlen(route->source) <= 0) {
-			SNDERR("no source");
+			snd_error(TOPOLOGY, "no source");
 			return -EINVAL;
 
 		}
 		if (!tplg_elem_lookup(&tplg->widget_list, route->source,
 			SND_TPLG_TYPE_DAPM_WIDGET, SND_TPLG_INDEX_ALL)) {
-			SNDERR("undefined source widget/stream '%s'",
-			       route->source);
+			snd_error(TOPOLOGY, "undefined source widget/stream '%s'",
+					    route->source);
+
 		}
 
 		/* add graph to manifest */
@@ -296,7 +299,7 @@ static int tplg_parse_line(const char *text,
 
 	len = strlen(buf);
 	if (len <= 2) {
-		SNDERR("invalid route \"%s\"", buf);
+		snd_error(TOPOLOGY, "invalid route \"%s\"", buf);
 		return -EINVAL;
 	}
 
@@ -305,7 +308,7 @@ static int tplg_parse_line(const char *text,
 		if (buf[i] == ',')
 			goto second;
 	}
-	SNDERR("invalid route \"%s\"", buf);
+	snd_error(TOPOLOGY, "invalid route \"%s\"", buf);
 	return -EINVAL;
 
 second:
@@ -319,7 +322,7 @@ second:
 			goto done;
 	}
 
-	SNDERR("invalid route \"%s\"", buf);
+	snd_error(TOPOLOGY, "invalid route \"%s\"", buf);
 	return -EINVAL;
 
 done:
@@ -374,7 +377,7 @@ int tplg_parse_dapm_graph(snd_tplg_t *tplg, snd_config_t *cfg,
 	int index = -1;
 
 	if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
-		SNDERR("compound is expected for dapm graph definition");
+		snd_error(TOPOLOGY, "compound is expected for dapm graph definition");
 		return -EINVAL;
 	}
 
@@ -397,14 +400,16 @@ int tplg_parse_dapm_graph(snd_tplg_t *tplg, snd_config_t *cfg,
 
 		if (strcmp(id, "lines") == 0) {
 			if (index < 0) {
-				SNDERR("failed to parse dapm graph %s, missing index",
-					graph_id);
+				snd_error(TOPOLOGY, "failed to parse dapm graph %s, missing index",
+						     graph_id);
+
 				return -EINVAL;
 			}
 			err = tplg_parse_routes(tplg, n, index);
 			if (err < 0) {
-				SNDERR("failed to parse dapm graph %s",
-					graph_id);
+				snd_error(TOPOLOGY, "failed to parse dapm graph %s",
+						     graph_id);
+
 				return err;
 			}
 			continue;
@@ -545,8 +550,9 @@ int tplg_parse_dapm_widget(snd_tplg_t *tplg,
 
 			widget_type = lookup_widget(val);
 			if (widget_type < 0){
-				SNDERR("widget '%s': Unsupported widget type %s",
-					elem->id, val);
+				snd_error(TOPOLOGY, "widget '%s': Unsupported widget type %s",
+						     elem->id, val);
+
 				return -EINVAL;
 			}
 
@@ -847,8 +853,9 @@ int tplg_add_widget_object(snd_tplg_t *tplg, snd_tplg_obj_template_t *t)
 			break;
 
 		default:
-			SNDERR("widget %s: invalid type %d for ctl %d",
-				wt->name, ct->type, i);
+			snd_error(TOPOLOGY, "widget %s: invalid type %d for ctl %d",
+					     wt->name, ct->type, i);
+
 			ret = -EINVAL;
 			break;
 		}
@@ -898,17 +905,19 @@ next:
 	w = bin;
 
 	if (size < sizeof(*w)) {
-		SNDERR("dapm widget: small size %d", size);
+		snd_error(TOPOLOGY, "dapm widget: small size %d", size);
 		return -EINVAL;
 	}
 	if (sizeof(*w) != w->size) {
-		SNDERR("dapm widget: unknown element size %d (expected %zd)",
-		       w->size, sizeof(*w));
+		snd_error(TOPOLOGY, "dapm widget: unknown element size %d (expected %zd)",
+				    w->size, sizeof(*w));
+
 		return -EINVAL;
 	}
 	if (w->num_kcontrols > 16) {
-		SNDERR("dapm widget: too many kcontrols %d",
-		       w->num_kcontrols);
+		snd_error(TOPOLOGY, "dapm widget: too many kcontrols %d",
+				    w->num_kcontrols);
+
 		return -EINVAL;
 	}
 
@@ -934,8 +943,9 @@ next:
 		 wt->name, wt->sname);
 
 	if (sizeof(*w) + w->priv.size > size) {
-		SNDERR("dapm widget: wrong private data size %d",
-		       w->priv.size);
+		snd_error(TOPOLOGY, "dapm widget: wrong private data size %d",
+				    w->priv.size);
+
 		return -EINVAL;
 	}
 
@@ -962,8 +972,9 @@ next:
 			size2 = mc->size + mc->priv.size;
 			tplg_log(tplg, 'D', pos, "kcontrol mixer size %zd", size2);
 			if (size2 > size) {
-				SNDERR("dapm widget: small mixer size %d",
-				       size2);
+				snd_error(TOPOLOGY, "dapm widget: small mixer size %d",
+						    size2);
+
 				err = -EINVAL;
 				goto retval;
 			}
@@ -982,8 +993,9 @@ next:
 			size2 = ec->size + ec->priv.size;
 			tplg_log(tplg, 'D', pos, "kcontrol enum size %zd", size2);
 			if (size2 > size) {
-				SNDERR("dapm widget: small enum size %d",
-				       size2);
+				snd_error(TOPOLOGY, "dapm widget: small enum size %d",
+						    size2);
+
 				err = -EINVAL;
 				goto retval;
 			}
@@ -1001,8 +1013,9 @@ next:
 			size2 = bc->size + bc->priv.size;
 			tplg_log(tplg, 'D', pos, "kcontrol bytes size %zd", size2);
 			if (size2 > size) {
-				SNDERR("dapm widget: small bytes size %d",
-				       size2);
+				snd_error(TOPOLOGY, "dapm widget: small bytes size %d",
+						    size2);
+
 				err = -EINVAL;
 				goto retval;
 			}
@@ -1010,8 +1023,9 @@ next:
 							 bin, size2);
 			break;
 		default:
-			SNDERR("dapm widget: wrong control type %d",
-			       chdr->type);
+			snd_error(TOPOLOGY, "dapm widget: wrong control type %d",
+					    chdr->type);
+
 			err = -EINVAL;
 			goto retval;
 		}
@@ -1059,7 +1073,7 @@ int tplg_decode_dapm_graph(snd_tplg_t *tplg,
 	for (ge = gt->elem; size > 0; ge++) {
 		g = bin;
 		if (size < sizeof(*g)) {
-			SNDERR("dapm graph: small size %d", size);
+			snd_error(TOPOLOGY, "dapm graph: small size %d", size);
 			return -EINVAL;
 		}
 		ge->src = g->source;

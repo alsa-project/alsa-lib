@@ -101,7 +101,7 @@ int main(void)
 		}
 		snd_ctl_close(handle);
 	}
-	
+
 	snd_config_update_free_global();
 	return 0;
 }

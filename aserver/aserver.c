@@ -50,7 +50,7 @@ char *command;
 	fprintf(stderr, ##args); \
 	putc('\n', stderr); \
 } while (0)
-#endif	
+#endif
 
 #define SYSERROR(string) ERROR(string ": %s", strerror(errno))
 
@@ -67,7 +67,7 @@ static int make_local_socket(const char *filename)
 		SYSERROR("socket failed");
 		return result;
 	}
-	
+
 	unlink(filename);
 
 	addr->sun_family = AF_LOCAL;
@@ -94,7 +94,7 @@ static int make_inet_socket(int port)
 		SYSERROR("socket failed");
 		return result;
 	}
-	
+
 	memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(port);
@@ -329,7 +329,7 @@ static int pcm_shm_close(client_t *client)
 	}
 	err = snd_pcm_close(client->device.pcm.handle);
 	ctrl->result = err;
-	if (err < 0) 
+	if (err < 0)
 		ERROR("snd_pcm_close");
 	if (client->transport.shm.ctrl) {
 		err = shmdt((void *)client->transport.shm.ctrl);
@@ -592,7 +592,7 @@ static int ctl_shm_close(client_t *client)
 	}
 	err = snd_ctl_close(client->device.ctl.handle);
 	ctrl->result = err;
-	if (err < 0) 
+	if (err < 0)
 		ERROR("snd_ctl_close");
 	if (client->transport.shm.ctrl) {
 		err = shmdt((void *)client->transport.shm.ctrl);
@@ -1005,7 +1005,7 @@ static int server(const char *sockname, int port)
 	free(waiters);
 	return result;
 }
-					
+
 
 static void usage(void)
 {
@@ -1056,7 +1056,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	if (snd_config_get_type(conf) != SND_CONFIG_TYPE_COMPOUND) {
-		SNDERR("Invalid type for server %s definition", srvname);
+		snd_error(ASERVER, "Invalid type for server %s definition", srvname);
 		return -EINVAL;
 	}
 	snd_config_for_each(i, next, conf) {

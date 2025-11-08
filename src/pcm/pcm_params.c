@@ -18,7 +18,7 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-  
+
 #include "pcm_local.h"
 
 #ifndef NDEBUG
@@ -124,7 +124,7 @@ void _snd_pcm_hw_params_any(snd_pcm_hw_params_t *params)
 	params->info = ~0U;
 }
 
-/* Return the value for field PAR if it's fixed in configuration space 
+/* Return the value for field PAR if it's fixed in configuration space
    defined by PARAMS. Return -EINVAL otherwise
 */
 int snd_pcm_hw_param_get(const snd_pcm_hw_params_t *params, snd_pcm_hw_param_t var,
@@ -267,12 +267,12 @@ static int _snd_pcm_hw_param_set_integer(snd_pcm_hw_params_t *params,
 	}
 	return changed;
 }
-	
-/* Inside configuration space defined by PARAMS remove from PAR all 
+
+/* Inside configuration space defined by PARAMS remove from PAR all
    non integer values. Reduce configuration space accordingly.
    Return -EINVAL if the configuration space is empty
 */
-int snd_pcm_hw_param_set_integer(snd_pcm_t *pcm, 
+int snd_pcm_hw_param_set_integer(snd_pcm_t *pcm,
 				 snd_pcm_hw_params_t *params,
 				 snd_set_mode_t mode,
 				 snd_pcm_hw_param_t var)
@@ -328,12 +328,12 @@ static int _snd_pcm_hw_param_set_first(snd_pcm_hw_params_t *params,
 }
 
 
-/* Inside configuration space defined by PARAMS remove from PAR all 
+/* Inside configuration space defined by PARAMS remove from PAR all
    values > minimum. Reduce configuration space accordingly.
    Return the minimum.
 */
-int snd_pcm_hw_param_set_first(snd_pcm_t *pcm, 
-			       snd_pcm_hw_params_t *params, 
+int snd_pcm_hw_param_set_first(snd_pcm_t *pcm,
+			       snd_pcm_hw_params_t *params,
 			       snd_pcm_hw_param_t var,
 			       unsigned int *rval, int *dir)
 {
@@ -370,11 +370,11 @@ static int _snd_pcm_hw_param_set_last(snd_pcm_hw_params_t *params,
 }
 
 
-/* Inside configuration space defined by PARAMS remove from PAR all 
+/* Inside configuration space defined by PARAMS remove from PAR all
    values < maximum. Reduce configuration space accordingly.
    Return the maximum.
 */
-int snd_pcm_hw_param_set_last(snd_pcm_t *pcm, 
+int snd_pcm_hw_param_set_last(snd_pcm_t *pcm,
 			      snd_pcm_hw_params_t *params,
 			      snd_pcm_hw_param_t var,
 			      unsigned int *rval, int *dir)
@@ -422,7 +422,7 @@ int _snd_pcm_hw_param_set_min(snd_pcm_hw_params_t *params,
 	return changed;
 }
 
-/* Inside configuration space defined by PARAMS remove from PAR all 
+/* Inside configuration space defined by PARAMS remove from PAR all
    values < VAL. Reduce configuration space accordingly.
    Return new minimum or -EINVAL if the configuration space is empty
 */
@@ -499,7 +499,7 @@ int _snd_pcm_hw_param_set_max(snd_pcm_hw_params_t *params,
 	return changed;
 }
 
-/* Inside configuration space defined by PARAMS remove from PAR all 
+/* Inside configuration space defined by PARAMS remove from PAR all
    values >= VAL + 1. Reduce configuration space accordingly.
    Return new maximum or -EINVAL if the configuration space is empty
 */
@@ -610,7 +610,7 @@ int _snd_pcm_hw_param_set_minmax(snd_pcm_hw_params_t *params,
 	return changed;
 }
 
-/* Inside configuration space defined by PARAMS remove from PAR all 
+/* Inside configuration space defined by PARAMS remove from PAR all
    values < MIN and all values > MAX. Reduce configuration space accordingly.
    Return 0 or -EINVAL if the configuration space is empty
 */
@@ -636,7 +636,7 @@ int snd_pcm_hw_param_set_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 		assert(0);
 		return -EINVAL;
 	}
-	err = _snd_pcm_hw_param_set_minmax(params, var, 
+	err = _snd_pcm_hw_param_set_minmax(params, var,
 					   *min, mindir ? *mindir : 0,
 					   *max, maxdir ? *maxdir : 0);
 	if (err < 0)
@@ -707,7 +707,7 @@ int _snd_pcm_hw_param_set(snd_pcm_hw_params_t *params,
 	return changed;
 }
 
-/* Inside configuration space defined by PARAMS remove from PAR all 
+/* Inside configuration space defined by PARAMS remove from PAR all
    values != VAL. Reduce configuration space accordingly.
    Return -EINVAL if the configuration space is empty
 */
@@ -845,7 +845,7 @@ int snd_pcm_hw_param_set_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 			dump_hw_params(params, "set_near", var, *val, err);
 		return err;
 	}
-	
+
 	if (err >= 0) {
 		snd_pcm_hw_params_t params1;
 		if (min == saved_min && mindir == valdir)
@@ -887,7 +887,7 @@ int snd_pcm_hw_param_set_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
    Return the value found.
  */
 int snd_pcm_hw_param_set_next(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
-			      snd_pcm_hw_param_t var, 
+			      snd_pcm_hw_param_t var,
 			      unsigned int best, int bestdir,
 			      unsigned int val, int *dir)
 {
@@ -1110,7 +1110,7 @@ static int snd_pcm_hw_params_choose(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 		if (err >= 0)
 			err = snd_pcm_hw_param_get_max(params, SND_PCM_HW_PARAM_PERIOD_TIME, &max, &dir);
 		if (err >= 0 && (long)min < pcm->minperiodtime &&
-			        (long)max > pcm->minperiodtime) {
+				(long)max > pcm->minperiodtime) {
 			min = pcm->minperiodtime; dir = 1;
 			snd_pcm_hw_param_set_min(pcm, params, SND_CHANGE, SND_PCM_HW_PARAM_PERIOD_TIME, &min, &dir);
 		}
@@ -1187,7 +1187,7 @@ int _snd_pcm_hw_param_refine(snd_pcm_hw_params_t *params,
 	}
 	return changed;
 }
-			     
+
 #if 0
 static void _snd_pcm_hw_param_copy(snd_pcm_hw_params_t *params, snd_pcm_hw_param_t var,
 				   const snd_pcm_hw_params_t *src)
@@ -1474,7 +1474,7 @@ unsigned int snd_pcm_hw_strategy_simple_near_min_badness(const snd_pcm_hw_params
 		diff = -diff;
 	return diff * p->mul;
 }
-	
+
 int snd_pcm_hw_strategy_simple_near_next_value(snd_pcm_hw_params_t *params,
 					       snd_pcm_hw_param_t var,
 					       int value, int *dir,
@@ -1510,7 +1510,7 @@ unsigned int snd_pcm_hw_strategy_simple_choices_min_badness(const snd_pcm_hw_par
 	assert(0);
 	return UINT_MAX;
 }
-	
+
 int snd_pcm_hw_strategy_simple_choices_next_value(snd_pcm_hw_params_t *params,
 						  snd_pcm_hw_param_t var,
 						  int value, int *dir,
@@ -1638,7 +1638,7 @@ int snd_pcm_hw_params_try_explain_failure1(snd_pcm_t *pcm,
 		i = *success;
 		_snd_pcm_hw_param_copy(&i, var, fail);
 		err = snd_pcm_hw_refine(pcm, &i);
-		if (err == 0 && 
+		if (err == 0 &&
 		    snd_pcm_hw_params_try_explain_failure1(pcm, fail, &i, depth - 1, out) < 0)
 			continue;
 		snd_output_printf(out, "%s: ", snd_pcm_hw_param_name(var));
@@ -1801,133 +1801,133 @@ static const snd_pcm_hw_rule_t refine_rules[] = {
 		.private_data = 0,
 	},
 	{
-		.var = SND_PCM_HW_PARAM_SAMPLE_BITS, 
+		.var = SND_PCM_HW_PARAM_SAMPLE_BITS,
 		.func = snd_pcm_hw_rule_sample_bits,
-		.deps = { SND_PCM_HW_PARAM_FORMAT, 
+		.deps = { SND_PCM_HW_PARAM_FORMAT,
 			SND_PCM_HW_PARAM_SAMPLE_BITS, -1 },
 		.private_data = 0,
 	},
 	{
-		.var = SND_PCM_HW_PARAM_SAMPLE_BITS, 
+		.var = SND_PCM_HW_PARAM_SAMPLE_BITS,
 		.func = snd_pcm_hw_rule_div,
 		.deps = { SND_PCM_HW_PARAM_FRAME_BITS,
 			SND_PCM_HW_PARAM_CHANNELS, -1 },
 		.private_data = 0,
 	},
 	{
-		.var = SND_PCM_HW_PARAM_FRAME_BITS, 
+		.var = SND_PCM_HW_PARAM_FRAME_BITS,
 		.func = snd_pcm_hw_rule_mul,
 		.deps = { SND_PCM_HW_PARAM_SAMPLE_BITS,
 			SND_PCM_HW_PARAM_CHANNELS, -1 },
 		.private_data = 0,
 	},
 	{
-		.var = SND_PCM_HW_PARAM_FRAME_BITS, 
+		.var = SND_PCM_HW_PARAM_FRAME_BITS,
 		.func = snd_pcm_hw_rule_mulkdiv,
 		.deps = { SND_PCM_HW_PARAM_PERIOD_BYTES,
 			SND_PCM_HW_PARAM_PERIOD_SIZE, -1 },
 		.private_data = (void*) 8,
 	},
 	{
-		.var = SND_PCM_HW_PARAM_FRAME_BITS, 
+		.var = SND_PCM_HW_PARAM_FRAME_BITS,
 		.func = snd_pcm_hw_rule_mulkdiv,
 		.deps = { SND_PCM_HW_PARAM_BUFFER_BYTES,
 			SND_PCM_HW_PARAM_BUFFER_SIZE, -1 },
 		.private_data = (void*) 8,
 	},
 	{
-		.var = SND_PCM_HW_PARAM_CHANNELS, 
+		.var = SND_PCM_HW_PARAM_CHANNELS,
 		.func = snd_pcm_hw_rule_div,
 		.deps = { SND_PCM_HW_PARAM_FRAME_BITS,
 			SND_PCM_HW_PARAM_SAMPLE_BITS, -1 },
 		.private_data = 0,
 	},
 	{
-		.var = SND_PCM_HW_PARAM_RATE, 
+		.var = SND_PCM_HW_PARAM_RATE,
 		.func = snd_pcm_hw_rule_mulkdiv,
 		.deps = { SND_PCM_HW_PARAM_PERIOD_SIZE,
 			SND_PCM_HW_PARAM_PERIOD_TIME, -1 },
 		.private_data = (void*) 1000000,
 	},
 	{
-		.var = SND_PCM_HW_PARAM_RATE, 
+		.var = SND_PCM_HW_PARAM_RATE,
 		.func = snd_pcm_hw_rule_mulkdiv,
 		.deps = { SND_PCM_HW_PARAM_BUFFER_SIZE,
 			SND_PCM_HW_PARAM_BUFFER_TIME, -1 },
 		.private_data = (void*) 1000000,
 	},
 	{
-		.var = SND_PCM_HW_PARAM_PERIODS, 
+		.var = SND_PCM_HW_PARAM_PERIODS,
 		.func = snd_pcm_hw_rule_div,
 		.deps = { SND_PCM_HW_PARAM_BUFFER_SIZE,
 			SND_PCM_HW_PARAM_PERIOD_SIZE, -1 },
 		.private_data = 0,
 	},
 	{
-		.var = SND_PCM_HW_PARAM_PERIOD_SIZE, 
+		.var = SND_PCM_HW_PARAM_PERIOD_SIZE,
 		.func = snd_pcm_hw_rule_div,
 		.deps = { SND_PCM_HW_PARAM_BUFFER_SIZE,
 			SND_PCM_HW_PARAM_PERIODS, -1 },
 		.private_data = 0,
 	},
 	{
-		.var = SND_PCM_HW_PARAM_PERIOD_SIZE, 
+		.var = SND_PCM_HW_PARAM_PERIOD_SIZE,
 		.func = snd_pcm_hw_rule_mulkdiv,
 		.deps = { SND_PCM_HW_PARAM_PERIOD_BYTES,
 			SND_PCM_HW_PARAM_FRAME_BITS, -1 },
 		.private_data = (void*) 8,
 	},
 	{
-		.var = SND_PCM_HW_PARAM_PERIOD_SIZE, 
+		.var = SND_PCM_HW_PARAM_PERIOD_SIZE,
 		.func = snd_pcm_hw_rule_muldivk,
 		.deps = { SND_PCM_HW_PARAM_PERIOD_TIME,
 			SND_PCM_HW_PARAM_RATE, -1 },
 		.private_data = (void*) 1000000,
 	},
 	{
-		.var = SND_PCM_HW_PARAM_BUFFER_SIZE, 
+		.var = SND_PCM_HW_PARAM_BUFFER_SIZE,
 		.func = snd_pcm_hw_rule_mul,
 		.deps = { SND_PCM_HW_PARAM_PERIOD_SIZE,
 			SND_PCM_HW_PARAM_PERIODS, -1 },
 		.private_data = 0,
 	},
 	{
-		.var = SND_PCM_HW_PARAM_BUFFER_SIZE, 
+		.var = SND_PCM_HW_PARAM_BUFFER_SIZE,
 		.func = snd_pcm_hw_rule_mulkdiv,
 		.deps = { SND_PCM_HW_PARAM_BUFFER_BYTES,
 			SND_PCM_HW_PARAM_FRAME_BITS, -1 },
 		.private_data = (void*) 8,
 	},
 	{
-		.var = SND_PCM_HW_PARAM_BUFFER_SIZE, 
+		.var = SND_PCM_HW_PARAM_BUFFER_SIZE,
 		.func = snd_pcm_hw_rule_muldivk,
 		.deps = { SND_PCM_HW_PARAM_BUFFER_TIME,
 			SND_PCM_HW_PARAM_RATE, -1 },
 		.private_data = (void*) 1000000,
 	},
 	{
-		.var = SND_PCM_HW_PARAM_PERIOD_BYTES, 
+		.var = SND_PCM_HW_PARAM_PERIOD_BYTES,
 		.func = snd_pcm_hw_rule_muldivk,
 		.deps = { SND_PCM_HW_PARAM_PERIOD_SIZE,
 			SND_PCM_HW_PARAM_FRAME_BITS, -1 },
 		.private_data = (void*) 8,
 	},
 	{
-		.var = SND_PCM_HW_PARAM_BUFFER_BYTES, 
+		.var = SND_PCM_HW_PARAM_BUFFER_BYTES,
 		.func = snd_pcm_hw_rule_muldivk,
 		.deps = { SND_PCM_HW_PARAM_BUFFER_SIZE,
 			SND_PCM_HW_PARAM_FRAME_BITS, -1 },
 		.private_data = (void*) 8,
 	},
 	{
-		.var = SND_PCM_HW_PARAM_PERIOD_TIME, 
+		.var = SND_PCM_HW_PARAM_PERIOD_TIME,
 		.func = snd_pcm_hw_rule_mulkdiv,
 		.deps = { SND_PCM_HW_PARAM_PERIOD_SIZE,
 			SND_PCM_HW_PARAM_RATE, -1 },
 		.private_data = (void*) 1000000,
 	},
 	{
-		.var = SND_PCM_HW_PARAM_BUFFER_TIME, 
+		.var = SND_PCM_HW_PARAM_BUFFER_TIME,
 		.func = snd_pcm_hw_rule_mulkdiv,
 		.deps = { SND_PCM_HW_PARAM_BUFFER_SIZE,
 			SND_PCM_HW_PARAM_RATE, -1 },
@@ -2015,7 +2015,7 @@ static const snd_mask_t refine_masks[SND_PCM_HW_PARAM_LAST_MASK - SND_PCM_HW_PAR
 		},
 	},
 };
-  
+
 static const snd_interval_t refine_intervals[SND_PCM_HW_PARAM_LAST_INTERVAL - SND_PCM_HW_PARAM_FIRST_INTERVAL + 1] = {
 	[SND_PCM_HW_PARAM_SAMPLE_BITS - SND_PCM_HW_PARAM_FIRST_INTERVAL] = {
 		.min = 1, .max = UINT_MAX,
@@ -2232,7 +2232,7 @@ int snd_pcm_hw_refine_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 		return err;
 	err = sprepare(pcm, &sparams);
 	if (err < 0) {
-		SNDERR("Slave PCM not usable");
+		snd_error(PCM, "Slave PCM not usable");
 		return err;
 	}
 #ifdef RULES_DEBUG
@@ -2433,14 +2433,14 @@ int _snd_pcm_hw_params_internal(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 		min_align *= 2;
 	}
 	pcm->min_align = min_align;
-	
+
 	pcm->hw_flags = params->flags;
 	pcm->info = params->info;
 	pcm->msbits = params->msbits;
 	pcm->rate_num = params->rate_num;
 	pcm->rate_den = params->rate_den;
 	pcm->fifo_size = params->fifo_size;
-	
+
 	/* Default sw params */
 	memset(&sw, 0, sizeof(sw));
 	err = snd_pcm_sw_params_default(pcm, &sw);
@@ -2450,7 +2450,7 @@ int _snd_pcm_hw_params_internal(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	if (err < 0)
 		return err;
 
-	if (pcm->mmap_rw || 
+	if (pcm->mmap_rw ||
 	    pcm->access == SND_PCM_ACCESS_MMAP_INTERLEAVED ||
 	    pcm->access == SND_PCM_ACCESS_MMAP_NONINTERLEAVED ||
 	    pcm->access == SND_PCM_ACCESS_MMAP_COMPLEX) {

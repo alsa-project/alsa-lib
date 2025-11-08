@@ -42,12 +42,12 @@ int main(int argc,char** argv)
 
 	int fd_in = -1,fd_out = -1;
 	snd_rawmidi_t *handle_in = 0,*handle_out = 0;
-	
+
 	if (argc==1) {
 		usage();
 		exit(0);
 	}
-	
+
 	for (i = 1 ; i<argc ; i++) {
 		if (argv[i][0]=='-') {
 			switch (argv[i][1]) {
@@ -80,7 +80,7 @@ int main(int argc,char** argv)
 					if (i + 1 < argc)
 						node_out = argv[++i];
 					break;
-			}			
+			}
 		}
 	}
 
@@ -90,7 +90,7 @@ int main(int argc,char** argv)
 		if (device_in) {
 			fprintf(stderr,"device %s\n",device_in);
 		}else if (node_in){
-			fprintf(stderr,"%s\n",node_in);	
+			fprintf(stderr,"%s\n",node_in);
 		}else{
 			fprintf(stderr,"NONE\n");
 		}
@@ -98,14 +98,14 @@ int main(int argc,char** argv)
 		if (device_out) {
 			fprintf(stderr,"device %s\n",device_out);
 		}else if (node_out){
-			fprintf(stderr,"%s\n",node_out);		
+			fprintf(stderr,"%s\n",node_out);
 		}else{
 			fprintf(stderr,"NONE\n");
 		}
 	}
-	
+
 	if (device_in) {
-		err = snd_rawmidi_open(&handle_in,NULL,device_in,0);	
+		err = snd_rawmidi_open(&handle_in,NULL,device_in,0);
 		if (err) {
 			fprintf(stderr,"snd_rawmidi_open %s failed: %d\n",device_in,err);
 		}
@@ -114,7 +114,7 @@ int main(int argc,char** argv)
 		fd_in = open(node_in,O_RDONLY);
 		if (fd_in<0) {
 			fprintf(stderr,"open %s for input failed\n",node_in);
-		}	
+		}
 	}
 
 	signal(SIGINT,sighandler);
@@ -126,17 +126,17 @@ int main(int argc,char** argv)
 		}
 	}
 	if (node_out && (!node_in || strcmp(node_out,node_in))) {
-		fd_out = open(node_out,O_WRONLY);		
+		fd_out = open(node_out,O_WRONLY);
 		if (fd_out<0) {
 			fprintf(stderr,"open %s for output failed\n",node_out);
-		}	
+		}
 	}
 
 	if (node_in && node_out && strcmp(node_out,node_in)==0) {
-		fd_in = fd_out = open(node_out,O_RDWR);		
+		fd_in = fd_out = open(node_out,O_RDWR);
 		if (fd_out<0) {
 			fprintf(stderr,"open %s for input and output failed\n",node_out);
-		}		
+		}
 	}
 
 	if (!thru) {
@@ -210,7 +210,7 @@ int main(int argc,char** argv)
 				if (verbose) {
 					fprintf(stderr,"read %02x\n",ch);
 				}
-			}	
+			}
 		}
 
 		if (handle_out || fd_out!=-1) {
@@ -227,7 +227,7 @@ int main(int argc,char** argv)
 			ch=0x90; snd_rawmidi_write(handle_out,&ch,1);
 			ch=60;   snd_rawmidi_write(handle_out,&ch,1);
 			ch=0;    snd_rawmidi_write(handle_out,&ch,1);
-			snd_rawmidi_drain(handle_out); 
+			snd_rawmidi_drain(handle_out);
 		}
 		if (fd_out!=-1) {
 			unsigned char ch;
@@ -246,27 +246,27 @@ int main(int argc,char** argv)
 			}
 			while (!stop) {
 				unsigned char ch;
-			
+
 				if (handle_in) {
 					snd_rawmidi_read(handle_in,&ch,1);
 				}
 				if (fd_in!=-1) {
 					read(fd_in,&ch,1);
-				}	
+				}
 				if (verbose) {
 					fprintf(stderr,"thru: %02x\n",ch);
 				}
 
 				if (handle_out) {
 					snd_rawmidi_write(handle_out,&ch,1);
-					snd_rawmidi_drain(handle_out); 
+					snd_rawmidi_drain(handle_out);
 				}
 				if (fd_out!=-1) {
 					write(fd_out,&ch,1);
 				}
 			}
 		}else{
-				fprintf(stderr,"Testing midi thru needs both input and output\n");		
+				fprintf(stderr,"Testing midi thru needs both input and output\n");
 				exit(-1);
 		}
 	}
@@ -274,14 +274,14 @@ int main(int argc,char** argv)
 	if (verbose) {
 		fprintf(stderr,"Closing\n");
 	}
-	
+
 	if (handle_in) {
-		snd_rawmidi_drain(handle_in); 
-		snd_rawmidi_close(handle_in);	
+		snd_rawmidi_drain(handle_in);
+		snd_rawmidi_close(handle_in);
 	}
 	if (handle_out) {
-		snd_rawmidi_drain(handle_out); 
-		snd_rawmidi_close(handle_out);	
+		snd_rawmidi_drain(handle_out);
+		snd_rawmidi_close(handle_out);
 	}
 	if (fd_in!=-1) {
 		close(fd_in);

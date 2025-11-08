@@ -19,7 +19,7 @@
  *
  */
 
-#include "pcm_local.h"  
+#include "pcm_local.h"
 #include "../timer/timer_local.h"
 
 #define DIRECT_IPC_SEMS         1
@@ -103,8 +103,8 @@ typedef struct {
 		unsigned int period_step;
 		unsigned int sleep_min; /* not used */
 		unsigned int avail_min;
-		unsigned int start_threshold;	
-		unsigned int stop_threshold;	
+		unsigned int start_threshold;
+		unsigned int stop_threshold;
 		unsigned int silence_threshold;
 		unsigned int silence_size;
 		unsigned int recoveries;	/* no of executed recoveries on slave*/
@@ -308,7 +308,7 @@ static inline int snd_pcm_direct_semaphore_up(snd_pcm_direct_t *dmix, int sem_nu
 static inline int snd_pcm_direct_semaphore_final(snd_pcm_direct_t *dmix, int sem_num)
 {
 	if (dmix->locked[sem_num] != 1) {
-		SNDMSG("invalid semaphore count to finalize %d: %d", sem_num, dmix->locked[sem_num]);
+		snd_check(PCM, "invalid semaphore count to finalize %d: %d", sem_num, dmix->locked[sem_num]);
 		return -EBUSY;
 	}
 	return snd_pcm_direct_semaphore_up(dmix, sem_num);
