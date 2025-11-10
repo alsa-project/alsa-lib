@@ -2580,8 +2580,8 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 		char *val;
 		if (snd_config_get_id(pcm_conf, &id) < 0)
 			id = NULL;
-		val = NULL;
-		snd_config_get_ascii(pcm_conf, &val);
+		if (snd_config_get_ascii(pcm_conf, &val) < 0)
+			val = NULL;
 		snd_error(PCM, "Invalid type for PCM %s%sdefinition (id: %s, value: %s)", name ? name : "", name ? " " : "", id, val);
 		free(val);
 		return -EINVAL;
@@ -3126,7 +3126,7 @@ int snd_pcm_avail_delay(snd_pcm_t *pcm,
 	while (1) {
 		sf = __snd_pcm_avail_update(pcm);
 		if (sf < 0) {
-			err = (int)sf;
+			err = sf < INT_MIN ? -EOVERFLOW : (int)sf;
 			goto unlock;
 		}
 		if (ok && sf == *availp)
@@ -3335,6 +3335,8 @@ int snd_pcm_area_copy(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes_t 
 		return 0;
 	dst = snd_pcm_channel_area_addr(dst_area, dst_offset);
 	width = snd_pcm_format_physical_width(format);
+	if (width < 0)
+		return width;
 	if (src_area->step == (unsigned int) width &&
 	    dst_area->step == (unsigned int) width) {
 		size_t bytes = samples * width / 8;
@@ -7682,8 +7684,7 @@ snd_pcm_sframes_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_
 		frames = size;
 		if (frames > (snd_pcm_uframes_t) avail)
 			frames = avail;
-		if (! frames)
-			break;
+		/* frames must be at least 1 here (see while condition) */
 		err = func(pcm, areas, offset, frames);
 		if (err < 0)
 			break;
@@ -8059,7 +8060,7 @@ void snd_pcm_unlink_appl_ptr(snd_pcm_t *pcm, snd_pcm_t *slave)
  *
  */
 
-#ifndef DOC_HIDDEN
+#if !defined(DOC_HIDDEN) && !defined(__COVERITY__)
 
 #ifdef USE_VERSIONED_SYMBOLS
 
@@ -8295,7 +8296,7 @@ OBSOLETE1(snd_pcm_sw_params_get_stop_threshold, ALSA_0.9, ALSA_0.9.0rc4);
 OBSOLETE1(snd_pcm_sw_params_get_silence_threshold, ALSA_0.9, ALSA_0.9.0rc4);
 OBSOLETE1(snd_pcm_sw_params_get_silence_size, ALSA_0.9, ALSA_0.9.0rc4);
 
-#endif /* DOC_HIDDEN */
+#endif /* DOC_HIDDEN/COVERITY */
 
 static int chmap_equal(const snd_pcm_chmap_t *a, const snd_pcm_chmap_t *b)
 {
@@ -8794,7 +8795,7 @@ int snd_pcm_recover(snd_pcm_t *pcm, int err, int silent)
 	if (err == -ESTRPIPE) {
 		while ((err = snd_pcm_resume(pcm)) == -EAGAIN)
 			/* wait until suspend flag is released */
-			poll(NULL, 0, 1000);
+			(void)poll(NULL, 0, 1000);
 		if (err < 0) {
 			err = snd_pcm_prepare(pcm);
 			if (err < 0) {

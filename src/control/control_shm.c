@@ -70,7 +70,7 @@ static int snd_ctl_shm_action_fd(snd_ctl_t *ctl, int *fd)
 {
 	snd_ctl_shm_t *shm = ctl->private_data;
 	int err;
-	char buf[1];
+	char buf[1] = {0};
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	err = write(shm->socket, buf, 1);
 	if (err != 1)
@@ -483,6 +483,11 @@ int snd_ctl_shm_open(snd_ctl_t **handlep, const char *name, const char *sockname
 		result = -EINVAL;
 		goto _err;
 	}
+	if (ans.result < INT_MIN || ans.result > INT_MAX) {
+		snd_error(CONTROL, "invalid data error");
+		result = -EINVAL;
+		goto _err;
+	}
 	result = ans.result;
 	if (result < 0)
 		goto _err;
@@ -519,7 +524,8 @@ int snd_ctl_shm_open(snd_ctl_t **handlep, const char *name, const char *sockname
 	return 0;
 
  _err:
-	close(sock);
+	if (sock >= 0)
+		close(sock);
 	if (ctrl)
 		shmdt(ctrl);
 	free(shm);

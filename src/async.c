@@ -150,7 +150,6 @@ int snd_async_add_handler(snd_async_handler_t **handler, int fd,
 int snd_async_del_handler(snd_async_handler_t *handler)
 {
 	int err = 0, err2 = 0;
-	int was_empty;
 	assert(handler);
 	if (handler->type != SND_ASYNC_HANDLER_GENERIC) {
 		struct list_head *alist;
@@ -184,15 +183,16 @@ int snd_async_del_handler(snd_async_handler_t *handler)
 		}
 	}
  _glist:
-	was_empty = list_empty(&snd_async_handlers);
-	list_del(&handler->glist);
-	if (!was_empty && list_empty(&snd_async_handlers)) {
-		err = sigaction(snd_async_signo, &previous_action, NULL);
-		if (err < 0) {
-			snd_errornum(CORE, "sigaction");
-			return -errno;
+	if (!list_empty(&snd_async_handlers)) {
+		list_del(&handler->glist);
+		if (list_empty(&snd_async_handlers)) {
+			err = sigaction(snd_async_signo, &previous_action, NULL);
+			if (err < 0) {
+				snd_errornum(CORE, "sigaction");
+				return -errno;
+			}
+			memset(&previous_action, 0, sizeof(previous_action));
 		}
-		memset(&previous_action, 0, sizeof(previous_action));
 	}
 	free(handler);
 	return err ? err : err2;

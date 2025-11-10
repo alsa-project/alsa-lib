@@ -461,8 +461,7 @@ static int copy_data_hex(char *data, int off, const char *str, int width)
 	return 0;
 }
 
-static int tplg_parse_data_hex(snd_config_t *cfg, struct tplg_elem *elem,
-	int width)
+static int tplg_parse_data_hex(snd_config_t *cfg, struct tplg_elem *elem, unsigned int width)
 {
 	struct snd_soc_tplg_private *priv;
 	const char *value = NULL;
@@ -471,11 +470,14 @@ static int tplg_parse_data_hex(snd_config_t *cfg, struct tplg_elem *elem,
 
 	tplg_dbg(" data: %s", elem->id);
 
+	if (width > 4)
+		return -EINVAL;
+
 	if (snd_config_get_string(cfg, &value) < 0)
 		return -EINVAL;
 
 	num = get_hex_num(value);
-	if (num <= 0) {
+	if (num <= 0 || num > 16384) {
 		snd_error(TOPOLOGY, "malformed hex variable list %s", value);
 		return -EINVAL;
 	}
@@ -483,14 +485,16 @@ static int tplg_parse_data_hex(snd_config_t *cfg, struct tplg_elem *elem,
 	size = num * width;
 	priv = elem->data;
 
-	if (size > TPLG_MAX_PRIV_SIZE) {
-		snd_error(TOPOLOGY, "data too big %d", size);
+	if (size < 0 || size > TPLG_MAX_PRIV_SIZE) {
+		snd_error(TOPOLOGY, "data too big %u", (unsigned int)size);
 		return -EINVAL;
 	}
 
 	if (priv != NULL) {
 		off = priv->size;
-		esize = elem->size + size;
+		if (off > 1024*1024)
+			return -ENOMEM;
+		esize = off + size;
 		priv = realloc(priv, esize);
 	} else {
 		off = 0;
@@ -1696,7 +1700,7 @@ static int tplg_verify_tuple_set(snd_tplg_t *tplg, size_t pos,
 	j = tplg_get_tuple_size(va->type) * va->num_elems;
 	if (j + sizeof(*va) != va->size) {
 		tplg_log(tplg, 'A', pos, "tuple set verify: wrong vendor array size %d "
-			 "(expected %d for %d count %d)",
+			 "(expected %zu for %d count %d)",
 			 va->size, j + sizeof(*va), va->type, va->num_elems);
 		return -EINVAL;
 	}

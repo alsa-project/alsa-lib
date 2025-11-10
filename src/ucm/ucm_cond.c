@@ -310,7 +310,8 @@ static int if_eval_path(snd_use_case_mgr_t *uc_mgr, snd_config_t *eval)
 		amode = X_OK;
 	} else {
 		snd_error(UCM, "Path unknown mode '%s' (If.Condition.Mode)", s);
-		free(s);
+		if (s != mode)
+			free(s);
 		return -EINVAL;
 	}
 	if (s != mode)

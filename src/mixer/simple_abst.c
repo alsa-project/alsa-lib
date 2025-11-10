@@ -352,8 +352,7 @@ int snd_mixer_simple_basic_register(snd_mixer_t *mixer,
 			snd_mixer_class_free(class);
 		return err;
 	}
-	if (top)
-		snd_config_delete(top);
+	snd_config_delete(top);
 	if (classp)
 		*classp = class;
 	return 0;

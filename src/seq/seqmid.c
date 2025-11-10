@@ -476,6 +476,8 @@ int snd_seq_parse_address(snd_seq_t *seq, snd_seq_addr_t *addr, const char *arg)
 			if (!strncmp(arg, cinfo.name, len)) {
 				if (strlen(cinfo.name) == (size_t)len) {
 					/* exact match */
+					if (cinfo.client < 0)
+						return -EIO;
 					addr->client = cinfo.client;
 					return 0;
 				}

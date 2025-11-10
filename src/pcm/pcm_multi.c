@@ -1439,13 +1439,13 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 _free:
 	if (err < 0) {
 		for (idx = 0; idx < slaves_count; ++idx) {
-			if (slaves_pcm[idx])
+			if (slaves_pcm && slaves_pcm[idx])
 				snd_pcm_close(slaves_pcm[idx]);
 		}
 	}
 	if (slaves_conf) {
 		for (idx = 0; idx < slaves_count; ++idx) {
-			if (slaves_conf[idx])
+			if (slaves_conf && slaves_conf[idx])
 				snd_config_delete(slaves_conf[idx]);
 		}
 		free(slaves_conf);

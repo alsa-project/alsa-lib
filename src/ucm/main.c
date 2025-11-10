@@ -189,21 +189,21 @@ static int read_tlv_file(unsigned int **res,
 		goto __fail;
 	}
 	*res = malloc(sz);
-	if (res == NULL) {
+	if (*res == NULL) {
 		err = -ENOMEM;
 		goto __fail;
 	}
 	sz_read = read(fd, *res, sz);
 	if (sz_read < 0 || (size_t)sz_read != sz) {
 		err = -EIO;
-		free(*res);
-		*res = NULL;
+		goto __fail_res;
 	}
 	/* Check if the tlv file specifies valid size. */
 	tlv = (struct snd_ctl_tlv *)(*res);
 	if (tlv->length + 2 * sizeof(unsigned int) != sz) {
 		snd_error(UCM, "Invalid tlv size: %d", tlv->length);
 		err = -EINVAL;
+__fail_res:
 		free(*res);
 		*res = NULL;
 	}
@@ -715,12 +715,12 @@ static int run_device_all_sequence(snd_use_case_mgr_t *uc_mgr, struct use_case_v
 	struct list_head *pos;
 	int err;
 
-	snd_trace(UCM, "disable all devices sequence for '%s'", verb->name);
-
 	if (verb == NULL) {
 		snd_error(UCM, "disdevall must be executed inside the verb context");
 		return -ENOENT;
 	}
+
+	snd_trace(UCM, "disable all devices sequence for '%s'", verb->name);
 
 	list_for_each(pos, &verb->device_list) {
 		device = list_entry(pos, struct use_case_device, list);
@@ -1533,6 +1533,9 @@ int snd_use_case_mgr_open(snd_use_case_mgr_t **uc_mgr,
 
 	snd_trace(UCM, "{API call} open '%s'", card_name);
 
+	if (card_name == NULL)
+		return -EINVAL;
+
 	/* create a new UCM */
 	mgr = calloc(1, sizeof(snd_use_case_mgr_t));
 	if (mgr == NULL)
@@ -1548,12 +1551,12 @@ int snd_use_case_mgr_open(snd_use_case_mgr_t **uc_mgr,
 	INIT_LIST_HEAD(&mgr->variable_list);
 	pthread_mutex_init(&mgr->mutex, NULL);
 
-	if (card_name && *card_name == '-') {
+	if (*card_name == '-') {
 		card_name++;
 		mgr->suppress_nodev_errors = 1;
 	}
 
-	if (card_name && card_name[0] == '<' && card_name[1] == '<' && card_name[2] == '<')
+	if (card_name[0] == '<' && card_name[1] == '<' && card_name[2] == '<')
 		card_name = parse_open_variables(mgr, card_name);
 
 	err = uc_mgr_card_open(mgr);
@@ -2566,7 +2569,9 @@ static int set_verb_user(snd_use_case_mgr_t *uc_mgr,
 		verb = NULL;
 	}
 	if (uc_mgr->active_verb) {
-		err = handle_transition_verb(uc_mgr, verb);
+		err = 0;
+		if (verb != NULL)
+			err = handle_transition_verb(uc_mgr, verb);
 		if (err == 0) {
 			err = dismantle_use_case(uc_mgr);
 			if (err < 0)

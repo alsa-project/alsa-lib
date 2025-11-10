@@ -891,7 +891,7 @@ snd_pcm_ladspa_write_areas(snd_pcm_t *pcm,
 					chn = instance->output.channels.array[idx];
 					data = instance->output.data[idx];
 					if (data == NULL) {
-						data = (LADSPA_Data *)((char *)slave_areas[chn].addr + (areas[chn].first / 8));
+						data = (LADSPA_Data *)((char *)slave_areas[chn].addr + (slave_areas[chn].first / 8));
 						data += slave_offset;
 					}
 					instance->desc->connect_port(instance->handle, instance->output.ports.array[idx], data);
@@ -943,7 +943,7 @@ snd_pcm_ladspa_read_areas(snd_pcm_t *pcm,
 					chn = instance->input.channels.array[idx];
 					data = instance->input.data[idx];
 					if (data == NULL) {
-						data = (LADSPA_Data *)((char *)slave_areas[chn].addr + (areas[chn].first / 8));
+						data = (LADSPA_Data *)((char *)slave_areas[chn].addr + (slave_areas[chn].first / 8));
 						data += slave_offset;
 					}
 					instance->desc->connect_port(instance->handle, instance->input.ports.array[idx], data);
@@ -1759,7 +1759,9 @@ int _snd_pcm_ladspa_open(snd_pcm_t **pcmp, const char *name,
 			continue;
 		}
 		if (strcmp(id, "channels") == 0) {
-			snd_config_get_integer(n, &channels);
+			err = snd_config_get_integer(n, &channels);
+			if (err < 0)
+				return err;
 			if (channels > 1024)
 				channels = 1024;
 			if (channels < 0)

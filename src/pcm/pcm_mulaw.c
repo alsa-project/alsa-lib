@@ -251,6 +251,8 @@ static int snd_pcm_mulaw_hw_refine_cprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t 
 		err = _snd_pcm_hw_params_set_format(params,
 						   SND_PCM_FORMAT_MU_LAW);
 	}
+	if (err < 0)
+		return err;
 	err = _snd_pcm_hw_params_set_subformat(params, SND_PCM_SUBFORMAT_STD);
 	if (err < 0)
 		return err;

@@ -87,7 +87,12 @@ static void share_areas(snd_pcm_direct_t *dshare,
 	channels = dshare->channels;
 	format = dshare->shmptr->s.format;
 	if (dshare->interleaved) {
-		unsigned int fbytes = snd_pcm_format_physical_width(format) / 8;
+		int width = snd_pcm_format_physical_width(format);
+		unsigned int fbytes;
+
+		if (width < 0)
+			return;
+		fbytes = width / 8;
 		memcpy(((char *)dst_areas[0].addr) + (dst_ofs * channels * fbytes),
 		       ((char *)src_areas[0].addr) + (src_ofs * channels * fbytes),
 		       size * channels * fbytes);

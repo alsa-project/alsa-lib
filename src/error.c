@@ -368,8 +368,8 @@ void snd_lib_log(int prio, int interface, const char *file, int line, const char
 void snd_lib_check(int interface, const char *file, int line, const char *function, int errcode, const char *fmt, ...)
 {
 	const char *verbose;
-
 	va_list arg;
+
 	va_start(arg, fmt);
 	verbose = getenv("LIBASOUND_DEBUG");
 	if (! verbose || ! *verbose)

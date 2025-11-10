@@ -88,6 +88,12 @@ rate_alloc_tmp_buf(snd_pcm_format_t format,
 	int width = snd_pcm_format_physical_width(format);
 	unsigned int i;
 
+	if (width < 0 || width > 128)
+		return NULL;
+	if (channels > 1024)
+		return NULL;
+	if (frames > 10*1024*1024)
+		return NULL;
 	ap = malloc(sizeof(*ap) * channels);
 	if (!ap)
 		return NULL;
@@ -319,6 +325,9 @@ static int choose_preferred_format(snd_pcm_rate_t *rate)
 
 	if (!in_mask || !out_mask)
 		return 0;
+
+	if (rate->orig_in_format < 0 || rate->orig_in_format > 63)
+		return -EINVAL;
 
 	if (rate->orig_in_format == rate->orig_out_format)
 		if (in_mask & out_mask & (1ULL << rate->orig_in_format))

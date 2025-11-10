@@ -1111,7 +1111,7 @@ int tplg_add_enum(snd_tplg_t *tplg, struct snd_tplg_enum_template *enum_ctl,
 			if (enum_ctl->values[i] == NULL)
 				continue;
 
-			memcpy(&ec->values[i * sizeof(int) * ENUM_VAL_SIZE],
+			memcpy(&ec->values[i * ENUM_VAL_SIZE],
 				enum_ctl->values[i],
 				sizeof(int) * ENUM_VAL_SIZE);
 		}

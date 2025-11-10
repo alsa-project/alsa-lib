@@ -612,7 +612,7 @@ static char *rval_sysfs_main(snd_use_case_mgr_t *uc_mgr, const char *top_path, c
 		if (s == NULL)
 			return NULL;
 		len = s - id - 1;
-		if ((size_t)(len - 1) > sizeof(link) - 1)
+		if ((size_t)len > sizeof(link) - 1)
 			return NULL;
 		strncpy(link, id + 1, len);
 		link[len] = '\0';

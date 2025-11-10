@@ -1299,13 +1299,18 @@ static int parse_array_def(snd_config_t *parent, input_t *input, int *idx, int s
 	{
 		char endchr;
 		if (!skip) {
+#if 0 /* n is always NULL for this moment */
 			if (n) {
 				if (n->type != SND_CONFIG_TYPE_COMPOUND) {
 					snd_error(CORE, "%s is not a compound", id);
 					err = -EINVAL;
 					goto __end;
 				}
-			} else {
+			} else
+#else
+			assert(n == NULL);
+#endif
+			       {
 				err = _snd_config_make_add(&n, &id, SND_CONFIG_TYPE_COMPOUND, parent);
 				if (err < 0)
 					goto __end;
@@ -1318,6 +1323,8 @@ static int parse_array_def(snd_config_t *parent, input_t *input, int *idx, int s
 			err = parse_array_defs(n, input, skip, override);
 			endchr = ']';
 		}
+		if (err < 0)
+			goto __end;
 		c = get_nonwhite(input);
 		if (c < 0) {
 			err = c;
@@ -3493,7 +3500,7 @@ int snd_config_save(snd_config_t *config, snd_output_t *out)
 
 #define SND_CONFIG_SEARCHV(config, result, fcn) \
 { \
-	snd_config_t *n; \
+	snd_config_t *n = NULL; \
 	va_list arg; \
 	assert(config); \
 	va_start(arg, result); \
@@ -3517,7 +3524,7 @@ int snd_config_save(snd_config_t *config, snd_output_t *out)
 
 #define SND_CONFIG_SEARCHVA(root, config, result, fcn) \
 { \
-	snd_config_t *n; \
+	snd_config_t *n = NULL; \
 	va_list arg; \
 	assert(config); \
 	va_start(arg, result); \
@@ -4565,7 +4572,10 @@ int snd_config_update_r(snd_config_t **_top, snd_config_update_t **_update, cons
 	}
 	for (k = 0; k < local->count; ++k) {
 		struct stat64 st;
-		struct finfo *lf = &local->finfo[k];
+		struct finfo *lf;
+
+_nextf:
+		lf = &local->finfo[k];
 		if (stat64(lf->name, &st) >= 0) {
 			lf->dev = st.st_dev;
 			lf->ino = st.st_ino;
@@ -4573,9 +4583,13 @@ int snd_config_update_r(snd_config_t **_top, snd_config_update_t **_update, cons
 		} else {
 			snd_error(CORE, "Cannot access file %s", lf->name);
 			free(lf->name);
-			memmove(&local->finfo[k], &local->finfo[k+1], sizeof(struct finfo) * (local->count - k - 1));
-			k--;
 			local->count--;
+			if (k < local->count) {
+				memmove(&local->finfo[k], &local->finfo[k+1], sizeof(struct finfo) * (local->count - k));
+				goto _nextf;
+			} else {
+				break;
+			}
 		}
 	}
 	if (!update)

@@ -967,6 +967,8 @@ static int snd_pcm_hw_param_set_near_minmax(snd_pcm_t *pcm,
 	if (boundary_lt(min, *mindir, max, *maxdir)) {
 		tmp = *params;
 		err = snd_pcm_hw_param_set_near(pcm, &tmp, var, &max, maxdir);
+		if (err < 0)
+			return err;
 	} else {
 		max = min;
 		*maxdir = *mindir;

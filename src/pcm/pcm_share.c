@@ -288,7 +288,7 @@ static snd_pcm_uframes_t _snd_pcm_share_missing(snd_pcm_t *pcm)
 
  update_poll:
 	if (ready != share->ready) {
-		char buf[1];
+		char buf[1] = {0};
 		while (1) {
 			if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 				if (ready)
@@ -366,14 +366,15 @@ static void *snd_pcm_share_thread(void *data)
 	struct pollfd pfd[2];
 	int err;
 
+	Pthread_mutex_lock(&slave->mutex);
 	pfd[0].fd = slave->poll[0];
 	pfd[0].events = POLLIN;
 	err = snd_pcm_poll_descriptors(spcm, &pfd[1], 1);
 	if (err != 1) {
 		snd_error(PCM, "invalid poll descriptors %d", err);
+		Pthread_mutex_unlock(&slave->mutex);
 		return NULL;
 	}
-	Pthread_mutex_lock(&slave->mutex);
 	err = pipe(slave->poll);
 	if (err < 0) {
 		snd_errornum(PCM, "can't create a pipe");
@@ -412,9 +413,9 @@ static void *snd_pcm_share_thread(void *data)
 			Pthread_mutex_unlock(&slave->mutex);
 			err = poll(pfd, 2, -1);
 			Pthread_mutex_lock(&slave->mutex);
-			if (pfd[0].revents & POLLIN) {
+			if (err > 0 && (pfd[0].revents & POLLIN) != 0) {
 				char buf[1];
-				read(pfd[0].fd, buf, 1);
+				(void)read(pfd[0].fd, buf, 1);
 			}
 		} else {
 			slave->polling = 0;
@@ -931,9 +932,12 @@ static int snd_pcm_share_start(snd_pcm_t *pcm)
 	snd_pcm_share_slave_t *slave = share->slave;
 	snd_pcm_t *spcm = slave->pcm;
 	int err = 0;
-	if (share->state != SND_PCM_STATE_PREPARED)
-		return -EBADFD;
+
 	Pthread_mutex_lock(&slave->mutex);
+	if (share->state != SND_PCM_STATE_PREPARED) {
+		err = -EBADFD;
+		goto _end;
+	}
 	share->state = SND_PCM_STATE_RUNNING;
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 		snd_pcm_uframes_t hw_avail = snd_pcm_mmap_playback_hw_avail(pcm);
@@ -1152,8 +1156,13 @@ static void _snd_pcm_share_stop(snd_pcm_t *pcm, snd_pcm_state_t state)
 		snd_pcm_areas_silence(pcm->running_areas, 0, pcm->channels,
 				      pcm->buffer_size, pcm->format);
 		err = snd_pcm_delay(slave->pcm, &delay);
-		if (err >= 0 && delay > 0)
-			snd_pcm_rewind(slave->pcm, delay);
+		if (err >= 0 && delay > 0) {
+			int err = snd_pcm_rewind(slave->pcm, delay);
+			if (err < 0) {
+				errno = -err;
+				snd_errornum(PCM, "rewind failed");
+			}
+		}
 		share->drain_silenced = 0;
 	}
 	share->state = state;
@@ -1444,7 +1453,7 @@ int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 			pfd.fd = sd[0];
 			pfd.events = POLLOUT;
 			while ((err = poll(&pfd, 1, 0)) == 1) {
-				char buf[1];
+				char buf[1] = {0};
 				err = write(sd[0], buf, 1);
 				assert(err != 0);
 				if (err != 1)

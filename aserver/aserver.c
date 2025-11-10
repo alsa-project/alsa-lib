@@ -221,7 +221,7 @@ LIST_HEAD(inet_pendings);
 static int pcm_handler(waiter_t *waiter, unsigned short events)
 {
 	client_t *client = waiter->private_data;
-	char buf[1];
+	char buf[1] = {0};
 	ssize_t n;
 	if (events & POLLIN) {
 		n = write(client->poll_fd, buf, 1);
@@ -321,17 +321,19 @@ static int pcm_shm_open(client_t *client, int *cookie)
 
 static int pcm_shm_close(client_t *client)
 {
+	snd_pcm_shm_ctrl_t *ctrl;
 	int err;
-	snd_pcm_shm_ctrl_t *ctrl = client->transport.shm.ctrl;
+
 	if (client->polling) {
 		del_waiter(client->device.pcm.fd);
 		client->polling = 0;
 	}
 	err = snd_pcm_close(client->device.pcm.handle);
-	ctrl->result = err;
 	if (err < 0)
 		ERROR("snd_pcm_close");
-	if (client->transport.shm.ctrl) {
+	ctrl = client->transport.shm.ctrl;
+	if (ctrl) {
+		ctrl->result = err;
 		err = shmdt((void *)client->transport.shm.ctrl);
 		if (err < 0)
 			SYSERROR("shmdt failed");
@@ -348,7 +350,7 @@ static int shm_ack(client_t *client)
 {
 	struct pollfd pfd;
 	int err;
-	char buf[1];
+	char buf[1] = {0};
 	pfd.fd = client->ctrl_fd;
 	pfd.events = POLLHUP;
 	if (poll(&pfd, 1, 0) == 1)
@@ -531,7 +533,7 @@ transport_ops_t pcm_shm_ops = {
 static int ctl_handler(waiter_t *waiter, unsigned short events)
 {
 	client_t *client = waiter->private_data;
-	char buf[1] = "";
+	char buf[1] = {0};
 	ssize_t n;
 	if (events & POLLIN) {
 		n = write(client->poll_fd, buf, 1);
@@ -585,16 +587,17 @@ static int ctl_shm_open(client_t *client, int *cookie)
 static int ctl_shm_close(client_t *client)
 {
 	int err;
-	snd_ctl_shm_ctrl_t *ctrl = client->transport.shm.ctrl;
+	snd_ctl_shm_ctrl_t *ctrl;
 	if (client->polling) {
 		del_waiter(client->device.ctl.fd);
 		client->polling = 0;
 	}
 	err = snd_ctl_close(client->device.ctl.handle);
-	ctrl->result = err;
 	if (err < 0)
 		ERROR("snd_ctl_close");
-	if (client->transport.shm.ctrl) {
+	ctrl = client->transport.shm.ctrl;
+	if (ctrl) {
+		ctrl->result = err;
 		err = shmdt((void *)client->transport.shm.ctrl);
 		if (err < 0)
 			SYSERROR("shmdt failed");
@@ -738,6 +741,10 @@ static int snd_client_open(client_t *client)
 		ans.result = -EINVAL;
 		goto _answer;
 	}
+	if (sizeof(client->name) < (size_t)(req.namelen + 1)) {
+		ans.result = -EINVAL;
+		goto _answer;
+	}
 	name = alloca(req.namelen + 1);
 	err = read(client->ctrl_fd, name, req.namelen);
 	if (err < 0) {
@@ -779,7 +786,7 @@ static int snd_client_open(client_t *client)
 		ans.result = -ENOMEM;
 		goto _answer;
 	}
-	strcpy(client->name, name);
+	snd_strlcpy(client->name, name, sizeof(client->name));
 	client->stream = req.stream;
 	client->mode = req.mode;
 

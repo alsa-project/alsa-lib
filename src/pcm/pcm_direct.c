@@ -1763,7 +1763,11 @@ int snd_pcm_direct_parse_bindings(snd_pcm_direct_t *dmix,
 		long cchannel, schannel;
 		if (snd_config_get_id(n, &id) < 0)
 			continue;
-		safe_strtol(id, &cchannel);
+		err = safe_strtol(id, &cchannel);
+		if (err < 0) {
+			free(bindings);
+			return -EINVAL;
+		}
 		if (snd_config_get_integer(n, &schannel) < 0) {
 			snd_error(PCM, "unable to get slave channel (should be integer type) in binding: %s", id);
 			free(bindings);
@@ -1907,6 +1911,14 @@ static int _snd_pcm_direct_get_slave_ipc_offset(snd_config_t *root,
 		device = 0;
 	if (subdevice < 0)
 		subdevice = 0;
+	if (card < 0 || card >= (1 << (31 - 12 - 1)))
+		return -EOVERFLOW;
+	if (device >= (1 << 6))
+		return -EOVERFLOW;
+	if (subdevice >= (1 << 4))
+		return -EOVERFLOW;
+	if (direction < 0 || direction > 1)
+		return -EOVERFLOW;
 	return (direction << 1) + (device << 2) + (subdevice << 8) + (card << 12);
 }
 

@@ -91,6 +91,8 @@ int tplg_parse_ops(snd_tplg_t *tplg ATTRIBUTE_UNUSED, snd_config_t *cfg,
 			if (snd_config_get_string(n, &value) < 0)
 				continue;
 			ival = lookup_ops(value);
+			if (ival < 0)
+				return ival;
 		} else {
 			if (tplg_get_integer(n, &ival, 0))
 				continue;
@@ -176,6 +178,8 @@ int tplg_parse_ext_ops(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 			if (snd_config_get_string(n, &value) < 0)
 				continue;
 			ival = lookup_ops(value);
+			if (ival < 0)
+				return ival;
 		} else {
 			if (tplg_get_integer(n, &ival, 0))
 				continue;

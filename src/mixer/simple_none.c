@@ -652,7 +652,7 @@ static int selem_write(snd_mixer_elem_t *elem)
 
 	err = selem_write_main(elem);
 	if (err < 0)
-		selem_read(elem);
+		(void)selem_read(elem);
 	return err;
 }
 
@@ -984,6 +984,8 @@ static int _snd_mixer_selem_set_volume(snd_mixer_elem_t *elem, int dir, snd_mixe
 static int _snd_mixer_selem_set_switch(snd_mixer_elem_t *elem, int dir, snd_mixer_selem_channel_id_t channel, int value)
 {
 	selem_none_t *s = snd_mixer_elem_get_private(elem);
+	if (channel < 0 || channel > 31)
+		return 0;
 	if ((unsigned int) channel >= s->str[dir].channels)
 		return 0;
 	if (s->selem.caps &
@@ -1246,6 +1248,8 @@ static int get_switch_ops(snd_mixer_elem_t *elem, int dir,
 	if (s->selem.caps & SM_CAP_GSWITCH)
 		dir = SM_PLAY;
 	if ((unsigned int) channel >= s->str[dir].channels)
+		return -EINVAL;
+	if (channel < 0 || channel > 31)
 		return -EINVAL;
 	*value = !!(s->str[dir].sw & (1 << channel));
 	return 0;

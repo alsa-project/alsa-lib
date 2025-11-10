@@ -619,12 +619,12 @@ int snd_pcm_format_set_silence(snd_pcm_format_t format, void *data, unsigned int
 		break;
 	}
 	case 8: {
-		uint8_t silence = snd_pcm_format_silence_64(format);
+		uint8_t silence = snd_pcm_format_silence(format);
 		memset(data, silence, samples);
 		break;
 	}
 	case 16: {
-		uint16_t silence = snd_pcm_format_silence_64(format);
+		uint16_t silence = snd_pcm_format_silence_16(format);
 		uint16_t *pdata = (uint16_t *)data;
 		if (! silence)
 			memset(data, 0, samples * 2);
@@ -635,7 +635,7 @@ int snd_pcm_format_set_silence(snd_pcm_format_t format, void *data, unsigned int
 		break;
 	}
 	case 24: {
-		uint32_t silence = snd_pcm_format_silence_64(format);
+		uint32_t silence = snd_pcm_format_silence_32(format);
 		uint8_t *pdata = (uint8_t *)data;
 		if (! silence)
 			memset(data, 0, samples * 3);
@@ -655,7 +655,7 @@ int snd_pcm_format_set_silence(snd_pcm_format_t format, void *data, unsigned int
 		break;
 	}
 	case 32: {
-		uint32_t silence = snd_pcm_format_silence_64(format);
+		uint32_t silence = snd_pcm_format_silence_32(format);
 		uint32_t *pdata = (uint32_t *)data;
 		if (! silence)
 			memset(data, 0, samples * 4);

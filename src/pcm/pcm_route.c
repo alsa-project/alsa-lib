@@ -1339,6 +1339,7 @@ int _snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 			continue;
 		}
 		snd_error(PCM, "Unknown field %s", id);
+		snd_pcm_free_chmaps(chmaps);
 		return -EINVAL;
 	}
 	if (!slave) {
@@ -1368,7 +1369,8 @@ int _snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 
 	err = determine_chmap(tt, &tt_chmap);
 	if (err < 0) {
-		free(ttable);
+		snd_config_delete(sconf);
+		snd_pcm_free_chmaps(chmaps);
 		return err;
 	}
 
@@ -1376,7 +1378,6 @@ int _snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 	snd_config_delete(sconf);
 	if (err < 0) {
 		free(tt_chmap);
-		free(ttable);
 		snd_pcm_free_chmaps(chmaps);
 		return err;
 	}

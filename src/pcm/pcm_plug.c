@@ -235,6 +235,8 @@ static const char linear_format_widths[32] = {
 static int check_linear_format(const snd_pcm_format_mask_t *format_mask, int wid, int sgn, int ed)
 {
 	int e, s;
+	if (wid < 1 || wid > 32)
+		return SND_PCM_FORMAT_UNKNOWN;
 	if (! linear_format_widths[wid - 1])
 		return SND_PCM_FORMAT_UNKNOWN;
 	for (e = 0; e < 2; e++) {
@@ -450,13 +452,15 @@ static int snd_pcm_plug_change_channels(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm
 				snd_pcm_route_ttable_entry_t v = SND_PCM_PLUGIN_ROUTE_FULL;
 				if (rpolicy == PLUG_ROUTE_POLICY_AVERAGE) {
 					if (pcm->stream == SND_PCM_STREAM_PLAYBACK &&
-					    clt->channels > slv->channels) {
+					    clt->channels > slv->channels &&
+					    slv->channels > 0) {
 						int srcs = clt->channels / slv->channels;
 						if (s < clt->channels % slv->channels)
 							srcs++;
 						v /= srcs;
 					} else if (pcm->stream == SND_PCM_STREAM_CAPTURE &&
-						   slv->channels > clt->channels) {
+						   slv->channels > clt->channels &&
+						   clt->channels > 0) {
 							int srcs = slv->channels / clt->channels;
 						if (s < slv->channels % clt->channels)
 							srcs++;
@@ -1338,6 +1342,7 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 				 SND_PCM_HW_PARAM_RATE, SCONF_UNCHANGED, &srate);
 	if (err < 0)
 		return err;
+	csize = ssize = cused = sused = 0;
 #ifdef BUILD_PCM_PLUGIN_ROUTE
 	if (tt) {
 		err = snd_pcm_route_determine_ttable(tt, &csize, &ssize);
@@ -1352,6 +1357,7 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 		}
 		err = snd_pcm_route_load_ttable(tt, ttable, csize, ssize, &cused, &sused, -1);
 		if (err < 0) {
+			free(ttable);
 			snd_config_delete(sconf);
 			return err;
 		}
@@ -1365,8 +1371,10 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 
 	err = snd_pcm_open_slave(&spcm, root, sconf, stream, mode, conf);
 	snd_config_delete(sconf);
-	if (err < 0)
+	if (err < 0) {
+		free(ttable);
 		return err;
+	}
 	err = snd_pcm_plug_open(pcmp, name, sformat, schannels, srate, rate_converter,
 				route_policy, ttable, ssize, cused, sused, spcm, 1);
 	if (err < 0)

@@ -323,8 +323,6 @@ static int snd_pcm_shm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 	ctrl->u.sw_params = *params;
 	err = snd_pcm_shm_action(pcm);
 	*params = ctrl->u.sw_params;
-	if (err < 0)
-		return err;
 	return err;
 }
 
@@ -437,8 +435,6 @@ static snd_pcm_sframes_t snd_pcm_shm_avail_update(snd_pcm_t *pcm)
 	int err;
 	ctrl->cmd = SND_PCM_IOCTL_AVAIL_UPDATE;
 	err = snd_pcm_shm_action(pcm);
-	if (err < 0)
-		return err;
 	return err;
 }
 
@@ -637,7 +633,7 @@ static int make_local_socket(const char *filename)
 	size_t l = strlen(filename);
 	size_t size = offsetof(struct sockaddr_un, sun_path) + l;
 	struct sockaddr_un *addr = alloca(size);
-	int sock;
+	int sock, err;
 
 	sock = socket(PF_LOCAL, SOCK_STREAM, 0);
 	if (sock < 0) {
@@ -649,8 +645,10 @@ static int make_local_socket(const char *filename)
 	memcpy(addr->sun_path, filename, l);
 
 	if (connect(sock, (struct sockaddr *) addr, size) < 0) {
+		err = -errno;
 		snd_errornum(PCM, "connect failed");
-		return -errno;
+		close(sock);
+		return err;
 	}
 	return sock;
 }
@@ -722,6 +720,11 @@ int snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name,
 		result = -EINVAL;
 		goto _err;
 	}
+	if (ans.result < INT_MIN || ans.result > INT_MAX) {
+		snd_error(PCM, "invalid read");
+		result = -EINVAL;
+		goto _err;
+	}
 	result = ans.result;
 	if (result < 0)
 		goto _err;
@@ -764,7 +767,8 @@ int snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name,
 	return 0;
 
  _err:
-	close(sock);
+	if (sock >= 0)
+		close(sock);
 	if (ctrl)
 		shmdt(ctrl);
 	free(shm);

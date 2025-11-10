@@ -469,8 +469,8 @@ static int snd_pcm_hw_change_timer(snd_pcm_t *pcm, int enable)
 		 */
 		{
 			int ver = 0;
-			ioctl(hw->period_timer_pfd.fd,
-			      SNDRV_TIMER_IOCTL_PVERSION, &ver);
+			if (ioctl(hw->period_timer_pfd.fd, SNDRV_TIMER_IOCTL_PVERSION, &ver))
+				snd_warn(PCM, "unable to get protocol version");
 			/*
 			 * In older versions, check via poll before read() is
 			 * needed because of the confliction between

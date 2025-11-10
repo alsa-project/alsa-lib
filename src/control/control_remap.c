@@ -770,7 +770,7 @@ static int remap_map_elem_write(snd_ctl_remap_t *priv, snd_ctl_elem_value_t *con
 				}
 				for (src_index = 1; src_index < mctl->src_channels; src_index++) {
 					dst = mctl->channel_map[base_idx + src_index];
-					if ((unsigned long)dst < ARRAY_SIZE(control->value.integer.value)) {
+					if ((unsigned long)dst < ARRAY_SIZE(control->value.integer64.value)) {
 						changes |= control2.value.integer64.value[dst] != control->value.integer64.value[index];
 						control2.value.integer64.value[dst] = control->value.integer64.value[index];
 					}

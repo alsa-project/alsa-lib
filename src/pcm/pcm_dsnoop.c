@@ -81,11 +81,16 @@ static void snoop_areas(snd_pcm_direct_t *dsnoop,
 {
 	unsigned int chn, schn, channels;
 	snd_pcm_format_t format;
+	unsigned int fbytes;
+	int pwidth;
 
 	channels = dsnoop->channels;
 	format = dsnoop->shmptr->s.format;
 	if (dsnoop->interleaved) {
-		unsigned int fbytes = snd_pcm_format_physical_width(format) / 8;
+		pwidth = snd_pcm_format_physical_width(format);
+		if (pwidth < 0)
+			return;
+		fbytes = pwidth / 8;
 		memcpy(((char *)dst_areas[0].addr) + (dst_ofs * channels * fbytes),
 		       ((char *)src_areas[0].addr) + (src_ofs * channels * fbytes),
 		       size * channels * fbytes);

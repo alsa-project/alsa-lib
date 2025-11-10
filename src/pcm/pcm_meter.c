@@ -443,7 +443,7 @@ static int snd_pcm_meter_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	snd_pcm_meter_t *meter = pcm->private_data;
 	unsigned int channel;
 	snd_pcm_t *slave = meter->gen.slave;
-	size_t buf_size_bytes;
+	ssize_t buf_size_bytes;
 	int err;
 	err = snd_pcm_hw_params_slave(pcm, params,
 				      snd_pcm_meter_hw_refine_cchange,
@@ -457,6 +457,8 @@ static int snd_pcm_meter_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	while (meter->buf_size < slave->rate)
 		meter->buf_size *= 2;
 	buf_size_bytes = snd_pcm_frames_to_bytes(slave, meter->buf_size);
+	if (buf_size_bytes < 0)
+		return buf_size_bytes;
 	assert(!meter->buf);
 	meter->buf = malloc(buf_size_bytes);
 	if (!meter->buf)

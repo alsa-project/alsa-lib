@@ -1099,11 +1099,11 @@ int snd_ump_msg_sysex_expand(const uint32_t *ump, uint8_t *buf, size_t maxlen,
  */
 int snd_ump_packet_length(unsigned int type)
 {
-	static int packet_length[16] = {
+	static unsigned char packet_length[16] = {
 		1, 1, 1, 2, 2, 4, 1, 1, 2, 2, 2, 3, 3, 4, 4, 4
 	};
 
-	if (type > 16)
+	if (type >= sizeof(packet_length))
 		return 0;
 	return packet_length[type];
 }

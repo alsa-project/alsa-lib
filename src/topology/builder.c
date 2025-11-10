@@ -220,13 +220,10 @@ static ssize_t write_manifest_data(snd_tplg_t *tplg)
 		return ret;
 	}
 
-	tplg_log(tplg, 'B', tplg->bin_pos, "manifest: write %d bytes",
-		 sizeof(tplg->manifest));
+	tplg_log(tplg, 'B', tplg->bin_pos, "manifest: write %zu bytes", sizeof(tplg->manifest));
 	ret = twrite(tplg, &tplg->manifest, sizeof(tplg->manifest));
 	if (ret >= 0) {
-		tplg_log(tplg, 'B', tplg->bin_pos,
-			 "manifest: write %d priv bytes",
-			 tplg->manifest.priv.size);
+		tplg_log(tplg, 'B', tplg->bin_pos, "manifest: write %d priv bytes", tplg->manifest.priv.size);
 		ret = twrite(tplg, tplg->manifest_pdata, tplg->manifest.priv.size);
 	}
 	return ret;

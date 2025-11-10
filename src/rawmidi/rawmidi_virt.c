@@ -181,7 +181,7 @@ static int snd_rawmidi_virtual_drain(snd_rawmidi_t *rmidi)
 			virt->pending = 0;
 		}
 		snd_seq_drain_output(virt->handle);
-		snd_seq_sync_output_queue(virt->handle);
+		(void)snd_seq_sync_output_queue(virt->handle);
 	}
 	return snd_rawmidi_virtual_drop(rmidi);
 }

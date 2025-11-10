@@ -221,10 +221,12 @@ static int snd_config_get_ctl_elem_enumerated(snd_config_t *n, snd_ctl_t *ctl,
 	unsigned int idx, items;
 	switch (snd_config_get_type(n)) {
 	case SND_CONFIG_TYPE_INTEGER:
-		snd_config_get_integer(n, &val);
+		if (snd_config_get_integer(n, &val) < 0)
+			return -1;
 		return val;
 	case SND_CONFIG_TYPE_STRING:
-		snd_config_get_string(n, &str);
+		if (snd_config_get_string(n, &str) < 0)
+			return -1;
 		break;
 	default:
 		return -1;
@@ -586,8 +588,7 @@ static int add_elem(snd_sctl_t *h, snd_config_t *_conf, snd_config_t *private_da
 		if (err != -ENOMEM && optional)
 			err = 0; /* ignore the error */
 	}
-	if (conf)
-		snd_config_delete(conf);
+	snd_config_delete(conf);
 	return err;
 }
 
