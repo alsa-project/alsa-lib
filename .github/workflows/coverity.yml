@@ -1,0 +1,72 @@
+name: Coverity Scan
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Run weekly on Sunday at 00:00 UTC
+    - cron: '0 4 * * 0'
+#  push:
+#    branches:
+#      - master
+
+jobs:
+  coverity:
+    runs-on: ubuntu-latest
+    container:
+      image: fedora:latest
+
+    steps:
+    - name: Prepare environment
+      run: |
+        dnf -y upgrade
+        dnf -y install @development-tools libtool bzip2 awk curl wget tar file
+
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Safe git directory
+      run: |
+        git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+    - name: Download Coverity Build Tool
+      run: |
+        wget -q https://scan.coverity.com/download/linux64 \
+          --post-data "token=${{ secrets.COVERITY_SCAN_TOKEN }}&project=${{ secrets.COVERITY_SCAN_PROJECT }}" \
+          -O coverity_tool.tar.gz
+        mkdir coverity-tool
+        tar xzf coverity_tool.tar.gz --strip-components=1 -C coverity-tool
+
+    - name: Configure
+      run: |
+        libtoolize --force --copy --automake
+        aclocal
+        autoheader
+        automake --foreign --copy --add-missing
+        autoconf
+        export CFLAGS="-O2 -Wall -W -Wunused-const-variable=0 -pipe -g"
+        ./configure --disable-aload
+
+    - name: Build with Coverity
+      run: |
+        export PATH="$PWD/coverity-tool/bin:$PATH"
+        cov-build --dir cov-int make
+
+    - name: Submit to Coverity Scan
+      run: |
+        tar czvf alsa-lib.tgz cov-int
+        curl --form token=${{ secrets.COVERITY_SCAN_TOKEN }} \
+          --form email=${{ secrets.COVERITY_SCAN_EMAIL }} \
+          --form file=@alsa-lib.tgz \
+          --form version="$(cat version || echo 'master')" \
+          --form description="alsa-lib automated scan" \
+          https://scan.coverity.com/builds?project=${{ secrets.COVERITY_SCAN_PROJECT }}
+
+    - name: Upload Coverity Results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverity-results
+        path: cov-int/
+        retention-days: 7
