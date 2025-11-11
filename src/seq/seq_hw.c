@@ -541,8 +541,8 @@ int snd_seq_hw_open(snd_seq_t **handle, const char *name, int streams, int mode)
 		return -errno;
 	}
 	if (ioctl(fd, SNDRV_SEQ_IOCTL_PVERSION, &ver) < 0) {
-		snd_errornum(SEQUENCER, "SNDRV_SEQ_IOCTL_PVERSION failed");
 		ret = -errno;
+		snd_errornum(SEQUENCER, "SNDRV_SEQ_IOCTL_PVERSION failed");
 		close(fd);
 		return ret;
 	}
@@ -553,7 +553,8 @@ int snd_seq_hw_open(snd_seq_t **handle, const char *name, int streams, int mode)
 	if (SNDRV_PROTOCOL_VERSION(1, 0, 3) <= ver) {
 		/* inform the protocol version we're supporting */
 		unsigned int user_ver = SNDRV_SEQ_VERSION;
-		ioctl(fd, SNDRV_SEQ_IOCTL_USER_PVERSION, &user_ver);
+		if (ioctl(fd, SNDRV_SEQ_IOCTL_USER_PVERSION, &user_ver))
+			snd_errornum(SEQUENCER, "cannot set user protocol version");
 	}
 	hw = calloc(1, sizeof(snd_seq_hw_t));
 	if (hw == NULL) {
@@ -620,7 +621,8 @@ int snd_seq_hw_open(snd_seq_t **handle, const char *name, int streams, int mode)
 		run_mode.big_endian = 0;
 #endif
 		run_mode.cpu_mode = sizeof(long);
-		ioctl(fd, SNDRV_SEQ_IOCTL_RUNNING_MODE, &run_mode);
+		if (ioctl(fd, SNDRV_SEQ_IOCTL_RUNNING_MODE, &run_mode))
+			snd_warn(SEQUENCER, "running mode cannot be set");
 	}
 #endif
 
