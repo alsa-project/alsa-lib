@@ -792,7 +792,8 @@ static int parse_tuple_set(snd_config_t *cfg,
 	unsigned int tuple_val;
 	int type, ival;
 
-	snd_config_get_id(cfg, &id);
+	if (snd_config_get_id(cfg, &id) < 0)
+		return -EINVAL;
 
 	type = get_tuple_type(id);
 	if (type < 0) {

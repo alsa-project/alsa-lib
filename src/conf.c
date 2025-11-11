@@ -4437,7 +4437,8 @@ int snd_config_hook_load_for_all_cards(snd_config_t *root, snd_config_t *config,
 			if (snd_config_search(root, fdriver, &n) >= 0) {
 				if (snd_config_get_string(n, &driver) < 0) {
 					if (snd_config_get_type(n) == SND_CONFIG_TYPE_COMPOUND) {
-						snd_config_get_id(n, &driver);
+						if (snd_config_get_id(n, &driver) < 0)
+							goto __err;
 						goto __std;
 					}
 					goto __err;

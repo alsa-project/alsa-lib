@@ -2578,8 +2578,8 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 #endif
 	if (snd_config_get_type(pcm_conf) != SND_CONFIG_TYPE_COMPOUND) {
 		char *val;
-		id = NULL;
-		snd_config_get_id(pcm_conf, &id);
+		if (snd_config_get_id(pcm_conf, &id) < 0)
+			id = NULL;
 		val = NULL;
 		snd_config_get_ascii(pcm_conf, &val);
 		snd_error(PCM, "Invalid type for PCM %s%sdefinition (id: %s, value: %s)", name ? name : "", name ? " " : "", id, val);

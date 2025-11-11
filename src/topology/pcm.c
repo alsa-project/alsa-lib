@@ -627,7 +627,8 @@ static int tplg_parse_streams(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 	const char *id, *value;
 	int stream;
 
-	snd_config_get_id(cfg, &id);
+	if (snd_config_get_id(cfg, &id) < 0)
+		return -EINVAL;
 
 	tplg_dbg("\t%s:", id);
 
@@ -750,7 +751,8 @@ static int tplg_parse_fe_dai(snd_tplg_t *tplg ATTRIBUTE_UNUSED,
 	const char *id;
 	unsigned int dai_id;
 
-	snd_config_get_id(cfg, &id);
+	if (snd_config_get_id(cfg, &id) < 0)
+		return -EINVAL;
 	tplg_dbg("\t\tFE DAI %s:", id);
 	snd_strlcpy(pcm->dai_name, id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 

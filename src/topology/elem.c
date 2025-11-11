@@ -423,7 +423,10 @@ struct tplg_elem* tplg_elem_new_common(snd_tplg_t *tplg,
 
 	/* do we get name from cfg */
 	if (cfg) {
-		snd_config_get_id(cfg, &id);
+		if (snd_config_get_id(cfg, &id) < 0) {
+			free(elem);
+			return NULL;
+		}
 		snd_strlcpy(elem->id, id, SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
 		elem->id[SNDRV_CTL_ELEM_ID_NAME_MAXLEN - 1] = 0;
 		/* as we insert new elem based on the index value, move index

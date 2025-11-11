@@ -381,7 +381,8 @@ int tplg_parse_dapm_graph(snd_tplg_t *tplg, snd_config_t *cfg,
 		return -EINVAL;
 	}
 
-	snd_config_get_id(cfg, &graph_id);
+	if (snd_config_get_id(cfg, &graph_id) < 0)
+		return -EINVAL;
 
 	snd_config_for_each(i, next, cfg) {
 		const char *id;

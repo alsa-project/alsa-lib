@@ -98,7 +98,8 @@ int tplg_parse_channel(snd_tplg_t *tplg, snd_config_t *cfg,
 		return -EINVAL;
 
 	channel += tplg->channel_idx;
-	snd_config_get_id(cfg, &id);
+	if (snd_config_get_id(cfg, &id) < 0)
+		return -EINVAL;
 	tplg_dbg("\tChannel %s at index %d", id, tplg->channel_idx);
 
 	channel_id = lookup_channel(id);
