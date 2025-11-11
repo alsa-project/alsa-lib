@@ -4449,13 +4449,14 @@ int snd_seq_drain_output(snd_seq_t *seq)
 	while (seq->obufused > 0) {
 		result = seq->ops->write(seq, seq->obuf, seq->obufused);
 		if (result < 0) {
-			if (result == -EAGAIN && processed)
+			if (result == -EAGAIN && processed > 0)
 				return seq->obufused;
 			return result;
 		}
 		if ((size_t)result < seq->obufused)
 			memmove(seq->obuf, seq->obuf + result, seq->obufused - result);
 		seq->obufused -= result;
+		processed += result;
 	}
 	return 0;
 }
