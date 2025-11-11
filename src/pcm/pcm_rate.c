@@ -1561,7 +1561,12 @@ int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name,
 				continue;
 			if (strcmp(id, "name") != 0)
 				continue;
-			snd_config_get_string(n, &type);
+			err = snd_config_get_string(n, &type);
+			if (err < 0) {
+				snd_pcm_free(pcm);
+				free(rate);
+				return err;
+			}
 			break;
 		}
 		if (!type) {

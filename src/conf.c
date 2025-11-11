@@ -5078,7 +5078,9 @@ static int _snd_config_expand(snd_config_t *src,
 		{
 			const char *s;
 			snd_config_t *vars = private_data;
-			snd_config_get_string(src, &s);
+			err = snd_config_get_string(src, &s);
+			if (err < 0)
+				return err;
 			if (s && *s == '$') {
 				err = snd_config_evaluate_string(dst, s, fcn, vars);
 				if (err < 0)

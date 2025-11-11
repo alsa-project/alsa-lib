@@ -1089,7 +1089,9 @@ static int parse_sequence(snd_use_case_mgr_t *uc_mgr,
 				snd_error(UCM, "string type is expected for sequence command");
 				return -EINVAL;
 			}
-			snd_config_get_string(n, &cmd);
+			err = snd_config_get_string(n, &cmd);
+			if (err < 0)
+				return err;
 			continue;
 		}
 

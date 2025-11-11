@@ -1753,7 +1753,9 @@ int _snd_pcm_ladspa_open(snd_pcm_t **pcmp, const char *name,
 			continue;
 		}
 		if (strcmp(id, "path") == 0) {
-			snd_config_get_string(n, &path);
+			err = snd_config_get_string(n, &path);
+			if (err < 0)
+				return err;
 			continue;
 		}
 		if (strcmp(id, "channels") == 0) {
