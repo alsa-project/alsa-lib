@@ -63,7 +63,7 @@ use case verbs for that sound card. i.e.:
 # Example master file for blah sound card
 # By Joe Blogs <joe@bloggs.org>
 
-Syntax 7
+Syntax 8
 
 # Use Case name for user interface
 Comment "Nice Abstracted Soundcard"
@@ -78,6 +78,31 @@ SectionUseCase."Voice Call" {
 SectionUseCase."HiFi" {
   File "hifi_blah"
   Comment "Play and record HiFi quality Music."
+}
+
+# Since Syntax 8, you can also use Config to specify configuration inline
+# instead of referencing an external file. Only one of File or Config can be used.
+
+SectionUseCase."Inline Example" {
+  Comment "Example with inline configuration"
+  Config {
+    SectionVerb {
+      EnableSequence [
+        cset "name='Power Save' off"
+      ]
+      DisableSequence [
+        cset "name='Power Save' on"
+      ]
+    }
+    SectionDevice."Speaker" {
+      EnableSequence [
+        cset "name='Speaker Switch' on"
+      ]
+      DisableSequence [
+        cset "name='Speaker Switch' off"
+      ]
+    }
+  }
 }
 
 # Define Value defaults

@@ -1945,9 +1945,9 @@ static int parse_verb(snd_use_case_mgr_t *uc_mgr,
 }
 
 /*
- * Parse a Use case verb file.
+ * Parse a Use case verb configuration.
  *
- * This file contains the following :-
+ * This configuration contains the following :-
  *  o Verb enable and disable sequences.
  *  o Supported Device enable and disable sequences for verb.
  *  o Supported Modifier enable and disable sequences for verb
@@ -1955,15 +1955,15 @@ static int parse_verb(snd_use_case_mgr_t *uc_mgr,
  *  o Optional PCM device ID for verb and modifiers
  *  o Alias kcontrols IDs for master and volumes and mutes.
  */
-static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
-			   const char *use_case_name,
-			   const char *comment,
-			   const char *file)
+static int parse_verb_config(snd_use_case_mgr_t *uc_mgr,
+			     const char *use_case_name,
+			     const char *comment,
+			     snd_config_t *cfg,
+			     const char *what)
 {
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
 	struct use_case_verb *verb;
-	snd_config_t *cfg;
 	int err;
 
 	/* allocate verb */
@@ -1992,15 +1992,10 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 			return -ENOMEM;
 	}
 
-	/* open Verb file for reading */
-	err = uc_mgr_config_load_file(uc_mgr, file, &cfg);
-	if (err < 0)
-		return err;
-
 	/* in-place evaluation */
 	err = uc_mgr_evaluate_inplace(uc_mgr, cfg);
 	if (err < 0)
-		goto _err;
+		return err;
 
 	/* parse master config sections */
 	snd_config_for_each(i, next, cfg) {
@@ -2013,8 +2008,8 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 		if (strcmp(id, "SectionVerb") == 0) {
 			err = parse_verb(uc_mgr, verb, n);
 			if (err < 0) {
-				snd_error(UCM, "%s failed to parse verb", file);
-				goto _err;
+				snd_error(UCM, "%s failed to parse verb", what);
+				return err;
 			}
 			continue;
 		}
@@ -2024,8 +2019,8 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 			err = parse_compound(uc_mgr, n,
 						parse_device_name, verb, NULL);
 			if (err < 0) {
-				snd_error(UCM, "%s failed to parse device", file);
-				goto _err;
+				snd_error(UCM, "%s failed to parse device", what);
+				return err;
 			}
 			continue;
 		}
@@ -2035,8 +2030,8 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 			err = parse_compound(uc_mgr, n,
 					     parse_modifier_name, verb, NULL);
 			if (err < 0) {
-				snd_error(UCM, "%s failed to parse modifier", file);
-				goto _err;
+				snd_error(UCM, "%s failed to parse modifier", what);
+				return err;
 			}
 			continue;
 		}
@@ -2045,8 +2040,8 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 		if (strcmp(id, "RenameDevice") == 0) {
 			err = parse_dev_name_list(uc_mgr, n, &verb->rename_list);
 			if (err < 0) {
-				snd_error(UCM, " %s failed to parse device rename", file);
-				goto _err;
+				snd_error(UCM, "%s failed to parse device rename", what);
+				return err;
 			}
 			continue;
 		}
@@ -2055,8 +2050,8 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 		if (strcmp(id, "RemoveDevice") == 0) {
 			err = parse_dev_name_list(uc_mgr, n, &verb->remove_list);
 			if (err < 0) {
-				snd_error(UCM, "%s failed to parse device remove", file);
-				goto _err;
+				snd_error(UCM, "%s failed to parse device remove", what);
+				return err;
 			}
 			continue;
 		}
@@ -2065,18 +2060,16 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 		if (uc_mgr->conf_format > 3 && strcmp(id, "LibraryConfig") == 0) {
 			err = parse_libconfig(uc_mgr, n);
 			if (err < 0) {
-				snd_error(UCM, "failed to parse LibConfig");
-				goto _err;
+				snd_error(UCM, "%s failed to parse LibConfig", what);
+				return err;
 			}
 			continue;
 		}
 	}
 
-	snd_config_delete(cfg);
-
 	/* use case verb must have at least 1 device */
 	if (list_empty(&verb->device_list)) {
-		snd_error(UCM, "no use case device defined", file);
+		snd_error(UCM, "no use case device defined");
 		return -EINVAL;
 	}
 
@@ -2088,10 +2081,6 @@ static int parse_verb_file(snd_use_case_mgr_t *uc_mgr,
 	}
 
 	return 0;
-
-       _err:
-	snd_config_delete(cfg);
-	return err;
 }
 
 /*
@@ -2161,7 +2150,7 @@ static int parse_master_section(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg,
 				void *data2 ATTRIBUTE_UNUSED)
 {
 	snd_config_iterator_t i, next;
-	snd_config_t *n, *variant = NULL;
+	snd_config_t *n, *variant = NULL, *config = NULL;
 	char *use_case_name, *file = NULL, *comment = NULL;
 	bool variant_ok = false;
 	int err;
@@ -2198,6 +2187,22 @@ static int parse_master_section(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg,
 				snd_error(UCM, "failed to get File");
 				goto __error;
 			}
+			continue;
+		}
+
+		/* get use case verb configuration block (syntax version 8+) */
+		if (strcmp(id, "Config") == 0) {
+			if (uc_mgr->conf_format < 8) {
+				snd_error(UCM, "Config is supported in v8+ syntax");
+				err = -EINVAL;
+				goto __error;
+			}
+			if (snd_config_get_type(n) != SND_CONFIG_TYPE_COMPOUND) {
+				snd_error(UCM, "compound type expected for Config");
+				err = -EINVAL;
+				goto __error;
+			}
+			config = n;
 			continue;
 		}
 
@@ -2238,18 +2243,38 @@ static int parse_master_section(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg,
 		goto __error;
 	}
 
+	/* check mutual exclusivity of File and Config */
+	if (file && config) {
+		snd_error(UCM, "both File and Config specified in SectionUseCase");
+		err = -EINVAL;
+		goto __error;
+	}
+
 	if (!variant) {
 		snd_debug(UCM, "use_case_name %s file '%s'", use_case_name, file);
 
-		/* do we have both use case name and file ? */
-		if (!file) {
-			snd_error(UCM, "use case missing file");
+		/* do we have both use case name and (file or config) ? */
+		if (!file && !config) {
+			snd_error(UCM, "use case missing file or config");
 			err = -EINVAL;
 			goto __error;
 		}
 
-		/* parse verb file */
-		err = parse_verb_file(uc_mgr, use_case_name, comment, file);
+		/* parse verb from file or config */
+		if (file) {
+			snd_config_t *cfg;
+			/* load config from file */
+			err = uc_mgr_config_load_file(uc_mgr, file, &cfg);
+			if (err < 0)
+				goto __error;
+			/* parse the config */
+			err = parse_verb_config(uc_mgr, use_case_name, comment, cfg, file);
+			snd_config_delete(cfg);
+		} else {
+			/* inline config - parse directly */
+			err = parse_verb_config(uc_mgr, use_case_name, comment, config,
+						comment ? comment : use_case_name);
+		}
 	} else {
 		/* parse variants */
 		struct list_head orig_variable_list;
@@ -2303,9 +2328,24 @@ static int parse_master_section(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg,
 			if (err < 0)
 				break;
 			uc_mgr->parse_variant = id;
-			err = parse_verb_file(uc_mgr, id,
-						vcomment ? vcomment : comment,
-						vfile ? vfile : file);
+			if (vfile || file) {
+				snd_config_t *cfg;
+				const char *fname = vfile ? vfile : file;
+				/* load config from file */
+				err = uc_mgr_config_load_file(uc_mgr, fname, &cfg);
+				if (err >= 0) {
+					err = parse_verb_config(uc_mgr, id,
+								vcomment ? vcomment : comment,
+								cfg, fname);
+					snd_config_delete(cfg);
+				}
+			} else {
+				/* inline config from variant */
+				err = parse_verb_config(uc_mgr, id,
+							vcomment ? vcomment : comment,
+							config,
+							vcomment ? vcomment : (comment ? comment : id));
+			}
 			uc_mgr->parse_variant = NULL;
 			free(vfile);
 			free(vcomment);
