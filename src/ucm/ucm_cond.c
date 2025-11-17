@@ -373,21 +373,50 @@ static int if_eval_one(snd_use_case_mgr_t *uc_mgr,
 		       snd_config_t *cond,
 		       snd_config_t **result,
 		       snd_config_t **before,
-		       snd_config_t **after)
+		       snd_config_t **after,
+		       snd_config_t **prepend,
+		       snd_config_t **append)
 {
 	snd_config_t *expr, *_true = NULL, *_false = NULL;
-	int err;
+	int err, has_condition;
 
 	*result = NULL;
+	*prepend = NULL;
+	*append = NULL;
 
 	if (snd_config_get_type(cond) != SND_CONFIG_TYPE_COMPOUND) {
 		snd_error(UCM, "compound type expected for If.1");
 		return -EINVAL;
 	}
 
-	if (snd_config_search(cond, "Condition", &expr) < 0) {
-		snd_error(UCM, "condition block expected (If)");
-		return -EINVAL;
+	/* For syntax v8+, Condition is optional if Prepend or Append is present */
+	has_condition = snd_config_search(cond, "Condition", &expr) >= 0;
+
+	if (uc_mgr->conf_format >= 8) {
+		/* Check for Prepend block */
+		err = snd_config_search(cond, "Prepend", prepend);
+		if (err < 0 && err != -ENOENT) {
+			snd_error(UCM, "prepend block error (If)");
+			return -EINVAL;
+		}
+
+		/* Check for Append block */
+		err = snd_config_search(cond, "Append", append);
+		if (err < 0 && err != -ENOENT) {
+			snd_error(UCM, "append block error (If)");
+			return -EINVAL;
+		}
+
+		/* If Prepend or Append is present, Condition can be omitted */
+		if (!has_condition && (*prepend == NULL && *append == NULL)) {
+			snd_error(UCM, "condition block expected (If)");
+			return -EINVAL;
+		}
+	} else {
+		if (!has_condition) {
+			snd_error(UCM, "condition block expected (If)");
+			return -EINVAL;
+		}
 	}
 
 	err = snd_config_search(cond, "True", &_true);
@@ -414,16 +443,22 @@ static int if_eval_one(snd_use_case_mgr_t *uc_mgr,
 		return -EINVAL;
 	}
 
-	err = if_eval(uc_mgr, expr);
-	if (err > 0) {
-		*result = _true;
-		return 0;
-	} else if (err == 0) {
-		*result = _false;
-		return 0;
-	} else {
-		return err;
+	/* Evaluate condition if present */
+	if (has_condition) {
+		err = if_eval(uc_mgr, expr);
+		if (err > 0) {
+			*result = _true;
+			return 0;
+		} else if (err == 0) {
+			*result = _false;
+			return 0;
+		} else {
+			return err;
+		}
 	}
+
+	/* If no condition (v8+ with Prepend/Append only), no result block */
+	return 0;
 }
 
 #if 0
@@ -445,7 +480,7 @@ int uc_mgr_evaluate_condition(snd_use_case_mgr_t *uc_mgr,
 			      snd_config_t *cond)
 {
 	snd_config_iterator_t i, next;
-	snd_config_t *a, *n, *before, *after;
+	snd_config_t *a, *n, *before, *after, *prepend, *append;
 	int err;
 
 	if (uc_mgr->conf_format < 2) {
@@ -460,19 +495,43 @@ int uc_mgr_evaluate_condition(snd_use_case_mgr_t *uc_mgr,
 
 	snd_config_for_each(i, next, cond) {
 		n = snd_config_iterator_entry(i);
-		before = after = NULL;
-		err = if_eval_one(uc_mgr, n, &a, &before, &after);
+		before = after = prepend = append = NULL;
+		err = if_eval_one(uc_mgr, n, &a, &before, &after, &prepend, &append);
 		if (err < 0)
 			return err;
-		if (a == NULL)
-			continue;
-		err = uc_mgr_evaluate_inplace(uc_mgr, a);
-		if (err < 0)
-			return err;
-		err = uc_mgr_config_tree_merge(uc_mgr, parent, a, before, after);
-		if (err < 0)
-			return err;
-		snd_config_delete(a);
+
+		/* For v8+: Handle Prepend block - prepend to parent before result */
+		if (prepend != NULL) {
+			err = uc_mgr_evaluate_inplace(uc_mgr, prepend);
+			if (err < 0)
+				return err;
+			err = uc_mgr_config_tree_merge(uc_mgr, parent, prepend, before, after);
+			if (err < 0)
+				return err;
+			snd_config_delete(prepend);
+		}
+
+		/* Merge the condition result (True or False block) */
+		if (a != NULL) {
+			err = uc_mgr_evaluate_inplace(uc_mgr, a);
+			if (err < 0)
+				return err;
+			err = uc_mgr_config_tree_merge(uc_mgr, parent, a, before, after);
+			if (err < 0)
+				return err;
+			snd_config_delete(a);
+		}
+
+		/* For v8+: Handle Append block - append to parent after result */
+		if (append != NULL) {
+			err = uc_mgr_evaluate_inplace(uc_mgr, append);
+			if (err < 0)
+				return err;
+			err = uc_mgr_config_tree_merge(uc_mgr, parent, append, before, after);
+			if (err < 0)
+				return err;
+			snd_config_delete(append);
+		}
 	}
 	return 0;
 }

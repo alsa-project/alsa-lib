@@ -550,6 +550,14 @@ must define a *Condition* block and *True* or *False* blocks or both. The *True*
 blocks will be merged to the parent tree (where the *If* block is defined) when
 the *Condition* is evaluated.
 
+Starting with *Syntax* version *8*, *If* blocks can also include *Prepend* and *Append*
+configuration blocks. These blocks are always merged to the parent tree, independent of the
+condition evaluation result:
+- *Prepend* block is merged before the condition result (*True* or *False* block)
+- *Append* block is merged after the condition result (*True* or *False* block)
+- Both *Prepend* and *Append* can be specified simultaneously
+- When *Prepend* or *Append* is present, the *Condition* directive can be omitted
+
 Example:
 
 ~~~{.html}
@@ -562,6 +570,38 @@ If.uniqueid {
   True {
     Define.a a
     define.b b
+  }
+}
+~~~
+
+Example with Prepend and Append (*Syntax* version *8*+):
+
+~~~{.html}
+If.setup {
+  Prepend {
+    Define.before "prepended"
+  }
+  Condition {
+    Type AlwaysTrue
+  }
+  True {
+    Define.middle "conditional"
+  }
+  Append {
+    Define.after "appended"
+  }
+}
+~~~
+
+Example with Prepend/Append only (no Condition, *Syntax* version *8*+):
+
+~~~{.html}
+If.common {
+  Prepend {
+    Define.x "always executed"
+  }
+  Append {
+    Define.y "also always executed"
   }
 }
 ~~~
