@@ -1970,6 +1970,11 @@ static int verb_normalize_device_names(snd_use_case_mgr_t *uc_mgr, struct use_ca
 
 		colon = strchr(norm_name, ':');
 		if (colon) {
+			if (colon[1] == '\0' || strchr(colon + 1, ' ')) {
+				snd_error(UCM, "device descriptor cannot be empty or contain spaces '%s'", orig_name);
+				err = -EINVAL;
+				goto __error;
+			}
 			*colon = '\0';
 			index = 1;
 			do {
