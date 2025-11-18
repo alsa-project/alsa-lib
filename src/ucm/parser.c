@@ -1892,6 +1892,52 @@ static int is_device_name_used(struct use_case_verb *verb, const char *name, str
 }
 
 /*
+ * Update all references to a device name in modifiers and other devices.
+ * This helper function is used when renaming devices to ensure all
+ * dev_list references are updated accordingly.
+ */
+static int verb_update_device_references(struct use_case_verb *verb,
+					  const char *old_name,
+					  const char *new_name)
+{
+	struct list_head *pos, *pos2;
+	struct use_case_device *device;
+	struct use_case_modifier *modifier;
+	struct dev_list_node *dlist;
+	char *name_copy;
+
+	list_for_each(pos, &verb->modifier_list) {
+		modifier = list_entry(pos, struct use_case_modifier, list);
+		list_for_each(pos2, &modifier->dev_list.list) {
+			dlist = list_entry(pos2, struct dev_list_node, list);
+			if (strcmp(dlist->name, old_name) == 0) {
+				name_copy = strdup(new_name);
+				if (name_copy == NULL)
+					return -ENOMEM;
+				free(dlist->name);
+				dlist->name = name_copy;
+			}
+		}
+	}
+
+	list_for_each(pos, &verb->device_list) {
+		device = list_entry(pos, struct use_case_device, list);
+		list_for_each(pos2, &device->dev_list.list) {
+			dlist = list_entry(pos2, struct dev_list_node, list);
+			if (strcmp(dlist->name, old_name) == 0) {
+				name_copy = strdup(new_name);
+				if (name_copy == NULL)
+					return -ENOMEM;
+				free(dlist->name);
+				dlist->name = name_copy;
+			}
+		}
+	}
+
+	return 0;
+}
+
+/*
  * Normalize device names according to use-case.h specification.
  * Device names like "HDMI 1" or "Line 1" should be normalized to "HDMI1" and "Line1".
  * When device name contains ':', add index and remove everything after ':' (including).
@@ -1900,10 +1946,8 @@ static int is_device_name_used(struct use_case_verb *verb, const char *name, str
  */
 static int verb_normalize_device_names(snd_use_case_mgr_t *uc_mgr, struct use_case_verb *verb)
 {
-	struct list_head *pos, *pos2, *pos3;
-	struct use_case_device *device, *device2;
-	struct use_case_modifier *modifier;
-	struct dev_list_node *dlist;
+	struct list_head *pos;
+	struct use_case_device *device;
 	char *orig_name, *norm_name, *colon;
 	char temp[80];
 	int err, index;
@@ -1963,35 +2007,10 @@ __no_colon:
 			goto __error;
 		}
 
-		list_for_each(pos2, &verb->modifier_list) {
-			modifier = list_entry(pos2, struct use_case_modifier, list);
-			list_for_each(pos3, &modifier->dev_list.list) {
-				dlist = list_entry(pos3, struct dev_list_node, list);
-				if (strcmp(dlist->name, orig_name) == 0) {
-					free(dlist->name);
-					dlist->name = strdup(device->name);
-					if (dlist->name == NULL) {
-						err = -ENOMEM;
-						goto __error;
-					}
-				}
-			}
-		}
-
-		list_for_each(pos2, &verb->device_list) {
-			device2 = list_entry(pos2, struct use_case_device, list);
-			list_for_each(pos3, &device2->dev_list.list) {
-				dlist = list_entry(pos3, struct dev_list_node, list);
-				if (strcmp(dlist->name, orig_name) == 0) {
-					free(dlist->name);
-					dlist->name = strdup(device->name);
-					if (dlist->name == NULL) {
-						err = -ENOMEM;
-						goto __error;
-					}
-				}
-			}
-		}
+		/* Update all references to the old device name */
+		err = verb_update_device_references(verb, orig_name, device->name);
+		if (err < 0)
+			goto __error;
 
 		free(orig_name);
 		free(norm_name);
@@ -2003,6 +2022,75 @@ __error:
 	free(orig_name);
 	free(norm_name);
 	return err;
+}
+
+/*
+ * Strip index from single device names.
+ * According to use-case.h specification, if there is only one device
+ * with a given base name (e.g., only "HDMI1" and no "HDMI2"), the index
+ * should be stripped to produce the final name (e.g., "HDMI").
+ */
+static int verb_strip_single_device_index(struct use_case_verb *verb)
+{
+	struct list_head *pos, *pos2;
+	struct use_case_device *device, *device2;
+	char *base_name, *test_base;
+	char *orig_name;
+	int count, index, test_index, err;
+
+	list_for_each(pos, &verb->device_list) {
+		device = list_entry(pos, struct use_case_device, list);
+
+		base_name = strdup(device->name);
+		if (base_name == NULL)
+			return -ENOMEM;
+
+		err = parse_device_index(&base_name, &index);
+		if (err < 0) {
+			free(base_name);
+			continue;
+		}
+
+		if (index <= 0) {
+			free(base_name);
+			continue;
+		}
+
+		/* Count how many devices have the same base name */
+		count = 0;
+		list_for_each(pos2, &verb->device_list) {
+			device2 = list_entry(pos2, struct use_case_device, list);
+			test_base = strdup(device2->name);
+			if (test_base == NULL) {
+				free(base_name);
+				return -ENOMEM;
+			}
+
+			err = parse_device_index(&test_base, &test_index);
+			if (err >= 0 && strcmp(test_base, base_name) == 0)
+				count++;
+
+			free(test_base);
+		}
+
+		if (count == 1) {
+			orig_name = device->name;
+			device->name = base_name;
+
+			err = verb_update_device_references(verb, orig_name, device->name);
+			if (err < 0) {
+				device->name = orig_name;
+				free(base_name);
+				return err;
+			}
+
+			free(orig_name);
+		} else {
+			free(base_name);
+		}
+	}
+
+	return 0;
 }
 
 static int verb_device_management(snd_use_case_mgr_t *uc_mgr, struct use_case_verb *verb)
@@ -2039,6 +2127,13 @@ static int verb_device_management(snd_use_case_mgr_t *uc_mgr, struct use_case_ve
 	err = verb_normalize_device_names(uc_mgr, verb);
 	if (err < 0)
 		return err;
+
+	/* strip index from single device names */
+	if (uc_mgr->conf_format >= 8) {
+		err = verb_strip_single_device_index(verb);
+		if (err < 0)
+			return err;
+	}
 
 	/* handle conflicting/supported lists */
 	return verb_dev_list_check(verb);
