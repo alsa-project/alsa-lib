@@ -291,6 +291,103 @@ a whitespace between name and index (like 'Line 1') for the better
 readability. The device names 'Line 1' and 'Line1' are equal for
 this purpose.
 
+#### Automatic device index assignment (Syntax 8+)
+
+Starting with **Syntax 8**, device names can include a colon (':') character to enable
+automatic device index assignment. When a device name contains a colon, the UCM parser
+will automatically assign an available numeric index and remove everything after and
+including the colon character.
+
+The automatic assignment ensures that the generated device name is unique within the verb
+by finding the first available index starting from 1. If a name conflict is detected,
+the index is automatically incremented until a unique name is found (up to index 99).
+
+This feature is particularly useful for dynamically creating multiple instances of similar
+devices without manually managing index numbers. The text after the colon is required and
+serves as a descriptive identifier in the source configuration to help distinguish between
+devices, but is not part of the final device name.
+
+Example - Automatic HDMI device indexing:
+
+~~~{.html}
+SectionDevice."HDMI:primary" {
+  Comment "First HDMI output (will become HDMI1)"
+  EnableSequence [
+    cset "name='HDMI Switch' on"
+  ]
+  Value {
+    PlaybackPCM "hw:${CardId},3"
+  }
+}
+
+SectionDevice."HDMI:secondary" {
+  Comment "Second HDMI output (will become HDMI2)"
+  EnableSequence [
+    cset "name='HDMI2 Switch' on"
+  ]
+  Value {
+    PlaybackPCM "hw:${CardId},7"
+  }
+}
+~~~
+
+Example - Automatic Line device indexing with descriptive identifiers:
+
+~~~{.html}
+SectionDevice."Line:front" {
+  Comment "Front line input (will become Line1)"
+  EnableSequence [
+    cset "name='Front Line In Switch' on"
+  ]
+  Value {
+    CapturePCM "hw:${CardId},0"
+  }
+}
+
+SectionDevice."Line:rear" {
+  Comment "Rear line input (will become Line2)"
+  EnableSequence [
+    cset "name='Rear Line In Switch' on"
+  ]
+  Value {
+    CapturePCM "hw:${CardId},1"
+  }
+}
+~~~
+
+Example - Mixed manual and automatic indexing:
+
+~~~{.html}
+# Manually named device
+SectionDevice."Speaker" {
+  Comment "Main speaker output"
+  EnableSequence [
+    cset "name='Speaker Switch' on"
+  ]
+}
+
+# Auto-indexed devices with descriptive identifiers
+SectionDevice."Mic:digital" {
+  Comment "Digital microphone (will become Mic1)"
+  EnableSequence [
+    cset "name='Digital Mic Switch' on"
+  ]
+  Value {
+    CapturePCM "hw:${CardId},2"
+  }
+}
+
+SectionDevice."Mic:headphone" {
+  Comment "Headphone microphone (will become Mic2)"
+  EnableSequence [
+    cset "name='Headphone Mic Switch' on"
+  ]
+  Value {
+    CapturePCM "hw:${CardId},3"
+  }
+}
+~~~
+
 If EnableSequence/DisableSequence controls independent paths in the hardware
 it is also recommended to split playback and capture UCM devices and use
 the number suffixes. Example use case: Use the integrated microphone
