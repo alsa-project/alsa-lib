@@ -114,4 +114,39 @@ static inline int list_empty(const struct list_head *p)
 	return p->next == p;
 }
 
+/* list_splice - join two lists
+ * @list: the new list to add
+ * @head: the place to add it in the first list
+ */
+static inline void list_splice(const struct list_head *list,
+				struct list_head *head)
+{
+	if (!list_empty(list)) {
+		struct list_head *first = list->next;
+		struct list_head *last = list->prev;
+		struct list_head *at = head->next;
+
+		first->prev = head;
+		head->next = first;
+
+		last->next = at;
+		at->prev = last;
+	}
+}
+
+/* list_splice_init - join two lists and reinitialize the emptied list
+ * @list: the new list to add
+ * @head: the place to add it in the first list
+ *
+ * The list at @list is reinitialized
+ */
+static inline void list_splice_init(struct list_head *list,
+				    struct list_head *head)
+{
+	if (!list_empty(list)) {
+		list_splice(list, head);
+		INIT_LIST_HEAD(list);
+	}
+}
+
 #endif /* _LIST_H */
