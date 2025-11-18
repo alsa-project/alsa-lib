@@ -597,6 +597,7 @@ void uc_mgr_free_modifier(struct list_head *base)
 void uc_mgr_free_device(struct use_case_device *dev)
 {
 	free(dev->name);
+	free(dev->orig_name);
 	free(dev->comment);
 	uc_mgr_free_sequence(&dev->enable_list);
 	uc_mgr_free_sequence(&dev->disable_list);

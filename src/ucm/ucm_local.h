@@ -165,6 +165,7 @@ struct use_case_device {
 	struct list_head active_list;
 
 	char *name;
+	char *orig_name;
 	char *comment;
 
 	/* device enable and disable sequences */

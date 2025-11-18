@@ -953,7 +953,7 @@ static int execute_component_seq(snd_use_case_mgr_t *uc_mgr,
 	int err;
 
 	snd_trace(UCM, "execute component sequence '%s': %s", cmpt_seq->device ?
-			cmpt_seq->device->name : NULL, uc_mgr_enable_str(cmpt_seq->enable));
+			cmpt_seq->device->orig_name : NULL, uc_mgr_enable_str(cmpt_seq->enable));
 
 	/* enter component domain and store cdev for the component */
 	uc_mgr->in_component_domain = 1;

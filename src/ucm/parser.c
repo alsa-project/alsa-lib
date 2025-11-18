@@ -1608,6 +1608,9 @@ static int parse_device(snd_use_case_mgr_t *uc_mgr,
 	INIT_LIST_HEAD(&device->value_list);
 	list_add_tail(&device->list, &verb->device_list);
 	device->name = name;
+	device->orig_name = strdup(name);
+	if (device->orig_name == NULL)
+		return -ENOMEM;
 
 	/* in-place evaluation */
 	err = uc_mgr_evaluate_inplace(uc_mgr, cfg);
@@ -1845,7 +1848,7 @@ static int verb_dev_list_add(struct use_case_verb *verb,
 			if (list_empty(&device->dev_list.list)) {
 				device->dev_list.type = dst_type;
 			} else {
-				snd_error(UCM, "incompatible device list type ('%s', '%s')", device->name, src);
+				snd_error(UCM, "incompatible device list type ('%s', '%s')", device->orig_name, src);
 				return -EINVAL;
 			}
 		}
@@ -1984,7 +1987,7 @@ static int verb_normalize_device_names(snd_use_case_mgr_t *uc_mgr, struct use_ca
 				index++;
 			} while (index < 100); /* Safety limit */
 			if (index >= 100) {
-				snd_error(UCM, "too many device name conflicts for '%s'", norm_name);
+				snd_error(UCM, "too many device name conflicts for '%s'", orig_name);
 				err = -EINVAL;
 				goto __error;
 			}
@@ -1993,7 +1996,7 @@ static int verb_normalize_device_names(snd_use_case_mgr_t *uc_mgr, struct use_ca
 __no_colon:
 			err = parse_device_index(&norm_name, &index);
 			if (err < 0) {
-				snd_error(UCM, "cannot parse device name '%s'", device->name);
+				snd_error(UCM, "cannot parse device name '%s'", orig_name);
 				goto __error;
 			}
 
