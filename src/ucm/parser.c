@@ -1876,17 +1876,35 @@ static int verb_dev_list_check(struct use_case_verb *verb)
 }
 
 /*
+ * Check if a device name is already in use
+ */
+static int is_device_name_used(struct use_case_verb *verb, const char *name, struct use_case_device *current)
+{
+	struct list_head *pos;
+	struct use_case_device *device;
+
+	list_for_each(pos, &verb->device_list) {
+		device = list_entry(pos, struct use_case_device, list);
+		if (device != current && strcmp(device->name, name) == 0)
+			return 1;
+	}
+	return 0;
+}
+
+/*
  * Normalize device names according to use-case.h specification.
  * Device names like "HDMI 1" or "Line 1" should be normalized to "HDMI1" and "Line1".
+ * When device name contains ':', add index and remove everything after ':' (including).
+ * If final name is already used, retry with higher index.
  * Also updates dev_list members in modifiers and devices to reference the normalized names.
  */
-static int verb_normalize_device_names(struct use_case_verb *verb)
+static int verb_normalize_device_names(snd_use_case_mgr_t *uc_mgr, struct use_case_verb *verb)
 {
 	struct list_head *pos, *pos2, *pos3;
 	struct use_case_device *device, *device2;
 	struct use_case_modifier *modifier;
 	struct dev_list_node *dlist;
-	char *orig_name, *norm_name;
+	char *orig_name, *norm_name, *colon;
 	char temp[80];
 	int err, index;
 
@@ -1903,19 +1921,41 @@ static int verb_normalize_device_names(struct use_case_verb *verb)
 			goto __error;
 		}
 
-		err = parse_device_index(&norm_name, &index);
-		if (err < 0) {
-			snd_error(UCM, "cannot parse device name '%s'", device->name);
-			goto __error;
+		if (uc_mgr->conf_format < 8)
+			goto __no_colon;
+
+		colon = strchr(norm_name, ':');
+		if (colon) {
+			*colon = '\0';
+			index = 1;
+			do {
+				snprintf(temp, sizeof(temp), "%s%d", norm_name, index);
+				if (!is_device_name_used(verb, temp, device))
+					break;
+				index++;
+			} while (index < 100); /* Safety limit */
+			if (index >= 100) {
+				snd_error(UCM, "too many device name conflicts for '%s'", norm_name);
+				err = -EINVAL;
+				goto __error;
+			}
+
+		} else {
+__no_colon:
+			err = parse_device_index(&norm_name, &index);
+			if (err < 0) {
+				snd_error(UCM, "cannot parse device name '%s'", device->name);
+				goto __error;
+			}
+
+			if (index <= 0) {
+				free(orig_name);
+				free(norm_name);
+				continue;
+			}
+			snprintf(temp, sizeof(temp), "%s%d", norm_name, index);
 		}
 
-		if (index <= 0) {
-			free(orig_name);
-			free(norm_name);
-			continue;
-		}
-
-		snprintf(temp, sizeof(temp), "%s%d", norm_name, index);
 		free(device->name);
 		device->name = strdup(temp);
 		if (device->name == NULL) {
@@ -1965,7 +2005,7 @@ __error:
 	return err;
 }
 
-static int verb_device_management(struct use_case_verb *verb)
+static int verb_device_management(snd_use_case_mgr_t *uc_mgr, struct use_case_verb *verb)
 {
 	struct list_head *pos;
 	struct ucm_dev_name *dev;
@@ -1996,7 +2036,7 @@ static int verb_device_management(struct use_case_verb *verb)
 	uc_mgr_free_dev_name_list(&verb->remove_list);
 
 	/* normalize device names to remove spaces per use-case.h specification */
-	err = verb_normalize_device_names(verb);
+	err = verb_normalize_device_names(uc_mgr, verb);
 	if (err < 0)
 		return err;
 
@@ -2230,7 +2270,7 @@ static int parse_verb_config(snd_use_case_mgr_t *uc_mgr,
 	}
 
 	/* do device rename and delete */
-	err = verb_device_management(verb);
+	err = verb_device_management(uc_mgr, verb);
 	if (err < 0) {
 		snd_error(UCM, "device management error in verb '%s'", verb->name);
 		return err;
