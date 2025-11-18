@@ -2098,6 +2098,120 @@ static int verb_strip_single_device_index(struct use_case_verb *verb)
 	return 0;
 }
 
+/*
+ * Determine priority for a device.
+ * Priority order:
+ *   1. If 'Priority' value exists, use it as the sort key
+ *   2. If 'PlaybackPriority' value exists, use it as the sort key
+ *   3. If 'CapturePriority' value exists, use it as the sort key
+ *   4. Fallback: LONG_MIN (no priority)
+ */
+static long verb_device_get_priority(struct use_case_device *device)
+{
+	struct list_head *pos;
+	struct ucm_value *val;
+	const char *priority_str = NULL;
+	long priority = LONG_MIN;
+	int err;
+
+	list_for_each(pos, &device->value_list) {
+		val = list_entry(pos, struct ucm_value, list);
+		if (strcmp(val->name, "Priority") == 0) {
+			priority_str = val->data;
+			break;
+		}
+	}
+
+	if (!priority_str) {
+		list_for_each(pos, &device->value_list) {
+			val = list_entry(pos, struct ucm_value, list);
+			if (strcmp(val->name, "PlaybackPriority") == 0) {
+				priority_str = val->data;
+				break;
+			}
+		}
+	}
+
+	if (!priority_str) {
+		list_for_each(pos, &device->value_list) {
+			val = list_entry(pos, struct ucm_value, list);
+			if (strcmp(val->name, "CapturePriority") == 0) {
+				priority_str = val->data;
+				break;
+			}
+		}
+	}
+
+	if (priority_str) {
+		err = safe_strtol(priority_str, &priority);
+		if (err < 0)
+			priority = LONG_MIN;
+	}
+
+	return priority;
+}
+
+/*
+ * Sort devices based on priority values.
+ * Priority order:
+ *   1. If 'Priority' value exists, use it as the sort key
+ *   2. If 'PlaybackPriority' value exists, use it as the sort key
+ *   3. If 'CapturePriority' value exists, use it as the sort key
+ *   4. Fallback: use device->name (original) as the sort key
+ * Higher priority values are placed first in the list.
+ */
+static int verb_sort_devices(struct use_case_verb *verb)
+{
+	struct list_head sorted_list;
+	struct list_head *pos, *npos;
+	struct use_case_device *device, *insert_dev;
+
+	INIT_LIST_HEAD(&sorted_list);
+
+	/* First pass: determine and cache priority for all devices */
+	list_for_each(pos, &verb->device_list) {
+		device = list_entry(pos, struct use_case_device, list);
+		device->sort_priority = verb_device_get_priority(device);
+	}
+
+	/* Move devices from verb->device_list to sorted_list in sorted order */
+	list_for_each_safe(pos, npos, &verb->device_list) {
+		device = list_entry(pos, struct use_case_device, list);
+
+		/* Remove device from original list */
+		list_del(&device->list);
+
+		/* Find the insertion point in sorted_list */
+		/* Devices are sorted in descending order of priority (higher priority first) */
+		/* If priorities are equal or not defined, use device name as key */
+		if (list_empty(&sorted_list)) {
+			list_add_tail(&device->list, &sorted_list);
+		} else {
+			struct list_head *pos2, *insert_pos = &sorted_list;
+			list_for_each(pos2, &sorted_list) {
+				insert_dev = list_entry(pos2, struct use_case_device, list);
+
+				if (device->sort_priority > insert_dev->sort_priority) {
+					insert_pos = pos2;
+					break;
+				} else if (device->sort_priority == insert_dev->sort_priority) {
+					if (strcmp(device->name, insert_dev->name) < 0) {
+						insert_pos = pos2;
+						break;
+					}
+				}
+			}
+
+			list_add_tail(&device->list, insert_pos);
+		}
+	}
+
+	/* Move sorted list back to verb->device_list */
+	list_splice_init(&sorted_list, &verb->device_list);
+
+	return 0;
+}
+
 static int verb_device_management(snd_use_case_mgr_t *uc_mgr, struct use_case_verb *verb)
 {
 	struct list_head *pos;
@@ -2128,6 +2242,14 @@ static int verb_device_management(snd_use_case_mgr_t *uc_mgr, struct use_case_ve
 	uc_mgr_free_dev_name_list(&verb->rename_list);
 	uc_mgr_free_dev_name_list(&verb->remove_list);
 
+	/* strip index from single device names */
+	if (uc_mgr->conf_format >= 8) {
+		/* sort devices by priority */
+		err = verb_sort_devices(verb);
+		if (err < 0)
+			return err;
+	}
+
 	/* normalize device names to remove spaces per use-case.h specification */
 	err = verb_normalize_device_names(uc_mgr, verb);
 	if (err < 0)
@@ -2138,6 +2260,7 @@ static int verb_device_management(snd_use_case_mgr_t *uc_mgr, struct use_case_ve
 		err = verb_strip_single_device_index(verb);
 		if (err < 0)
 			return err;
+
 	}
 
 	/* handle conflicting/supported lists */

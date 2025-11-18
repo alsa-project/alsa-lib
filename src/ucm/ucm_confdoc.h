@@ -395,6 +395,61 @@ in the laptop instead the microphone in headphones.
 
 The preference of the devices is determined by the priority value (higher value = higher priority).
 
+#### Device ordering (Syntax 8+)
+
+Starting with **Syntax 8**, devices are automatically sorted based on their priority values.
+The sorting is performed at the end of device management processing, after device renaming
+and index assignment.
+
+The priority key selection order is:
+1. **Priority** - If this value exists, use it as the sorting key
+2. **PlaybackPriority** - If Priority doesn't exist but PlaybackPriority exists, use it
+3. **CapturePriority** - If neither Priority nor PlaybackPriority exist, use CapturePriority
+4. **Fallback** - If no priority value is defined, use the device name for alphabetical sorting
+
+Devices are sorted in **descending order** of priority (higher priority values appear first
+in the device list). When two devices have the same priority value, they are sorted
+alphabetically by device name.
+
+Example - Device priority ordering:
+
+~~~{.html}
+SectionDevice."Speaker" {
+  Comment "Internal speaker"
+  EnableSequence [
+    cset "name='Speaker Switch' on"
+  ]
+  Value {
+    PlaybackPriority 100
+    PlaybackPCM "hw:${CardId},0"
+  }
+}
+
+SectionDevice."Headphones" {
+  Comment "Headphone jack"
+  EnableSequence [
+    cset "name='Headphone Switch' on"
+  ]
+  Value {
+    PlaybackPriority 200
+    PlaybackPCM "hw:${CardId},1"
+  }
+}
+
+SectionDevice."HDMI" {
+  Comment "HDMI output"
+  EnableSequence [
+    cset "name='HDMI Switch' on"
+  ]
+  Value {
+    PlaybackPriority 150
+    PlaybackPCM "hw:${CardId},3"
+  }
+}
+~~~
+
+In this example, the device list will be ordered as: Headphones (200), HDMI (150), Speaker (100).
+
 See the SND_USE_CASE_MOD constants like #SND_USE_CASE_MOD_ECHO_REF for the full list of known modifiers.
 
 ### Boot (alsactl)

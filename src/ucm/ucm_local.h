@@ -179,6 +179,9 @@ struct use_case_device {
 
 	/* value list */
 	struct list_head value_list;
+
+	/* cached priority for sorting (LONG_MIN if not determined) */
+	long sort_priority;
 };
 
 /*
