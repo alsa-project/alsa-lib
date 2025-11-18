@@ -34,6 +34,7 @@
 #include <sys/stat.h>
 #include <stdbool.h>
 #include <dirent.h>
+#include <ctype.h>
 #include <limits.h>
 
 static int filename_filter(const struct dirent64 *dirent);
@@ -224,6 +225,66 @@ static int parse_get_safe_name(snd_use_case_mgr_t *uc_mgr, snd_config_t *n,
 		free(*name);
 		return -EINVAL;
 	}
+	return 0;
+}
+
+/*
+ * Parse device index from device name
+ * According to use-case.h specification, device names can have numeric suffixes
+ * like HDMI1, HDMI2, or "Line 1", "Line 2".
+ * This function extracts the index and modifies the name to contain only the base.
+ */
+static int parse_device_index(char **name, int *index)
+{
+	char *p, *num_start;
+	long idx;
+	size_t len;
+	int err;
+
+	if (!name || !*name || !index)
+		return -EINVAL;
+
+	len = strlen(*name);
+	if (len == 0)
+		return -EINVAL;
+
+	/* Start from the end and find where digits begin */
+	p = *name + len - 1;
+
+	/* Skip trailing digits */
+	while (p > *name && isdigit(*p))
+		p--;
+
+	/* If no digits found at the end, index is 0 (no index) */
+	if (p == *name + len - 1) {
+		*index = 0;
+		return 0;
+	}
+
+	/* Move to first digit */
+	p++;
+
+	/* Check if there's an optional space before the number */
+	if (p > *name && *(p - 1) == ' ')
+		p--;
+
+	/* Parse the index */
+	num_start = *p == ' ' ? p + 1 : p;
+	err = safe_strtol(num_start, &idx);
+	if (err < 0) {
+		/* No valid number found */
+		*index = 0;
+		return 0;
+	}
+
+	*index = (int)idx;
+
+	/* Truncate the name to remove the index part */
+	if (*p == ' ')
+		*p = '\0';  /* Remove space and number */
+	else if (p > *name)
+		*p = '\0';  /* Remove number only */
+
 	return 0;
 }
 
@@ -1814,6 +1875,96 @@ static int verb_dev_list_check(struct use_case_verb *verb)
 	return 0;
 }
 
+/*
+ * Normalize device names according to use-case.h specification.
+ * Device names like "HDMI 1" or "Line 1" should be normalized to "HDMI1" and "Line1".
+ * Also updates dev_list members in modifiers and devices to reference the normalized names.
+ */
+static int verb_normalize_device_names(struct use_case_verb *verb)
+{
+	struct list_head *pos, *pos2, *pos3;
+	struct use_case_device *device, *device2;
+	struct use_case_modifier *modifier;
+	struct dev_list_node *dlist;
+	char *orig_name, *norm_name;
+	char temp[80];
+	int err, index;
+
+	list_for_each(pos, &verb->device_list) {
+		device = list_entry(pos, struct use_case_device, list);
+
+		orig_name = strdup(device->name);
+		if (orig_name == NULL)
+			return -ENOMEM;
+
+		norm_name = strdup(device->name);
+		if (norm_name == NULL) {
+			err = -ENOMEM;
+			goto __error;
+		}
+
+		err = parse_device_index(&norm_name, &index);
+		if (err < 0) {
+			snd_error(UCM, "cannot parse device name '%s'", device->name);
+			goto __error;
+		}
+
+		if (index <= 0) {
+			free(orig_name);
+			free(norm_name);
+			continue;
+		}
+
+		snprintf(temp, sizeof(temp), "%s%d", norm_name, index);
+		free(device->name);
+		device->name = strdup(temp);
+		if (device->name == NULL) {
+			err = -ENOMEM;
+			goto __error;
+		}
+
+		list_for_each(pos2, &verb->modifier_list) {
+			modifier = list_entry(pos2, struct use_case_modifier, list);
+			list_for_each(pos3, &modifier->dev_list.list) {
+				dlist = list_entry(pos3, struct dev_list_node, list);
+				if (strcmp(dlist->name, orig_name) == 0) {
+					free(dlist->name);
+					dlist->name = strdup(device->name);
+					if (dlist->name == NULL) {
+						err = -ENOMEM;
+						goto __error;
+					}
+				}
+			}
+		}
+
+		list_for_each(pos2, &verb->device_list) {
+			device2 = list_entry(pos2, struct use_case_device, list);
+			list_for_each(pos3, &device2->dev_list.list) {
+				dlist = list_entry(pos3, struct dev_list_node, list);
+				if (strcmp(dlist->name, orig_name) == 0) {
+					free(dlist->name);
+					dlist->name = strdup(device->name);
+					if (dlist->name == NULL) {
+						err = -ENOMEM;
+						goto __error;
+					}
+				}
+			}
+		}
+
+		free(orig_name);
+		free(norm_name);
+	}
+
+	return 0;
+
+__error:
+	free(orig_name);
+	free(norm_name);
+	return err;
+}
+
 static int verb_device_management(struct use_case_verb *verb)
 {
 	struct list_head *pos;
@@ -1843,6 +1994,11 @@ static int verb_device_management(struct use_case_verb *verb)
 	/* those lists are no longer used */
 	uc_mgr_free_dev_name_list(&verb->rename_list);
 	uc_mgr_free_dev_name_list(&verb->remove_list);
+
+	/* normalize device names to remove spaces per use-case.h specification */
+	err = verb_normalize_device_names(verb);
+	if (err < 0)
+		return err;
 
 	/* handle conflicting/supported lists */
 	return verb_dev_list_check(verb);
