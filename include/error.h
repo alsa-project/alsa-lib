@@ -111,7 +111,7 @@ const char *snd_lib_log_interface(int interface);
 #define snd_debug(interface, args...) snd_lib_log(SND_LOG_DEBUG, SND_ILOG_##interface, __FILE__, __LINE__, __func__, 0, ##args) /**< Shows an error log message. */
 #define snd_trace(interface, args...) snd_lib_log(SND_LOG_TRACE, SND_ILOG_##interface, __FILE__, __LINE__, __func__, 0, ##args) /**< Shows an trace log message. */
 #define snd_check(interface, args...) snd_lib_check(SND_ILOG_##interface, __FILE__, __LINE__, __func__, 0, ##args) /**< Shows an check log message. */
-#define snd_check(interface, args...) snd_lib_check(SND_ILOG_##interface, __FILE__, __LINE__, __func__, errno, ##args) /**< Shows an check log message (related to \c errno). */
+#define snd_checknum(interface, args...) snd_lib_check(SND_ILOG_##interface, __FILE__, __LINE__, __func__, errno, ##args) /**< Shows an check log message (related to \c errno). */
 #endif
 
 /**
