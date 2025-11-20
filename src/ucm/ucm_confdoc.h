@@ -914,6 +914,78 @@ SectionDevice."Speaker" {
 }
 ~~~
 
+### Device Variants
+
+Starting with **Syntax 8**, devices can define variants using the *DeviceVariant* block.
+Device variants provide a convenient way to define multiple related devices with different
+configurations (such as different channel counts) in a single device definition.
+
+When a device name contains a colon (':') character and the device configuration includes
+*DeviceVariant* blocks, the UCM parser handles variant configuration in two ways:
+
+1. **Primary device configuration**: If the text after the colon (variant label) matches a
+   variant identifier in the *DeviceVariant* block, that variant's configuration is merged
+   with the primary device configuration before parsing. This allows the primary device to
+   inherit base configuration while overriding specific values from the variant.
+
+2. **Additional variant devices**: The UCM parser automatically creates multiple distinct
+   UCM devices:
+   - The base device (with the name specified in the *Device* or *SectionDevice* block)
+   - One additional device for each *DeviceVariant* block
+
+Each variant device name is constructed by combining the base device name with the variant
+identifier. Variant devices are automatically added to the base device's conflicting device
+list, since these configurations are mutually exclusive (e.g., you cannot use 2.0, 5.1, and
+7.1 speaker configurations simultaneously).
+
+Example - Speaker with multiple channel configurations:
+
+~~~{.html}
+Device."Speaker:2.0" {
+  Value {
+    PlaybackChannels 2
+  }
+  DeviceVariant."5.1".Value {
+    PlaybackChannels 6
+  }
+  DeviceVariant."7.1".Value {
+    PlaybackChannels 8
+  }
+}
+~~~
+
+This configuration creates three UCM devices:
+- **Speaker:2.0** - 2 playback channels (base device)
+- **Speaker:5.1** - 6 playback channels (variant)
+- **Speaker:7.1** - 8 playback channels (variant)
+
+The variant devices (**Speaker:5.1** and **Speaker:7.1**) inherit all configuration from the
+base device and override only the values specified in their *DeviceVariant* block. The devices
+are automatically marked as conflicting with each other.
+
+Example - HDMI output with different sample rates:
+
+~~~{.html}
+SectionDevice."HDMI:LowRate" {
+  Comment "HDMI output - standard rate"
+  EnableSequence [
+    cset "name='HDMI Switch' on"
+  ]
+  Value {
+    PlaybackPCM "hw:${CardId},3"
+    PlaybackRate 48000
+  }
+  DeviceVariant."HighRate" {
+    Comment "HDMI output - high sample rate"
+    Value {
+      PlaybackRate 192000
+    }
+  }
+}
+~~~
+
+This creates two devices: **HDMI:LowRate** (48kHz) and **HDMI:HighRate** (192kHz).
+
 */
 
 /**

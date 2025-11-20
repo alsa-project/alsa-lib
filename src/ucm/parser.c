@@ -1549,74 +1549,15 @@ static int parse_modifier(snd_use_case_mgr_t *uc_mgr,
 }
 
 /*
- * Parse Device Use Cases
- *
- * # Each device is described in new section. N devices are allowed
- * SectionDevice."Headphones" {
- *	Comment "Headphones connected to 3.5mm jack"
- *
- *	SupportedDevice [
- *		"x"
- *		"y"
- *	]
- *
- *	ConflictingDevice [
- *		"x"
- *		"y"
- *	]
- *
- *	EnableSequence [
- *		....
- *	]
- *
- *	DisableSequence [
- *		...
- *	]
- *
- *      TransitionSequence."ToDevice" [
- *		...
- *	]
- *
- *	Value {
- *		PlaybackVolume "name='Master Playback Volume',index=2"
- *		PlaybackSwitch "name='Master Playback Switch',index=2"
- *	}
- * }
+ * Parse device configuration fields
  */
-static int parse_device(snd_use_case_mgr_t *uc_mgr,
-			snd_config_t *cfg,
-			void *data1, void *data2)
+static int parse_device_fields(snd_use_case_mgr_t *uc_mgr,
+			       snd_config_t *cfg,
+			       struct use_case_device *device)
 {
-	struct use_case_verb *verb = data1;
-	char *name;
-	struct use_case_device *device;
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
 	int err;
-
-	if (parse_get_safe_name(uc_mgr, cfg, data2, &name) < 0)
-		return -EINVAL;
-
-	device = calloc(1, sizeof(*device));
-	if (device == NULL) {
-		free(name);
-		return -ENOMEM;
-	}
-	INIT_LIST_HEAD(&device->enable_list);
-	INIT_LIST_HEAD(&device->disable_list);
-	INIT_LIST_HEAD(&device->transition_list);
-	INIT_LIST_HEAD(&device->dev_list.list);
-	INIT_LIST_HEAD(&device->value_list);
-	list_add_tail(&device->list, &verb->device_list);
-	device->name = name;
-	device->orig_name = strdup(name);
-	if (device->orig_name == NULL)
-		return -ENOMEM;
-
-	/* in-place evaluation */
-	err = uc_mgr_evaluate_inplace(uc_mgr, cfg);
-	if (err < 0)
-		return err;
 
 	snd_config_for_each(i, next, cfg) {
 		const char *id;
@@ -1693,6 +1634,246 @@ static int parse_device(snd_use_case_mgr_t *uc_mgr,
 		}
 	}
 	return 0;
+}
+
+/*
+ * Helper function to copy, evaluate and optionally merge configuration trees.
+ */
+static int uc_mgr_config_copy_eval_merge(snd_use_case_mgr_t *uc_mgr,
+					 snd_config_t **dst,
+					 snd_config_t *src,
+					 snd_config_t *merge_from)
+{
+	snd_config_t *tmp = NULL;
+	int err;
+
+	err = snd_config_copy(&tmp, src);
+	if (err < 0)
+		return err;
+
+	err = uc_mgr_evaluate_inplace(uc_mgr, tmp);
+	if (err < 0) {
+		snd_config_delete(tmp);
+		return err;
+	}
+
+	if (merge_from) {
+		err = uc_mgr_config_tree_merge(uc_mgr, tmp, merge_from, NULL, NULL);
+		if (err < 0) {
+			snd_config_delete(tmp);
+			return err;
+		}
+	}
+
+	*dst = tmp;
+	return 0;
+}
+
+/*
+ * Parse Device Use Cases
+ *
+ * # Each device is described in new section. N devices are allowed
+ * SectionDevice."Headphones" {
+ *	Comment "Headphones connected to 3.5mm jack"
+ *
+ *	SupportedDevice [
+ *		"x"
+ *		"y"
+ *	]
+ *
+ *	ConflictingDevice [
+ *		"x"
+ *		"y"
+ *	]
+ *
+ *	EnableSequence [
+ *		....
+ *	]
+ *
+ *	DisableSequence [
+ *		...
+ *	]
+ *
+ *      TransitionSequence."ToDevice" [
+ *		...
+ *	]
+ *
+ *	Value {
+ *		PlaybackVolume "name='Master Playback Volume',index=2"
+ *		PlaybackSwitch "name='Master Playback Switch',index=2"
+ *	}
+ * }
+ */
+
+static int parse_device_by_name(snd_use_case_mgr_t *uc_mgr,
+				snd_config_t *cfg,
+				struct use_case_verb *verb,
+				const char *name,
+				struct use_case_device **ret_device)
+{
+	struct use_case_device *device;
+	int err;
+
+	device = calloc(1, sizeof(*device));
+	if (device == NULL)
+		return -ENOMEM;
+
+	INIT_LIST_HEAD(&device->enable_list);
+	INIT_LIST_HEAD(&device->disable_list);
+	INIT_LIST_HEAD(&device->transition_list);
+	INIT_LIST_HEAD(&device->dev_list.list);
+	INIT_LIST_HEAD(&device->value_list);
+	INIT_LIST_HEAD(&device->variants);
+	INIT_LIST_HEAD(&device->variant_list);
+	list_add_tail(&device->list, &verb->device_list);
+	device->name = strdup(name);
+	if (device->name == NULL) {
+		free(device);
+		return -ENOMEM;
+	}
+	device->orig_name = strdup(name);
+	if (device->orig_name == NULL)
+		return -ENOMEM;
+
+	err = parse_device_fields(uc_mgr, cfg, device);
+	if (err < 0)
+		return err;
+
+	if (ret_device)
+		*ret_device = device;
+
+	return 0;
+}
+
+static int parse_device(snd_use_case_mgr_t *uc_mgr,
+			snd_config_t *cfg,
+			void *data1, void *data2)
+{
+	struct use_case_verb *verb = data1;
+	char *name, *colon;
+	const char *variant_label = NULL;
+	struct use_case_device *device = NULL;
+	snd_config_t *primary_cfg_copy = NULL;
+	snd_config_t *device_variant = NULL;
+	snd_config_t *merged_cfg = NULL;
+	snd_config_iterator_t i, next;
+	snd_config_t *n;
+	int err;
+
+	if (parse_get_safe_name(uc_mgr, cfg, data2, &name) < 0)
+		return -EINVAL;
+
+	if (uc_mgr->conf_format >= 8 && (colon = strchr(name, ':'))) {
+		variant_label = colon + 1;
+
+		err = snd_config_search(cfg, "DeviceVariant", &device_variant);
+		if (err == 0) {
+			snd_config_t *variant_cfg = NULL;
+
+			/* Save a copy of the primary config for creating variant devices */
+			err = snd_config_copy(&primary_cfg_copy, cfg);
+			if (err < 0) {
+				free(name);
+				return err;
+			}
+
+			err = snd_config_search(device_variant, variant_label, &variant_cfg);
+			if (err == 0) {
+				err = uc_mgr_config_copy_eval_merge(uc_mgr, &merged_cfg, cfg, variant_cfg);
+				if (err < 0) {
+					free(name);
+					return err;
+				}
+				cfg = merged_cfg;
+			}
+		}
+	}
+
+	/* in-place evaluation */
+	if (cfg != merged_cfg) {
+		err = uc_mgr_evaluate_inplace(uc_mgr, cfg);
+		if (err < 0) {
+			free(name);
+			goto __error;
+		}
+	}
+
+	err = parse_device_by_name(uc_mgr, cfg, verb, name, &device);
+	free(name);
+	if (err < 0)
+		goto __error;
+
+	if (merged_cfg) {
+		snd_config_delete(merged_cfg);
+		merged_cfg = NULL;
+	}
+
+	if (device_variant == NULL)
+		goto __end;
+
+	if (device->dev_list.type == DEVLIST_SUPPORTED) {
+		snd_error(UCM, "DeviceVariant cannot be used with SupportedDevice");
+		err = -EINVAL;
+		goto __error;
+	}
+
+	if (snd_config_get_type(device_variant) != SND_CONFIG_TYPE_COMPOUND) {
+		snd_error(UCM, "compound type expected for DeviceVariant");
+		err = -EINVAL;
+		goto __error;
+	}
+
+	colon = strchr(device->name, ':');
+	if (!colon) {
+		snd_error(UCM, "DeviceVariant requires ':' in device name");
+		err = -EINVAL;
+		goto __error;
+	}
+
+	snd_config_for_each(i, next, device_variant) {
+		const char *variant_name;
+		char variant_device_name[128];
+		struct use_case_device *variant = NULL;
+
+		n = snd_config_iterator_entry(i);
+
+		if (snd_config_get_id(n, &variant_name) < 0)
+			continue;
+
+		/* Create variant device name: base:variant_name */
+		snprintf(variant_device_name, sizeof(variant_device_name),
+			 "%.*s:%s", (int)(colon - device->name),
+			 device->name, variant_name);
+
+		err = uc_mgr_config_copy_eval_merge(uc_mgr, &merged_cfg, primary_cfg_copy, n);
+		if (err < 0)
+			goto __error;
+
+		err = parse_device_by_name(uc_mgr, merged_cfg, verb,
+					   variant_device_name, &variant);
+		snd_config_delete(merged_cfg);
+		merged_cfg = NULL;
+		if (err < 0)
+			goto __error;
+
+		/* Link variant to primary device */
+		list_add(&variant->variant_list, &device->variants);
+
+		err = uc_mgr_put_to_dev_list(&device->dev_list, variant->name);
+		if (err < 0)
+			goto __error;
+		if (device->dev_list.type == DEVLIST_NONE)
+			device->dev_list.type = DEVLIST_CONFLICTING;
+	}
+
+__end:
+	err = 0;
+__error:
+	if (merged_cfg)
+		snd_config_delete(merged_cfg);
+	if (primary_cfg_copy)
+		snd_config_delete(primary_cfg_copy);
+	return err;
 }
 
 /*
@@ -1843,6 +2024,7 @@ static int verb_dev_list_add(struct use_case_verb *verb,
 
 	list_for_each(pos, &verb->device_list) {
 		device = list_entry(pos, struct use_case_device, list);
+
 		if (strcmp(device->name, dst) != 0)
 			continue;
 		if (device->dev_list.type != dst_type) {

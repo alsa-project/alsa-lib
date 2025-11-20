@@ -183,6 +183,12 @@ struct use_case_device {
 
 	/* cached priority for sorting (LONG_MIN if not determined) */
 	long sort_priority;
+
+	/* list of variant devices */
+	struct list_head variants;
+
+	/* list link for variant devices */
+	struct list_head variant_list;
 };
 
 /*
