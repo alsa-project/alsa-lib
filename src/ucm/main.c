@@ -1040,6 +1040,224 @@ static int set_defaults(snd_use_case_mgr_t *uc_mgr, bool force)
 }
 
 /**
+ * \brief Read boot information from 'Boot' control element
+ * \param uc_mgr Use case manager
+ * \param boot_time Pointer to boot time output (or NULL)
+ * \param sync_time Pointer to synchronization time window output (or NULL)
+ * \param restore_time Pointer to restore time output (or NULL)
+ * \param primary Pointer to primary card flag output (or NULL)
+ * \return 0 on success, otherwise a negative error code
+ *
+ * Reads the 'Boot' control element with SND_CTL_ELEM_TYPE_INTEGER64 (count=3):
+ * - index 0 = boot time in CLOCK_MONOTONIC_RAW (only seconds)
+ * - index 1 = restore time in CLOCK_MONOTONIC_RAW (only seconds)
+ * - index 2 = primary card number (identifies group)
+ * Returns -1 for all parameters when the control element is not present
+ */
+static int boot_info(snd_use_case_mgr_t *uc_mgr, long long *boot_time, long long *sync_time,
+		     long long *restore_time, long long *primary)
+{
+	struct ctl_list *ctl_list;
+	snd_ctl_elem_id_t *id;
+	snd_ctl_elem_info_t *info;
+	snd_ctl_elem_value_t *value;
+	int err;
+
+	if (boot_time)
+		*boot_time = -1;
+	if (sync_time)
+		*sync_time = -1;
+	if (restore_time)
+		*restore_time = -1;
+	if (primary)
+		*primary = -1;
+
+	ctl_list = uc_mgr_get_master_ctl(uc_mgr);
+	if (ctl_list == NULL || ctl_list->ctl == NULL)
+		return 0;
+
+	snd_ctl_elem_id_alloca(&id);
+	snd_ctl_elem_info_alloca(&info);
+	snd_ctl_elem_value_alloca(&value);
+
+	snd_ctl_elem_id_set_interface(id, SND_CTL_ELEM_IFACE_CARD);
+	snd_ctl_elem_id_set_name(id, ".Boot");
+
+	snd_ctl_elem_info_set_id(info, id);
+	err = snd_ctl_elem_info(ctl_list->ctl, info);
+	if (err < 0)
+		return 0;
+
+	if (snd_ctl_elem_info_get_type(info) != SND_CTL_ELEM_TYPE_INTEGER64) {
+		snd_error(UCM, "Boot control element is not INTEGER64 type");
+		return -EINVAL;
+	}
+
+	if (snd_ctl_elem_info_get_count(info) != 4) {
+		snd_error(UCM, "Boot control element does not have count=4");
+		return -EINVAL;
+	}
+
+	snd_ctl_elem_value_set_id(value, id);
+	err = snd_ctl_elem_read(ctl_list->ctl, value);
+	if (err < 0) {
+		snd_error(UCM, "failed to read Boot control element: %s",
+			  snd_strerror(err));
+		return err;
+	}
+
+	if (boot_time)
+		*boot_time = snd_ctl_elem_value_get_integer64(value, 0);
+	if (sync_time)
+		*restore_time = snd_ctl_elem_value_get_integer64(value, 1);
+	if (restore_time)
+		*restore_time = snd_ctl_elem_value_get_integer64(value, 2);
+	if (primary)
+		*primary = snd_ctl_elem_value_get_integer64(value, 3);
+
+	return 0;
+}
+
+/**
+ * \brief Wait using snd_ctl_read() and snd_ctl_wait() for boot synchronization
+ * \param uc_mgr Use case manager
+ * \param primary_card Primary ALSA card number
+ * \return 0 on success, 1 if reparse is required, negative error code on failure
+ *
+ * This function uses boot_info() to read the Boot control element and waits
+ * until the timeout has passed using snd_ctl_read() and snd_ctl_wait().
+ * No file synchronization is used.
+ */
+static int boot_wait(snd_use_case_mgr_t *uc_mgr, int *_primary_card)
+{
+	char *boot_card_sync_time = NULL;
+	struct ctl_list *ctl_list;
+	snd_ctl_event_t *event;
+	long long boot_time_val, boot_synctime_val, restore_time_val, primary_card;
+	long long timeout = 20;  	/* default timeout in seconds */
+	long long timeout_guard = 5;	/* guard time in seconds */
+	struct timespec start_time, now;
+	int err;
+
+	snd_ctl_event_alloca(&event);
+
+	if (_primary_card)
+		*_primary_card = -1;
+
+	err = get_value1(uc_mgr, &boot_card_sync_time, &uc_mgr->value_list, "BootCardSyncTime");
+	if (err == 0 && boot_card_sync_time != NULL) {
+		long sync_time;
+		if (safe_strtol(boot_card_sync_time, &sync_time) == 0 && sync_time > 0 && sync_time <= 240) {
+			timeout = (time_t)sync_time;
+			snd_trace(UCM, "BootCardSyncTime set to %ld seconds", (long)timeout);
+		} else {
+			snd_error(UCM, "Invalid BootCardSyncTime '%s', using default %ld seconds", boot_card_sync_time, (long)timeout);
+		}
+		free(boot_card_sync_time);
+	}
+
+	ctl_list = uc_mgr_get_master_ctl(uc_mgr);
+	if (ctl_list == NULL || ctl_list->ctl == NULL)
+		return -ENODEV;
+
+	err = snd_ctl_subscribe_events(ctl_list->ctl, 1);
+	if (err < 0) {
+		snd_error(UCM, "cannot subscribe to control events: %s", snd_strerror(err));
+		return err;
+	}
+
+	clock_gettime(CLOCK_MONOTONIC_RAW, &start_time);
+
+	/* increase timeout to allow restore controls using udev/systemd */
+	/* when timeout limit exceeds */
+	timeout += timeout_guard;
+
+	while (1) {
+		long long diff, remaining = 0;
+
+		clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+
+		err = boot_info(uc_mgr, &boot_time_val, &boot_synctime_val, &restore_time_val, &primary_card);
+		if (err < 0)
+			goto _fin;
+
+		if (primary_card < INT_MIN || primary_card > INT_MAX) {
+			err = -EINVAL;
+			goto _fin;
+		}
+
+		if (_primary_card)
+			*_primary_card = primary_card;
+
+		snd_trace(UCM, "Boot info: boot_time=%lld, restore_time=%lld, primary=%lld",
+			  boot_time_val, restore_time_val, primary_card);
+
+		if (boot_time_val == -1) {
+			snd_trace(UCM, "Boot control element not present, skipping boot wait");
+			return 0;
+		}
+
+		if (timeout > boot_synctime_val + timeout_guard) {
+			timeout = boot_synctime_val + timeout_guard;
+			snd_trace(UCM, "Boot sychronization time reduced from boot element to %lld", timeout);
+		}
+
+		diff = now.tv_sec - restore_time_val;
+		if (restore_time_val > 0) {
+			snd_trace(UCM, "Controls restored, skipping boot wait");
+			/* if restore was done before short time window, reparse */
+			return diff < timeout_guard;
+		}
+
+		diff = now.tv_sec - start_time.tv_sec;
+		if (diff < 0 || diff >= timeout) {
+			snd_trace(UCM, "Maximum wait time exceeded, proceeding");
+			break;
+		} else {
+			remaining = timeout - diff;
+		}
+
+		diff = now.tv_sec - boot_time_val;
+		snd_trace(UCM, "Boot time diff %lld now %lld", diff, now.tv_sec, boot_time_val);
+		if (diff < 0 || diff >= timeout) {
+			snd_trace(UCM, "Boot timeout reached, proceeding");
+			break;
+		} else {
+			remaining = timeout - diff;
+		}
+
+		snd_trace(UCM, "Boot waiting %lld secs", remaining);
+		err = snd_ctl_wait(ctl_list->ctl, remaining * 1000);
+		if (err < 0) {
+			snd_error(UCM, "snd_ctl_wait failed: %s", snd_strerror(err));
+			goto _fin;
+		}
+
+		if (err == 0)
+			continue;  /* Timeout, no events */
+
+		while (snd_ctl_read(ctl_list->ctl, event) > 0) {
+
+			if (!(snd_ctl_event_elem_get_mask(event) & SND_CTL_EVENT_MASK_VALUE))
+				continue;  /* Not a value change event */
+
+			if (snd_ctl_event_elem_get_interface(event) != SND_CTL_ELEM_IFACE_CARD ||
+			    snd_ctl_event_elem_get_index(event) != 0 ||
+			    strcmp(snd_ctl_event_elem_get_name(event), ".Boot") != 0)
+				continue;
+
+			snd_trace(UCM, "Boot control element value changed");
+			break;
+		}
+	}
+
+	err = 0;
+_fin:
+	snd_ctl_subscribe_events(ctl_list->ctl, 0);
+	return 0;
+}
+
+/**
  * \brief Import master config and execute the default sequence
  * \param uc_mgr Use case manager
  * \return zero on success, otherwise a negative error code
@@ -1529,7 +1747,8 @@ int snd_use_case_mgr_open(snd_use_case_mgr_t **uc_mgr,
 			  const char *card_name)
 {
 	snd_use_case_mgr_t *mgr;
-	int err;
+	int err, boot_result = 0, ucm_card, primary_card;
+	char *s;
 
 	snd_trace(UCM, "{API call} open '%s'", card_name);
 
@@ -1559,6 +1778,10 @@ int snd_use_case_mgr_open(snd_use_case_mgr_t **uc_mgr,
 	if (card_name[0] == '<' && card_name[1] == '<' && card_name[2] == '<')
 		card_name = parse_open_variables(mgr, card_name);
 
+	/* Application developers: This argument is not supposed to be set for standard applications. */
+	if (uc_mgr_get_variable(mgr, "@InBoot"))
+		mgr->in_boot = true;
+
 	err = uc_mgr_card_open(mgr);
 	if (err < 0) {
 		uc_mgr_free(mgr);
@@ -1571,6 +1794,7 @@ int snd_use_case_mgr_open(snd_use_case_mgr_t **uc_mgr,
 		goto _err;
 	}
 
+_reparse:
 	/* get info on use_cases and verify against card */
 	err = import_master_config(mgr);
 	if (err < 0) {
@@ -1582,12 +1806,57 @@ int snd_use_case_mgr_open(snd_use_case_mgr_t **uc_mgr,
 		goto _err;
 	}
 
-	err = check_empty_configuration(mgr);
-	if (err < 0) {
-		snd_error(UCM, "failed to import %s (empty configuration)", card_name);
-		goto _err;
+	if (!mgr->card_group) {
+		err = check_empty_configuration(mgr);
+		if (err < 0) {
+			snd_error(UCM, "failed to import %s (empty configuration)", card_name);
+			goto _err;
+		}
 	}
 
+	/* Handle BootCardGroup timestamp file logic (conf version 8+) */
+	if (mgr->conf_format < 8 || !mgr->card_group)
+		goto _std;
+
+	/* Skip if guard time passed (boot_result == 1) */
+	ucm_card = uc_mgr_card_number(uc_mgr_get_master_ctl(mgr));
+	if (ucm_card >= 0 && boot_result == 0) {
+		/* If InBoot open argument is present, skip this wait loop */
+		if (mgr->in_boot)
+			goto _std;
+
+		boot_result = boot_wait(mgr, &primary_card);
+		if (boot_result < 0) {
+			snd_error(UCM, "boot_wait failed");
+			err = boot_result;
+			goto _err;
+		}
+
+		/* Check if this card is marked as primary (primary_card == 1) */
+		if (primary_card != ucm_card) {
+			/* Not the primary card, mark as linked */
+			uc_mgr_free_verb(mgr);
+			uc_mgr_free_ctl_list(mgr);
+			s = strdup("1");
+			if (s == NULL) {
+				err = -ENOMEM;
+				goto _err;
+			}
+			err = uc_mgr_add_value(&mgr->value_list, "Linked", s);
+			if (err < 0)
+				goto _err;
+			goto _std;
+		}
+
+		/* Reparse, if the restore time window is short */
+		if (boot_result > 0) {
+			uc_mgr_free_verb(mgr);
+			uc_mgr_free_ctl_list(mgr);
+			goto _reparse;
+		}
+	}
+
+_std:
 	*uc_mgr = mgr;
 	snd_trace(UCM, "{API call} open '%s' succeed", card_name);
 	return 0;

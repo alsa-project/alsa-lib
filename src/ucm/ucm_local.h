@@ -234,6 +234,8 @@ struct snd_use_case_mgr {
 	const char *parse_variant;
 	int parse_master_section;
 	int sequence_hops;
+	bool in_boot;
+	bool card_group;
 
 	/* UCM cards list */
 	struct list_head cards_list;
@@ -308,7 +310,8 @@ void uc_mgr_free(snd_use_case_mgr_t *uc_mgr);
 
 static inline int uc_mgr_has_local_config(snd_use_case_mgr_t *uc_mgr)
 {
-	return uc_mgr && snd_config_iterator_first(uc_mgr->local_config) !=
+	return uc_mgr && uc_mgr->local_config &&
+			 snd_config_iterator_first(uc_mgr->local_config) !=
 			 snd_config_iterator_end(uc_mgr->local_config);
 }
 
@@ -331,10 +334,13 @@ struct ctl_list *uc_mgr_get_ctl_by_name(snd_use_case_mgr_t *uc_mgr,
 					const char *name, int idx);
 snd_ctl_t *uc_mgr_get_ctl(snd_use_case_mgr_t *uc_mgr);
 void uc_mgr_free_ctl_list(snd_use_case_mgr_t *uc_mgr);
+int uc_mgr_card_number(struct ctl_list *list);
 
 void uc_mgr_free_value(struct list_head *base);
 
 int uc_mgr_add_value(struct list_head *base, const char *key, char *val);
+
+int uc_mgr_check_value(struct list_head *value_list, const char *identifier);
 
 const char *uc_mgr_get_variable(snd_use_case_mgr_t *uc_mgr,
 				const char *name);

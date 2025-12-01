@@ -334,6 +334,13 @@ __nomem:
 	return -ENOMEM;
 }
 
+int uc_mgr_card_number(struct ctl_list *ctl_list)
+{
+	if (ctl_list == NULL)
+		return -ENOENT;
+	return snd_ctl_card_info_get_card(ctl_list->ctl_info);
+}
+
 const char *uc_mgr_config_dir(int format)
 {
 	const char *path;
@@ -907,4 +914,20 @@ const char *uc_mgr_alibcfg_by_device(snd_config_t **top, const char *name)
 		return NULL;
 	*top = config;
 	return name + 9;
+}
+
+int uc_mgr_check_value(struct list_head *value_list, const char *identifier)
+{
+	struct ucm_value *val;
+	struct list_head *pos;
+
+	if (!value_list)
+		return -ENOENT;
+
+	list_for_each(pos, value_list) {
+		val = list_entry(pos, struct ucm_value, list);
+		if (strcmp(identifier, val->name) == 0)
+			return 0;
+	}
+	return -ENOENT;
 }

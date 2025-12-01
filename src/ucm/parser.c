@@ -466,6 +466,7 @@ static int evaluate_define_macro(snd_use_case_mgr_t *uc_mgr,
 	err = snd_config_merge(uc_mgr->macros, d, 0);
 	if (err < 0)
 		return err;
+
 	return 0;
 }
 
@@ -2919,6 +2920,24 @@ static int parse_master_file(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 	if (err < 0)
 		return err;
 
+	/* parse ValueDefaults first */
+	err = snd_config_search(cfg, "ValueDefaults", &n);
+	if (err == 0) {
+		err = parse_value(uc_mgr, &uc_mgr->value_list, n);
+		if (err < 0) {
+			snd_error(UCM, "failed to parse ValueDefaults");
+			return err;
+		}
+	}
+
+	err = uc_mgr_check_value(&uc_mgr->value_list, "BootCardGroup");
+	if (err == 0) {
+		uc_mgr->card_group = true;
+		/* if we are in boot, skip the main parsing loop */
+		if (uc_mgr->in_boot)
+			return 0;
+	}
+
 	/* parse master config sections */
 	snd_config_for_each(i, next, cfg) {
 
@@ -2969,13 +2988,8 @@ static int parse_master_file(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 			continue;
 		}
 
-		/* get the default values */
+		/* ValueDefaults is now parsed at the top of this function */
 		if (strcmp(id, "ValueDefaults") == 0) {
-			err = parse_value(uc_mgr, &uc_mgr->value_list, n);
-			if (err < 0) {
-				snd_error(UCM, "failed to parse ValueDefaults");
-				return err;
-			}
 			continue;
 		}
 
