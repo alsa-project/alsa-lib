@@ -1144,7 +1144,7 @@ static int boot_wait(snd_use_case_mgr_t *uc_mgr, int *_primary_card)
 	if (_primary_card)
 		*_primary_card = -1;
 
-	err = get_value1(uc_mgr, &boot_card_sync_time, &uc_mgr->value_list, "BootCardSyncTime");
+	err = get_value1(uc_mgr, &boot_card_sync_time, &uc_mgr->global_value_list, "BootCardSyncTime");
 	if (err == 0 && boot_card_sync_time != NULL) {
 		long sync_time;
 		if (safe_strtol(boot_card_sync_time, &sync_time) == 0 && sync_time > 0 && sync_time <= 240) {
@@ -1764,6 +1764,7 @@ int snd_use_case_mgr_open(snd_use_case_mgr_t **uc_mgr,
 	INIT_LIST_HEAD(&mgr->boot_list);
 	INIT_LIST_HEAD(&mgr->default_list);
 	INIT_LIST_HEAD(&mgr->value_list);
+	INIT_LIST_HEAD(&mgr->global_value_list);
 	INIT_LIST_HEAD(&mgr->active_modifiers);
 	INIT_LIST_HEAD(&mgr->active_devices);
 	INIT_LIST_HEAD(&mgr->ctl_list);
@@ -2539,6 +2540,10 @@ static int get_value(snd_use_case_mgr_t *uc_mgr,
 	}
 
 	err = get_value1(uc_mgr, value, &uc_mgr->value_list, identifier);
+	if (err >= 0 || err != -ENOENT)
+		return err;
+
+	err = get_value1(uc_mgr, value, &uc_mgr->global_value_list, identifier);
 	if (err >= 0 || err != -ENOENT)
 		return err;
 

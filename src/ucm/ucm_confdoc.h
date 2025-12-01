@@ -464,7 +464,7 @@ boot).
 
 #### Boot Synchronization (Syntax 8+)
 
-The *BootCardGroup* value in *ValueDefaults* allows multiple sound cards to coordinate
+The *BootCardGroup* value in *ValueGlobals* allows multiple sound cards to coordinate
 their boot sequences. This value is detected at boot (alsactl/udev/systemd) time. Boot
 tools can provide boot synchronization information through a control element named
 'Boot' with 64-bit integer type. When present, the UCM library uses this control element
@@ -477,7 +477,7 @@ The 'Boot' control element contains:
 
 The UCM open call waits until the boot timeout has passed or until restore state
 is notified through the synchronization Boot element. The timeout defaults to 30 seconds
-and can be customized using 'BootCardSyncTime' in 'ValueDefaults' (maximum 240 seconds).
+and can be customized using 'BootCardSyncTime' in 'ValueGlobals' (maximum 240 seconds).
 
 If the 'Boot' control element is not present, no boot synchronization is performed.
 
@@ -488,7 +488,7 @@ cards appropriately.
 Example configuration:
 
 ~~~{.html}
-ValueDefaults {
+ValueGlobals {
   BootCardGroup "amd-acp"
   BootCardSyncTime 10 # seconds
 }

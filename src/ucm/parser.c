@@ -3161,17 +3161,17 @@ static int parse_master_file(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 	if (err < 0)
 		return err;
 
-	/* parse ValueDefaults first */
-	err = snd_config_search(cfg, "ValueDefaults", &n);
+	/* parse ValueGlobals first */
+	err = snd_config_search(cfg, "ValueGlobals", &n);
 	if (err == 0) {
-		err = parse_value(uc_mgr, &uc_mgr->value_list, n);
+		err = parse_value(uc_mgr, &uc_mgr->global_value_list, n);
 		if (err < 0) {
-			snd_error(UCM, "failed to parse ValueDefaults");
+			snd_error(UCM, "failed to parse ValueGlobals");
 			return err;
 		}
 	}
 
-	err = uc_mgr_check_value(&uc_mgr->value_list, "BootCardGroup");
+	err = uc_mgr_check_value(&uc_mgr->global_value_list, "BootCardGroup");
 	if (err == 0) {
 		uc_mgr->card_group = true;
 		/* if we are in boot, skip the main parsing loop */
@@ -3231,8 +3231,17 @@ static int parse_master_file(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 
 		/* ValueDefaults is now parsed at the top of this function */
 		if (strcmp(id, "ValueDefaults") == 0) {
+			err = parse_value(uc_mgr, &uc_mgr->value_list, n);
+			if (err < 0) {
+				snd_error(UCM, "failed to parse ValueDefaults");
+				return err;
+			}
 			continue;
 		}
+
+		/* ValueGlobals is parsed at the top of this function */
+		if (strcmp(id, "ValueGlobals") == 0)
+			continue;
 
 		/* alsa-lib configuration */
 		if (uc_mgr->conf_format > 3 && strcmp(id, "LibraryConfig") == 0) {
