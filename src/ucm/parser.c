@@ -2043,11 +2043,14 @@ static int verb_dev_list_add(struct use_case_verb *verb,
 
 static int verb_dev_list_check(struct use_case_verb *verb)
 {
-	struct list_head *pos, *pos2;
-	struct use_case_device *device;
-	struct dev_list_node *dlist;
-	int err;
+	struct list_head *pos, *pos2, *pos3;
+	struct use_case_device *device, *target_dev;
+	struct dev_list_node *dlist, *dlist2;
+	int err, iteration;
+	int max_iterations = 100; /* safety limit to prevent infinite loops */
+	bool added_something;
 
+	/* First pass: ensure bidirectional relationships */
 	list_for_each(pos, &verb->device_list) {
 		device = list_entry(pos, struct use_case_device, list);
 		list_for_each(pos2, &device->dev_list.list) {
@@ -2058,6 +2061,62 @@ static int verb_dev_list_check(struct use_case_verb *verb)
 				return err;
 		}
 	}
+
+	/* Second pass: complete other relationships for devices in group.
+	 * For n devices, at most n-1 iterations are needed.
+	 */
+	for (iteration = 0; iteration < max_iterations; iteration++) {
+		added_something = false;
+
+		list_for_each(pos, &verb->device_list) {
+			device = list_entry(pos, struct use_case_device, list);
+
+			if (device->dev_list.type == DEVLIST_NONE)
+				continue;
+
+			list_for_each(pos2, &device->dev_list.list) {
+				dlist = list_entry(pos2, struct dev_list_node, list);
+
+				target_dev = NULL;
+				list_for_each(pos3, &verb->device_list) {
+					struct use_case_device *tmp_dev;
+					tmp_dev = list_entry(pos3, struct use_case_device, list);
+					if (strcmp(tmp_dev->name, dlist->name) == 0) {
+						target_dev = tmp_dev;
+						break;
+					}
+				}
+
+				if (!target_dev)
+					continue;
+
+				list_for_each(pos3, &device->dev_list.list) {
+					dlist2 = list_entry(pos3, struct dev_list_node, list);
+
+					if (strcmp(dlist2->name, target_dev->name) == 0)
+						continue;
+
+					/* verb_dev_list_add returns 1 if device was added, 0 if already exists */
+					err = verb_dev_list_add(verb, device->dev_list.type,
+								target_dev->name, dlist2->name);
+					if (err < 0)
+						return err;
+					if (err > 0)
+						added_something = true;
+				}
+			}
+		}
+
+		/* If nothing was added in this iteration, we're done */
+		if (!added_something)
+			break;
+	}
+
+	if (iteration >= max_iterations) {
+		snd_error(UCM, "too many device list iterations for verb '%s'", verb->name);
+		return -EINVAL;
+	}
+
 	return 0;
 }
 

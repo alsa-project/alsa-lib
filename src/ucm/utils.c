@@ -448,7 +448,7 @@ int uc_mgr_put_to_dev_list(struct dev_list *dev_list, const char *name)
 	list_for_each(pos, &dev_list->list) {
 		dlist = list_entry(pos, struct dev_list_node, list);
 		if (strcmp(dlist->name, name) == 0)
-			return 0;
+			return 0; /* already exists, no change */
 	}
 
 	dlist = calloc(1, sizeof(*dlist));
@@ -461,7 +461,7 @@ int uc_mgr_put_to_dev_list(struct dev_list *dev_list, const char *name)
 	}
 	dlist->name = n;
 	list_add(&dlist->list, &dev_list->list);
-	return 0;
+	return 1; /* new device added */
 }
 
 int uc_mgr_rename_in_dev_list(struct dev_list *dev_list, const char *src,
