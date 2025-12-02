@@ -43,7 +43,9 @@ static int include_eval_one(snd_use_case_mgr_t *uc_mgr,
 			    snd_config_t **before,
 			    snd_config_t **after)
 {
+	snd_config_t *opt;
 	const char *file;
+	bool opt_bool = false;
 	char *s;
 	int err;
 
@@ -72,10 +74,28 @@ static int include_eval_one(snd_use_case_mgr_t *uc_mgr,
 		return -EINVAL;
 	}
 
+	err = snd_config_search(inc, "Optional", &opt);
+	if (err < 0 && err != -ENOENT) {
+		snd_error(UCM, "optional error");
+		return -EINVAL;
+	} else if (err == 0) {
+		err = snd_config_get_bool(opt);
+		if (err < 0) {
+			snd_error(UCM, "optional format error");
+			return -EINVAL;
+		}
+		opt_bool = err > 0;
+	}
+
 	err = uc_mgr_get_substituted_value(uc_mgr, &s, file);
 	if (err < 0)
 		return err;
-	err = uc_mgr_config_load_file(uc_mgr, s, result);
+	if (opt_bool && access(s, R_OK) != 0) {
+		snd_trace(UCM, "optional file '%s' not found", s);
+		err = 0;
+	} else {
+		err = uc_mgr_config_load_file(uc_mgr, s, result);
+	}
 	free(s);
 	return err;
 }
