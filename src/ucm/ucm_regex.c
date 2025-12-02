@@ -73,7 +73,7 @@ static int set_variables(snd_use_case_mgr_t *uc_mgr, const char *data,
 	if (err < 0)
 		return err;
 	for (i = 1; i < match_size; i++) {
-		if (match[0].rm_so < 0 || match[0].rm_eo < 0)
+		if (match[i].rm_so < 0 || match[i].rm_eo < 0)
 			return 0;
 		s = extract_substring(data, &match[i]);
 		if (s == NULL)
