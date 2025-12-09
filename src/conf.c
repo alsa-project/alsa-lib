@@ -4130,8 +4130,11 @@ static int config_file_open(snd_config_t *root, const char *filename, int merge)
 			err = snd_config_top(&top);
 			if (err >= 0) {
 				err = snd_config_load(top, in);
-				if (err >= 0)
+				if (err >= 0) {
 					err = snd_config_merge(root, top, 1);
+					if (err < 0)
+						snd_config_delete(top);
+				}
 			}
 		}
 		snd_input_close(in);
