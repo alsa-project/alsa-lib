@@ -183,7 +183,7 @@ static int parse_args(char ***argv, int argc, const char *cmd)
  */
 int uc_mgr_exec(const char *prog)
 {
-	pid_t p, f, maxfd;
+	pid_t p, f;
 	int err = 0, status;
 	char bin[PATH_MAX];
 	struct sigaction sa;
@@ -211,8 +211,6 @@ int uc_mgr_exec(const char *prog)
 		}
 		prog = bin;
 	}
-
-	maxfd = sysconf(_SC_OPEN_MAX);
 
 	/*
 	 * block SIGCHLD signal
@@ -262,8 +260,11 @@ int uc_mgr_exec(const char *prog)
 #if HAVE_DECL_CLOSEFROM
 		closefrom(3);
 #else
-		for (f = 3; f < maxfd; f++)
-			close(f);
+		{
+			pid_t maxfd = sysconf(_SC_OPEN_MAX);
+			for (f = 3; f < maxfd; f++)
+				close(f);
+		}
 #endif
 
 		/* install default handlers for the forked process */
