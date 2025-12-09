@@ -4119,14 +4119,21 @@ static int config_filename_filter(const struct dirent64 *dirent)
 static int config_file_open(snd_config_t *root, const char *filename, int merge)
 {
 	snd_input_t *in;
+	snd_config_t *top;
 	int err;
 
 	err = snd_input_stdio_open(&in, filename, "r");
 	if (err >= 0) {
-		if (merge)
+		if (merge) {
 			err = snd_config_load(root, in);
-		else
-			err = snd_config_load_override(root, in);
+		} else {
+			err = snd_config_top(&top);
+			if (err >= 0) {
+				err = snd_config_load(top, in);
+				if (err >= 0)
+					err = snd_config_merge(root, top, 1);
+			}
+		}
 		snd_input_close(in);
 		if (err < 0)
 			snd_error(CORE, "%s may be old or corrupted: consider to remove or fix it", filename);
