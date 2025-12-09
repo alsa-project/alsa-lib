@@ -259,8 +259,8 @@ int uc_mgr_exec(const char *prog)
 
 		close(f);
 
-#if defined(_GNU_SOURCE)
-		close_range(3, maxfd, 0);
+#if HAVE_DECL_CLOSEFROM
+		closefrom(3);
 #else
 		for (f = 3; f < maxfd; f++)
 			close(f);

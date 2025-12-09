@@ -52,6 +52,7 @@ dnl Checks for library functions.
 AC_PROG_GCC_TRADITIONAL
 AC_CHECK_FUNCS([uselocale])
 AC_CHECK_FUNCS([eaccess])
+AC_CHECK_DECLS([closefrom])
 
 dnl Enable largefile support
 AC_SYS_LARGEFILE
