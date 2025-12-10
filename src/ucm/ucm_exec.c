@@ -183,7 +183,7 @@ static int parse_args(char ***argv, int argc, const char *cmd)
  */
 int uc_mgr_exec(const char *prog)
 {
-	pid_t p, f;
+	pid_t p;
 	int err = 0, status;
 	char bin[PATH_MAX];
 	struct sigaction sa;
@@ -239,7 +239,7 @@ int uc_mgr_exec(const char *prog)
 	}
 
 	if (p == 0) {
-		f = open("/dev/null", O_RDWR);
+		int f = open("/dev/null", O_RDWR);
 		if (f == -1) {
 			snd_error(UCM, "pid %d cannot open /dev/null for redirect %s -- %s",
 				       getpid(), prog, strerror(errno));
@@ -261,7 +261,7 @@ int uc_mgr_exec(const char *prog)
 		closefrom(3);
 #else
 		{
-			pid_t maxfd = sysconf(_SC_OPEN_MAX);
+			long maxfd = sysconf(_SC_OPEN_MAX);
 			for (f = 3; f < maxfd; f++)
 				close(f);
 		}
@@ -287,8 +287,8 @@ int uc_mgr_exec(const char *prog)
 	setpgid(p, p);
 
 	while (1) {
-		f = waitpid(p, &status, 0);
-		if (f == -1) {
+		pid_t r = waitpid(p, &status, 0);
+		if (r == -1) {
 			if (errno == EAGAIN)
 				continue;
 			err = -errno;
