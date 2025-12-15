@@ -1262,9 +1262,7 @@ static int set_volume_ops(snd_mixer_elem_t *elem, int dir,
 	changed = _snd_mixer_selem_set_volume(elem, dir, channel, value);
 	if (changed < 0)
 		return changed;
-	if (changed)
-		return selem_write(elem);
-	return 0;
+	return selem_write(elem);
 }
 
 static int ask_dB_vol_ops(snd_mixer_elem_t *elem, int dir,
@@ -1318,9 +1316,7 @@ static int set_switch_ops(snd_mixer_elem_t *elem, int dir,
 	changed = _snd_mixer_selem_set_switch(elem, dir, channel, value);
 	if (changed < 0)
 		return changed;
-	if (changed)
-		return selem_write(elem);
-	return 0;
+	return selem_write(elem);
 }
 
 static int enum_item_name_ops(snd_mixer_elem_t *elem,
