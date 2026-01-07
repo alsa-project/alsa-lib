@@ -283,7 +283,8 @@ int snd_lib_log_filter(int prio, int interface, const char *configstr)
 	if (interface > 0 && interface <= SND_ILOG_LAST && debug_config.interface_levels[interface] > 0) {
 		level = debug_config.interface_levels[interface];
 	} else {
-		level = debug_config.global_level;	}
+		level = debug_config.global_level;
+	}
 
 	if (level == 0)
 		level = SND_LOG_ERROR;
