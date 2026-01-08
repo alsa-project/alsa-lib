@@ -293,6 +293,8 @@ int snd_lib_log_filter(int prio, int interface, const char *configstr)
 	return prio <= (int)level;
 }
 
+static void snd_lib_error_vdefault(const char *file, int line, const char *function, int errcode, const char *fmt, va_list arg);
+
 /**
  * \brief The default log handler function.
  * \param prio Priority value (SND_LOG_*).
@@ -322,7 +324,7 @@ static void snd_lib_vlog_default(int prio, int interface, const char *file, int 
 	}
 	if (snd_lib_error != snd_lib_error_default) {
 		if (prio == SND_LOG_ERROR)
-			snd_lib_error(file, line, function, errcode, fmt, arg);
+			snd_lib_error_vdefault(file, line, function, errcode, fmt, arg);
 		/* ignore other priorities - restore old behaviour */
 		return;
 	}
@@ -450,6 +452,25 @@ static void snd_lib_error_default(const char *file, int line, const char *functi
 	va_start(arg, fmt);
 	snd_lib_vlog(SND_LOG_ERROR, 0, file, line, function, errcode, fmt, arg);
 	va_end(arg);
+}
+
+/**
+ * \brief The default error handler function.
+ * \param file The filename where the error was hit.
+ * \param line The line number.
+ * \param function The function name.
+ * \param errcode The error code.
+ * \param fmt The message (including the format characters).
+ * \param arg Optional arguments.
+ * \deprecated Since 1.2.15
+ *
+ * Use snd_lib_vlog handler to print error message for anonymous interface.
+ */
+static void snd_lib_error_vdefault(const char *file, int line, const char *function, int errcode, const char *fmt, va_list arg)
+{
+	char msg[512];
+	vsnprintf(msg, sizeof(msg), fmt, arg);
+	snd_lib_error(file, line, function, errcode, "%s", msg);
 }
 
 /**
