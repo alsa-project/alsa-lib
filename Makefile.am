@@ -1,3 +1,6 @@
+# remove -h for tar (follow symlinks) to avoid endless include/alsa/alsa/...
+am__tar = $${TAR-tar} cof - "$$tardir"
+
 ACLOCAL_AMFLAGS = -I m4
 
 SUBDIRS=doc include src
@@ -19,14 +22,6 @@ AM_CPPFLAGS=-I$(top_srcdir)/include
 
 rpm: dist
 	$(MAKE) -C utils rpm
-
-dist-hook:
-	-chmod -R a+r $(distdir)
-	@if ! test -z "$(AMTAR)"; then \
-		$(AMTAR) --create --verbose --file=- $(distdir) | bzip2 -c -9 > $(distdir).tar.bz2 ; \
-	else \
-		$(TAR) --create --verbose --file=- $(distdir) | bzip2 -c -9 > $(distdir).tar.bz2 ; \
-	fi
 
 doc-dummy:
 
