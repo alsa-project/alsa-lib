@@ -3417,6 +3417,7 @@ static int parse_toplevel_path(snd_use_case_mgr_t *uc_mgr,
 		}
 
 		ucm_filename(fn, sizeof(fn), version, dir, file);
+		snd_trace(UCM, "probing configuration file '%s'", fn);
 		if (access(fn, R_OK) == 0 && lstat64(fn, &st) == 0) {
 			if (S_ISLNK(st.st_mode)) {
 				ssize_t r;
@@ -3448,6 +3449,7 @@ static int parse_toplevel_path(snd_use_case_mgr_t *uc_mgr,
 				}
 				free(link);
 			}
+			snd_trace(UCM, "using directory '%s' and file '%s'", dir, file);
 			if (replace_string(&uc_mgr->conf_dir_name, dir) == NULL)
 				goto __enomem;
 			if (replace_string(&uc_mgr->conf_file_name, file) == NULL)

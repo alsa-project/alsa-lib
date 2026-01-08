@@ -364,6 +364,7 @@ int uc_mgr_config_load_into(int format, const char *file, snd_config_t *top)
 	const char *default_paths[2];
 	int err;
 
+	snd_trace(UCM, "loading config '%s'", file);
 	fp = fopen(file, "r");
 	if (!fp) {
 		err = -errno;
