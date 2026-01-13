@@ -4431,8 +4431,7 @@ int snd_seq_event_output_pending(snd_seq_t *seq)
  * \brief drain output buffer to sequencer
  * \param seq sequencer handle
  * \return 0 when all events are drained and sent to sequencer.
- *         When events still remain on the buffer, the byte size of remaining
- *         events are returned.  On error a negative error code is returned.
+ *         On error a negative error code is returned (including -EAGAIN).
  *
  * This function drains all pending events on the output buffer.
  * The function returns immediately after the events are sent to the queues
@@ -4444,19 +4443,15 @@ int snd_seq_event_output_pending(snd_seq_t *seq)
  */
 int snd_seq_drain_output(snd_seq_t *seq)
 {
-	ssize_t result, processed = 0;
+	ssize_t result;
 	assert(seq);
 	while (seq->obufused > 0) {
 		result = seq->ops->write(seq, seq->obuf, seq->obufused);
-		if (result < 0) {
-			if (result == -EAGAIN && processed > 0)
-				return seq->obufused;
+		if (result < 0)
 			return result;
-		}
 		if ((size_t)result < seq->obufused)
 			memmove(seq->obuf, seq->obuf + result, seq->obufused - result);
 		seq->obufused -= result;
-		processed += result;
 	}
 	return 0;
 }
