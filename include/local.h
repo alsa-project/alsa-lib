@@ -102,6 +102,7 @@
 #define _snd_pcm_status snd_pcm_status
 
 #define _snd_ctl_card_info snd_ctl_card_info
+#define _snd_ctl_card_components snd_ctl_card_components
 #define _snd_ctl_elem_id snd_ctl_elem_id
 #define _snd_ctl_elem_list snd_ctl_elem_list
 #define _snd_ctl_elem_info snd_ctl_elem_info

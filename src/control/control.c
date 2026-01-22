@@ -389,6 +389,19 @@ int snd_ctl_card_info(snd_ctl_t *ctl, snd_ctl_card_info_t *info)
 }
 
 /**
+ * \brief Get information about the card components.
+ * \param ctl The CTL handle.
+ * \param components The card components information is stored here.
+ * \return 0 on success, otherwise a negative error code.
+ */
+int snd_ctl_card_components(snd_ctl_t *ctl, snd_ctl_card_components_t *components)
+{
+	assert(ctl && components);
+	return ctl->ops->card_components(ctl, components);
+}
+
+
+/**
  * \brief Get a list of element identifiers
  *
  * Before calling this function, memoru must be allocated using
@@ -2280,6 +2293,54 @@ const char *snd_ctl_card_info_get_mixername(const snd_ctl_card_info_t *obj)
  * \return Sound cards "components" property.
  */
 const char *snd_ctl_card_info_get_components(const snd_ctl_card_info_t *obj)
+{
+	assert(obj);
+	return (const char *)obj->components;
+}
+
+size_t snd_ctl_card_components_sizeof()
+{
+	return sizeof(snd_ctl_card_components_t);
+}
+
+int snd_ctl_card_components_malloc(snd_ctl_card_components_t **ptr)
+{
+	assert(ptr);
+	*ptr = calloc(1, sizeof(snd_ctl_card_components_t));
+	if (!*ptr)
+		return -ENOMEM;
+	return 0;
+}
+
+void snd_ctl_card_components_free(snd_ctl_card_components_t *obj)
+{
+	free(obj);
+}
+
+void snd_ctl_card_components_clear(snd_ctl_card_components_t *obj)
+{
+	memset(obj, 0, sizeof(snd_ctl_card_components_t));
+}
+
+void snd_ctl_card_components_copy(snd_ctl_card_components_t *dst, const snd_ctl_card_components_t *src)
+{
+	assert(dst && src);
+	*dst = *src;
+}
+
+int snd_ctl_card_components_get_card(const snd_ctl_card_components_t *obj)
+{
+	assert(obj);
+	return obj->card;
+}
+
+unsigned int snd_ctl_card_components_get_length(const snd_ctl_card_components_t *obj)
+{
+	assert(obj);
+	return obj->length;
+}
+
+const char *snd_ctl_card_components_get_string(const snd_ctl_card_components_t *obj)
 {
 	assert(obj);
 	return (const char *)obj->components;

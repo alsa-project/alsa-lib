@@ -136,6 +136,16 @@ static int snd_ctl_hw_card_info(snd_ctl_t *handle, snd_ctl_card_info_t *info)
 	return 0;
 }
 
+static int snd_ctl_hw_card_components(snd_ctl_t *handle, snd_ctl_card_components_t *components)
+{
+	snd_ctl_hw_t *hw = handle->private_data;
+	if (hw->protocol < SNDRV_PROTOCOL_VERSION(2, 0, 10))
+		return -ENXIO;
+	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_CARD_COMPONENTS, components) < 0)
+		return -errno;
+	return 0;
+}
+
 static int snd_ctl_hw_elem_list(snd_ctl_t *handle, snd_ctl_elem_list_t *list)
 {
 	snd_ctl_hw_t *hw = handle->private_data;
@@ -389,6 +399,7 @@ static const snd_ctl_ops_t snd_ctl_hw_ops = {
 	.async = snd_ctl_hw_async,
 	.subscribe_events = snd_ctl_hw_subscribe_events,
 	.card_info = snd_ctl_hw_card_info,
+	.card_components = snd_ctl_hw_card_components,
 	.element_list = snd_ctl_hw_elem_list,
 	.element_info = snd_ctl_hw_elem_info,
 	.element_add = snd_ctl_hw_elem_add,
