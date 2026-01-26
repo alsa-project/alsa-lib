@@ -804,7 +804,7 @@ static int parse_libconfig1(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 	if (file) {
 		if (substfile) {
 			snd_config_t *cfg;
-			err = uc_mgr_config_load(uc_mgr->conf_format, file, &cfg);
+			err = uc_mgr_config_load_file(uc_mgr, file, &cfg);
 			if (err < 0)
 				return err;
 			err = uc_mgr_substitute_tree(uc_mgr, cfg);
