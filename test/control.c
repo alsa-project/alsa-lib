@@ -8,11 +8,13 @@ int main(void)
 	int idx, dev, err;
 	snd_ctl_t *handle;
 	snd_ctl_card_info_t *info;
+	snd_ctl_card_components_t *components;
 	snd_pcm_info_t *pcminfo;
 	snd_rawmidi_info_t *rawmidiinfo;
 	char str[128];
 
 	snd_ctl_card_info_alloca(&info);
+	snd_ctl_card_components_alloca(&components);
 	snd_pcm_info_alloca(&pcminfo);
 	snd_rawmidi_info_alloca(&rawmidiinfo);
 
@@ -40,7 +42,10 @@ int main(void)
 		printf("  name - '%s'\n", snd_ctl_card_info_get_name(info));
 		printf("  longname - '%s'\n", snd_ctl_card_info_get_longname(info));
 		printf("  mixername - '%s'\n", snd_ctl_card_info_get_mixername(info));
-		printf("  components - '%s'\n", snd_ctl_card_info_get_components(info));
+		if (snd_ctl_card_components(handle, components) >= 0)
+			printf("  components - '%s'\n", snd_ctl_card_components_get_string(components));
+		else
+			printf("  components - '%s'\n", snd_ctl_card_info_get_components(info));
 		dev = -1;
 		while (1) {
 			snd_pcm_sync_id_t sync;

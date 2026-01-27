@@ -121,6 +121,7 @@ struct ctl_list {
 	struct list_head dev_list;
 	snd_ctl_t *ctl;
 	snd_ctl_card_info_t *ctl_info;
+	snd_ctl_card_components_t *ctl_components;
 	int slave;
 	int ucm_group;
 };

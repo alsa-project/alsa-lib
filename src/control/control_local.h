@@ -28,6 +28,7 @@ typedef struct _snd_ctl_ops {
 	int (*async)(snd_ctl_t *handle, int sig, pid_t pid);
 	int (*subscribe_events)(snd_ctl_t *handle, int subscribe);
 	int (*card_info)(snd_ctl_t *handle, snd_ctl_card_info_t *info);
+	int (*card_components)(snd_ctl_t *handle, snd_ctl_card_components_t *components);
 	int (*element_list)(snd_ctl_t *handle, snd_ctl_elem_list_t *list);
 	int (*element_info)(snd_ctl_t *handle, snd_ctl_elem_info_t *info);
 	int (*element_add)(snd_ctl_t *handle, snd_ctl_elem_info_t *info);

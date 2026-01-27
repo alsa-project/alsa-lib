@@ -466,6 +466,12 @@ static int snd_ctl_remap_card_info(snd_ctl_t *ctl, snd_ctl_card_info_t *info)
 	return snd_ctl_card_info(priv->child, info);
 }
 
+static int snd_ctl_remap_card_components(snd_ctl_t *ctl, snd_ctl_card_components_t *components)
+{
+	snd_ctl_remap_t *priv = ctl->private_data;
+	return snd_ctl_card_components(priv->child, components);
+}
+
 static int snd_ctl_remap_elem_list(snd_ctl_t *ctl, snd_ctl_elem_list_t *list)
 {
 	snd_ctl_remap_t *priv = ctl->private_data;
@@ -1185,6 +1191,7 @@ static const snd_ctl_ops_t snd_ctl_remap_ops = {
 	.async = snd_ctl_remap_async,
 	.subscribe_events = snd_ctl_remap_subscribe_events,
 	.card_info = snd_ctl_remap_card_info,
+	.card_components = snd_ctl_remap_card_components,
 	.element_list = snd_ctl_remap_elem_list,
 	.element_info = snd_ctl_remap_elem_info,
 	.element_read = snd_ctl_remap_elem_read,

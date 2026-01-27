@@ -647,6 +647,9 @@ static int ctl_shm_cmd(client_t *client)
 	case SNDRV_CTL_IOCTL_CARD_INFO:
 		ctrl->result = snd_ctl_card_info(ctl, &ctrl->u.card_info);
 		break;
+	case SNDRV_CTL_IOCTL_CARD_COMPONENTS:
+		ctrl->result = snd_ctl_card_components(ctl, &ctrl->u.card_components);
+		break;
 	case SNDRV_CTL_IOCTL_ELEM_LIST:
 	{
 		size_t maxsize = CTL_SHM_DATA_MAXLEN;

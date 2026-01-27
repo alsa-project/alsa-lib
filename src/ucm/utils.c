@@ -152,6 +152,8 @@ static void uc_mgr_free_ctl(struct ctl_list *ctl_list)
 		free(ctl_dev->device);
 		free(ctl_dev);
 	}
+	if (ctl_list->ctl_components)
+		snd_ctl_card_components_free(ctl_list->ctl_components);
 	snd_ctl_card_info_free(ctl_list->ctl_info);
 	free(ctl_list);
 }
@@ -219,6 +221,14 @@ static int uc_mgr_ctl_add(snd_use_case_mgr_t *uc_mgr,
 			return -ENOMEM;
 		}
 		snd_ctl_card_info_copy(cl->ctl_info, info);
+		if (snd_ctl_card_components_malloc(&cl->ctl_components) >= 0) {
+			if (snd_ctl_card_components(ctl, cl->ctl_components) < 0) {
+				snd_ctl_card_components_free(cl->ctl_components);
+				cl->ctl_components = NULL;
+			}
+		} else {
+			cl->ctl_components = NULL;
+		}
 		cl->slave = slave;
 		*ctl_list = cl;
 	} else {
