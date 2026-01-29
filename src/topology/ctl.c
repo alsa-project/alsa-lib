@@ -1250,6 +1250,11 @@ int tplg_decode_control_mixer1(snd_tplg_t *tplg,
 	if (mc->num_channels > 0) {
 		map = tplg_calloc(heap, sizeof(*map));
 		map->num_channels = mc->num_channels;
+		if (map->num_channels > SND_TPLG_MAX_CHAN ||
+		    map->num_channels > SND_SOC_TPLG_MAX_CHAN) {
+			snd_error(TOPOLOGY, "mixer: unexpected channel count %d", map->num_channels);
+			return -EINVAL;
+		}
 		for (i = 0; i < map->num_channels; i++) {
 			map->channel[i].reg = mc->channel[i].reg;
 			map->channel[i].shift = mc->channel[i].shift;
