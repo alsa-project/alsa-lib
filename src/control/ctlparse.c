@@ -156,8 +156,10 @@ char *snd_ctl_ascii_elem_id_get(snd_ctl_elem_id_t *id)
 int __snd_ctl_ascii_elem_id_parse(snd_ctl_elem_id_t *dst, const char *str,
 				  const char **ret_ptr)
 {
-	int c, size, numid;
+	char buf[64];
+	int c, size;
 	int err = -EINVAL;
+	long l;
 	char *ptr;
 
 	while (isspace(*str))
@@ -168,12 +170,23 @@ int __snd_ctl_ascii_elem_id_parse(snd_ctl_elem_id_t *dst, const char *str,
 	while (*str) {
 		if (!strncasecmp(str, "numid=", 6)) {
 			str += 6;
-			numid = atoi(str);
-			if (numid <= 0) {
-				fprintf(stderr, "amixer: Invalid numid %d\n", numid);
+			ptr = buf;
+			size = 0;
+			while (*str && *str != ',') {
+				if (size < (int)sizeof(buf)) {
+					*ptr++ = *str;
+					size++;
+				}
+				str++;
+			}
+			*ptr = '\0';
+			if (safe_strtol(buf, &l) < 0)
+				l = -1;
+			if (l <= 0 || l >= INT32_MAX) {
+				snd_error(CONTROL, "Invalid numid %ld (%s)", l, buf);
 				goto out;
 			}
-			snd_ctl_elem_id_set_numid(dst, atoi(str));
+			snd_ctl_elem_id_set_numid(dst, (int)l);
 			while (isdigit(*str))
 				str++;
 		} else if (!strncasecmp(str, "iface=", 6)) {
@@ -200,7 +213,6 @@ int __snd_ctl_ascii_elem_id_parse(snd_ctl_elem_id_t *dst, const char *str,
 				goto out;
 			}
 		} else if (!strncasecmp(str, "name=", 5)) {
-			char buf[64];
 			str += 5;
 			ptr = buf;
 			size = 0;
