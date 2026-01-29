@@ -123,6 +123,7 @@ typedef struct {
 		int device;
 		int subscribe_events;
 		snd_ctl_card_info_t card_info;
+		snd_ctl_card_components_t card_components;
 		snd_ctl_elem_list_t element_list;
 		snd_ctl_elem_info_t element_info;
 		snd_ctl_elem_value_t element_read;

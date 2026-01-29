@@ -75,6 +75,7 @@ typedef struct _sm_class_basic {
 	snd_ctl_t *ctl;
 	snd_hctl_t *hctl;
 	snd_ctl_card_info_t *info;
+	snd_ctl_card_components_t *card_components;
 } sm_class_basic_t;
 
 struct sm_elem_ops {

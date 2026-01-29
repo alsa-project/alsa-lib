@@ -150,6 +150,15 @@ static int snd_ctl_shm_card_info(snd_ctl_t *ctl, snd_ctl_card_info_t *info)
 	return err;
 }
 
+static int snd_ctl_shm_card_components(snd_ctl_t *ctl, snd_ctl_card_components_t *components)
+{
+	snd_ctl_shm_t *shm = ctl->private_data;
+	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
+	ctrl->cmd = SNDRV_CTL_IOCTL_CARD_COMPONENTS;
+	ctrl->u.card_components = *components;
+	return snd_ctl_shm_action(ctl);
+}
+
 static int snd_ctl_shm_elem_list(snd_ctl_t *ctl, snd_ctl_elem_list_t *list)
 {
 	snd_ctl_shm_t *shm = ctl->private_data;
@@ -391,6 +400,7 @@ static const snd_ctl_ops_t snd_ctl_shm_ops = {
 	.async = snd_ctl_shm_async,
 	.subscribe_events = snd_ctl_shm_subscribe_events,
 	.card_info = snd_ctl_shm_card_info,
+	.card_components = snd_ctl_shm_card_components,
 	.element_list = snd_ctl_shm_elem_list,
 	.element_info = snd_ctl_shm_elem_info,
 	.element_read = snd_ctl_shm_elem_read,

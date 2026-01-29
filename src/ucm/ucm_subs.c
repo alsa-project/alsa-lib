@@ -156,6 +156,8 @@ static char *rval_card_components(snd_use_case_mgr_t *uc_mgr)
 	ctl_list = uc_mgr_get_master_ctl(uc_mgr);
 	if (ctl_list == NULL)
 		return NULL;
+	if (ctl_list->ctl_components)
+		return strdup(snd_ctl_card_components_get_string(ctl_list->ctl_components));
 	return strdup(snd_ctl_card_info_get_components(ctl_list->ctl_info));
 }
 

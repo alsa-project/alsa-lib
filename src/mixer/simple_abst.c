@@ -48,6 +48,7 @@ typedef struct _class_priv {
 	snd_hctl_t *hctl;
 	int attach_flag;
 	snd_ctl_card_info_t *info;
+	snd_ctl_card_components_t *card_components;
 	void *dlhandle;
 	void *private_data;
 	void (*private_free)(snd_mixer_class_t *class);
@@ -161,7 +162,12 @@ static int match(snd_mixer_class_t *class, const char *lib, const char *searchl)
 
 	if (searchl == NULL)
 		return try_open(class, lib);
-	components = snd_ctl_card_info_get_components(priv->info);
+
+	if (priv->card_components)
+		components = snd_ctl_card_components_get_string(priv->card_components);
+	else
+		components = snd_ctl_card_info_get_components(priv->info);
+
 	while (*components != '\0') {
 		if (!strncmp(components, searchl, strlen(searchl)))
 			return try_open(class, lib);
@@ -248,6 +254,8 @@ static void private_free(snd_mixer_class_t *class)
 		priv->private_free(class);
 	if (priv->dlhandle)
 		snd_dlclose(priv->dlhandle);
+	if (priv->card_components)
+		snd_ctl_card_components_free(priv->card_components);
 	if (priv->info)
 		snd_ctl_card_info_free(priv->info);
 	if (priv->hctl) {
@@ -335,8 +343,15 @@ int snd_mixer_simple_basic_register(snd_mixer_t *mixer,
 	err = snd_ctl_card_info(priv->ctl, priv->info);
 	if (err < 0)
 		goto __error;
-	if (err >= 0)
-		err = find_module(class, top);
+	err = snd_ctl_card_components_malloc(&priv->card_components);
+	if (err >= 0) {
+		err = snd_ctl_card_components(priv->ctl, priv->card_components);
+		if (err < 0) {
+			snd_ctl_card_components_free(priv->card_components);
+			priv->card_components = NULL;
+		}
+	}
+	err = find_module(class, top);
 	if (err >= 0)
 		err = snd_mixer_attach_hctl(mixer, priv->hctl);
 	if (err >= 0) {
@@ -374,6 +389,7 @@ int snd_mixer_sbasic_info(const snd_mixer_class_t *class, sm_class_basic_t *info
 	info->ctl = priv->ctl;
 	info->hctl = priv->hctl;
 	info->info = priv->info;
+	info->card_components = priv->card_components;
 	return 0;
 }
 

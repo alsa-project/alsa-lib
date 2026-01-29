@@ -84,6 +84,11 @@ typedef struct snd_aes_iec958 {
  */
 typedef struct _snd_ctl_card_info snd_ctl_card_info_t;
 
+/**
+ * \brief CTL card components container.
+ */
+typedef struct _snd_ctl_card_components snd_ctl_card_components_t;
+
 /** CTL element identifier container */
 typedef struct _snd_ctl_elem_id snd_ctl_elem_id_t;
 
@@ -394,6 +399,7 @@ int snd_ctl_poll_descriptors(snd_ctl_t *ctl, struct pollfd *pfds, unsigned int s
 int snd_ctl_poll_descriptors_revents(snd_ctl_t *ctl, struct pollfd *pfds, unsigned int nfds, unsigned short *revents);
 int snd_ctl_subscribe_events(snd_ctl_t *ctl, int subscribe);
 int snd_ctl_card_info(snd_ctl_t *ctl, snd_ctl_card_info_t *info);
+int snd_ctl_card_components(snd_ctl_t *ctl, snd_ctl_card_components_t *components);
 int snd_ctl_elem_list(snd_ctl_t *ctl, snd_ctl_elem_list_t *list);
 int snd_ctl_elem_info(snd_ctl_t *ctl, snd_ctl_elem_info_t *info);
 int snd_ctl_elem_read(snd_ctl_t *ctl, snd_ctl_elem_value_t *data);
@@ -507,6 +513,22 @@ const char *snd_ctl_card_info_get_name(const snd_ctl_card_info_t *obj);
 const char *snd_ctl_card_info_get_longname(const snd_ctl_card_info_t *obj);
 const char *snd_ctl_card_info_get_mixername(const snd_ctl_card_info_t *obj);
 const char *snd_ctl_card_info_get_components(const snd_ctl_card_info_t *obj);
+
+size_t snd_ctl_card_components_sizeof(void);
+/** \hideinitializer
+ * \brief allocate an invalid #snd_ctl_card_components_t using standard alloca
+ * \param ptr returned pointer
+ */
+#define snd_ctl_card_components_alloca(ptr) __snd_alloca(ptr, snd_ctl_card_components)
+int snd_ctl_card_components_malloc(snd_ctl_card_components_t **ptr);
+void snd_ctl_card_components_free(snd_ctl_card_components_t *obj);
+void snd_ctl_card_components_clear(snd_ctl_card_components_t *obj);
+void snd_ctl_card_components_copy(snd_ctl_card_components_t *dst, const snd_ctl_card_components_t *src);
+int snd_ctl_card_components_get_card(const snd_ctl_card_components_t *obj);
+unsigned int snd_ctl_card_components_get_length(const snd_ctl_card_components_t *obj);
+const char *snd_ctl_card_components_get_string(const snd_ctl_card_components_t *obj);
+
+size_t snd_ctl_elem_list_sizeof(void);
 
 size_t snd_ctl_event_sizeof(void);
 /** \hideinitializer
