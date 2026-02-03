@@ -31,6 +31,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdarg.h>
+#include <limits.h>
 #include <unistd.h>
 #include <string.h>
 
@@ -97,8 +98,11 @@ typedef struct {
 
 typedef struct {
 	snd_ctl_t *child;
-	int numid_remap_active;
+	bool list_complete;
+	bool numid_remap_active;
 	unsigned int numid_app_last;
+	unsigned int list_first;
+	unsigned int list_last;
 
 	size_t numid_items;
 	size_t numid_alloc;
@@ -125,6 +129,8 @@ typedef struct {
 } snd_ctl_remap_t;
 #endif
 
+static int remap_load_list(snd_ctl_remap_t *priv);
+
 static snd_ctl_numid_t *remap_numid_temp(snd_ctl_remap_t *priv, unsigned int numid)
 {
 	priv->numid_temp.numid_child = numid;
@@ -137,6 +143,8 @@ static snd_ctl_numid_t *remap_find_numid_app(snd_ctl_remap_t *priv, unsigned int
 	snd_ctl_numid_t *numid;
 	size_t count;
 
+	if (numid_app == 0)
+		return NULL;
 	if (!priv->numid_remap_active)
 		return remap_numid_temp(priv, numid_app);
 	numid = priv->numid;
@@ -151,6 +159,8 @@ static snd_ctl_numid_t *remap_numid_new(snd_ctl_remap_t *priv, unsigned int numi
 {
 	snd_ctl_numid_t *numid;
 
+	if (numid_app == 0)
+		return NULL;
 	if (priv->numid_alloc == priv->numid_items) {
 		numid = realloc(priv->numid, (priv->numid_alloc + 16) * sizeof(*numid));
 		if (numid == NULL)
@@ -187,6 +197,8 @@ static snd_ctl_numid_t *remap_find_numid_child(snd_ctl_remap_t *priv, unsigned i
 	snd_ctl_numid_t *numid;
 	size_t count;
 
+	if (numid_child == 0)
+		return NULL;
 	if (!priv->numid_remap_active)
 		return remap_numid_temp(priv, numid_child);
 	numid = priv->numid;
@@ -282,8 +294,11 @@ static int remap_id_to_child(snd_ctl_remap_t *priv, snd_ctl_elem_id_t *id, snd_c
 {
 	snd_ctl_remap_id_t *rid;
 	snd_ctl_numid_t *numid;
+	bool reloaded = false;
+	int err;
 
 	debug_id(id, "%s enter\n", __func__);
+_retry:
 	rid = remap_find_id_app(priv, id);
 	if (rid) {
 		if (rid->id_app.numid == 0) {
@@ -295,13 +310,21 @@ static int remap_id_to_child(snd_ctl_remap_t *priv, snd_ctl_elem_id_t *id, snd_c
 		}
 		*id = rid->id_child;
 	} else {
-		if (remap_find_id_child(priv, id))
-			return -ENOENT;
 		numid = remap_find_numid_app(priv, id->numid);
-		if (numid)
+		if (numid) {
 			id->numid = numid->numid_child;
-		else
-			id->numid = 0;
+		} else {
+			if (reloaded)
+				return -ENOENT;
+			if (priv->list_complete)
+				return -ENOENT;
+			/* build whole numid mapping */
+			err = remap_load_list(priv);
+			if (err < 0)
+				return err;
+			reloaded = true;
+			goto _retry;
+		}
 	}
 	*_rid = rid;
 	debug_id(id, "%s leave\n", __func__);
@@ -329,6 +352,7 @@ static int remap_id_to_app(snd_ctl_remap_t *priv, snd_ctl_elem_id_t *id, snd_ctl
 			id->numid = numid->numid_app;
 		}
 	}
+	debug_id(id, "%s rid %p\n", __func__, rid);
 	return err;
 }
 
@@ -466,9 +490,8 @@ static int snd_ctl_remap_card_info(snd_ctl_t *ctl, snd_ctl_card_info_t *info)
 	return snd_ctl_card_info(priv->child, info);
 }
 
-static int snd_ctl_remap_elem_list(snd_ctl_t *ctl, snd_ctl_elem_list_t *list)
+static int _snd_ctl_remap_elem_list(snd_ctl_remap_t *priv, snd_ctl_elem_list_t *list)
 {
-	snd_ctl_remap_t *priv = ctl->private_data;
 	snd_ctl_elem_id_t *id;
 	snd_ctl_remap_id_t *rid;
 	snd_ctl_numid_t *numid;
@@ -483,13 +506,17 @@ static int snd_ctl_remap_elem_list(snd_ctl_t *ctl, snd_ctl_elem_list_t *list)
 		id = &list->pids[index];
 		rid = remap_find_id_child(priv, id);
 		if (rid) {
-			rid->id_app.numid = id->numid;
-			*id = rid->id_app;
+			assert(id->numid > 0);
+			rid->id_child.numid = id->numid;
 		}
 		numid = remap_find_numid_child(priv, id->numid);
 		if (numid == NULL)
 			return -EIO;
 		id->numid = numid->numid_app;
+		if (rid) {
+			rid->id_app.numid = id->numid;
+			*id = rid->id_app;
+		}
 	}
 	if (list->offset >= list->count + priv->map_items + priv->sync_switch_items)
 		return 0;
@@ -510,7 +537,38 @@ static int snd_ctl_remap_elem_list(snd_ctl_t *ctl, snd_ctl_elem_list_t *list)
 		}
 	}
 	list->count += priv->map_items + priv->sync_switch_items;
+	if (list->offset < priv->list_first)
+		priv->list_first = list->offset;
+	if (list->offset == priv->list_last && list->offset + list->used > priv->list_last)
+		priv->list_last = list->offset + list->used;
+	priv->list_complete = priv->list_first == 0 && list->count == priv->list_last;
 	return 0;
+}
+
+static int snd_ctl_remap_elem_list(snd_ctl_t *ctl, snd_ctl_elem_list_t *list)
+{
+	snd_ctl_remap_t *priv = ctl->private_data;
+
+	return _snd_ctl_remap_elem_list(priv, list);
+}
+
+static int remap_load_list(snd_ctl_remap_t *remap)
+{
+	snd_ctl_elem_list_t list;
+	int err = 0;
+
+	memset(&list, 0, sizeof(list));
+	do {
+		err = _snd_ctl_remap_elem_list(remap, &list);
+		if (err < 0)
+			break;
+		err = snd_ctl_elem_list_alloc_space(&list, list.count);
+		if (err < 0)
+			break;
+	} while (list.count != list.used);
+	if (err < 0)
+		free(list.pids);
+	return err;
 }
 
 #ifndef DOC_HIDDEN
@@ -1674,6 +1732,7 @@ int snd_ctl_remap_open(snd_ctl_t **handlep, const char *name, snd_config_t *rema
 
 	priv->numid_remap_active = priv->map_items > 0 || priv->sync_items;
 
+	priv->list_first = UINT_MAX;
 	priv->child = child;
 	err = snd_ctl_new(&ctl, SND_CTL_TYPE_REMAP, name, mode);
 	if (err < 0) {
