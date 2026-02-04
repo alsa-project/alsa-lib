@@ -314,9 +314,7 @@ _retry:
 		if (numid) {
 			id->numid = numid->numid_child;
 		} else {
-			if (reloaded)
-				return -ENOENT;
-			if (priv->list_complete)
+			if (reloaded || priv->list_complete)
 				return -ENOENT;
 			/* build whole numid mapping */
 			err = remap_load_list(priv);
