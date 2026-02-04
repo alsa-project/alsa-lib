@@ -1702,7 +1702,7 @@ const char *parse_open_variables(snd_use_case_mgr_t *uc_mgr, const char *name)
 {
 	const char *end, *id;
 	char *args, *var;
-	snd_config_t *cfg, *n;
+	snd_config_t *cfg = NULL, *n;
 	snd_config_iterator_t i, next;
 	char vname[128];
 	size_t l;
@@ -1739,7 +1739,8 @@ const char *parse_open_variables(snd_use_case_mgr_t *uc_mgr, const char *name)
 	}
 
 skip:
-	snd_config_delete(cfg);
+	if (cfg)
+		snd_config_delete(cfg);
 	return end + 3;
 }
 
