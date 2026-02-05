@@ -35,7 +35,7 @@
 #include <stdbool.h>
 #include "use-case.h"
 
-#define SYNTAX_VERSION_MAX	8
+#define SYNTAX_VERSION_MAX	9
 
 #define MAX_CARD_SHORT_NAME	32
 #define MAX_CARD_LONG_NAME	80

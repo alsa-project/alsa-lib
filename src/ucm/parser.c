@@ -391,7 +391,7 @@ static int evaluate_define(snd_use_case_mgr_t *uc_mgr,
 	snd_config_iterator_t i, next;
 	snd_config_t *d, *n;
 	const char *id;
-	char *var, *s;
+	char *var, *s, *sid;
 	int err;
 
 	err = snd_config_search(cfg, "Define", &d);
@@ -427,8 +427,18 @@ static int evaluate_define(snd_use_case_mgr_t *uc_mgr,
 			snd_error(UCM, "value names starting with '@' are reserved for application variables");
 			return -EINVAL;
 		}
-		err = uc_mgr_set_variable(uc_mgr, id, s);
+		sid = (char *)id;
+		if (uc_mgr->conf_format >= 9) {
+			err = uc_mgr_get_substituted_value(uc_mgr, &sid, id);
+			if (err < 0) {
+				free(s);
+				return err;
+			}
+		}
+		err = uc_mgr_set_variable(uc_mgr, sid, s);
 		free(s);
+		if (id != sid)
+			free(sid);
 		if (err < 0)
 			return err;
 	}
@@ -495,7 +505,15 @@ static int evaluate_macro1(snd_use_case_mgr_t *uc_mgr,
 		err = snd_config_get_string(args, &s);
 		if (err < 0)
 			return err;
-		err = snd_config_load_string(&a, s, 0);
+		if (uc_mgr->conf_format < 9) {
+			err = snd_config_load_string(&a, s, 0);
+		} else {
+			err = uc_mgr_get_substituted_value(uc_mgr, &var2, s);
+			if (err >= 0) {
+				err = snd_config_load_string(&a, var2, 0);
+				free(var2);
+			}
+		}
 		if (err < 0)
 			return err;
 	} else if (snd_config_get_type(args) != SND_CONFIG_TYPE_COMPOUND) {
