@@ -452,7 +452,9 @@ static int if_eval_one(snd_use_case_mgr_t *uc_mgr,
 		       snd_config_t **prepend,
 		       snd_config_t **append)
 {
-	snd_config_t *expr, *_true = NULL, *_false = NULL;
+	snd_config_t *expr, *expr_eval = NULL, *_true = NULL, *_false = NULL;
+	const char *s;
+	char *s1;
 	int err, has_condition;
 
 	*result = NULL;
@@ -467,73 +469,99 @@ static int if_eval_one(snd_use_case_mgr_t *uc_mgr,
 	/* For syntax v8+, Condition is optional if Prepend or Append is present */
 	has_condition = snd_config_search(cond, "Condition", &expr) >= 0;
 
+	if (has_condition && uc_mgr->conf_format >= 9 &&
+	    snd_config_get_type(expr) == SND_CONFIG_TYPE_STRING) {
+		err = snd_config_get_string(expr, &s);
+		if (err < 0) {
+			snd_error(UCM, "Condition string error (If)");
+			return -EINVAL;
+		}
+		err = uc_mgr_get_substituted_value(uc_mgr, &s1, s);
+		if (err >= 0) {
+			err = snd_config_load_string(&expr_eval, s1, 0);
+			free(s1);
+		}
+		if (err < 0) {
+			snd_error(UCM, "Condition string parse error (If)");
+			return err;
+		}
+		expr = expr_eval;
+	}
+
 	if (uc_mgr->conf_format >= 8) {
 		/* Check for Prepend block */
 		err = snd_config_search(cond, "Prepend", prepend);
 		if (err < 0 && err != -ENOENT) {
 			snd_error(UCM, "prepend block error (If)");
-			return -EINVAL;
+			goto __error;
 		}
 
 		/* Check for Append block */
 		err = snd_config_search(cond, "Append", append);
 		if (err < 0 && err != -ENOENT) {
 			snd_error(UCM, "append block error (If)");
-			return -EINVAL;
+			goto __error;
 		}
 
 		/* If Prepend or Append is present, Condition can be omitted */
 		if (!has_condition && (*prepend == NULL && *append == NULL)) {
 			snd_error(UCM, "condition block expected (If)");
-			return -EINVAL;
+			goto __error;
 		}
 	} else {
 		if (!has_condition) {
 			snd_error(UCM, "condition block expected (If)");
-			return -EINVAL;
+			goto __error;
 		}
 	}
 
 	err = snd_config_search(cond, "True", &_true);
 	if (err < 0 && err != -ENOENT) {
 		snd_error(UCM, "true block error (If)");
-		return -EINVAL;
+		goto __error;
 	}
 
 	err = snd_config_search(cond, "False", &_false);
 	if (err < 0 && err != -ENOENT) {
 		snd_error(UCM, "false block error (If)");
-		return -EINVAL;
+		goto __error;
 	}
 
 	err = snd_config_search(cond, "Before", before);
 	if (err < 0 && err != -ENOENT) {
 		snd_error(UCM, "before block identifier error");
-		return -EINVAL;
+		goto __error;
 	}
 
 	err = snd_config_search(cond, "After", after);
 	if (err < 0 && err != -ENOENT) {
 		snd_error(UCM, "before block identifier error");
-		return -EINVAL;
+		goto __error;
 	}
 
 	/* Evaluate condition if present */
 	if (has_condition) {
 		err = if_eval(uc_mgr, expr);
+		if (err < 0)
+			goto __error;
 		if (err > 0) {
 			*result = _true;
-			return 0;
+			goto __return;
 		} else if (err == 0) {
 			*result = _false;
-			return 0;
-		} else {
-			return err;
+			goto __return;
 		}
 	}
 
 	/* If no condition (v8+ with Prepend/Append only), no result block */
 	return 0;
+
+__error:
+	err = -EINVAL;
+__return:
+	if (expr_eval)
+		snd_config_delete(expr_eval);
+	return err;
 }
 
 #if 0
