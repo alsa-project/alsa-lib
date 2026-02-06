@@ -878,6 +878,32 @@ If.fmic {
 }
 ~~~
 
+#### Integer comparison (Type Integer)
+
+Field                | Description
+---------------------|-----------------------
+Operation            | comparison operator (==, !=, <, >, <=, >=)
+Value1               | first integer value (string converted to long long)
+Value2               | second integer value (string converted to long long)
+
+Note: Integer condition is supported in *Syntax* version *9*+.
+
+Example:
+
+~~~{.html}
+If.check_channels {
+  Condition {
+    Type Integer
+    Operation ">"
+    Value1 "${var:channels}"
+    Value2 "2"
+  }
+  True {
+    ...
+  }
+}
+~~~
+
 ### Variants
 
 To avoid duplication of the many configuration files for the cases with

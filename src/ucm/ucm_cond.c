@@ -270,6 +270,80 @@ static int if_eval_control_exists(snd_use_case_mgr_t *uc_mgr, snd_config_t *eval
 	return 1;
 }
 
+static int if_eval_integer(snd_use_case_mgr_t *uc_mgr, snd_config_t *eval)
+{
+	const char *value1_str = NULL, *value2_str = NULL, *operation = NULL;
+	char *s1, *s2;
+	long long val1, val2;
+	int err, err1, err2;
+
+	if (uc_mgr->conf_format < 9) {
+		snd_error(UCM, "Integer condition is supported in v9+ syntax");
+		return -EINVAL;
+	}
+
+	err = get_string(eval, "Operation", &operation);
+	if (err < 0) {
+		snd_error(UCM, "Integer error (If.Condition.Operation)");
+		return -EINVAL;
+	}
+
+	err = get_string(eval, "Value1", &value1_str);
+	if (err < 0) {
+		snd_error(UCM, "Integer error (If.Condition.Value1)");
+		return -EINVAL;
+	}
+
+	err = get_string(eval, "Value2", &value2_str);
+	if (err < 0) {
+		snd_error(UCM, "Integer error (If.Condition.Value2)");
+		return -EINVAL;
+	}
+
+	err = uc_mgr_get_substituted_value(uc_mgr, &s1, value1_str);
+	if (err < 0)
+		return err;
+
+	err = uc_mgr_get_substituted_value(uc_mgr, &s2, value2_str);
+	if (err < 0) {
+		free(s1);
+		return err;
+	}
+
+	err1 = safe_strtoll(s1, &val1);
+	err2 = safe_strtoll(s2, &val2);
+
+	if (err1 < 0 || err2 < 0) {
+		if (err1 < 0)
+			snd_error(UCM, "Integer conversion error for Value1 '%s'", s1);
+		if (err2 < 0)
+			snd_error(UCM, "Integer conversion error for Value2 '%s'", s2);
+		free(s2);
+		free(s1);
+		return -EINVAL;
+	}
+
+	free(s2);
+	free(s1);
+
+	if (strcmp(operation, "==") == 0) {
+		return val1 == val2;
+	} else if (strcmp(operation, "!=") == 0) {
+		return val1 != val2;
+	} else if (strcmp(operation, "<") == 0) {
+		return val1 < val2;
+	} else if (strcmp(operation, ">") == 0) {
+		return val1 > val2;
+	} else if (strcmp(operation, "<=") == 0) {
+		return val1 <= val2;
+	} else if (strcmp(operation, ">=") == 0) {
+		return val1 >= val2;
+	} else {
+		snd_error(UCM, "Integer unknown operation '%s'", operation);
+		return -EINVAL;
+	}
+}
+
 static int if_eval_path(snd_use_case_mgr_t *uc_mgr, snd_config_t *eval)
 {
 	const char *path, *mode = "";
@@ -364,6 +438,9 @@ static int if_eval(snd_use_case_mgr_t *uc_mgr, snd_config_t *eval)
 
 	if (strcmp(type, "Path") == 0)
 		return if_eval_path(uc_mgr, eval);
+
+	if (strcmp(type, "Integer") == 0)
+		return if_eval_integer(uc_mgr, eval);
 
 	snd_error(UCM, "unknown If.Condition.Type");
 	return -EINVAL;
