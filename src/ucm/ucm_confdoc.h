@@ -587,8 +587,8 @@ Evaluation order   | Configuration block | Evaluation restart
 2                  | Include             | Yes
 3                  | Variant             | Yes
 4                  | Macro               | Yes
-5                  | If                  | Yes
-
+5                  | Repeat              | Yes
+6                  | If                  | Yes
 
 ### Substitutions
 

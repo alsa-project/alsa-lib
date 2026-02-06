@@ -765,10 +765,10 @@ int uc_mgr_evaluate_inplace(snd_use_case_mgr_t *uc_mgr,
 			return err4;
 		if (err4 == 0)
 			continue;
-		err5 = evaluate_condition(uc_mgr, cfg);
+		err5 = uc_mgr_evaluate_repeat(uc_mgr, cfg);
 		if (err5 < 0)
 			return err5;
-		err6 = uc_mgr_evaluate_repeat(uc_mgr, cfg);
+		err6 = evaluate_condition(uc_mgr, cfg);
 		if (err6 < 0)
 			return err6;
 	}
