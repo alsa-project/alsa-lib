@@ -1012,6 +1012,136 @@ SectionDevice."HDMI:LowRate" {
 
 This creates two devices: **HDMI:LowRate** (48kHz) and **HDMI:HighRate** (192kHz).
 
+### Repetitive Pattern Substitution
+
+Starting with **Syntax 9**, the UCM configuration supports the **Repeat** block for generating
+repetitive configuration patterns. This feature allows you to apply a configuration block multiple
+times with different variable values, reducing duplication in configuration files.
+
+The **Repeat** block contains two main components:
+
+1. **Pattern**: Defines the iteration pattern (how many times to repeat and what values to use)
+2. **Apply**: The configuration block to be applied on each iteration
+
+#### Pattern Types
+
+The **Pattern** block supports two types: **Integer** and **Array**.
+
+**Integer Pattern**: Iterates over a range of integer values
+
+~~~{.html}
+Repeat.MyRepeat {
+  Pattern {
+    Variable 'ChannelNum'
+    Type Integer
+    First 0
+    Last 15
+    Step 2
+  }
+  Apply {
+    ... configuration using ${var:ChannelNum} ...
+  }
+}
+~~~
+
+Fields for Integer pattern:
+- **Variable**: Name of the variable to substitute (without ${var:} prefix)
+- **Type**: Must be "Integer"
+- **First**: Starting value (integer)
+- **Last**: Ending value (integer)
+- **Step**: Increment value (integer, default 1)
+
+The iteration supports reverse order automatically when First is greater than Last.
+
+**Array Pattern**: Iterates over a list of string values
+
+~~~{.html}
+Repeat.DeviceList {
+  Pattern {
+    Variable 'DevName'
+    Type Array
+    Array [
+      "Speaker"
+      "Headphones"
+      "HDMI"
+    ]
+  }
+  Apply {
+    ... configuration using ${var:DevName} ...
+  }
+}
+~~~
+
+Fields for Array pattern:
+- **Variable**: Name of the variable to substitute (without ${var:} prefix)
+- **Type**: Must be "Array"
+- **Array**: A compound node containing string values to iterate over
+
+**String Pattern**: Pattern can also be specified as a string that will be parsed as a
+configuration block. This allows for dynamic pattern generation.
+
+~~~{.html}
+Repeat.Dynamic {
+  Pattern "
+    Variable 'Index'
+    Type Integer
+    First 1
+    Last 4
+  "
+  Apply {
+    ... configuration using ${var:Index} ...
+  }
+}
+~~~
+
+#### Complete Example
+
+Example using Integer pattern to create multiple similar control settings:
+
+~~~{.html}
+EnableSequence [
+  Repeat.VolumeInit {
+    Pattern {
+      Variable 'ch'
+      Type Integer
+      First 0
+      Last 7
+    }
+    Apply {
+      cset "name='PCM Channel ${var:ch} Volume' 100%"
+    }
+  }
+]
+~~~
+
+This generates 8 cset commands for channels 0 through 7.
+
+Example using Array pattern for different device configurations:
+
+~~~{.html}
+Repeat.Devices {
+  Pattern {
+    Variable 'output'
+    Type Array
+    Array [
+      "Speaker"
+      "Headphones"
+      "LineOut"
+    ]
+  }
+  Apply {
+    SectionDevice."${var:output}" {
+      Comment "${var:output} Output"
+      EnableSequence [
+        cset "name='${var:output} Switch' on"
+      ]
+    }
+  }
+}
+~~~
+
+This creates three SectionDevice blocks for Speaker, Headphones, and LineOut.
+
 */
 
 /**

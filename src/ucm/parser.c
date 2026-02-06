@@ -729,9 +729,9 @@ int uc_mgr_evaluate_inplace(snd_use_case_mgr_t *uc_mgr,
 			    snd_config_t *cfg)
 {
 	long iterations = 10000;
-	int err1 = 0, err2 = 0, err3 = 0, err4 = 0, err5 = 0;
+	int err1 = 0, err2 = 0, err3 = 0, err4 = 0, err5 = 0, err6 = 0;
 
-	while (err1 == 0 || err2 == 0 || err3 == 0 || err4 == 0 || err5 == 0) {
+	while (err1 == 0 || err2 == 0 || err3 == 0 || err4 == 0 || err5 == 0 || err6 == 0) {
 		if (iterations == 0) {
 			snd_error(UCM, "Maximal inplace evaluation iterations number reached (recursive references?)");
 			return -EINVAL;
@@ -768,6 +768,9 @@ int uc_mgr_evaluate_inplace(snd_use_case_mgr_t *uc_mgr,
 		err5 = evaluate_condition(uc_mgr, cfg);
 		if (err5 < 0)
 			return err5;
+		err6 = uc_mgr_evaluate_repeat(uc_mgr, cfg);
+		if (err6 < 0)
+			return err6;
 	}
 	return 0;
 }
