@@ -38,10 +38,70 @@ static int get_string(snd_config_t *compound, const char *key, const char **str)
 	return snd_config_get_string(node, str);
 }
 
-static int if_eval_string(snd_use_case_mgr_t *uc_mgr, snd_config_t *eval)
+typedef int (*string_compare_t)(const char *s1, const char *s2);
+
+static int compare_strings(snd_use_case_mgr_t *uc_mgr, snd_config_t *eval,
+			   const char *key1, const char *key2,
+			   string_compare_t compare)
 {
 	const char *string1 = NULL, *string2 = NULL;
 	char *s1, *s2;
+	int err, result;
+
+	err = get_string(eval, key1, &string1);
+	if (err < 0 && err != -ENOENT) {
+		snd_error(UCM, "String error (If.Condition.%s)", key1);
+		return -EINVAL;
+	}
+
+	err = get_string(eval, key2, &string2);
+	if (err < 0 && err != -ENOENT) {
+		snd_error(UCM, "String error (If.Condition.%s)", key2);
+		return -EINVAL;
+	}
+
+	if (!string1 && !string2)
+		return -ENOENT; /* not found */
+
+	if (!string1) {
+		snd_error(UCM, "If.Condition.%s not defined", key1);
+		return -EINVAL;
+	}
+	if (!string2) {
+		snd_error(UCM, "If.Condition.%s not defined", key2);
+		return -EINVAL;
+	}
+
+	err = uc_mgr_get_substituted_value(uc_mgr, &s1, string1);
+	if (err < 0)
+		return err;
+
+	err = uc_mgr_get_substituted_value(uc_mgr, &s2, string2);
+	if (err < 0) {
+		free(s1);
+		return err;
+	}
+
+	result = compare(s1, s2);
+	free(s2);
+	free(s1);
+	return result;
+}
+
+static int string_equal(const char *s1, const char *s2)
+{
+	return strcasecmp(s1, s2) == 0;
+}
+
+static int string_contains(const char *s1, const char *s2)
+{
+	return strstr(s1, s2) != NULL;
+}
+
+static int if_eval_string(snd_use_case_mgr_t *uc_mgr, snd_config_t *eval)
+{
+	const char *string1 = NULL;
+	char *s1;
 	int err;
 
 	if (uc_mgr->conf_format >= 3) {
@@ -61,75 +121,13 @@ static int if_eval_string(snd_use_case_mgr_t *uc_mgr, snd_config_t *eval)
 		}
 	}
 
-	err = get_string(eval, "String1", &string1);
-	if (err < 0 && err != -ENOENT) {
-		snd_error(UCM, "String error (If.Condition.String1)");
-		return -EINVAL;
-	}
-
-	err = get_string(eval, "String2", &string2);
-	if (err < 0 && err != -ENOENT) {
-		snd_error(UCM, "String error (If.Condition.String2)");
-		return -EINVAL;
-	}
-
-	if (string1 || string2) {
-		if (string1 == NULL) {
-			snd_error(UCM, "If.Condition.String1 not defined");
-			return -EINVAL;
-		}
-		if (string2 == NULL) {
-			snd_error(UCM, "If.Condition.String2 not defined");
-			return -EINVAL;
-		}
-		err = uc_mgr_get_substituted_value(uc_mgr, &s1, string1);
-		if (err < 0)
-			return err;
-		err = uc_mgr_get_substituted_value(uc_mgr, &s2, string2);
-		if (err < 0) {
-			free(s1);
-			return err;
-		}
-		err = strcasecmp(s1, s2) == 0;
-		free(s2);
-		free(s1);
+	err = compare_strings(uc_mgr, eval, "String1", "String2", string_equal);
+	if (err != -ENOENT) /* -ENOENT means not found, continue checking */
 		return err;
-	}
 
-	err = get_string(eval, "Haystack", &string1);
-	if (err < 0 && err != -ENOENT) {
-		snd_error(UCM, "String error (If.Condition.Haystack)");
-		return -EINVAL;
-	}
-
-	err = get_string(eval, "Needle", &string2);
-	if (err < 0 && err != -ENOENT) {
-		snd_error(UCM, "String error (If.Condition.Needle)");
-		return -EINVAL;
-	}
-
-	if (string1 || string2) {
-		if (string1 == NULL) {
-			snd_error(UCM, "If.Condition.Haystack not defined");
-			return -EINVAL;
-		}
-		if (string2 == NULL) {
-			snd_error(UCM, "If.Condition.Needle not defined");
-			return -EINVAL;
-		}
-		err = uc_mgr_get_substituted_value(uc_mgr, &s1, string1);
-		if (err < 0)
-			return err;
-		err = uc_mgr_get_substituted_value(uc_mgr, &s2, string2);
-		if (err < 0) {
-			free(s1);
-			return err;
-		}
-		err = strstr(s1, s2) != NULL;
-		free(s2);
-		free(s1);
+	err = compare_strings(uc_mgr, eval, "Haystack", "Needle", string_contains);
+	if (err != -ENOENT)
 		return err;
-	}
 
 	snd_error(UCM, "Unknown String condition arguments");
 	return -EINVAL;
