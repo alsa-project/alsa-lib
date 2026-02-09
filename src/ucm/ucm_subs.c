@@ -204,6 +204,96 @@ static char *rval_card_id_by_name(snd_use_case_mgr_t *uc_mgr, const char *id)
 	return strdup(snd_ctl_card_info_get_id(ctl_list->ctl_info));
 }
 
+static char *rval_card_info(snd_use_case_mgr_t *uc_mgr, const char *query)
+{
+	snd_config_t *config, *d;
+	const char *card_str, *field_str, *tmp;
+	struct ctl_list *ctl_list = NULL;
+	snd_ctl_card_info_t *info;
+	char *result = NULL;
+	long card_num;
+	int err;
+
+	if (uc_mgr->conf_format < 9) {
+		snd_error(UCM, "info-card substitution is supported in v9+ syntax");
+		return NULL;
+	}
+
+	err = snd_config_load_string(&config, query, 0);
+	if (err < 0) {
+		snd_error(UCM, "info-card: invalid arguments '%s'", query);
+		return NULL;
+	}
+
+	if (snd_config_search(config, "card", &d)) {
+		snd_error(UCM, "info-card: 'card' parameter is required");
+		goto __error;
+	}
+	if (snd_config_get_string(d, &card_str))
+		goto __error;
+
+	if (card_str[0] == '$') {
+		tmp = card_str + 1;
+		card_str = uc_mgr_get_variable(uc_mgr, tmp);
+		if (card_str == NULL) {
+			snd_error(UCM, "info-card: variable '%s' not found", tmp);
+			goto __error;
+		}
+	}
+
+	if (snd_config_search(config, "field", &d)) {
+		snd_error(UCM, "info-card: 'field' parameter is required");
+		goto __error;
+	}
+	if (snd_config_get_string(d, &field_str))
+		goto __error;
+
+	if (field_str[0] == '$') {
+		tmp = field_str + 1;
+		field_str = uc_mgr_get_variable(uc_mgr, tmp);
+		if (field_str == NULL) {
+			snd_error(UCM, "info-card: variable '%s' not found", tmp);
+			goto __error;
+		}
+	}
+
+	if (safe_strtol(card_str, &card_num) == 0)
+		ctl_list = uc_mgr_get_ctl_by_card(uc_mgr, (int)card_num);
+	if (ctl_list == NULL)
+		ctl_list = get_ctl_list_by_name(uc_mgr, card_str);
+	if (ctl_list == NULL) {
+		snd_error(UCM, "info-card: card '%s' not found", card_str);
+		goto __error;
+	}
+
+	info = ctl_list->ctl_info;
+
+	if (strcasecmp(field_str, "number") == 0) {
+		char num[16];
+		snprintf(num, sizeof(num), "%d", snd_ctl_card_info_get_card(info));
+		result = strdup(num);
+	} else if (strcasecmp(field_str, "id") == 0) {
+		result = strdup(snd_ctl_card_info_get_id(info));
+	} else if (strcasecmp(field_str, "driver") == 0) {
+		result = strdup(snd_ctl_card_info_get_driver(info));
+	} else if (strcasecmp(field_str, "name") == 0) {
+		result = strdup(snd_ctl_card_info_get_name(info));
+	} else if (strcasecmp(field_str, "longname") == 0) {
+		result = strdup(snd_ctl_card_info_get_longname(info));
+	} else if (strcasecmp(field_str, "mixername") == 0) {
+		result = strdup(snd_ctl_card_info_get_mixername(info));
+	} else if (strcasecmp(field_str, "components") == 0) {
+		result = strdup(snd_ctl_card_info_get_components(info));
+	} else {
+		snd_error(UCM, "info-card: unknown field '%s'", field_str);
+		result = NULL;
+	}
+
+__error:
+	snd_config_delete(config);
+	return result;
+}
+
 #ifndef DOC_HIDDEN
 typedef struct lookup_iterate *(*lookup_iter_fcn_t)
 			(snd_use_case_mgr_t *uc_mgr, struct lookup_iterate *iter);
@@ -913,6 +1003,7 @@ __std:
 		MATCH_VARIABLE2(value, "${eval:", rval_eval, false);
 		MATCH_VARIABLE2(value, "${find-card:", rval_card_lookup, false);
 		MATCH_VARIABLE2(value, "${find-device:", rval_device_lookup, false);
+		MATCH_VARIABLE2(value, "${info-card:", rval_card_info, false);
 		MATCH_VARIABLE2(value, "${CardNumberByName:", rval_card_number_by_name, false);
 		MATCH_VARIABLE2(value, "${CardIdByName:", rval_card_id_by_name, false);
 __merr:

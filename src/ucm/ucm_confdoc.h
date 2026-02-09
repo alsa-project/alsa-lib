@@ -616,6 +616,7 @@ ${var:\<str\>}         | UCM parser variable (set using a _Define_ block)
 ${eval:\<str\>}        | Evaluate expression like *($var+2)/3* [**Syntax 5**]
 ${find-card:\<str\>}   | Find a card - see _Find card substitution_ section
 ${find-device:\<str\>} | Find a device - see _Find device substitution_ section
+${info-card:\<str\>}   | Get card information - see _Card info substitution_ section [**Syntax 9**]
 
 General note: If two dollars '$$' instead one dolar '$' are used for the
 substitution identification, the error is ignored (e.g. file does not
@@ -688,6 +689,39 @@ type                 | device type (pcm)
 stream               | stream type (playback, capture), playback is default
 field                | field for the lookup (id, name, subname)
 regex                | regex string for the field match
+
+#### Card info substitution
+
+This substitution retrieves information about a specific ALSA card by card number
+or card ID and returns the requested field value.
+
+Usage examples:
+
+~~~{.html}
+${info-card:card=0,field=name}
+${info-card:card=acp,field=driver}
+${info-card:card=PCH,field=longname}
+${info-card:card=$MyCard,field=$MyField}
+~~~
+
+Arguments:
+
+Argument             | Description
+---------------------|--------------------------------------------------
+card                 | card number (integer), card ID (string), or variable name ($var)
+field                | field to retrieve (number, id, driver, name, longname, mixername, components) or variable name ($var)
+
+The **card** parameter can be either a card number (e.g., 0, 1, 2), a card ID string (e.g., "PCH", "acp", "Intel"),
+or a variable name prefixed with $ (e.g., $CardId).
+
+The **field** parameter specifies which card information to return or can be a variable name prefixed with $ (e.g., $FieldName):
+- **number**: Card number (integer as string)
+- **id**: Card identifier
+- **driver**: Card driver name
+- **name**: Card short name
+- **longname**: Card long name
+- **mixername**: Mixer name
+- **components**: Card components
 
 
 ### Variable defines
