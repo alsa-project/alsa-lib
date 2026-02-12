@@ -564,8 +564,7 @@ static int remap_load_list(snd_ctl_remap_t *remap)
 		if (err < 0)
 			break;
 	} while (list.count != list.used);
-	if (err < 0)
-		free(list.pids);
+	snd_ctl_elem_list_free_space(&list);
 	return err;
 }
 
