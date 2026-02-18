@@ -325,7 +325,7 @@ static char *rval_lookup_main(snd_use_case_mgr_t *uc_mgr,
 	snd_config_t *config, *d;
 	struct lookup_fcn *fcn;
 	struct lookup_iterate *curr;
-	const char *s;
+	const char *s, *tmp;
 	char *result;
 	regmatch_t match[1];
 	regex_t re;
@@ -349,6 +349,12 @@ static char *rval_lookup_main(snd_use_case_mgr_t *uc_mgr,
 	}
 	if (snd_config_get_string(d, &s))
 		goto null;
+	if (s[0] == '$' && uc_mgr->conf_format >= 9) {
+		tmp = s + 1;
+		s = uc_mgr_get_variable(uc_mgr, tmp);
+		if (s == NULL)
+			goto var_not_found;
+	}
 	for (fcn = iter->fcns ; fcn; fcn++) {
 		if (strcasecmp(fcn->name, s) == 0) {
 			iter->fcn = fcn->fcn;
@@ -365,6 +371,12 @@ static char *rval_lookup_main(snd_use_case_mgr_t *uc_mgr,
 	}
 	if (snd_config_get_string(d, &s))
 		goto null;
+	if (s[0] == '$' && uc_mgr->conf_format >= 9) {
+		tmp = s + 1;
+		s = uc_mgr_get_variable(uc_mgr, tmp);
+		if (s == NULL)
+			goto var_not_found;
+	}
 	err = regcomp(&re, s, REG_EXTENDED | REG_ICASE);
 	if (err) {
 		snd_error(UCM, "Regex '%s' compilation failed (code %d)", s, err);
@@ -387,6 +399,8 @@ fin:
 	if (iter->done)
 		iter->done(iter);
 	return result;
+var_not_found:
+	snd_error(UCM, "lookup: variable '%s' not found", tmp);
 null:
 	result = NULL;
 	goto fin;
@@ -500,7 +514,8 @@ static char *rval_pcm_lookup_return(struct lookup_iterate *iter,
 	return strdup(num);
 }
 
-static int rval_pcm_lookup_init(struct lookup_iterate *iter,
+static int rval_pcm_lookup_init(snd_use_case_mgr_t *uc_mgr,
+				struct lookup_iterate *iter,
 				snd_config_t *config)
 {
 	static struct lookup_fcn pcm_fcns[] = {
@@ -510,12 +525,20 @@ static int rval_pcm_lookup_init(struct lookup_iterate *iter,
 		{ 0 },
 	};
 	snd_config_t *d;
-	const char *s;
+	const char *s, *tmp;
 	snd_pcm_info_t *pcminfo;
 	snd_pcm_stream_t stream = SND_PCM_STREAM_PLAYBACK;
 
 	if (snd_config_search(config, "stream", &d) == 0 &&
 	    snd_config_get_string(d, &s) == 0) {
+		if (s[0] == '$' && uc_mgr->conf_format >= 9) {
+			tmp = s + 1;
+			s = uc_mgr_get_variable(uc_mgr, tmp);
+			if (s == NULL) {
+				snd_error(UCM, "pcm lookup: variable '%s' not found", tmp);
+				return -EINVAL;
+			}
+		}
 		if (strcasecmp(s, "playback") == 0)
 			stream = SND_PCM_STREAM_PLAYBACK;
 		else if (strcasecmp(s, "capture") == 0)
@@ -544,13 +567,14 @@ static int rval_device_lookup_init(snd_use_case_mgr_t *uc_mgr,
 {
 	static struct {
 		const char *name;
-		int (*init)(struct lookup_iterate *iter, snd_config_t *config);
+		int (*init)(snd_use_case_mgr_t *uc_mgr, struct lookup_iterate *iter,
+			    snd_config_t *config);
 	} *t, types[] = {
 		{ .name = "pcm", .init = rval_pcm_lookup_init },
 		{ 0 }
 	};
 	snd_config_t *d;
-	const char *s;
+	const char *s, *tmp;
 	int err;
 
 	if (snd_config_search(config, "ctl", &d) || snd_config_get_string(d, &s)) {
@@ -570,9 +594,17 @@ static int rval_device_lookup_init(snd_use_case_mgr_t *uc_mgr,
 		snd_error(UCM, "Missing device type!");
 		return -EINVAL;
 	}
+	if (s[0] == '$' && uc_mgr->conf_format >= 9) {
+		tmp = s + 1;
+		s = uc_mgr_get_variable(uc_mgr, tmp);
+		if (s == NULL) {
+			snd_error(UCM, "device lookup: variable '%s' not found", tmp);
+			return -EINVAL;
+		}
+	}
 	for (t = types; t->name; t++)
 		if (strcasecmp(t->name, s) == 0)
-			return t->init(iter, config);
+			return t->init(uc_mgr, iter, config);
 	snd_error(UCM, "Device type '%s' is invalid", s);
 	return -EINVAL;
 }

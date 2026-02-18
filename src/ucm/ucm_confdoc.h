@@ -663,6 +663,7 @@ Usage example:
 
 ~~~{.html}
 ${find-card:field=name,regex='^acp$',return=number}
+${find-card:field=$FieldName,regex=$Pattern,return=number}
 ~~~
 
 Arguments:
@@ -670,8 +671,8 @@ Arguments:
 Argument             | Description
 ---------------------|-----------------------
 return               | return value type (id, number), id is the default
-field                | field for the lookup (id, driver, name, longname, mixername, components)
-regex                | regex string for the field match
+field                | field for the lookup (id, driver, name, longname, mixername, components) or variable name ($var) [**Syntax 9**]
+regex                | regex string for the field match or variable name ($var) [**Syntax 9**]
 
 #### Find device substitution
 
@@ -679,16 +680,17 @@ Usage example:
 
 ~~~{.html}
 ${find-device:type=pcm,field=name,regex='DMIC'}
+${find-device:type=$DevType,stream=$StreamType,field=$FieldName,regex=$Pattern}
 ~~~
 
 Arguments:
 
 Argument             | Description
 ---------------------|-----------------------
-type                 | device type (pcm)
-stream               | stream type (playback, capture), playback is default
-field                | field for the lookup (id, name, subname)
-regex                | regex string for the field match
+type                 | device type (pcm) or variable name ($var) [**Syntax 9**]
+stream               | stream type (playback, capture), playback is default; variable name ($var) supported in **Syntax 9**
+field                | field for the lookup (id, name, subname) or variable name ($var) [**Syntax 9**]
+regex                | regex string for the field match or variable name ($var) [**Syntax 9**]
 
 #### Card info substitution
 
