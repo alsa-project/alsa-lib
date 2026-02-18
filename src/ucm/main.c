@@ -1781,7 +1781,7 @@ int snd_use_case_mgr_open(snd_use_case_mgr_t **uc_mgr,
 		card_name = parse_open_variables(mgr, card_name);
 
 	/* Application developers: This argument is not supposed to be set for standard applications. */
-	if (uc_mgr_get_variable(mgr, "@InBoot"))
+	if (uc_mgr_get_variable(mgr, "@InBoot", false))
 		mgr->in_boot = true;
 
 	err = uc_mgr_card_open(mgr);

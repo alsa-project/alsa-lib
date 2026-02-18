@@ -527,7 +527,7 @@ static int evaluate_macro1(snd_use_case_mgr_t *uc_mgr,
 		if (err < 0)
 			goto __err_path;
 		snprintf(name, sizeof(name), "__%s", id);
-		if (uc_mgr_get_variable(uc_mgr, name)) {
+		if (uc_mgr_get_variable(uc_mgr, name, false)) {
 			snd_error(UCM, "Macro argument '%s' is already defined", name);
 			goto __err_path;
 		}

@@ -672,7 +672,7 @@ int uc_mgr_remove_device(struct use_case_verb *verb, const char *name)
 	return found == 0 ? -ENODEV : 0;
 }
 
-const char *uc_mgr_get_variable(snd_use_case_mgr_t *uc_mgr, const char *name)
+const char *uc_mgr_get_variable(snd_use_case_mgr_t *uc_mgr, const char *name, bool show_err)
 {
 	struct list_head *pos;
 	struct ucm_value *value;
@@ -682,6 +682,8 @@ const char *uc_mgr_get_variable(snd_use_case_mgr_t *uc_mgr, const char *name)
 		if (strcmp(value->name, name) == 0)
 			return value->data;
 	}
+	if (show_err)
+		snd_error(UCM, "variable '%s' is not defined", name);
 	return NULL;
 }
 

@@ -234,11 +234,9 @@ static char *rval_card_info(snd_use_case_mgr_t *uc_mgr, const char *query)
 
 	if (card_str[0] == '$') {
 		tmp = card_str + 1;
-		card_str = uc_mgr_get_variable(uc_mgr, tmp);
-		if (card_str == NULL) {
-			snd_error(UCM, "info-card: variable '%s' not found", tmp);
+		card_str = uc_mgr_get_variable(uc_mgr, tmp, true);
+		if (card_str == NULL)
 			goto __error;
-		}
 	}
 
 	if (snd_config_search(config, "field", &d)) {
@@ -250,11 +248,9 @@ static char *rval_card_info(snd_use_case_mgr_t *uc_mgr, const char *query)
 
 	if (field_str[0] == '$') {
 		tmp = field_str + 1;
-		field_str = uc_mgr_get_variable(uc_mgr, tmp);
-		if (field_str == NULL) {
-			snd_error(UCM, "info-card: variable '%s' not found", tmp);
+		field_str = uc_mgr_get_variable(uc_mgr, tmp, true);
+		if (field_str == NULL)
 			goto __error;
-		}
 	}
 
 	if (safe_strtol(card_str, &card_num) == 0)
@@ -351,9 +347,9 @@ static char *rval_lookup_main(snd_use_case_mgr_t *uc_mgr,
 		goto null;
 	if (s[0] == '$' && uc_mgr->conf_format >= 9) {
 		tmp = s + 1;
-		s = uc_mgr_get_variable(uc_mgr, tmp);
+		s = uc_mgr_get_variable(uc_mgr, tmp, true);
 		if (s == NULL)
-			goto var_not_found;
+			goto null;
 	}
 	for (fcn = iter->fcns ; fcn; fcn++) {
 		if (strcasecmp(fcn->name, s) == 0) {
@@ -373,9 +369,9 @@ static char *rval_lookup_main(snd_use_case_mgr_t *uc_mgr,
 		goto null;
 	if (s[0] == '$' && uc_mgr->conf_format >= 9) {
 		tmp = s + 1;
-		s = uc_mgr_get_variable(uc_mgr, tmp);
+		s = uc_mgr_get_variable(uc_mgr, tmp, true);
 		if (s == NULL)
-			goto var_not_found;
+			goto null;
 	}
 	err = regcomp(&re, s, REG_EXTENDED | REG_ICASE);
 	if (err) {
@@ -399,8 +395,6 @@ fin:
 	if (iter->done)
 		iter->done(iter);
 	return result;
-var_not_found:
-	snd_error(UCM, "lookup: variable '%s' not found", tmp);
 null:
 	result = NULL;
 	goto fin;
@@ -533,11 +527,9 @@ static int rval_pcm_lookup_init(snd_use_case_mgr_t *uc_mgr,
 	    snd_config_get_string(d, &s) == 0) {
 		if (s[0] == '$' && uc_mgr->conf_format >= 9) {
 			tmp = s + 1;
-			s = uc_mgr_get_variable(uc_mgr, tmp);
-			if (s == NULL) {
-				snd_error(UCM, "pcm lookup: variable '%s' not found", tmp);
+			s = uc_mgr_get_variable(uc_mgr, tmp, true);
+			if (s == NULL)
 				return -EINVAL;
-			}
 		}
 		if (strcasecmp(s, "playback") == 0)
 			stream = SND_PCM_STREAM_PLAYBACK;
@@ -596,11 +588,9 @@ static int rval_device_lookup_init(snd_use_case_mgr_t *uc_mgr,
 	}
 	if (s[0] == '$' && uc_mgr->conf_format >= 9) {
 		tmp = s + 1;
-		s = uc_mgr_get_variable(uc_mgr, tmp);
-		if (s == NULL) {
-			snd_error(UCM, "device lookup: variable '%s' not found", tmp);
+		s = uc_mgr_get_variable(uc_mgr, tmp, true);
+		if (s == NULL)
 			return -EINVAL;
-		}
 	}
 	for (t = types; t->name; t++)
 		if (strcasecmp(t->name, s) == 0)
@@ -848,7 +838,7 @@ static char *rval_var(snd_use_case_mgr_t *uc_mgr, const char *id)
 	} else if (id[0] == '@') {
 		ignore_not_found = true;
 	}
-	v = uc_mgr_get_variable(uc_mgr, id);
+	v = uc_mgr_get_variable(uc_mgr, id, false);
 	if (v == NULL && ignore_not_found)
 		v = "";
 	if (v)
@@ -864,7 +854,7 @@ static int rval_eval_var_cb(snd_config_t **dst, const char *s, void *private_dat
 	snd_use_case_mgr_t *uc_mgr = private_data;
 	const char *v;
 
-	v = uc_mgr_get_variable(uc_mgr, s);
+	v = uc_mgr_get_variable(uc_mgr, s, false);
 	if (v == NULL)
 		return -ENOENT;
 	return snd_config_imake_string(dst, NULL, v);
@@ -1062,7 +1052,7 @@ __match2:
 			if (*v2 == '$' && uc_mgr->conf_format >= 3) {
 				if (strncmp(value, "${eval:", 7) == 0)
 					goto __direct_fcn2;
-				tmp = uc_mgr_get_variable(uc_mgr, v2 + 1);
+				tmp = uc_mgr_get_variable(uc_mgr, v2 + 1, false);
 				if (tmp == NULL) {
 					snd_error(UCM, "define '%s' is not reachable in this context!", v2 + 1);
 					rval = NULL;

@@ -352,7 +352,8 @@ int uc_mgr_add_value(struct list_head *base, const char *key, char *val);
 int uc_mgr_check_value(struct list_head *value_list, const char *identifier);
 
 const char *uc_mgr_get_variable(snd_use_case_mgr_t *uc_mgr,
-				const char *name);
+				const char *name,
+				bool show_err);
 
 int uc_mgr_set_variable(snd_use_case_mgr_t *uc_mgr,
 			const char *name,
