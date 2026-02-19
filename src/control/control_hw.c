@@ -129,10 +129,45 @@ static int snd_ctl_hw_subscribe_events(snd_ctl_t *handle, int subscribe)
 static int snd_ctl_hw_card_info(snd_ctl_t *handle, snd_ctl_card_info_t *info)
 {
 	snd_ctl_hw_t *hw = handle->private_data;
-	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_CARD_INFO, info) < 0) {
+	struct snd_ctl_card_info kinfo;
+	struct snd_ctl_card_components comp;
+
+	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_CARD_INFO, &kinfo) < 0) {
 		snd_errornum(CONTROL, "SNDRV_CTL_IOCTL_CARD_INFO failed");
 		return -errno;
 	}
+
+	snd_ctl_card_info_clear(info);
+	info->card = kinfo.card;
+	info->pad = kinfo.pad;
+	snd_strlcpy((char *)info->id, (char *)kinfo.id, sizeof(info->id));
+	snd_strlcpy((char *)info->driver, (char *)kinfo.driver, sizeof(info->driver));
+	snd_strlcpy((char *)info->name, (char *)kinfo.name, sizeof(info->name));
+	snd_strlcpy((char *)info->longname, (char *)kinfo.longname, sizeof(info->longname));
+	snd_strlcpy((char *)info->reserved_, (char *)kinfo.reserved_, sizeof(info->reserved_));
+	snd_strlcpy((char *)info->mixername, (char *)kinfo.mixername, sizeof(info->mixername));
+	if (strnlen((char *)kinfo.components, sizeof(kinfo.components)) > 0 &&
+	    kinfo.components[sizeof(kinfo.components) - 2] == '>') {
+		memset(&comp, 0, sizeof(comp));
+		if (ioctl(hw->fd, SNDRV_CTL_IOCTL_CARD_COMPONENTS, &comp) < 0) {
+			snd_errornum(CONTROL, "SNDRV_CTL_IOCTL_CARD_COMPONENTS query failed");
+			return -errno;
+		}
+		if (comp.length == 0 || comp.length > sizeof(comp.components)) {
+			snd_error(CONTROL, "SNDRV_CTL_IOCTL_CARD_COMPONENTS unexpected length %u",
+				     comp.length);
+			return -errno;
+		}
+		comp.length = sizeof(comp.components);
+		if (ioctl(hw->fd, SNDRV_CTL_IOCTL_CARD_COMPONENTS, &comp) < 0) {
+			snd_errornum(CONTROL, "SNDRV_CTL_IOCTL_CARD_COMPONENTS read failed");
+			return -errno;
+		}
+		snd_strlcpy((char *)info->components, (char *)comp.components, sizeof(info->components));
+	} else {
+		snd_strlcpy((char *)info->components, (char *)kinfo.components, sizeof(info->components));
+	}
+
 	return 0;
 }
 

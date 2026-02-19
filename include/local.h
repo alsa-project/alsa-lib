@@ -101,7 +101,6 @@
 #define _snd_pcm_sw_params snd_pcm_sw_params
 #define _snd_pcm_status snd_pcm_status
 
-#define _snd_ctl_card_info snd_ctl_card_info
 #define _snd_ctl_elem_id snd_ctl_elem_id
 #define _snd_ctl_elem_list snd_ctl_elem_list
 #define _snd_ctl_elem_info snd_ctl_elem_info
@@ -225,6 +224,20 @@
 #include "seqmid.h"
 #include "seq_midi_event.h"
 #include "list.h"
+
+/* V2 structure - increased components string from 128 bytes to 512 bytes */
+struct _snd_ctl_card_info {
+       int card;                       /* card number */
+       int pad;                        /* reserved for future (was type) */
+       unsigned char id[16];           /* ID of card (user selectable) */
+       unsigned char driver[16];       /* Driver name */
+       unsigned char name[32];         /* Short name of soundcard */
+       unsigned char longname[80];     /* name + info text about soundcard */
+       unsigned char reserved_[16];    /* reserved for future (was ID of mixer) */
+       unsigned char mixername[80];    /* visual mixer identification */
+       unsigned char components[512];  /* card components / fine identification, delimited with one space (AC97 etc..) */
+};
+
 
 struct _snd_async_handler {
 	enum {
