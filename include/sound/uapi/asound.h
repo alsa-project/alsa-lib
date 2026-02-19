@@ -1044,7 +1044,7 @@ struct snd_timer_tread {
  *                                                                          *
  ****************************************************************************/
 
-#define SNDRV_CTL_VERSION		SNDRV_PROTOCOL_VERSION(2, 0, 9)
+#define SNDRV_CTL_VERSION		SNDRV_PROTOCOL_VERSION(2, 0, 10)
 
 struct snd_ctl_card_info {
 	int card;			/* card number */
@@ -1056,6 +1056,16 @@ struct snd_ctl_card_info {
 	unsigned char reserved_[16];	/* reserved for future (was ID of mixer) */
 	unsigned char mixername[80];	/* visual mixer identification */
 	unsigned char components[128];	/* card components / fine identification, delimited with one space (AC97 etc..) */
+};
+
+/*
+ * Card components can exceed the fixed 128 bytes in snd_ctl_card_info.
+ * Use SNDRV_CTL_IOCTL_CARD_COMPONENTS to retrieve the full string.
+ */
+struct snd_ctl_card_components {
+	int card;			/* card number */
+	unsigned int length;		/* returned length of components string for ioctl query */
+	unsigned char components[512];	/* card components / fine identification, delimited with one space (AC97 etc..) */
 };
 
 typedef int __bitwise snd_ctl_elem_type_t;
@@ -1184,6 +1194,7 @@ struct snd_ctl_tlv {
 
 #define SNDRV_CTL_IOCTL_PVERSION	_IOR('U', 0x00, int)
 #define SNDRV_CTL_IOCTL_CARD_INFO	_IOR('U', 0x01, struct snd_ctl_card_info)
+#define SNDRV_CTL_IOCTL_CARD_COMPONENTS	_IOWR('U', 0x02, struct snd_ctl_card_components)
 #define SNDRV_CTL_IOCTL_ELEM_LIST	_IOWR('U', 0x10, struct snd_ctl_elem_list)
 #define SNDRV_CTL_IOCTL_ELEM_INFO	_IOWR('U', 0x11, struct snd_ctl_elem_info)
 #define SNDRV_CTL_IOCTL_ELEM_READ	_IOWR('U', 0x12, struct snd_ctl_elem_value)
