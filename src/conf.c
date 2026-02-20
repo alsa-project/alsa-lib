@@ -4443,7 +4443,7 @@ int snd_config_hook_load_for_all_cards(snd_config_t *root, snd_config_t *config,
 					goto __err;
 				}
 				while (1) {
-					char *s = strchr(driver, '.');
+					const char *s = strchr(driver, '.');
 					if (s == NULL)
 						break;
 					driver = s + 1;

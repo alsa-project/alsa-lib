@@ -826,7 +826,7 @@ static int rval_evali(snd_use_case_mgr_t *uc_mgr, snd_config_t *node, const char
  */
 static inline const char *strchr_with_escape(const char *str, char c)
 {
-	char *s;
+	const char *s;
 
 	while (1) {
 		s = strchr(str, c);

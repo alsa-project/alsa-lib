@@ -424,8 +424,8 @@ int snd_seq_sync_output_queue(snd_seq_t *seq)
  */
 int snd_seq_parse_address(snd_seq_t *seq, snd_seq_addr_t *addr, const char *arg)
 {
-	char *p, *buf;
-	const char *s;
+	char *buf;
+	const char *p, *s;
 	char c;
 	long client, port = 0;
 	int len;
