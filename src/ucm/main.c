@@ -2379,7 +2379,8 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
 			  const char *identifier,
 			  const char **list[])
 {
-	char *str, *str1;
+	char *str;
+	const char *str1;
 	int err, i;
 
 	if (uc_mgr == NULL || identifier == NULL) {
@@ -2712,7 +2713,8 @@ int snd_use_case_geti(snd_use_case_mgr_t *uc_mgr,
 		      const char *identifier,
 		      long *value)
 {
-	char *str, *str1;
+	char *str;
+	const char *str1;
 	int err;
 
 	pthread_mutex_lock(&uc_mgr->mutex);
@@ -3014,7 +3016,8 @@ int snd_use_case_set(snd_use_case_mgr_t *uc_mgr,
 		     const char *identifier,
 		     const char *value)
 {
-	char *str, *str1;
+	char *str;
+	const char *str1;
 	int err = 0;
 
 	snd_trace(UCM, "{API call} set '%s'='%s'", identifier, value);
