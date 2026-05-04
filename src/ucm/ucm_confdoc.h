@@ -738,19 +738,135 @@ Define {
 }
 ~~~
 
-The *DefineRegex* allows substring extraction like:
+The *DefineRegex* allows substring extraction using regular expressions (POSIX extended regex).
+It can match patterns in strings and extract matched substrings into UCM variables.
+
+#### DefineRegex Structure
 
 ~~~{.html}
-DefineRegex.rval {
-  Regex "(hello)|(regex)"
-  String "hello, it's my regex"
+DefineRegex.name {
+  String "text to match against"
+  Regex "regex_pattern"
+  Flags "e"
+  Scheme "first"
 }
 ~~~
 
-The result will be stored to variables *rval1* as *hello* and *rval2* as *regex* (every matched
-substrings are stored to a separate variable with the sequence number postfix.
+Field                | Description
+---------------------|---------------------
+String               | The input string to match the regex pattern against
+Regex                | POSIX extended regular expression pattern
+Flags                | Optional regex flags (see below)
+Scheme               | Matching scheme: "first" (default) or "all" [**Syntax 9**]
 
-Variables can be substituted using the `${var:rval1}` reference for example.
+#### Regex Flags
+
+The Flags field is optional and accepts the following characters:
+
+Flag   | Description
+-------|---------------------
+e      | Extended POSIX regex (REG_EXTENDED) - default recommended
+i      | Case-insensitive matching (REG_ICASE)
+s      | Report only success/fail (REG_NOSUB)
+n      | Newline-sensitive matching (REG_NEWLINE)
+
+Multiple flags can be combined, e.g., "ei" for extended and case-insensitive.
+
+#### Matching Schemes
+
+**Scheme "first"** (default): Matches the pattern once and extracts capture groups
+
+The variables created are:
+- `name` - the full matched string
+- `name1` - first capture group (parentheses in regex)
+- `name2` - second capture group
+- `nameN` - Nth capture group
+
+Example with "first" scheme:
+
+~~~{.html}
+DefineRegex.hwdev {
+  String "hw:2,0"
+  Regex "hw:([0-9]+),([0-9]+)"
+  Flags "e"
+  Scheme "first"
+}
+~~~
+
+This creates variables:
+- `hwdev` = "hw:2,0" (full match)
+- `hwdev1` = "2" (first capture group - card number)
+- `hwdev2` = "0" (second capture group - device number)
+
+**Scheme "all"** [**Syntax 9**]: Matches the pattern multiple times and extracts all matches
+
+The variables created are:
+- `nameN` - Nth full match (N starts at 1)
+- `nameN_1` - Nth match, first capture group
+- `nameN_2` - Nth match, second capture group
+- `nameN_M` - Nth match, Mth capture group
+
+Example with "all" scheme:
+
+~~~{.html}
+DefineRegex.devices {
+  String "device1 device2 device3"
+  Regex "device([0-9]+)"
+  Flags "e"
+  Scheme "all"
+}
+~~~
+
+This creates variables:
+- `devices1` = "device1" (first full match)
+- `devices1_1` = "1" (first match, capture group 1)
+- `devices2` = "device2" (second full match)
+- `devices2_1` = "2" (second match, capture group 1)
+- `devices3` = "device3" (third full match)
+- `devices3_1` = "3" (third match, capture group 1)
+
+#### Practical Examples
+
+Extract USB device vendor and product IDs:
+
+~~~{.html}
+DefineRegex.usbids {
+  String "${sys:bus/usb/devices/1-1/uevent}"
+  Regex "PRODUCT=([0-9a-f]+)/([0-9a-f]+)"
+  Flags "e"
+  Scheme "first"
+}
+# Creates: usbids (full match), usbids1 (vendor), usbids2 (product)
+~~~
+
+Parse multiple key=value pairs:
+
+~~~{.html}
+DefineRegex.params {
+  String "rate=48000,channels=2,format=S16_LE"
+  Regex "([a-z]+)=([^,]+)"
+  Flags "e"
+  Scheme "all"
+}
+# Creates: params1="rate=48000", params1_1="rate", params1_2="48000"
+#          params2="channels=2", params2_1="channels", params2_2="2"
+#          params3="format=S16_LE", params3_1="format", params3_2="S16_LE"
+~~~
+
+Extract text components:
+
+~~~{.html}
+DefineRegex.model {
+  String "USB Audio Device Model XYZ123"
+  Regex "([A-Z]+).*Model ([A-Z0-9]+)"
+  Flags "e"
+  Scheme "first"
+}
+# Creates: model (full match), model1="USB", model2="XYZ123"
+~~~
+
+Variables can be substituted using `${var:name}` reference. For example, to use the extracted
+card number: `PlaybackPCM "hw:${var:hwdev1},0"`
 
 ### Macros
 
