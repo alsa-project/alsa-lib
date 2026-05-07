@@ -488,7 +488,7 @@ static int snd_func_iops(snd_config_t **dst,
 	snd_config_iterator_t i, next;
 	const char *id;
 	char *res = NULL;
-	long result = 0, val;
+	long result = op == 1 ? 1 : 0, val;
 	int idx = 0, err, hit;
 
 	err = snd_config_search(src, "integers", &n);
@@ -531,6 +531,9 @@ static int snd_func_iops(snd_config_t **dst,
 			}
 		}
 	} while (hit);
+	/* Preserve pre-fix behavior for an empty integers list. */
+	if (op == 1 && idx == 0)
+		result = 0;
 	err = snd_config_get_id(src, &id);
 	if (err >= 0)
 		err = snd_config_imake_integer(dst, id, result);
@@ -582,6 +585,9 @@ SND_DLSYM_BUILD_VERSION(snd_func_iadd, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 		integers [ 2 3 2 ]
 	}
 \endcode
+ *
+ * \note An empty \c integers list yields 0 (not the multiplicative
+ *       identity 1) for backward compatibility.
  */
 int snd_func_imul(snd_config_t **dst, snd_config_t *root,
 		  snd_config_t *src, snd_config_t *private_data)
