@@ -983,7 +983,7 @@ next:
 							 bin, size2);
 			break;
 		case SND_SOC_TPLG_TYPE_ENUM:
-			et = tplg_calloc(&heap, sizeof(*mt));
+			et = tplg_calloc(&heap, sizeof(*et));
 			if (et == NULL) {
 				err = -ENOMEM;
 				goto retval;
