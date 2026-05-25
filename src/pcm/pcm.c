@@ -7824,7 +7824,7 @@ int snd_pcm_slave_conf(snd_config_t *root, snd_config_t *conf,
 		int flags;
 		void *ptr;
 		int present;
-	} fields[count];
+	} fields[count > 0 ? count : 1];
 	unsigned int k;
 	snd_config_t *pcm_conf = NULL;
 	int err;
