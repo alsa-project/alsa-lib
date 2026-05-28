@@ -811,11 +811,15 @@ size_t snd_rawmidi_params_get_avail_min(const snd_rawmidi_params_t *params)
 }
 
 /**
- * \brief set no-active-sensing action on snd_rawmidi_close()
+ * \brief control whether an Active Sensing byte is sent on output close
  * \param rawmidi RawMidi handle
  * \param params pointer to snd_rawmidi_params_t structure
- * \param val value: 0 = enable to send the active sensing message, 1 = disable
+ * \param val 0 = send Active Sensing (0xFE) when the output stream is closed,
+ *            1 = suppress it (default)
  * \return 0 on success otherwise a negative error code
+ *
+ * This setting applies to the \b output direction only.  It does not filter
+ * or suppress incoming Active Sensing messages received on an input stream.
  */
 #ifndef DOXYGEN
 int snd_rawmidi_params_set_no_active_sensing(snd_rawmidi_t *rawmidi ATTRIBUTE_UNUSED, snd_rawmidi_params_t *params, int val)
@@ -831,7 +835,7 @@ int snd_rawmidi_params_set_no_active_sensing(snd_rawmidi_t *rawmidi, snd_rawmidi
 /**
  * \brief get no-active-sensing action status
  * \param params pointer to snd_rawmidi_params_t structure
- * \return the current status (0 = enable, 1 = disable the active sensing message)
+ * \return 0 if an Active Sensing byte will be sent on output close, 1 if suppressed
  */
 int snd_rawmidi_params_get_no_active_sensing(const snd_rawmidi_params_t *params)
 {
