@@ -114,6 +114,7 @@ static const char *snd_ilog_interface_names[SND_ILOG_LAST + 1] = {
 	[SND_ILOG_UCM] = "ucm",
 	[SND_ILOG_TOPOLOGY] = "topology",
 	[SND_ILOG_ASERVER] = "aserver",
+	[SND_ILOG_PCM_PARAMS] = "pcmpar",
 };
 
 /**

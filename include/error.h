@@ -68,7 +68,8 @@ const char *snd_strerror(int errnum);
 #define SND_ILOG_UCM		10	/**< UCM API */
 #define SND_ILOG_TOPOLOGY	11	/**< topology API */
 #define SND_ILOG_ASERVER	12	/**< aserver */
-#define SND_ILOG_LAST		SND_ILOG_ASERVER /**< last known value for interface */
+#define SND_ILOG_PCM_PARAMS	13	/**< PCM hw_params operations */
+#define SND_ILOG_LAST		SND_ILOG_PCM_PARAMS /**< last known value for interface */
 
 /**
  * \brief Log handler callback.
