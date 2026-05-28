@@ -1225,11 +1225,12 @@ void snd_pcm_hw_param_dump(const snd_pcm_hw_params_t *params,
 	if (hw_is_mask(var)) {
 		const snd_mask_t *mask = hw_param_mask_c(params, var);
 		if (snd_mask_empty(mask))
-			snd_output_puts(out, " NONE");
+			snd_output_puts(out, "NONE");
 		else if (snd_mask_full(mask))
-			snd_output_puts(out, " ALL");
+			snd_output_puts(out, "ALL");
 		else {
 			unsigned int k;
+			int sep = 0;
 			for (k = 0; k <= SND_MASK_MAX; ++k) {
 				if (snd_mask_test(mask, k)) {
 					const char *s;
@@ -1248,8 +1249,10 @@ void snd_pcm_hw_param_dump(const snd_pcm_hw_params_t *params,
 						s = NULL;
 					}
 					if (s) {
-						snd_output_putc(out, ' ');
+						if (sep)
+							snd_output_putc(out, ' ');
 						snd_output_puts(out, s);
+						sep = 1;
 					}
 				}
 			}
