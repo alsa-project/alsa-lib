@@ -124,7 +124,7 @@ static const char *snd_ilog_interface_names[SND_ILOG_LAST + 1] = {
  */
 const char *snd_lib_log_priority(int prio)
 {
-	if (prio >= 0 && prio <= SND_LOG_TRACE)
+	if (prio >= 0 && prio <= SND_LOG_LAST)
 		return snd_log_prio_names[prio];
 	return NULL;
 }
@@ -136,7 +136,7 @@ const char *snd_lib_log_priority(int prio)
  */
 const char *snd_lib_log_interface(int interface)
 {
-	if (interface >= 0 && interface <= SND_ILOG_TOPOLOGY)
+	if (interface >= 0 && interface <= SND_ILOG_LAST)
 		return snd_ilog_interface_names[interface];
 	return NULL;
 }
