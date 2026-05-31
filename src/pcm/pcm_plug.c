@@ -726,8 +726,8 @@ static int snd_pcm_plug_hw_refine_cprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_
 	err = snd_pcm_hw_param_get_min(params, SND_PCM_HW_PARAM_RATE, &rate_min, NULL);
 	if (err < 0)
 		return err;
-	if (rate_min < 4000) {
-		_snd_pcm_hw_param_set_min(params, SND_PCM_HW_PARAM_RATE, 4000, 0);
+	if (rate_min < SND_PCM_LIMIT_HW_RATE_MIN) {
+		_snd_pcm_hw_param_set_min(params, SND_PCM_HW_PARAM_RATE, SND_PCM_LIMIT_HW_RATE_MIN, 0);
 		if (snd_pcm_hw_param_empty(params, SND_PCM_HW_PARAM_RATE))
 			return -EINVAL;
 	}
@@ -735,8 +735,8 @@ static int snd_pcm_plug_hw_refine_cprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_
 	err = snd_pcm_hw_param_get_max(params, SND_PCM_HW_PARAM_CHANNELS, &channels_max, NULL);
 	if (err < 0)
 		return err;
-	if (channels_max > 10000) {
-		_snd_pcm_hw_param_set_max(params, SND_PCM_HW_PARAM_CHANNELS, 10000, 0);
+	if (channels_max > SND_PCM_LIMIT_HW_CHANNELS_MAX) {
+		_snd_pcm_hw_param_set_max(params, SND_PCM_HW_PARAM_CHANNELS, SND_PCM_LIMIT_HW_CHANNELS_MAX, 0);
 		if (snd_pcm_hw_param_empty(params, SND_PCM_HW_PARAM_CHANNELS))
 			return -EINVAL;
 	}
