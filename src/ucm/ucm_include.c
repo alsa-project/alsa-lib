@@ -90,7 +90,7 @@ static int include_eval_one(snd_use_case_mgr_t *uc_mgr,
 	err = uc_mgr_get_substituted_value(uc_mgr, &s, file);
 	if (err < 0)
 		return err;
-	err = uc_mgr_config_load_file(uc_mgr, s, result);
+	err = uc_mgr_config_load_file(uc_mgr, s, result, opt_bool);
 	if (opt_bool && (err == -ENOENT || err == -EACCES)) {
 		snd_trace(UCM, "optional file '%s' not found or readable", s);
 		err = 0;

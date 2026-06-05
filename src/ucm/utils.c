@@ -357,7 +357,7 @@ const char *uc_mgr_config_dir(int format)
 	return path;
 }
 
-int uc_mgr_config_load_into(int format, const char *file, snd_config_t *top)
+int uc_mgr_config_load_into(int format, const char *file, snd_config_t *top, bool optional)
 {
 	FILE *fp;
 	snd_input_t *in;
@@ -369,7 +369,10 @@ int uc_mgr_config_load_into(int format, const char *file, snd_config_t *top)
 	if (!fp) {
 		err = -errno;
   __err_open:
-		snd_error(UCM, "could not open configuration file %s", file);
+		if (!optional || (err != -ENOENT && err != -EACCES))
+			snd_error(UCM, "could not open configuration file %s", file);
+		else
+			snd_trace(UCM, "could not open configuration file %s", file);
 		return err;
 	}
 	err = snd_input_stdio_attach(&in, fp, 1);
@@ -391,7 +394,7 @@ int uc_mgr_config_load_into(int format, const char *file, snd_config_t *top)
 	return 0;
 }
 
-int uc_mgr_config_load(int format, const char *file, snd_config_t **cfg)
+int uc_mgr_config_load(int format, const char *file, snd_config_t **cfg, bool optional)
 {
 	snd_config_t *top;
 	int err;
@@ -399,7 +402,7 @@ int uc_mgr_config_load(int format, const char *file, snd_config_t **cfg)
 	err = snd_config_top(&top);
 	if (err < 0)
 		return err;
-	err = uc_mgr_config_load_into(format, file, top);
+	err = uc_mgr_config_load_into(format, file, top, optional);
 	if (err < 0) {
 		snd_config_delete(top);
 		return err;

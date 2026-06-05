@@ -66,7 +66,7 @@ static void ucm_filename(char *fn, size_t fn_len, long version,
  *
  */
 int uc_mgr_config_load_file(snd_use_case_mgr_t *uc_mgr,
-			     const char *file, snd_config_t **cfg)
+			     const char *file, snd_config_t **cfg, bool optional)
 {
 	char filename[PATH_MAX];
 	int err;
@@ -74,9 +74,10 @@ int uc_mgr_config_load_file(snd_use_case_mgr_t *uc_mgr,
 	ucm_filename(filename, sizeof(filename), uc_mgr->conf_format,
 		     file[0] == '/' ? NULL : uc_mgr->conf_dir_name,
 		     file);
-	err = uc_mgr_config_load(uc_mgr->conf_format, filename, cfg);
+	err = uc_mgr_config_load(uc_mgr->conf_format, filename, cfg, optional);
 	if (err < 0) {
-		snd_error(UCM, "failed to open file %s: %d", filename, err);
+		if (!optional || (err != -ENOENT && err != -EACCES))
+			snd_error(UCM, "failed to open file %s: %d", filename, err);
 		return err;
 	}
 	return 0;
@@ -825,7 +826,7 @@ static int parse_libconfig1(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 	if (file) {
 		if (substfile) {
 			snd_config_t *cfg;
-			err = uc_mgr_config_load_file(uc_mgr, file, &cfg);
+			err = uc_mgr_config_load_file(uc_mgr, file, &cfg, false);
 			if (err < 0)
 				return err;
 			err = uc_mgr_substitute_tree(uc_mgr, cfg);
@@ -844,7 +845,7 @@ static int parse_libconfig1(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 			ucm_filename(filename, sizeof(filename), uc_mgr->conf_format,
 				     file[0] == '/' ? NULL : uc_mgr->conf_dir_name,
 				     file);
-			err = uc_mgr_config_load_into(uc_mgr->conf_format, filename, uc_mgr->local_config);
+			err = uc_mgr_config_load_into(uc_mgr->conf_format, filename, uc_mgr->local_config, false);
 			if (err < 0)
 				return err;
 		}
@@ -2949,7 +2950,7 @@ static int parse_master_section(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg,
 		if (file) {
 			snd_config_t *cfg;
 			/* load config from file */
-			err = uc_mgr_config_load_file(uc_mgr, file, &cfg);
+			err = uc_mgr_config_load_file(uc_mgr, file, &cfg, false);
 			if (err < 0)
 				goto __error;
 			/* parse the config */
@@ -3017,7 +3018,7 @@ static int parse_master_section(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg,
 				snd_config_t *cfg;
 				const char *fname = vfile ? vfile : file;
 				/* load config from file */
-				err = uc_mgr_config_load_file(uc_mgr, fname, &cfg);
+				err = uc_mgr_config_load_file(uc_mgr, fname, &cfg, false);
 				if (err >= 0) {
 					err = parse_verb_config(uc_mgr, id,
 								vcomment ? vcomment : comment,
@@ -3576,7 +3577,7 @@ static int load_toplevel_config(snd_use_case_mgr_t *uc_mgr,
 		return -ENOENT;
 	}
 
-	err = uc_mgr_config_load(2, filename, &tcfg);
+	err = uc_mgr_config_load(2, filename, &tcfg, false);
 	if (err < 0)
 		goto __error;
 
@@ -3586,7 +3587,7 @@ static int load_toplevel_config(snd_use_case_mgr_t *uc_mgr,
 	if (err < 0)
 		goto __error;
 
-	err = uc_mgr_config_load(uc_mgr->conf_format, filename, cfg);
+	err = uc_mgr_config_load(uc_mgr->conf_format, filename, cfg, false);
 	if (err < 0) {
 		snd_error(UCM, "could not parse configuration for card %s", uc_mgr->card_name);
 		goto __error;
@@ -3792,7 +3793,7 @@ int uc_mgr_scan_master_configs(const char **_list[])
 #endif
 			continue;
 
-		err = uc_mgr_config_load(2, filename, &cfg);
+		err = uc_mgr_config_load(2, filename, &cfg, false);
 		if (err < 0)
 			goto __err;
 		err = snd_config_search(cfg, "Syntax", &c);

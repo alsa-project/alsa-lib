@@ -300,9 +300,9 @@ void uc_mgr_stdout(const char *fmt, ...);
 
 const char *uc_mgr_sysfs_root(void);
 const char *uc_mgr_config_dir(int format);
-int uc_mgr_config_load_into(int format, const char *file, snd_config_t *cfg);
-int uc_mgr_config_load(int format, const char *file, snd_config_t **cfg);
-int uc_mgr_config_load_file(snd_use_case_mgr_t *uc_mgr,  const char *file, snd_config_t **cfg);
+int uc_mgr_config_load_into(int format, const char *file, snd_config_t *cfg, bool optional);
+int uc_mgr_config_load(int format, const char *file, snd_config_t **cfg, bool optional);
+int uc_mgr_config_load_file(snd_use_case_mgr_t *uc_mgr, const char *file, snd_config_t **cfg, bool optional);
 int uc_mgr_import_master_config(snd_use_case_mgr_t *uc_mgr);
 int uc_mgr_scan_master_configs(const char **_list[]);
 
