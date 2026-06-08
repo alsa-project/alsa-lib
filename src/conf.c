@@ -1485,6 +1485,10 @@ static int parse_def(snd_config_t *parent, input_t *input, int skip, int overrid
 			endchr = ']';
 		}
 		c = get_nonwhite(input);
+		if (c < 0) {
+			err = c;
+			goto __end;
+		}
 		if (c != endchr) {
 			if (n)
 				snd_config_delete(n);
