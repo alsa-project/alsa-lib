@@ -372,7 +372,7 @@ int uc_mgr_config_load_into(int format, const char *file, snd_config_t *top, boo
 		if (!optional || (err != -ENOENT && err != -EACCES))
 			snd_error(UCM, "could not open configuration file %s", file);
 		else
-			snd_trace(UCM, "could not open configuration file %s", file);
+			snd_trace(UCM, "optional configuration file %s not found or readable", file);
 		return err;
 	}
 	err = snd_input_stdio_attach(&in, fp, 1);
