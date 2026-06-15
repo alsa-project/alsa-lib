@@ -548,6 +548,74 @@ static void test_for_each(void)
 	ALSA_CHECK(snd_config_delete(c));
 }
 
+static void test_evaluate_integer_functions(void)
+{
+	const char *text =
+		"sum {\n"
+		"	@func iadd\n"
+		"	integers [ 2 3 5 ]\n"
+		"}\n"
+		"product {\n"
+		"	@func imul\n"
+		"	integers [ 2 4 6 ]\n"
+		"}\n"
+		"single {\n"
+		"	@func imul\n"
+		"	integers [ 7 ]\n"
+		"}\n"
+		"with_zero {\n"
+		"	@func imul\n"
+		"	integers [ 2 0 5 ]\n"
+		"}\n"
+		"negative {\n"
+		"	@func imul\n"
+		"	integers [ -2 3 ]\n"
+		"}\n"
+		"empty {\n"
+		"	@func imul\n"
+		"	integers [ ]\n"
+		"}\n"
+		"out_of_order {\n"
+		"	@func imul\n"
+		"	integers {\n"
+		"		2 = 5\n"
+		"		0 = 2\n"
+		"		1 = 3\n"
+		"	}\n"
+		"}\n";
+	struct {
+		const char *id;
+		long result;
+	} *p, expected[] = {
+		{ .id = "sum", .result = 10 },
+		{ .id = "product", .result = 48 },
+		{ .id = "single", .result = 7 },
+		{ .id = "with_zero", .result = 0 },
+		{ .id = "negative", .result = -6 },
+		{ .id = "empty", .result = 0 },
+		{ .id = "out_of_order", .result = 30 },
+		{ .id = NULL, .result = 0 },
+	};
+	snd_config_t *top, *node;
+	snd_input_t *input;
+	long value;
+
+	ALSA_CHECK(snd_input_buffer_open(&input, text, strlen(text)));
+	ALSA_CHECK(snd_config_top(&top));
+	ALSA_CHECK(snd_config_load(top, input));
+	ALSA_CHECK(snd_input_close(input));
+	ALSA_CHECK(snd_config_evaluate(top, top, NULL, NULL));
+
+	for (p = expected; p->id; p++) {
+		ALSA_CHECK(snd_config_search(top, p->id, &node));
+		TEST_CHECK(snd_config_get_type(node) == SND_CONFIG_TYPE_INTEGER);
+		ALSA_CHECK(snd_config_get_integer(node, &value));
+		TEST_CHECK(value == p->result);
+	}
+
+	ALSA_CHECK(snd_config_delete(top));
+}
+
 static int _expand_fcn(snd_config_t **dst, const char *s, void *private_data ATTRIBUTE_UNUSED)
 {
 	if (strcmp(s, "var10") == 0)
@@ -644,6 +712,7 @@ int main(void)
 	test_get_ascii();
 	test_iterators();
 	test_for_each();
+	test_evaluate_integer_functions();
 	test_evaluate_string();
 	test_load_string();
 	return TEST_EXIT_CODE();
