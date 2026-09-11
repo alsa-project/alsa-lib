@@ -1121,12 +1121,17 @@ int snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 	}
 	for (i = 0; i < channels_count; ++i) {
 		snd_pcm_multi_channel_t *bind = &multi->channels[i];
-		assert(sidxs[i] < (int)slaves_count);
-		assert(schannels[i] < schannels_count[sidxs[i]]);
-		bind->slave_idx = sidxs[i];
-		bind->slave_channel = schannels[i];
 		if (sidxs[i] < 0)
 			continue;
+		if ((unsigned int)sidxs[i] >= slaves_count ||
+		    schannels[i] >= schannels_count[sidxs[i]]) {
+			free(multi->slaves);
+			free(multi->channels);
+			free(multi);
+			return -EINVAL;
+		}
+		bind->slave_idx = sidxs[i];
+		bind->slave_channel = schannels[i];
 	}
 	multi->channels_count = channels_count;
 
