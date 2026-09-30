@@ -523,6 +523,20 @@ static int execute_cset(snd_ctl_t *ctl, const char *cset, unsigned int type)
 	return err;
 }
 
+static bool check_realpath(const char *path, const char *target)
+{
+	char *resolved = realpath(path, NULL);
+
+	if (!resolved)
+		return false;
+	if (strncmp(resolved, target, strlen(target)) != 0) {
+		free(resolved);
+		return false;
+	}
+	free(resolved);
+	return true;
+}
+
 static int execute_sysw(const char *sysw)
 {
 	char path[PATH_MAX];
@@ -570,6 +584,12 @@ static int execute_sysw(const char *sysw)
 	}
 	snprintf(path, sizeof(path), "%s/%s", e, s);
 
+	if (!check_realpath(path, e)) {
+		free(s);
+		snd_error(UCM, "sysw path escapes sysfs root: '%s'", path);
+		return -EINVAL;
+	}
+
 	fd = open(path, O_WRONLY|O_CLOEXEC);
 	if (fd < 0) {
 		free(s);
@@ -603,6 +623,7 @@ static int execute_cfgsave(snd_use_case_mgr_t *uc_mgr, const char *filename)
 	snd_config_t *config = uc_mgr->local_config;
 	char *file, *root;
 	snd_output_t *out;
+	const char *runtime;
 	bool with_root = false;
 	int err = 0;
 
@@ -625,6 +646,13 @@ static int execute_cfgsave(snd_use_case_mgr_t *uc_mgr, const char *filename)
 		}
 	}
 
+	runtime = getenv("XDG_RUNTIME_DIR");
+	if (!runtime)
+		runtime = "/tmp";
+	if (!check_realpath(file, runtime)) {
+		snd_error(UCM, "cfg-save path escapes runtime dir: '%s'", file);
+		return -EINVAL;
+	}
 	err = snd_output_stdio_open(&out, file, "w+");
 	if (err < 0) {
 		snd_error(UCM, "unable to open file '%s': %s", file, snd_strerror(err));
