@@ -1315,7 +1315,12 @@ next:
 	}
 	INIT_LIST_HEAD(&heap);
 	mc = bin;
-	size2 = mc->size + mc->priv.size;
+	if (mc->priv.size > size || mc->size > size - mc->priv.size) {
+		snd_error(TOPOLOGY, "mixer: element sizes overflow (%d, priv %d)",
+				    mc->size, mc->priv.size);
+		return -EINVAL;
+	}
+	size2 = (size_t)mc->size + (size_t)mc->priv.size;
 	if (size2 > size) {
 		snd_error(TOPOLOGY, "mixer: wrong element size (%d, priv %d)",
 				    mc->size, mc->priv.size);
@@ -1419,7 +1424,12 @@ next:
 	}
 	INIT_LIST_HEAD(&heap);
 	ec = bin;
-	size2 = ec->size + ec->priv.size;
+	if (ec->priv.size > size || ec->size > size - ec->priv.size) {
+		snd_error(TOPOLOGY, "enum: element sizes overflow (%d, priv %d)",
+				    ec->size, ec->priv.size);
+		return -EINVAL;
+	}
+	size2 = (size_t)ec->size + (size_t)ec->priv.size;
 	if (size2 > size) {
 		snd_error(TOPOLOGY, "enum: wrong element size (%d, priv %d)",
 				    ec->size, ec->priv.size);
@@ -1510,7 +1520,12 @@ next:
 		return -EINVAL;
 	}
 	bc = bin;
-	size2 = bc->size + bc->priv.size;
+	if (bc->priv.size > size || bc->size > size - bc->priv.size) {
+		snd_error(TOPOLOGY, "bytes: element sizes overflow (%d, priv %d)",
+				    bc->size, bc->priv.size);
+		return -EINVAL;
+	}
+	size2 = (size_t)bc->size + (size_t)bc->priv.size;
 	if (size2 > size) {
 		snd_error(TOPOLOGY, "bytes: wrong element size (%d, priv %d)",
 				    bc->size, bc->priv.size);
