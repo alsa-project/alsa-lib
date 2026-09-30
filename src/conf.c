@@ -643,8 +643,11 @@ static int input_stdio_open(snd_input_t **inputp, const char *file,
 	char full_path[PATH_MAX];
 	int err;
 
-	if (file[0] == '/')
+	if (file[0] == '/') {
+		if (strstr(file, "/../"))
+			return -ENOENT;
 		return snd_input_stdio_open(inputp, file, "r");
+	}
 
 	/* search file in user specified include paths. These directories
 	 * are subdirectories of /usr/share/alsa.
