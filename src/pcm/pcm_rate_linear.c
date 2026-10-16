@@ -28,7 +28,7 @@
 #include <inttypes.h>
 
 
-/* LINEAR_DIV needs to be large enough to handle resampling from 768000 -> 8000 */
+/* LINEAR_DIV needs to be large enough to handle resampling from SND_PCM_LIMIT_SW_RATE_MAX to SND_PCM_LIMIT_SW_RATE_MIN, like 768000 -> 8000 */
 #define LINEAR_DIV_SHIFT 19
 #define LINEAR_DIV (1<<LINEAR_DIV_SHIFT)
 
@@ -408,8 +408,8 @@ static void linear_close(void *obj)
 static int get_supported_rates(ATTRIBUTE_UNUSED void *rate,
 			       unsigned int *rate_min, unsigned int *rate_max)
 {
-	*rate_min = SND_PCM_PLUGIN_RATE_MIN;
-	*rate_max = SND_PCM_PLUGIN_RATE_MAX;
+	*rate_min = SND_PCM_LIMIT_SW_RATE_MIN;
+	*rate_max = SND_PCM_LIMIT_SW_RATE_MAX;
 	return 0;
 }
 

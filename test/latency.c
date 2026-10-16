@@ -630,7 +630,7 @@ int main(int argc, char *argv[])
 			break;
 		case 'r':
 			err = atoi(optarg);
-			rate = err >= 4000 && err < 200000 ? err : 44100;
+			rate = err >= SND_PCM_LIMIT_SW_RATE_MIN && err < SND_PCM_LIMIT_SW_RATE_MAX ? err : 44100;
 			break;
 		case 'B':
 			err = atoi(optarg);
