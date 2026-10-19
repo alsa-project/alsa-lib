@@ -809,7 +809,14 @@ static int get_char_skip_comments(input_t *input)
 
 			if (!strncmp(str, "searchdir:", 10)) {
 				/* directory to search included files */
-				char *tmp = _snd_config_path(str + 10);
+				char *tmp;
+				err = snd_relative_path_check(str + 10);
+				if (err < 0) {
+					snd_error(CONFIG, "Search dir path '%s' escapes the configuration directory", str + 10);
+					free(str);
+					return err;
+				}
+				tmp = _snd_config_path(str + 10);
 				free(str);
 				if (tmp == NULL)
 					return -ENOMEM;
@@ -835,7 +842,14 @@ static int get_char_skip_comments(input_t *input)
 
 			if (!strncmp(str, "confdir:", 8)) {
 				/* file in the specified directory */
-				char *tmp = _snd_config_path(str + 8);
+				char *tmp;
+				err = snd_relative_path_check(str + 8);
+				if (err < 0) {
+					snd_error(CONFIG, "Config dir path '%s' escapes the configuration directory", str + 8);
+					free(str);
+					return err;
+				}
+				tmp = _snd_config_path(str + 8);
 				free(str);
 				if (tmp == NULL)
 					return -ENOMEM;

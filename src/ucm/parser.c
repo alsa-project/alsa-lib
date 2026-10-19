@@ -46,13 +46,19 @@ static int parse_sequence(snd_use_case_mgr_t *uc_mgr,
 /*
  * compose the absolute ucm filename
  */
-static void ucm_filename(char *fn, size_t fn_len, long version,
-			  const char *dir, const char *file)
+static int ucm_filename(char *fn, size_t fn_len, long version,
+			 const char *dir, const char *file)
 {
 	const char *env = getenv(version > 1 ? ALSA_CONFIG_UCM2_VAR : ALSA_CONFIG_UCM_VAR);
 
 	if (file[0] == '/')
 		file++;
+	if (snd_relative_path_check(file) < 0 ||
+	    (dir && snd_relative_path_check(dir) < 0)) {
+		snd_error(UCM, "config file path '%s%s%s' escapes the configuration directory",
+			  dir ?: "", dir ? "/" : "", file);
+		return -EINVAL;
+	}
 	if (env == NULL)
 		snprintf(fn, fn_len, "%s/%s/%s%s%s",
 			 snd_config_topdir(), version > 1 ? "ucm2" : "ucm",
@@ -60,6 +66,7 @@ static void ucm_filename(char *fn, size_t fn_len, long version,
 	else
 		snprintf(fn, fn_len, "%s/%s%s%s",
 			 env, dir ?: "", dir ? "/" : "", file);
+	return 0;
 }
 
 /*
@@ -71,9 +78,11 @@ int uc_mgr_config_load_file(snd_use_case_mgr_t *uc_mgr,
 	char filename[PATH_MAX];
 	int err;
 
-	ucm_filename(filename, sizeof(filename), uc_mgr->conf_format,
-		     file[0] == '/' ? NULL : uc_mgr->conf_dir_name,
-		     file);
+	err = ucm_filename(filename, sizeof(filename), uc_mgr->conf_format,
+			   file[0] == '/' ? NULL : uc_mgr->conf_dir_name,
+			   file);
+	if (err < 0)
+		return err;
 	err = uc_mgr_config_load(uc_mgr->conf_format, filename, cfg, optional);
 	if (err < 0) {
 		if (!optional || (err != -ENOENT && err != -EACCES))
@@ -842,9 +851,11 @@ static int parse_libconfig1(snd_use_case_mgr_t *uc_mgr, snd_config_t *cfg)
 		} else {
 			char filename[PATH_MAX];
 
-			ucm_filename(filename, sizeof(filename), uc_mgr->conf_format,
-				     file[0] == '/' ? NULL : uc_mgr->conf_dir_name,
-				     file);
+			err = ucm_filename(filename, sizeof(filename), uc_mgr->conf_format,
+					   file[0] == '/' ? NULL : uc_mgr->conf_dir_name,
+					   file);
+			if (err < 0)
+				return err;
 			err = uc_mgr_config_load_into(uc_mgr->conf_format, filename, uc_mgr->local_config, false);
 			if (err < 0)
 				return err;
@@ -3438,7 +3449,8 @@ static int parse_toplevel_path(snd_use_case_mgr_t *uc_mgr,
 			goto __next;
 		}
 
-		ucm_filename(fn, sizeof(fn), version, dir, file);
+		if (ucm_filename(fn, sizeof(fn), version, dir, file) < 0)
+			goto __next;
 		snd_trace(UCM, "probing configuration file '%s'", fn);
 		if (access(fn, R_OK) == 0 && lstat64(fn, &st) == 0) {
 			if (S_ISLNK(st.st_mode)) {
@@ -3785,7 +3797,8 @@ int uc_mgr_scan_master_configs(const char **_list[])
 		d_name = namelist[i]->d_name;
 
 		snprintf(fn, sizeof(fn), "%s.conf", d_name);
-		ucm_filename(filename, sizeof(filename), 2, d_name, fn);
+		if (ucm_filename(filename, sizeof(filename), 2, d_name, fn) < 0)
+			continue;
 #ifdef HAVE_EACCESS
 		if (eaccess(filename, R_OK))
 #else
