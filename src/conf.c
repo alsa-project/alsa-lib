@@ -646,6 +646,12 @@ static int input_stdio_open(snd_input_t **inputp, const char *file,
 	if (file[0] == '/')
 		return snd_input_stdio_open(inputp, file, "r");
 
+	err = snd_relative_path_check(file);
+	if (err < 0) {
+		snd_error(CONFIG, "Include file path '%s' escapes the include directory", file);
+		return err;
+	}
+
 	/* search file in user specified include paths. These directories
 	 * are subdirectories of /usr/share/alsa.
 	 */

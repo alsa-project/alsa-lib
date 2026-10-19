@@ -233,4 +233,5 @@ ALSA_1.2.17 {
   global:
 
     @SYMBOL_PREFIX@snd_config_get_llong;
+    @SYMBOL_PREFIX@snd_relative_path_check;
 } ALSA_1.2.15;
