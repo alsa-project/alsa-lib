@@ -732,6 +732,10 @@ void snd_pcm_info_set_stream(snd_pcm_info_t *obj, snd_pcm_stream_t val);
  * \{
  */
 
+#define SND_PCM_LIMIT_HW_RATE_MIN 4000		/**< minimal allowed rate for hardware */
+#define SND_PCM_LIMIT_HW_RATE_MAX 768000	/**< maximal allowed rate for hardware */
+#define SND_PCM_LIMIT_HW_CHANNELS_MAX 512	/**< maximal number of channels for hardware */
+
 int snd_pcm_hw_params_any(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 
 int snd_pcm_hw_params_can_mmap_sample_resolution(const snd_pcm_hw_params_t *params);
@@ -924,6 +928,10 @@ int snd_pcm_hw_params_get_min_align(const snd_pcm_hw_params_t *params, snd_pcm_u
  * See the \ref pcm page for more details.
  * \{
  */
+
+#define SND_PCM_LIMIT_SW_RATE_MIN SND_PCM_LIMIT_HW_RATE_MIN	/**< minimal allowed rate for software, should be not greater than minimal rate allowed by supported hardware */
+#define SND_PCM_LIMIT_SW_RATE_MAX SND_PCM_LIMIT_HW_RATE_MAX	/**< maximal allowed rate for software, should be not less than maximal rate allowed by supported hardware */
+#define SND_PCM_LIMIT_SW_CHANNELS_MAX 10000	/**< maximal number of channels for software, should be not less than maximal number of channels supported by hardware */
 
 size_t snd_pcm_sw_params_sizeof(void);
 /** \hideinitializer
