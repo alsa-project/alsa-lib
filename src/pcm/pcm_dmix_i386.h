@@ -149,7 +149,7 @@ static void MIX_AREAS_16(unsigned int size,
 #ifdef BOUNDED_EBX
 		"\tmovl %[old_ebx], %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
 #endif
-		: [size] "+&rm" (size)
+		: [size] "+m" (size)
 #ifdef BOUNDED_EBX
 		  , [old_ebx] "=m" (old_ebx)
 #endif
@@ -248,7 +248,7 @@ static void MIX_AREAS_16_MMX(unsigned int size,
 #ifdef BOUNDED_EBX
 		"\tmovl %[old_ebx], %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
 #endif
-		: [size] "+&rm" (size)
+		: [size] "+m" (size)
 #ifdef BOUNDED_EBX
 		  , [old_ebx] "=m" (old_ebx)
 #endif
@@ -376,7 +376,7 @@ static void MIX_AREAS_32(unsigned int size,
 #ifdef BOUNDED_EBX
 		"\tmovl %[old_ebx], %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
 #endif
-		: [size] "+&rm" (size)
+		: [size] "+m" (size)
 #ifdef BOUNDED_EBX
 		  , [old_ebx] "=m" (old_ebx)
 #endif
@@ -491,7 +491,7 @@ static void MIX_AREAS_24(unsigned int size,
 #ifdef BOUNDED_EBX
 		"\tmovl %[old_ebx], %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
 #endif
-		: [size] "+&rm" (size)
+		: [size] "+m" (size)
 #ifdef BOUNDED_EBX
 		  , [old_ebx] "=m" (old_ebx)
 #endif
@@ -599,7 +599,7 @@ static void MIX_AREAS_24_CMOV(unsigned int size,
 #ifdef BOUNDED_EBX
 		"\tmovl %[old_ebx], %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
 #endif
-		: [size] "+&rm" (size)
+		: [size] "+m" (size)
 #ifdef BOUNDED_EBX
 		  , [old_ebx] "=m" (old_ebx)
 #endif
