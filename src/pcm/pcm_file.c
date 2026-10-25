@@ -102,8 +102,18 @@ typedef struct {
 
 static ssize_t safe_write(int fd, const void *buf, size_t len)
 {
-	while (1) {
-		ssize_t r = write(fd, buf, len);
+	const char *ptr = buf;
+	size_t left = len;
+
+	/*
+	 * write(2) to a pipe/FIFO is allowed to return fewer bytes than
+	 * requested, e.g. when a blocking write is interrupted by a
+	 * signal after part of the data has already been transferred.
+	 * Keep retrying until everything is written (or a real error
+	 * occurs), otherwise the caller silently drops the remainder.
+	 */
+	while (left > 0) {
+		ssize_t r = write(fd, ptr, left);
 		if (r < 0) {
 			if (errno == EINTR)
 				continue;
@@ -111,8 +121,12 @@ static ssize_t safe_write(int fd, const void *buf, size_t len)
 				return -EIO;
 			return -errno;
 		}
-		return r;
+		if (r == 0)
+			break;
+		ptr += r;
+		left -= r;
 	}
+	return len - left;
 }
 
 static int snd_pcm_file_append_value(char **string_p, char **index_ch_p,
