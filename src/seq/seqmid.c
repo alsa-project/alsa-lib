@@ -421,78 +421,165 @@ int snd_seq_sync_output_queue(snd_seq_t *seq)
  * That is, if a client named "Foobar XXL Master 2012" with number 128 is available,
  * then parsing "Foobar" will return the address 128:0 if no other client is
  * an exact match.
+ *
+ * Will also accept port names instead of port id numbers.
+ * Requested port name will match substring of existing port name unless
+ * another port name is an exact match.
  */
 int snd_seq_parse_address(snd_seq_t *seq, snd_seq_addr_t *addr, const char *arg)
 {
-	char *buf;
-	const char *p, *s;
-	char c;
-	long client, port = 0;
-	int len;
+	const char *arg_str, *client_str, *port_str;	/* pointers into arg */
+	int client_len, port_len;			/* string lengths */
+	char *client_buf, *port_buf;		/* null-terminated copies */
+	long client, port;					/* parsed values */
+	snd_seq_client_info_t cinfo;
+	snd_seq_port_info_t pinfo;
+	int port_num;						/* temporary holder */
 
-	assert(addr && arg);
+	arg_str = arg;
+	client_str = 0;
+	port_str = 0;
+	client_len = 0;
+	port_len = 0;
 
-	c = *arg;
-	if (c == '"' || c == '\'') {
-		s = ++arg;
-		while (*s && *s != c) s++;
-		len = s - arg;
-		if (*s)
-			s++;
-		if (*s) {
-			if (*s != '.' && *s != ':')
-				return -EINVAL;
-			if ((port = atoi(s + 1)) < 0)
-				return -EINVAL;
-		}
-	} else {
-		if ((p = strpbrk(arg, ":.")) != NULL) {
-			if ((port = atoi(p + 1)) < 0)
-				return -EINVAL;
-			len = (int)(p - arg); /* length of client name */
-		} else {
-			len = strlen(arg);
+	/* find strings in input */
+	for (arg_str = arg ; *arg_str != '\0' ; ++arg_str) {
+		switch (*arg_str) {
+			case '"':
+			case '\'':
+			case ':':
+			case '.':
+                /* end of client strings, starts found earlier */
+                if (client_str && !client_len)
+                    client_len = arg_str - client_str;
+                else if (port_str && !port_len)
+                    port_len = arg_str - port_str;
+			break;
+
+			default:	/* normal character, include in found strings */
+				if (client_len) {			/* already have client */
+					if (!port_str)			/* don't have port yet */
+						port_str = arg_str;	/* start of port */
+				}
+				else if (!client_str)		/* don't have client yet */
+					client_str = arg_str;	/* start of client */
+			break;
 		}
 	}
-	if (len == 0)
-		return -EINVAL;
-	buf = alloca(len + 1);
-	strncpy(buf, arg, len);
-	buf[len] = '\0';
-	addr->port = port;
-	if (safe_strtol(buf, &client) == 0) {
-		addr->client = client;
-	} else {
-		/* convert from the name */
-		snd_seq_client_info_t cinfo;
 
-		if (! seq)
+	if (client_str && !client_len)			/* didn't end client with [:.'"] */
+		client_len = arg_str - client_str;	/* end client now */
+
+	if (port_str && !port_len)				/* didn't end port with [:.'"] */
+		port_len = arg_str - port_str;		/* end port now */
+
+	if (!client_str) {  /* client required, "[.:]port" or "[:.'\"]*" invalid */
+		return -EINVAL;
+	}
+
+	/* make null-terminated string copy */
+	client_buf = alloca(client_len + 1);
+	strncpy(client_buf, client_str, client_len);
+	client_buf[client_len] = '\0';
+
+	/* default return value if not specified via numeric or string */
+	addr->port = 0;
+
+	if (safe_strtol(client_buf, &client) == 0) {
+		/* numeric client, successfully parsed, but check limits */
+		if (client < 0 || client >= (1 << (sizeof(addr->client) * 8)))
 			return -EINVAL;
-		if (len <= 0)
+		addr->client = client;
+	}
+	else {
+		if (!seq)  /* must have to search clients by name */
 			return -EINVAL;
 		client = -1;
 		cinfo.client = -1;
+		/* iterate through clients, finding names */
 		while (snd_seq_query_next_client(seq, &cinfo) >= 0) {
-			if (!strncmp(arg, cinfo.name, len)) {
-				if (strlen(cinfo.name) == (size_t)len) {
-					/* exact match */
-					if (cinfo.client < 0)
+			if (strncmp(client_buf, cinfo.name, client_len) == 0) {
+				/* input client matches at least beginning found client */
+				if (strlen(cinfo.name) == (size_t)client_len) {
+				    /* exact match */
+				    if (cinfo.client < 0) {  /* pathological case? */
 						return -EIO;
-					addr->client = cinfo.client;
-					return 0;
+				    }
+					client = cinfo.client;	/* will set addr->client below */
+					break;  /* exact match overrides any partial matches */
 				}
 				if (client < 0)
 					client = cinfo.client;
 			}
 		}
-		if (client >= 0) {
-			/* prefix match */
+		if (client >= 0)
+			/*
+			 * Either exact match, or last of possible several partial matches.
+			 * Would be more intuitive to take first, but keeping result
+			 * same as previous version of this function.
+             */
 			addr->client = client;
-			return 0;
-		}
-		return -ENOENT; /* not found */
+		else
+		    return -ENOENT; /* not found */
 	}
-	return 0;
+
+	if (!port_str)
+	    /* no port specified, use client with port 0 (already set above)  */
+	    return 0;
+
+	/* make null-terminated string copy */
+	port_buf = alloca(port_len + 1);
+	strncpy(port_buf, port_str, port_len);
+	port_buf[port_len] = '\0';
+
+	if (safe_strtol(port_buf, &port) == 0) {
+		/* numeric port, successfully parsed, but check limits */
+		if (port < 0 || port >= (1 << (sizeof(addr->port) * 8)))
+			return -EINVAL;
+		addr->port = port;
+		return 0;
+	}
+
+	/* Find numeric port from port string
+	 * First get client info -- either didn't above because numeric client,
+	 * or fell off end of snd_seq_query_next_client() because looking for
+	 * exact string match even if already found prefix match.
+	 */
+	if (!seq)  /* might not have checked above if was numeric client */
+		return -EINVAL;
+
+	port_num   = -1;
+	snd_seq_port_info_set_client(&pinfo, client);
+	snd_seq_port_info_set_port(&pinfo, -1);
+	/* iterate through ports, finding names */
+	while (snd_seq_query_next_port(seq, &pinfo) >= 0) {
+		const char	*port_name;
+		int port_id;
+		port_name = snd_seq_port_info_get_name(&pinfo);
+		port_id = snd_seq_port_info_get_port(&pinfo);
+	    if (strcmp(port_name, port_buf) == 0) {
+		    /* exact match */
+		    addr->port = port_id;
+		    return 0;
+	    }
+	    if (strstr(port_name, port_buf) != NULL) {
+			/* found as substring */
+			port_num = port_id;
+	    }
+	}
+
+	if (port_num >= 0) {
+	    /*
+		 * Found partial match, last one if several.
+		 * Same non-intuitive policy as client match, above.
+		 */
+	    addr->port = port_num;
+	    return 0;
+	}
+
+	/* port name not found */
+	addr->port = 0; /* old fallback, caller can use if ignoring -EINVAL */
+	return -EINVAL;
 }
 
 /**
