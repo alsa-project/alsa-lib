@@ -960,6 +960,11 @@ next:
 
 	for (index = 0; index < w->num_kcontrols; index++) {
 		chdr = bin;
+		if (size < sizeof(*chdr)) {
+			snd_error(TOPOLOGY, "dapm widget: truncated kcontrol header");
+			err = -EINVAL;
+			goto retval;
+		}
 		switch (chdr->type) {
 		case SND_SOC_TPLG_TYPE_MIXER:
 			mt = tplg_calloc(&heap, sizeof(*mt));
@@ -970,7 +975,12 @@ next:
 			wt->ctl[index] = (void *)mt;
 			wt->num_ctls++;
 			mc = bin;
-			size2 = mc->size + mc->priv.size;
+			if (size < sizeof(*mc)) {
+				snd_error(TOPOLOGY, "dapm widget: truncated mixer");
+				err = -EINVAL;
+				goto retval;
+			}
+			size2 = (size_t)mc->size + (size_t)mc->priv.size;
 			tplg_log(tplg, 'D', pos, "kcontrol mixer size %zd", size2);
 			if (size2 > size) {
 				snd_error(TOPOLOGY, "dapm widget: small mixer size %d",
@@ -991,7 +1001,12 @@ next:
 			wt->ctl[index] = (void *)et;
 			wt->num_ctls++;
 			ec = bin;
-			size2 = ec->size + ec->priv.size;
+			if (size < sizeof(*ec)) {
+				snd_error(TOPOLOGY, "dapm widget: truncated enum");
+				err = -EINVAL;
+				goto retval;
+			}
+			size2 = (size_t)ec->size + (size_t)ec->priv.size;
 			tplg_log(tplg, 'D', pos, "kcontrol enum size %zd", size2);
 			if (size2 > size) {
 				snd_error(TOPOLOGY, "dapm widget: small enum size %d",
@@ -1011,7 +1026,12 @@ next:
 			wt->ctl[index] = (void *)bt;
 			wt->num_ctls++;
 			bc = bin;
-			size2 = bc->size + bc->priv.size;
+			if (size < sizeof(*bc)) {
+				snd_error(TOPOLOGY, "dapm widget: truncated bytes");
+				err = -EINVAL;
+				goto retval;
+			}
+			size2 = (size_t)bc->size + (size_t)bc->priv.size;
 			tplg_log(tplg, 'D', pos, "kcontrol bytes size %zd", size2);
 			if (size2 > size) {
 				snd_error(TOPOLOGY, "dapm widget: small bytes size %d",
@@ -1069,12 +1089,14 @@ int tplg_decode_dapm_graph(snd_tplg_t *tplg,
 		return err;
 
 	asize = sizeof(*gt) + (size / sizeof(*g)) * sizeof(*ge);
-	gt = alloca(asize);
-	memset(gt, 0, asize);
+	gt = calloc(1, asize);
+	if (gt == NULL)
+		return -ENOMEM;
 	for (ge = gt->elem; size > 0; ge++) {
 		g = bin;
 		if (size < sizeof(*g)) {
 			snd_error(TOPOLOGY, "dapm graph: small size %d", size);
+			free(gt);
 			return -EINVAL;
 		}
 		ge->src = g->source;
@@ -1089,5 +1111,7 @@ int tplg_decode_dapm_graph(snd_tplg_t *tplg,
 	}
 
 	t.graph = gt;
-	return snd_tplg_add_object(tplg, &t);
+	err = snd_tplg_add_object(tplg, &t);
+	free(gt);
+	return err;
 }

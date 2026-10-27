@@ -81,7 +81,7 @@ int snd_tplg_decode(snd_tplg_t *tplg, void *bin, size_t size, int dflags)
 			return -EINVAL;
 		}
 
-		if (size - pos < hdr->size + hdr->payload_size) {
+		if ((uint64_t)hdr->size + (uint64_t)hdr->payload_size > (uint64_t)(size - pos)) {
 			snd_error(TOPOLOGY, "incomplete payload data to decode");
 			return -EINVAL;
 		}
@@ -116,6 +116,6 @@ int snd_tplg_decode(snd_tplg_t *tplg, void *bin, size_t size, int dflags)
 		err = tptr->decod(tplg, pos, hdr, b + hdr->size, hdr->payload_size);
 		if (err < 0)
 			return err;
-		b += hdr->size + hdr->payload_size;
+		b += (size_t)hdr->size + (size_t)hdr->payload_size;
 	}
 }
