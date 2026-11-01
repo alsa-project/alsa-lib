@@ -244,7 +244,8 @@ static int uc_mgr_ctl_add(snd_use_case_mgr_t *uc_mgr,
 			goto __nomem;
 	}
 
-	list_add_tail(&(*ctl_list)->list, &uc_mgr->ctl_list);
+	if (cl)
+		list_add_tail(&(*ctl_list)->list, &uc_mgr->ctl_list);
 	return 0;
 
 __nomem:
