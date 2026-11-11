@@ -340,6 +340,49 @@ static snd_pcm_sframes_t snd_pcm_mmap_emul_avail_update(snd_pcm_t *pcm)
 	return snd_pcm_mmap_avail(pcm);
 }
 
+/*
+ * In mmap_emul mode the appl_ptr of this PCM and of the slave are separate.
+ * A playback commit forwards our appl_ptr even when the write to the slave
+ * comes up short, for example after an xrun. Report our own appl_ptr so
+ * that plugins above us see the same value they track, and count the
+ * frames not yet written to the slave as queued.
+ */
+static int snd_pcm_mmap_emul_status(snd_pcm_t *pcm, snd_pcm_status_t *status)
+{
+	mmap_emul_t *map = pcm->private_data;
+	snd_pcm_t *slave = map->gen.slave;
+	snd_pcm_sframes_t pending;
+	int err;
+
+	err = snd_pcm_status(slave, status);
+	if (err < 0)
+		return err;
+	if (!map->mmap_emul || pcm->stream != SND_PCM_STREAM_PLAYBACK)
+		return 0;
+
+	pending = pcm_frame_diff(map->appl_ptr, status->appl_ptr,
+				 pcm->boundary);
+	/*
+	 * Our appl_ptr is never behind the slave one or more than a buffer
+	 * ahead of it. snd_pcm_reset() on a running stream breaks that,
+	 * because the slave keeps appl_ptr at hw_ptr % buffer_size while
+	 * snd_pcm_mmap_emul_reset() sets ours to 0. Count nothing then.
+	 */
+	if (pending > (snd_pcm_sframes_t)pcm->buffer_size)
+		pending = 0;
+	status->appl_ptr = map->appl_ptr;
+	/* The kernel status reports delay only when running or draining. */
+	if (status->state == SND_PCM_STATE_RUNNING ||
+	    status->state == SND_PCM_STATE_DRAINING)
+		status->delay += pending;
+	/*
+	 * We never commit more than our own avail, which is the slave avail
+	 * less pending, so the slave avail is at least pending.
+	 */
+	status->avail -= pending;
+	return 0;
+}
+
 static void snd_pcm_mmap_emul_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	mmap_emul_t *map = pcm->private_data;
@@ -372,7 +415,7 @@ static const snd_pcm_ops_t snd_pcm_mmap_emul_ops = {
 };
 
 static const snd_pcm_fast_ops_t snd_pcm_mmap_emul_fast_ops = {
-	.status = snd_pcm_generic_status,
+	.status = snd_pcm_mmap_emul_status,
 	.state = snd_pcm_generic_state,
 	.hwsync = snd_pcm_generic_hwsync,
 	.delay = snd_pcm_generic_delay,
