@@ -815,11 +815,11 @@ static snd_pcm_sframes_t snd_pcm_dmix_mmap_commit(snd_pcm_t *pcm,
 	snd_pcm_mmap_appl_forward(pcm, size);
 	if (dmix->state == STATE_RUN_PENDING) {
 		if ((err = snd_pcm_dmix_start_timer(pcm, dmix)) < 0)
-			return err;
+			goto _undo;
 	} else if (dmix->state == SND_PCM_STATE_RUNNING ||
 		   dmix->state == SND_PCM_STATE_DRAINING) {
 		if ((err = snd_pcm_dmix_sync_ptr(pcm)) < 0)
-			return err;
+			goto _undo;
 	}
 	if (dmix->state == SND_PCM_STATE_RUNNING ||
 	    dmix->state == SND_PCM_STATE_DRAINING) {
@@ -831,6 +831,13 @@ static snd_pcm_sframes_t snd_pcm_dmix_mmap_commit(snd_pcm_t *pcm,
 			snd_pcm_direct_clear_timer_queue(dmix);
 	}
 	return size;
+
+ _undo:
+	/* nothing was mixed, so the caller must not see these frames as
+	 * committed. A plugin above us keeps its appl_ptr in step with ours.
+	 */
+	snd_pcm_mmap_appl_backward(pcm, size);
+	return err;
 }
 
 static snd_pcm_sframes_t snd_pcm_dmix_avail_update(snd_pcm_t *pcm)
