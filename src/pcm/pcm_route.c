@@ -1098,6 +1098,11 @@ static int _snd_pcm_route_determine_ttable(snd_config_t *tt,
 		}
 		if (cchannel + 1 > csize)
 			csize = cchannel + 1;
+		if (csize > 1024) {
+			SNDERR("route: client channel %d exceeds max (1024)",
+			       cchannel);
+			return -EINVAL;
+		}
 		if (snd_config_get_type(in) != SND_CONFIG_TYPE_COMPOUND)
 			return -EINVAL;
 		snd_config_for_each(j, jnext, in) {
@@ -1113,6 +1118,11 @@ static int _snd_pcm_route_determine_ttable(snd_config_t *tt,
 			}
 			if (schannel + 1 > ssize)
 				ssize = schannel + 1;
+			if (ssize > 1024) {
+				SNDERR("route: slave channel %d exceeds max (1024)",
+				       schannel);
+				return -EINVAL;
+			}
 		}
 	}
 	if (csize == 0 || ssize == 0) {

@@ -175,6 +175,11 @@ static int tplg_parse_data_file(snd_config_t *cfg, struct tplg_elem *elem)
 	if (snd_config_get_string(cfg, &value) < 0)
 		return -EINVAL;
 
+	if (snd_relative_path_check(value) < 0) {
+		snd_error(TOPOLOGY, "data file path '%s' escapes the topology directory", value);
+		return -EINVAL;
+	}
+
 	/* prepend alsa config directory to path */
 	if (env)
 		snprintf(filename, sizeof(filename), "%s/%s", env, value);

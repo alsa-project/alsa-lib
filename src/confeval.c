@@ -76,49 +76,16 @@ static int _parse_integer(value_type_t *val, const char **s)
 
 static int _to_integer(value_type_t *val, snd_config_t *c)
 {
+	long long v;
 	int err;
 
-	switch(snd_config_get_type(c)) {
-	case SND_CONFIG_TYPE_INTEGER:
-		{
-			long v;
-			err = snd_config_get_integer(c, &v);
-			if (err >= 0)
-				*val = v;
-		}
-		break;
-	case SND_CONFIG_TYPE_INTEGER64:
-		{
-			long long v;
-			err = snd_config_get_integer64(c, &v);
-			if (err >= 0) {
-				*val = v;
-				if (((long long)*val) != v)
-					return -ERANGE;
-				return 0;
-			}
-		}
-		break;
-	case SND_CONFIG_TYPE_STRING:
-		{
-			const char *s;
-			long long v;
-			err = snd_config_get_string(c, &s);
-			if (err >= 0) {
-				err = safe_strtoll(s, &v);
-				if (err >= 0) {
-					*val = v;
-					if (((long long)*val) != v)
-						return -ERANGE;
-					return 0;
-				}
-			}
-		}
-		break;
-	default:
-		return -EINVAL;
-	}
-	return err;
+	err = snd_config_get_llong(c, &v, 0);
+	if (err < 0)
+		return err;
+	*val = v;
+	if (((long long)*val) != v)
+		return -ERANGE;
+	return 0;
 }
 
 #ifndef DOC_HIDDEN

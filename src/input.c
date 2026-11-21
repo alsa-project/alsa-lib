@@ -335,3 +335,45 @@ int snd_input_buffer_open(snd_input_t **inputp, const char *buf, ssize_t size)
 	return 0;
 }
 
+/*
+ * \brief Verify that a relative path does not escape its base directory via ".." components.
+ * \param path Relative path to check.
+ * \return Zero if successful, otherwise -EINVAL.
+ *
+ * The check is purely lexical.
+ *
+ * Examples (base = root directory):
+ *   a/../b                      -> allowed   (depth: 1, 0, 1)
+ *   ../b                        -> rejected  (depth: -1)
+ *   a/b/c/../d/../../../../../x -> rejected
+ */
+int snd_relative_path_check(const char *path)
+{
+	const char *p = path;
+	int depth = 0;
+
+	while (*p) {
+		const char *comp = p;
+		size_t len;
+
+		while (*p && *p != '/')
+			p++;
+		len = p - comp;
+
+		while (*p == '/')
+			p++;
+
+		if (len == 0)
+			continue;
+		if (len == 1 && comp[0] == '.')
+			continue;
+		if (len == 2 && comp[0] == '.' && comp[1] == '.') {
+			if (--depth < 0)
+				return -EINVAL;
+			continue;
+		}
+		depth++;
+	}
+
+	return 0;
+}

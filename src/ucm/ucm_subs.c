@@ -736,6 +736,10 @@ static char *rval_sysfs_main(snd_use_case_mgr_t *uc_mgr, const char *top_path, c
 	}
 	if (id[0] == '/')
 		id++;
+	if (snd_relative_path_check(id) < 0) {
+		snd_error(UCM, "sysfs path '%s' escapes the sysfs root", id);
+		return NULL;
+	}
 	if (top_path)
 		snprintf(path, sizeof(path), "%s/%s/%s", e, top_path, id);
 	else

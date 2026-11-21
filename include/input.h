@@ -82,6 +82,8 @@ char *snd_input_gets(snd_input_t *input, char *str, size_t size);
 int snd_input_getc(snd_input_t *input);
 int snd_input_ungetc(snd_input_t *input, int c);
 
+int snd_relative_path_check(const char *path);
+
 /** \} */
 
 #ifdef __cplusplus

@@ -38,28 +38,13 @@ static int get_string(snd_config_t *compound, const char *key, const char **str)
  */
 static int get_integer(snd_config_t *compound, const char *key, long long *val)
 {
-	snd_config_type_t t;
 	snd_config_t *node;
-	const char *str;
 	int err;
 
 	err = snd_config_search(compound, key, &node);
 	if (err < 0)
 		return err;
-	t = snd_config_get_type(node);
-	if (t == SND_CONFIG_TYPE_INTEGER) {
-		long i;
-		err = snd_config_get_integer(node, &i);
-		if (err >= 0)
-			*val = i;
-	} else if (t == SND_CONFIG_TYPE_INTEGER64) {
-		err = snd_config_get_integer64(node, val);
-	} else {
-		err = snd_config_get_string(node, &str);
-		if (err < 0)
-			return err;
-		err = safe_strtoll(str, val);
-	}
+	err = snd_config_get_llong(node, val, 0);
 	if (err < 0)
 		return -EINVAL;
 

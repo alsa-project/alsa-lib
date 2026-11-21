@@ -646,6 +646,12 @@ static int input_stdio_open(snd_input_t **inputp, const char *file,
 	if (file[0] == '/')
 		return snd_input_stdio_open(inputp, file, "r");
 
+	err = snd_relative_path_check(file);
+	if (err < 0) {
+		snd_error(CONFIG, "Include file path '%s' escapes the include directory", file);
+		return err;
+	}
+
 	/* search file in user specified include paths. These directories
 	 * are subdirectories of /usr/share/alsa.
 	 */
@@ -803,7 +809,14 @@ static int get_char_skip_comments(input_t *input)
 
 			if (!strncmp(str, "searchdir:", 10)) {
 				/* directory to search included files */
-				char *tmp = _snd_config_path(str + 10);
+				char *tmp;
+				err = snd_relative_path_check(str + 10);
+				if (err < 0) {
+					snd_error(CONFIG, "Search dir path '%s' escapes the configuration directory", str + 10);
+					free(str);
+					return err;
+				}
+				tmp = _snd_config_path(str + 10);
 				free(str);
 				if (tmp == NULL)
 					return -ENOMEM;
@@ -829,7 +842,14 @@ static int get_char_skip_comments(input_t *input)
 
 			if (!strncmp(str, "confdir:", 8)) {
 				/* file in the specified directory */
-				char *tmp = _snd_config_path(str + 8);
+				char *tmp;
+				err = snd_relative_path_check(str + 8);
+				if (err < 0) {
+					snd_error(CONFIG, "Config dir path '%s' escapes the configuration directory", str + 8);
+					free(str);
+					return err;
+				}
+				tmp = _snd_config_path(str + 8);
 				free(str);
 				if (tmp == NULL)
 					return -ENOMEM;
@@ -1485,6 +1505,10 @@ static int parse_def(snd_config_t *parent, input_t *input, int skip, int overrid
 			endchr = ']';
 		}
 		c = get_nonwhite(input);
+		if (c < 0) {
+			err = c;
+			goto __end;
+		}
 		if (c != endchr) {
 			if (n)
 				snd_config_delete(n);
@@ -3249,6 +3273,40 @@ int snd_config_get_ireal(const snd_config_t *config, double *ptr)
 	else if (config->type == SND_CONFIG_TYPE_INTEGER64)
 		*ptr = config->u.integer64;
 	else
+		return -EINVAL;
+	return 0;
+}
+
+/**
+ * \brief Returns the value of an integer or string configuration node as a long long.
+ * \param[in] config Handle to the configuration node.
+ * \param[out] ptr The node's value.
+ * \param[in] base The numeric base used to parse a string node (see \c strtoll()).
+ * \return Zero if successful, otherwise a negative error code.
+ *
+ * If the node's type is integer or integer64, the value is converted
+ * to the \c long \c long type on the fly. If the node's type is string,
+ * the string is parsed as a number using \a base.
+ *
+ * \par Errors:
+ * <dl>
+ * <dt>-EINVAL<dd>\a config is not an integer, integer64 or a parseable string node.
+ * </dl>
+ */
+int snd_config_get_llong(const snd_config_t *config, long long *ptr, int base)
+{
+	const char *str;
+
+	assert(config && ptr);
+	if (config->type == SND_CONFIG_TYPE_INTEGER)
+		*ptr = config->u.integer;
+	else if (config->type == SND_CONFIG_TYPE_INTEGER64)
+		*ptr = config->u.integer64;
+	else if (config->type == SND_CONFIG_TYPE_STRING) {
+		str = config->u.string;
+		if (str == NULL || safe_strtoll_base(str, ptr, base) < 0)
+			return -EINVAL;
+	} else
 		return -EINVAL;
 	return 0;
 }

@@ -1121,8 +1121,16 @@ int snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 	}
 	for (i = 0; i < channels_count; ++i) {
 		snd_pcm_multi_channel_t *bind = &multi->channels[i];
-		assert(sidxs[i] < (int)slaves_count);
-		assert(schannels[i] < schannels_count[sidxs[i]]);
+		if (sidxs[i] < 0 || sidxs[i] >= (int)slaves_count) {
+			SNDERR("multi: ch %d invalid slave idx %d",
+			       i, sidxs[i]);
+			return -EINVAL;
+		}
+		if (schannels[i] >= schannels_count[sidxs[i]]) {
+			SNDERR("multi: ch %d channel %d out of range",
+			       i, schannels[i]);
+			return -EINVAL;
+		}
 		bind->slave_idx = sidxs[i];
 		bind->slave_channel = schannels[i];
 		if (sidxs[i] < 0)

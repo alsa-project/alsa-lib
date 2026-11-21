@@ -181,6 +181,7 @@ int snd_config_get_integer(const snd_config_t *config, long *value);
 int snd_config_get_integer64(const snd_config_t *config, long long *value);
 int snd_config_get_real(const snd_config_t *config, double *value);
 int snd_config_get_ireal(const snd_config_t *config, double *value);
+int snd_config_get_llong(const snd_config_t *config, long long *value, int base);
 int snd_config_get_string(const snd_config_t *config, const char **value);
 int snd_config_get_ascii(const snd_config_t *config, char **value);
 int snd_config_get_pointer(const snd_config_t *config, const void **value);

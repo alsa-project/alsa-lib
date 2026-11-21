@@ -563,6 +563,12 @@ static int execute_sysw(const char *sysw)
 		return -EINVAL;
 	}
 
+	if (snd_relative_path_check(s) < 0) {
+		snd_error(UCM, "sysw path '%s' escapes the sysfs root", s);
+		free(s);
+		return -EINVAL;
+	}
+
 	e = uc_mgr_sysfs_root();
 	if (e == NULL) {
 		free(s);

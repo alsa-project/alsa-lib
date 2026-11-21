@@ -173,7 +173,7 @@ int __snd_ctl_ascii_elem_id_parse(snd_ctl_elem_id_t *dst, const char *str,
 			ptr = buf;
 			size = 0;
 			while (*str && *str != ',') {
-				if (size < (int)sizeof(buf)) {
+				if (size < (int)sizeof(buf) - 1) {
 					*ptr++ = *str;
 					size++;
 				}
@@ -219,7 +219,7 @@ int __snd_ctl_ascii_elem_id_parse(snd_ctl_elem_id_t *dst, const char *str,
 			if (*str == '\'' || *str == '\"') {
 				c = *str++;
 				while (*str && *str != c) {
-					if (size < (int)sizeof(buf)) {
+					if (size < (int)sizeof(buf) - 1) {
 						*ptr++ = *str;
 						size++;
 					}
@@ -229,7 +229,7 @@ int __snd_ctl_ascii_elem_id_parse(snd_ctl_elem_id_t *dst, const char *str,
 					str++;
 			} else {
 				while (*str && *str != ',') {
-					if (size < (int)sizeof(buf)) {
+					if (size < (int)sizeof(buf) - 1) {
 						*ptr++ = *str;
 						size++;
 					}

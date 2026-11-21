@@ -34,9 +34,43 @@
 #include <netdb.h>
 #include <limits.h>
 #include <signal.h>
+#include <grp.h>
+#include <ctype.h>
 
 
-char *command;
+static char *command;
+static gid_t shm_gid = (gid_t)-1;
+
+static int shm_set_gid(int shmid)
+{
+	struct shmid_ds ds;
+	if (shmctl(shmid, IPC_STAT, &ds) < 0)
+		return -errno;
+	ds.shm_perm.gid = shm_gid;
+	ds.shm_perm.mode = 0660;
+	if (shmctl(shmid, IPC_SET, &ds) < 0)
+		return -errno;
+	return 0;
+}
+
+/* parse a numeric gid or a group name into *result */
+static int parse_gid(const char *str, gid_t *result)
+{
+	char *endp;
+
+	if (isdigit((unsigned char)*str)) {
+		long gid = strtol(str, &endp, 10);
+		if (*endp != '\0')
+			return -EINVAL;
+		*result = (gid_t)gid;
+	} else {
+		struct group *grp = getgrnam(str);
+		if (!grp)
+			return -EINVAL;
+		*result = grp->gr_gid;
+	}
+	return 0;
+}
 
 #if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95)
 #define ERROR(...) do {\
@@ -296,10 +330,16 @@ static int pcm_shm_open(client_t *client, int *cookie)
 	pcm->appl.private_data = client;
 	pcm->appl.changed = pcm_shm_appl_ptr_changed;
 
-	shmid = shmget(IPC_PRIVATE, PCM_SHM_SIZE, 0666);
+	shmid = shmget(IPC_PRIVATE, PCM_SHM_SIZE, 0660);
 	if (shmid < 0) {
 		result = -errno;
 		SYSERROR("shmget failed");
+		goto _err;
+	}
+	result = shm_set_gid(shmid);
+	if (result < 0) {
+		SYSERROR("shmctl IPC_SET failed");
+		shmctl(shmid, IPC_RMID, 0);
 		goto _err;
 	}
 	client->transport.shm.ctrl_id = shmid;
@@ -559,10 +599,16 @@ static int ctl_shm_open(client_t *client, int *cookie)
 	client->device.ctl.handle = ctl;
 	client->device.ctl.fd = _snd_ctl_poll_descriptor(ctl);
 
-	shmid = shmget(IPC_PRIVATE, CTL_SHM_SIZE, 0666);
+	shmid = shmget(IPC_PRIVATE, CTL_SHM_SIZE, 0660);
 	if (shmid < 0) {
 		result = -errno;
 		SYSERROR("shmget failed");
+		goto _err;
+	}
+	result = shm_set_gid(shmid);
+	if (result < 0) {
+		SYSERROR("shmctl IPC_SET failed");
+		shmctl(shmid, IPC_RMID, 0);
 		goto _err;
 	}
 	client->transport.shm.ctrl_id = shmid;
@@ -1018,7 +1064,7 @@ static void usage(void)
 {
 	fprintf(stderr,
 		"Usage: %s [OPTIONS] server\n"
-		"--help			help\n",
+		"--help/-h		help\n",
 		command);
 }
 
@@ -1091,12 +1137,35 @@ int main(int argc, char **argv)
 			}
 			continue;
 		}
+		if (strcmp(id, "gid") == 0) {
+			char *group;
+			err = snd_config_get_ascii(n, &group);
+			if (err < 0) {
+				ERROR("Invalid type for %s", id);
+				return 1;
+			}
+			if (*group && parse_gid(group, &shm_gid) < 0) {
+				ERROR("unknown group: %s", group);
+				free(group);
+				return 1;
+			}
+			free(group);
+			continue;
+		}
 		ERROR("Unknown field %s", id);
 		return 1;
 	}
 	if (!sockname && port < 0) {
 		ERROR("either socket or port need to be defined");
 		return 1;
+	}
+	if (shm_gid == (gid_t)-1) {
+		struct group *grp = getgrnam("audio");
+		if (!grp) {
+			ERROR("'audio' group not found; use the 'gid' config item to specify a group");
+			return 1;
+		}
+		shm_gid = grp->gr_gid;
 	}
 	server(sockname, port);
 	return 0;

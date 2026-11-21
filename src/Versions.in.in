@@ -228,3 +228,10 @@ ALSA_1.2.15 {
     @SYMBOL_PREFIX@snd_lib_log_filter;
     @SYMBOL_PREFIX@snd_lib_check;
 } ALSA_1.2.13;
+
+ALSA_1.2.17 {
+  global:
+
+    @SYMBOL_PREFIX@snd_config_get_llong;
+    @SYMBOL_PREFIX@snd_relative_path_check;
+} ALSA_1.2.15;
