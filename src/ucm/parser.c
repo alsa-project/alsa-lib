@@ -2124,10 +2124,27 @@ static int verb_resolve_optional_devices(snd_use_case_mgr_t *uc_mgr,
 		return 0;
 
 	list_for_each(pos, &verb->device_list) {
+		struct list_head *pos2, *npos2;
+		struct dev_list_node *dlist;
+
 		device = list_entry(pos, struct use_case_device, list);
 		err = dev_list_resolve_optional(verb, &device->dev_list);
 		if (err < 0)
 			return err;
+		/*
+		 * Drop references where a device lists its own name in its
+		 * supported or conflicting list. A device cannot meaningfully
+		 * support or conflict with itself and such a relationship is
+		 * ambiguous, so the self-reference is silently removed.
+		 */
+		list_for_each_safe(pos2, npos2, &device->dev_list.list) {
+			dlist = list_entry(pos2, struct dev_list_node, list);
+			if (strcmp(dlist->name, device->name) != 0)
+				continue;
+			list_del(&dlist->list);
+			free(dlist->name);
+			free(dlist);
+		}
 	}
 	list_for_each(pos, &verb->modifier_list) {
 		modifier = list_entry(pos, struct use_case_modifier, list);
