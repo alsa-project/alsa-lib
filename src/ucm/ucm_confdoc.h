@@ -1092,6 +1092,47 @@ SectionDevice."Speaker" {
 }
 ~~~
 
+### Device relationships (SupportedDevice / ConflictingDevice)
+
+A device or modifier may declare its relationship to other devices using the
+*SupportedDevice* and *ConflictingDevice* lists. Only one of the two may be
+specified for a given section; both are optional. The relationships declared for
+a device are automatically made bidirectional and transitive within the verb
+(if A conflicts with B and B conflicts with C, then A, B and C conflict with
+each other).
+
+By default, every name listed in *SupportedDevice* or *ConflictingDevice* must
+refer to an existing device in the verb. A reference to an unknown device aborts
+the configuration parsing with an error.
+
+#### Optional device references (Syntax 10+)
+
+Starting with **Syntax 10**, a device name in a *SupportedDevice* or
+*ConflictingDevice* list may be prefixed with a minus sign ('-') to mark the
+reference as *optional*. If no device with the given name exists in the verb,
+the reference is removed from the list instead of raising an error. The '-'
+prefix only affects error handling; when the referenced device does exist, the
+prefix is dropped and the entry behaves exactly like a normal reference.
+
+This is useful for configuration snippets that are shared between cards or
+layouts where some devices may or may not be present, avoiding the need to
+guard every reference with conditional blocks.
+
+Example - a headset device that conflicts with a speaker that may not exist on
+all models:
+
+~~~{.html}
+SectionDevice."Headset" {
+  ConflictingDevice [
+    "Headphones"     # must exist - error if missing
+    "-Speaker"       # optional - ignored if the card has no Speaker device
+  ]
+  EnableSequence [
+    ...
+  ]
+}
+~~~
+
 ### Device Variants
 
 Starting with **Syntax 8**, devices can define variants using the *DeviceVariant* block.

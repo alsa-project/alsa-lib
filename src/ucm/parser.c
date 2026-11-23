@@ -1736,6 +1736,9 @@ static int uc_mgr_config_copy_eval_merge(snd_use_case_mgr_t *uc_mgr,
  *		PlaybackSwitch "name='Master Playback Switch',index=2"
  *	}
  * }
+ *
+ * SupportedDevice and ConflictingDevice cannot be specified together.
+ * Both are optional.
  */
 
 static int parse_device_by_name(snd_use_case_mgr_t *uc_mgr,
@@ -2072,6 +2075,68 @@ static int verb_dev_list_add(struct use_case_verb *verb,
 	}
 	snd_error(UCM, "unable to find device '%s'", dst);
 	return -ENOENT;
+}
+
+static bool verb_has_device(struct use_case_verb *verb, const char *name)
+{
+	struct list_head *pos;
+	struct use_case_device *device;
+
+	list_for_each(pos, &verb->device_list) {
+		device = list_entry(pos, struct use_case_device, list);
+		if (strcmp(device->name, name) == 0)
+			return true;
+	}
+	return false;
+}
+
+static int dev_list_resolve_optional(struct use_case_verb *verb,
+				     struct dev_list *dev_list)
+{
+	struct list_head *pos, *npos;
+	struct dev_list_node *dlist;
+
+	list_for_each_safe(pos, npos, &dev_list->list) {
+		dlist = list_entry(pos, struct dev_list_node, list);
+		if (dlist->name[0] != '-')
+			continue;
+		if (verb_has_device(verb, dlist->name + 1)) {
+			memmove(dlist->name, dlist->name + 1, strlen(dlist->name));
+		} else {
+			list_del(&dlist->list);
+			free(dlist->name);
+			free(dlist);
+		}
+	}
+
+	return 0;
+}
+
+static int verb_resolve_optional_devices(snd_use_case_mgr_t *uc_mgr,
+					 struct use_case_verb *verb)
+{
+	struct list_head *pos;
+	struct use_case_device *device;
+	struct use_case_modifier *modifier;
+	int err;
+
+	if (uc_mgr->conf_format < 10)
+		return 0;
+
+	list_for_each(pos, &verb->device_list) {
+		device = list_entry(pos, struct use_case_device, list);
+		err = dev_list_resolve_optional(verb, &device->dev_list);
+		if (err < 0)
+			return err;
+	}
+	list_for_each(pos, &verb->modifier_list) {
+		modifier = list_entry(pos, struct use_case_modifier, list);
+		err = dev_list_resolve_optional(verb, &modifier->dev_list);
+		if (err < 0)
+			return err;
+	}
+
+	return 0;
 }
 
 static int verb_dev_list_check(struct use_case_verb *verb)
@@ -2495,6 +2560,13 @@ static int verb_device_management(snd_use_case_mgr_t *uc_mgr, struct use_case_ve
 	struct list_head *pos;
 	struct ucm_dev_name *dev;
 	int err;
+
+	/* resolve optional ('-' prefixed) device references before any rename
+	 * or normalization so the kept references are processed like normal ones
+	 */
+	err = verb_resolve_optional_devices(uc_mgr, verb);
+	if (err < 0)
+		return err;
 
 	/* rename devices */
 	list_for_each(pos, &verb->rename_list) {
