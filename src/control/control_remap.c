@@ -219,9 +219,10 @@ static void remap_forget_numid_child(snd_ctl_remap_t *priv, unsigned int numid_c
 	for (index = 0; index < priv->numid_items; index++) {
 		if (numid[index].numid_child != numid_child)
 			continue;
-		memcpy(&priv->numid[index], &priv->numid[index + 1],
+		memmove(&priv->numid[index], &priv->numid[index + 1],
 				(priv->numid_items - 1 - index) * sizeof(*numid));
-		priv->numid_items++;
+		priv->numid_items--;
+		index--;
 	}
 }
 
