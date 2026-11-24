@@ -299,6 +299,7 @@ static int remap_id_to_child(snd_ctl_remap_t *priv, snd_ctl_elem_id_t *id, snd_c
 	int err;
 
 	debug_id(id, "%s enter\n", __func__);
+	*_rid = NULL;
 _retry:
 	rid = remap_find_id_app(priv, id);
 	if (rid) {
@@ -679,7 +680,7 @@ static int snd_ctl_remap_elem_info(snd_ctl_t *ctl, snd_ctl_elem_info_t *info)
 	if (err != -EREMAPNOTFOUND)
 		return err;
 	err = remap_id_to_child(priv, &info->id, &rid);
-	if (err < 0)
+	if (err < 0 && err != -ENOENT)
 		return err;
 	err = snd_ctl_elem_info(priv->child, info);
 	if (err >= 0 && priv->sync_items > 0)
@@ -775,7 +776,7 @@ static int snd_ctl_remap_elem_read(snd_ctl_t *ctl, snd_ctl_elem_value_t *control
 	if (err != -EREMAPNOTFOUND)
 		return err;
 	err = remap_id_to_child(priv, &control->id, &rid);
-	if (err < 0)
+	if (err < 0 && err != -ENOENT)
 		return err;
 	err = snd_ctl_elem_read(priv->child, control);
 	return remap_id_to_app(priv, &control->id, rid, err);
@@ -903,7 +904,7 @@ static int snd_ctl_remap_elem_write(snd_ctl_t *ctl, snd_ctl_elem_value_t *contro
 	if (err != -EREMAPNOTFOUND)
 		return err;
 	err = remap_id_to_child(priv, &control->id, &rid);
-	if (err < 0)
+	if (err < 0 && err != -ENOENT)
 		return err;
 	err = snd_ctl_elem_write(priv->child, control);
 	return remap_id_to_app(priv, &control->id, rid, err);
@@ -917,7 +918,7 @@ static int snd_ctl_remap_elem_lock(snd_ctl_t *ctl, snd_ctl_elem_id_t *id)
 
 	debug_id(id, "%s\n", __func__);
 	err = remap_id_to_child(priv, id, &rid);
-	if (err < 0)
+	if (err < 0 && err != -ENOENT)
 		return err;
 	err = snd_ctl_elem_lock(priv->child, id);
 	return remap_id_to_app(priv, id, rid, err);
@@ -931,7 +932,7 @@ static int snd_ctl_remap_elem_unlock(snd_ctl_t *ctl, snd_ctl_elem_id_t *id)
 
 	debug_id(id, "%s\n", __func__);
 	err = remap_id_to_child(priv, id, &rid);
-	if (err < 0)
+	if (err < 0 && err != -ENOENT)
 		return err;
 	err = snd_ctl_elem_unlock(priv->child, id);
 	return remap_id_to_app(priv, id, rid, err);
