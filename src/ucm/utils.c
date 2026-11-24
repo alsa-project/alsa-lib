@@ -194,6 +194,15 @@ static int uc_mgr_ctl_add_dev(struct ctl_list *ctl_list, const char *device)
 	return 0;
 }
 
+/* compare the device name (the part before ':'), ignoring the arguments */
+static int uc_mgr_ctl_dev_name_eq(const char *a, const char *b)
+{
+	size_t la = strcspn(a, ":");
+	size_t lb = strcspn(b, ":");
+
+	return la == lb && strncmp(a, b, la) == 0;
+}
+
 static int uc_mgr_ctl_add(snd_use_case_mgr_t *uc_mgr,
 			  struct ctl_list **ctl_list,
 			  snd_ctl_t *ctl, int card,
@@ -225,18 +234,20 @@ static int uc_mgr_ctl_add(snd_use_case_mgr_t *uc_mgr,
 		if (!slave)
 			(*ctl_list)->slave = slave;
 	}
-	if (card >= 0) {
-		snprintf(dev, sizeof(dev), "hw:%d", card);
+	if (!device || uc_mgr_ctl_dev_name_eq(device, "hw")) {
+		if (card >= 0) {
+			snprintf(dev, sizeof(dev), "hw:%d", card);
+			hit |= !!(device && (strcmp(dev, device) == 0));
+			err = uc_mgr_ctl_add_dev(*ctl_list, dev);
+			if (err < 0)
+				goto __nomem;
+		}
+		snprintf(dev, sizeof(dev), "hw:%s", id);
 		hit |= !!(device && (strcmp(dev, device) == 0));
 		err = uc_mgr_ctl_add_dev(*ctl_list, dev);
 		if (err < 0)
 			goto __nomem;
 	}
-	snprintf(dev, sizeof(dev), "hw:%s", id);
-	hit |= !!(device && (strcmp(dev, device) == 0));
-	err = uc_mgr_ctl_add_dev(*ctl_list, dev);
-	if (err < 0)
-		goto __nomem;
 	/* the UCM name not based on the card name / id */
 	if (!hit && device) {
 		err = uc_mgr_ctl_add_dev(*ctl_list, device);
