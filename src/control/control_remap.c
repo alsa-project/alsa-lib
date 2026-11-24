@@ -219,9 +219,10 @@ static void remap_forget_numid_child(snd_ctl_remap_t *priv, unsigned int numid_c
 	for (index = 0; index < priv->numid_items; index++) {
 		if (numid[index].numid_child != numid_child)
 			continue;
-		memcpy(&priv->numid[index], &priv->numid[index + 1],
+		memmove(&priv->numid[index], &priv->numid[index + 1],
 				(priv->numid_items - 1 - index) * sizeof(*numid));
-		priv->numid_items++;
+		priv->numid_items--;
+		index--;
 	}
 }
 
@@ -298,6 +299,7 @@ static int remap_id_to_child(snd_ctl_remap_t *priv, snd_ctl_elem_id_t *id, snd_c
 	int err;
 
 	debug_id(id, "%s enter\n", __func__);
+	*_rid = NULL;
 _retry:
 	rid = remap_find_id_app(priv, id);
 	if (rid) {
@@ -314,12 +316,16 @@ _retry:
 		if (numid) {
 			id->numid = numid->numid_child;
 		} else {
-			if (reloaded || priv->list_complete)
+			if (reloaded || priv->list_complete) {
+				debug_id(id, "%s leave (not found)\n", __func__);
 				return -ENOENT;
+			}
 			/* build whole numid mapping */
 			err = remap_load_list(priv);
-			if (err < 0)
+			if (err < 0) {
+				debug_id(id, "%s leave (error %d)\n", __func__, err);
 				return err;
+			}
 			reloaded = true;
 			goto _retry;
 		}
@@ -674,7 +680,7 @@ static int snd_ctl_remap_elem_info(snd_ctl_t *ctl, snd_ctl_elem_info_t *info)
 	if (err != -EREMAPNOTFOUND)
 		return err;
 	err = remap_id_to_child(priv, &info->id, &rid);
-	if (err < 0)
+	if (err < 0 && err != -ENOENT)
 		return err;
 	err = snd_ctl_elem_info(priv->child, info);
 	if (err >= 0 && priv->sync_items > 0)
@@ -770,7 +776,7 @@ static int snd_ctl_remap_elem_read(snd_ctl_t *ctl, snd_ctl_elem_value_t *control
 	if (err != -EREMAPNOTFOUND)
 		return err;
 	err = remap_id_to_child(priv, &control->id, &rid);
-	if (err < 0)
+	if (err < 0 && err != -ENOENT)
 		return err;
 	err = snd_ctl_elem_read(priv->child, control);
 	return remap_id_to_app(priv, &control->id, rid, err);
@@ -898,7 +904,7 @@ static int snd_ctl_remap_elem_write(snd_ctl_t *ctl, snd_ctl_elem_value_t *contro
 	if (err != -EREMAPNOTFOUND)
 		return err;
 	err = remap_id_to_child(priv, &control->id, &rid);
-	if (err < 0)
+	if (err < 0 && err != -ENOENT)
 		return err;
 	err = snd_ctl_elem_write(priv->child, control);
 	return remap_id_to_app(priv, &control->id, rid, err);
@@ -912,7 +918,7 @@ static int snd_ctl_remap_elem_lock(snd_ctl_t *ctl, snd_ctl_elem_id_t *id)
 
 	debug_id(id, "%s\n", __func__);
 	err = remap_id_to_child(priv, id, &rid);
-	if (err < 0)
+	if (err < 0 && err != -ENOENT)
 		return err;
 	err = snd_ctl_elem_lock(priv->child, id);
 	return remap_id_to_app(priv, id, rid, err);
@@ -926,7 +932,7 @@ static int snd_ctl_remap_elem_unlock(snd_ctl_t *ctl, snd_ctl_elem_id_t *id)
 
 	debug_id(id, "%s\n", __func__);
 	err = remap_id_to_child(priv, id, &rid);
-	if (err < 0)
+	if (err < 0 && err != -ENOENT)
 		return err;
 	err = snd_ctl_elem_unlock(priv->child, id);
 	return remap_id_to_app(priv, id, rid, err);
