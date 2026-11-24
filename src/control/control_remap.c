@@ -315,12 +315,16 @@ _retry:
 		if (numid) {
 			id->numid = numid->numid_child;
 		} else {
-			if (reloaded || priv->list_complete)
+			if (reloaded || priv->list_complete) {
+				debug_id(id, "%s leave (not found)\n", __func__);
 				return -ENOENT;
+			}
 			/* build whole numid mapping */
 			err = remap_load_list(priv);
-			if (err < 0)
+			if (err < 0) {
+				debug_id(id, "%s leave (error %d)\n", __func__, err);
 				return err;
+			}
 			reloaded = true;
 			goto _retry;
 		}
