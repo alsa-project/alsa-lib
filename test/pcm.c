@@ -810,13 +810,13 @@ int main(int argc, char *argv[])
 			break;
 		case 'r':
 			rate = atoi(optarg);
-			rate = rate < 4000 ? 4000 : rate;
-			rate = rate > 196000 ? 196000 : rate;
+			rate = rate < SND_PCM_LIMIT_HW_RATE_MIN ? SND_PCM_LIMIT_HW_RATE_MIN : rate;
+			rate = rate > SND_PCM_LIMIT_HW_RATE_MAX ? SND_PCM_LIMIT_HW_RATE_MAX : rate;
 			break;
 		case 'c':
 			channels = atoi(optarg);
 			channels = channels < 1 ? 1 : channels;
-			channels = channels > 1024 ? 1024 : channels;
+			channels = channels > SND_PCM_LIMIT_HW_CHANNELS_MAX ? SND_PCM_LIMIT_HW_CHANNELS_MAX : channels;
 			break;
 		case 'f':
 			freq = atoi(optarg);

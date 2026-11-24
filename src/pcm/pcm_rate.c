@@ -1528,8 +1528,8 @@ int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name,
 	rate->srate = srate;
 	rate->sformat = sformat;
 
-	rate->rate_min = SND_PCM_PLUGIN_RATE_MIN;
-	rate->rate_max = SND_PCM_PLUGIN_RATE_MAX;
+	rate->rate_min = SND_PCM_LIMIT_SW_RATE_MIN;
+	rate->rate_max = SND_PCM_LIMIT_SW_RATE_MAX;
 	rate->plugin_version = SND_PCM_RATE_PLUGIN_VERSION;
 
 	err = snd_pcm_new(&pcm, SND_PCM_TYPE_RATE, name, slave->stream, slave->mode);
