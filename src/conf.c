@@ -586,6 +586,49 @@ static void free_include_paths(struct filedesc *fd)
 
 #endif /* DOC_HIDDEN */
 
+static char snd_config_topdir_path[PATH_MAX];
+static const char *snd_config_topdir_value = ALSA_CONFIG_DIR;
+#ifdef HAVE_LIBPTHREAD
+static pthread_once_t snd_config_topdir_once = PTHREAD_ONCE_INIT;
+#endif
+
+static void snd_config_init_topdir(void)
+{
+	const char *env = getenv("ALSA_CONFIG_DIR");
+
+	/* Retain the explicit user override, and own the cached string. */
+	if (env && *env == '/' && strlen(env) < sizeof(snd_config_topdir_path)) {
+		strcpy(snd_config_topdir_path, env);
+		snd_config_topdir_value = snd_config_topdir_path;
+		return;
+	}
+
+#if defined(HAVE_LIBDL) && defined(__GLIBC__) && !defined(__UCLIBC__)
+	{
+		struct link_map *links;
+		Dl_info info;
+		char origin[PATH_MAX], config[PATH_MAX];
+		int length;
+
+		/* Use a local function: symbol interposition must not select a
+		 * different loaded libasound instance's configuration directory. */
+		if (!dladdr1(&snd_config_init_topdir, &info, (void **)&links,
+			     RTLD_DL_LINKMAP) || dlinfo(links, RTLD_DI_ORIGIN, origin))
+			return;
+		length = snprintf(config, sizeof(config),
+				  "%s/alsa-config/alsa.conf", origin);
+		if (length < 0 || (size_t)length >= sizeof(config) ||
+		    access(config, R_OK) != 0)
+			return;
+		length = snprintf(snd_config_topdir_path,
+				  sizeof(snd_config_topdir_path),
+				  "%s/alsa-config", origin);
+		if (length >= 0 && (size_t)length < sizeof(snd_config_topdir_path))
+			snd_config_topdir_value = snd_config_topdir_path;
+	}
+#endif
+}
+
 /**
  * \brief Returns the default top-level config directory
  * \return The top-level config directory path string
@@ -593,18 +636,22 @@ static void free_include_paths(struct filedesc *fd)
  * This function returns the string of the top-level config directory path.
  * If the path is specified via the environment variable \c ALSA_CONFIG_DIR
  * and the value is a valid path, it returns this value.  If unspecified, it
- * returns the default value, "/usr/share/alsa".
+ * uses an existing "alsa-config" directory next to the loaded shared library,
+ * or otherwise returns the configured default, normally "/usr/share/alsa".
  */
 const char *snd_config_topdir(void)
 {
-	static char *topdir;
+#ifdef HAVE_LIBPTHREAD
+	pthread_once(&snd_config_topdir_once, snd_config_init_topdir);
+#else
+	static int initialized;
 
-	if (!topdir) {
-		topdir = getenv("ALSA_CONFIG_DIR");
-		if (!topdir || *topdir != '/' || strlen(topdir) >= PATH_MAX)
-			topdir = ALSA_CONFIG_DIR;
+	if (!initialized) {
+		snd_config_init_topdir();
+		initialized = 1;
 	}
-	return topdir;
+#endif
+	return snd_config_topdir_value;
 }
 
 #ifndef DOC_HIDDEN
