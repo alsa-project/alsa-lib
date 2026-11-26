@@ -26,6 +26,7 @@
 
 #include "pcm/pcm_local.h"
 #include "control/control_local.h"
+#include "timer/timer_local.h"
 #include <signal.h>
 
 static struct sigaction previous_action;
@@ -162,6 +163,9 @@ int snd_async_del_handler(snd_async_handler_t *handler)
 		case SND_ASYNC_HANDLER_CTL:
 			alist = &handler->u.ctl->async_handlers;
 			break;
+		case SND_ASYNC_HANDLER_TIMER:
+			alist = &handler->u.timer->async_handlers;
+			break;
 		default:
 			assert(0);
 		}
@@ -178,6 +182,9 @@ int snd_async_del_handler(snd_async_handler_t *handler)
 		case SND_ASYNC_HANDLER_CTL:
 			err2 = snd_ctl_async(handler->u.ctl, -1, 1);
 			break;
+                case SND_ASYNC_HANDLER_TIMER:
+			err2 = snd_timer_async(handler->u.timer, -1, 1);
+                        break;
 		default:
 			assert(0);
 		}
