@@ -520,11 +520,11 @@ static snd_pcm_sframes_t snd_pcm_dshare_mmap_commit(snd_pcm_t *pcm,
 	if (dshare->state == STATE_RUN_PENDING) {
 		err = snd_pcm_dshare_start_timer(pcm, dshare);
 		if (err < 0)
-			return err;
+			goto _undo;
 	} else if (dshare->state == SND_PCM_STATE_RUNNING ||
 		   dshare->state == SND_PCM_STATE_DRAINING) {
 		if ((err = snd_pcm_dshare_sync_ptr(pcm)) < 0)
-			return err;
+			goto _undo;
 	}
 	if (dshare->state == SND_PCM_STATE_RUNNING ||
 	    dshare->state == SND_PCM_STATE_DRAINING) {
@@ -536,6 +536,13 @@ static snd_pcm_sframes_t snd_pcm_dshare_mmap_commit(snd_pcm_t *pcm,
 			snd_pcm_direct_clear_timer_queue(dshare);
 	}
 	return size;
+
+ _undo:
+	/* nothing was copied, so the caller must not see these frames as
+	 * committed. A plugin above us keeps its appl_ptr in step with ours.
+	 */
+	snd_pcm_mmap_appl_backward(pcm, size);
+	return err;
 }
 
 static snd_pcm_sframes_t snd_pcm_dshare_avail_update(snd_pcm_t *pcm)
