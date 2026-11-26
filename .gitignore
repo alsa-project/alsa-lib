@@ -27,6 +27,8 @@ ltconfig
 *.pc
 *.o
 *~
+.libs
+.deps
 include/config.h
 include/stamp-h1
 include/stamp-vh
@@ -48,6 +50,7 @@ src/pcm/pcm_symbols_list.c
 doc/doxygen/*
 doc/doxygen.cfg
 test/audio_time
+test/address
 test/chmap
 test/client_event_filter
 test/control
@@ -56,6 +59,7 @@ test/midiloop
 test/namehint
 test/oldapi
 test/chmap
+test/mixtest
 test/pcm
 test/pcm_min
 test/pcm-multi-thread
@@ -66,5 +70,6 @@ test/seq
 test/seq-ump-example
 test/timer
 test/umpinfo
+test/user-ctl-element-set
 test/lsb/config
 test/lsb/midi_event
