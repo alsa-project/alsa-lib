@@ -42,17 +42,17 @@
 static int snd_card_load2(const char *control)
 {
 	int open_dev;
-	snd_ctl_card_info_t info;
+	struct snd_ctl_card_info kinfo;
 
 	open_dev = snd_open_device(control, O_RDONLY);
 	if (open_dev >= 0) {
-		if (ioctl(open_dev, SNDRV_CTL_IOCTL_CARD_INFO, &info) < 0) {
+		if (ioctl(open_dev, SNDRV_CTL_IOCTL_CARD_INFO, &kinfo) < 0) {
 			int err = -errno;
 			close(open_dev);
 			return err;
 		}
 		close(open_dev);
-		return info.card;
+		return kinfo.card;
 	} else {
 		return -errno;
 	}
